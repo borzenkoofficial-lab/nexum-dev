@@ -1,0 +1,202 @@
+import { mkdir, lstat, readFile, writeFile } from "node:fs/promises";
+import { isAbsolute, relative, resolve } from "node:path";
+import { assertExistingProjectPath, resolveProjectPath } from "../agent/tools/path.js";
+import type { Project, ProjectStatus, ProjectStore } from "./types.js";
+
+export class ProjectManagerError extends Error {
+  statusCode: number;
+
+  constructor(message: string, statusCode = 400) {
+    super(message);
+    this.name = "ProjectManagerError";
+    this.statusCode = statusCode;
+  }
+}
+
+export class ProjectManager {
+  private readonly projectsRoot: string;
+  private readonly storePath: string;
+  private readonly defaultProject: Project;
+  private initialized = false;
+
+  constructor(private readonly workspaceRoot: string) {
+    this.projectsRoot = resolve(workspaceRoot, "projects");
+    this.storePath = resolve(workspaceRoot, ".nexum-projects.json");
+    const now = new Date().toISOString();
+    this.defaultProject = {
+      id: "nexum",
+      name: "NEXUM",
+      path: workspaceRoot,
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    await mkdir(this.projectsRoot, { recursive: true });
+    const existing = await this.readStore();
+    if (!existing) {
+      await this.writeStore({ projects: [this.defaultProject], activeProjectId: this.defaultProject.id });
+    } else if (!existing.projects.some((project) => project.id === this.defaultProject.id)) {
+      existing.projects.unshift(this.defaultProject);
+      await this.writeStore(existing);
+    }
+    this.initialized = true;
+  }
+
+  async createProject(name: string): Promise<Project> {
+    await this.initialize();
+    const validName = this.validateName(name);
+    const id = this.createId(validName);
+    const store = await this.requireStore();
+
+    if (store.projects.some((project) => project.id === id)) {
+      throw new ProjectManagerError(`Project already exists: ${id}`, 409);
+    }
+
+    const projectPath = resolveProjectPath(this.projectsRoot, id);
+    await this.assertProjectPath(projectPath);
+    await mkdir(projectPath);
+
+    const now = new Date().toISOString();
+    const project: Project = {
+      id,
+      name: validName,
+      path: projectPath,
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    };
+    store.projects.push(project);
+    await this.writeStore(store);
+    return project;
+  }
+
+  async listProjects(): Promise<Project[]> {
+    const store = await this.requireStore();
+    return store.projects.map((project) => ({ ...project }));
+  }
+
+  async getProject(id: string): Promise<Project> {
+    const store = await this.requireStore();
+    this.validateId(id);
+    const project = store.projects.find((item) => item.id === id);
+    if (!project) throw new ProjectManagerError(`Project not found: ${id}`, 404);
+    await this.assertStoredProject(project);
+    return { ...project };
+  }
+
+  async getActiveProject(projectId?: string): Promise<Project> {
+    const store = await this.requireStore();
+    const id = projectId ?? store.activeProjectId;
+    const project = await this.getProject(id);
+    if (project.status !== "active") {
+      throw new ProjectManagerError(`Project is archived: ${project.id}`, 409);
+    }
+    return project;
+  }
+
+  async selectProject(id: string): Promise<Project> {
+    const project = await this.getProject(id);
+    if (project.status !== "active") {
+      throw new ProjectManagerError(`Project is archived: ${id}`, 409);
+    }
+
+    const store = await this.requireStore();
+    store.activeProjectId = id;
+    await this.writeStore(store);
+    return project;
+  }
+
+  async archiveProject(id: string): Promise<Project> {
+    const store = await this.requireStore();
+    const project = await this.getProject(id);
+    const now = new Date().toISOString();
+    const archivedProject = { ...project, status: "archived" as ProjectStatus, updatedAt: now };
+    store.projects = store.projects.map((item) => (item.id === id ? archivedProject : item));
+
+    if (store.activeProjectId === id) {
+      const fallback = store.projects.find((item) => item.status === "active");
+      if (fallback) store.activeProjectId = fallback.id;
+    }
+
+    await this.writeStore(store);
+    return archivedProject;
+  }
+
+  async deleteProject(id: string): Promise<Project> {
+    return this.archiveProject(id);
+  }
+
+  private async requireStore(): Promise<ProjectStore> {
+    await this.initialize();
+    const store = await this.readStore();
+    if (!store) throw new ProjectManagerError("Project store is unavailable", 500);
+    return store;
+  }
+
+  private async readStore(): Promise<ProjectStore | null> {
+    try {
+      const content = await readFile(this.storePath, "utf8");
+      const parsed = JSON.parse(content) as ProjectStore;
+      if (!Array.isArray(parsed.projects) || typeof parsed.activeProjectId !== "string") {
+        throw new ProjectManagerError("Project store is invalid", 500);
+      }
+      return parsed;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      if (error instanceof ProjectManagerError) throw error;
+      throw new ProjectManagerError("Unable to read project store", 500);
+    }
+  }
+
+  private async writeStore(store: ProjectStore): Promise<void> {
+    await writeFile(this.storePath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+  }
+
+  private validateName(name: string): string {
+    const value = name.trim();
+    if (!value || value.length > 64 || !/^[\p{L}\p{N}][\p{L}\p{N} _-]*$/u.test(value)) {
+      throw new ProjectManagerError("Project name must be 1-64 letters, numbers, spaces, _ or -");
+    }
+    return value;
+  }
+
+  private createId(name: string): string {
+    const id = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    this.validateId(id);
+    return id;
+  }
+
+  private validateId(id: string): void {
+    if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(id) || id.includes("..")) {
+      throw new ProjectManagerError("Project id is invalid");
+    }
+  }
+
+  private async assertProjectPath(projectPath: string): Promise<void> {
+    const relativePath = relative(this.projectsRoot, projectPath);
+    if (relativePath.startsWith("..") || isAbsolute(relativePath)) {
+      throw new ProjectManagerError("Project path must stay inside projects directory");
+    }
+
+    try {
+      const details = await lstat(projectPath);
+      if (details.isSymbolicLink()) throw new ProjectManagerError("Project path cannot be a symlink");
+      throw new ProjectManagerError("Project directory already exists", 409);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+
+  private async assertStoredProject(project: Project): Promise<void> {
+    if (project.id === this.defaultProject.id && project.path === this.workspaceRoot) return;
+    await assertExistingProjectPath(this.projectsRoot, relative(this.projectsRoot, project.path));
+  }
+}

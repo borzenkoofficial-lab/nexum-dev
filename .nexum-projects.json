@@ -1,0 +1,13 @@
+{
+  "projects": [
+    {
+      "id": "nexum",
+      "name": "NEXUM",
+      "path": "/workspaces/nexum-dev",
+      "status": "active",
+      "createdAt": "2026-09-25T17:57:28.130Z",
+      "updatedAt": "2026-09-25T17:57:28.130Z"
+    }
+  ],
+  "activeProjectId": "nexum"
+}
