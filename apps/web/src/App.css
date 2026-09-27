@@ -2246,3 +2246,178 @@ body { overflow-x: hidden; }
   .new-project::before,
   .send-button::before { display: none; }
 }
+
+
+/* Final external product layer */
+.nexum-home,.connectors-page,.settings-page{
+  width:min(1180px,100%);
+  margin:0 auto;
+  padding:54px 46px 72px;
+}
+.home-hero,.page-heading{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:32px;
+  padding-bottom:30px;
+  border-bottom:1px solid rgba(255,255,255,.065);
+}
+.home-hero h1,.page-heading h1{
+  max-width:760px;
+  margin:8px 0 10px;
+  color:#f2f6f1;
+  font-size:clamp(34px,4.5vw,62px);
+  line-height:.98;
+  letter-spacing:-.035em;
+}
+.home-hero p,.page-heading p{
+  max-width:650px;
+  margin:0;
+  color:#89958c;
+  font-size:13px;
+  line-height:1.65;
+}
+.home-primary{
+  flex:0 0 auto;
+  min-height:42px;
+  padding:0 16px;
+  border:1px solid rgba(217,255,74,.2);
+  border-radius:9px;
+  background:rgba(217,255,74,.08);
+  color:#d9ff4a;
+  font-size:11px;
+  font-weight:750;
+  transition:transform .18s ease,background .18s ease,border-color .18s ease;
+}
+.home-primary:hover{
+  transform:translateY(-1px);
+  background:rgba(217,255,74,.13);
+  border-color:rgba(217,255,74,.34);
+}
+.home-section-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin:30px 0 12px;
+}
+.home-section-title span{
+  color:#7f8a81;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.14em;
+}
+.home-section-title button{
+  border:0;
+  background:none;
+  color:#9ba69d;
+  font-size:10px;
+}
+.project-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+.project-window{
+  min-height:174px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  padding:0 16px 16px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.075);
+  border-radius:13px;
+  background:linear-gradient(145deg,rgba(30,36,33,.82),rgba(19,24,21,.94));
+  color:#dfe7df;
+  text-align:left;
+  box-shadow:0 16px 40px rgba(0,0,0,.14);
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.project-window:hover{
+  transform:translateY(-3px);
+  border-color:rgba(217,255,74,.18);
+  box-shadow:0 22px 55px rgba(0,0,0,.24);
+}
+.window-chrome{
+  width:calc(100% + 32px);
+  height:30px;
+  margin:0 -16px 16px;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  padding-left:11px;
+  border-bottom:1px solid rgba(255,255,255,.055);
+  background:rgba(0,0,0,.12);
+}
+.window-chrome i{width:6px;height:6px;border-radius:50%;background:#59635b}
+.project-window-mark{
+  width:34px;height:34px;display:grid;place-items:center;
+  margin-bottom:12px;border:1px solid rgba(217,255,74,.14);border-radius:9px;
+  background:rgba(217,255,74,.055);color:#d9ff4a;font-weight:800;
+}
+.project-window strong{font-size:14px}
+.project-window-meta{margin-top:auto;color:#737e75;font-size:10px}
+.empty-card{
+  grid-column:1/-1;padding:42px;border:1px dashed rgba(255,255,255,.08);
+  border-radius:12px;color:#68736a;text-align:center;
+}
+.workspace-toolbar{
+  min-height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:8px 20px;
+  border-bottom:1px solid rgba(255,255,255,.065);
+  background:rgba(14,18,16,.48);
+}
+.workspace-breadcrumb{display:flex;align-items:center;gap:8px;min-width:0;font-size:10px}
+.workspace-breadcrumb span{color:#69756c}
+.workspace-breadcrumb b{color:#414a43;font-weight:500}
+.workspace-breadcrumb strong{overflow:hidden;color:#c7d0c8;text-overflow:ellipsis;white-space:nowrap}
+.workspace-actions{position:relative;display:flex;align-items:center;gap:5px}
+.workspace-actions>button{
+  min-height:30px;padding:0 9px;border:1px solid rgba(255,255,255,.075);border-radius:7px;
+  background:rgba(255,255,255,.02);color:#8d998f;font-size:9px;font-weight:650;
+}
+.workspace-actions>button:hover{border-color:rgba(217,255,74,.18);color:#dce5dd;background:rgba(255,255,255,.035)}
+.workspace-actions .workspace-deploy{border-color:rgba(217,255,74,.2);background:rgba(217,255,74,.06);color:#d9ff4a}
+.workspace-more{font-size:13px!important;letter-spacing:2px}
+.workspace-menu{
+  position:absolute;top:38px;right:0;z-index:50;width:190px;padding:5px;
+  border:1px solid rgba(255,255,255,.11);border-radius:10px;
+  background:rgba(25,30,27,.98);box-shadow:0 18px 55px rgba(0,0,0,.45);
+  backdrop-filter:blur(22px);
+}
+.workspace-menu button{
+  width:100%;min-height:34px;padding:0 9px;border:0;border-radius:6px;
+  background:transparent;color:#aab4ab;text-align:left;font-size:10px;
+}
+.workspace-menu button:hover{background:rgba(255,255,255,.05);color:#f0f5ef}
+.connector-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:28px}
+.connector-card{
+  min-height:170px;padding:18px;border:1px solid rgba(255,255,255,.07);border-radius:12px;
+  background:rgba(25,30,27,.72);display:flex;flex-direction:column;gap:12px;
+}
+.connector-icon{width:34px;height:34px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.025);color:#d9ff4a;font-weight:800}
+.connector-copy{display:grid;gap:4px}.connector-copy span{color:#68736a;font-size:8px;text-transform:uppercase;letter-spacing:.1em}.connector-copy strong{color:#e7eee8;font-size:13px}.connector-copy p{margin:0;color:#7f8a81;font-size:10px;line-height:1.45}
+.connector-card>button{align-self:flex-start;margin-top:auto;min-height:29px;padding:0 10px;border:1px solid rgba(255,255,255,.08);border-radius:7px;background:rgba(255,255,255,.025);color:#aab4ab;font-size:9px}
+.connector-card>button:hover{border-color:rgba(217,255,74,.2);color:#d9ff4a}
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:28px}
+.settings-card{min-width:0;padding:17px;border:1px solid rgba(255,255,255,.07);border-radius:11px;background:rgba(25,30,27,.72)}
+.settings-card>strong{display:block;color:#dfe7df;font-size:12px}.settings-card>span{display:block;margin-top:5px;color:#aab4ab;font-size:10px}.settings-card>small{display:block;margin-top:6px;color:#707b72;font-size:9px;line-height:1.5}
+.settings-card input{min-height:38px;padding:0 10px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(0,0,0,.18);color:#e9f0e9;outline:none}.settings-card input:focus{border-color:rgba(217,255,74,.25)}
+@media(max-width:900px){
+ .nexum-home,.connectors-page,.settings-page{padding:38px 28px 60px}
+ .project-grid,.connector-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .home-hero,.page-heading{align-items:flex-start;flex-direction:column}
+ .settings-grid{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+ .nexum-home,.connectors-page,.settings-page{padding:28px 14px 48px}
+ .home-hero h1,.page-heading h1{font-size:36px}
+ .project-grid,.connector-grid{grid-template-columns:1fr}
+ .workspace-toolbar{padding:7px 12px}.workspace-breadcrumb span,.workspace-breadcrumb b{display:none}
+ .workspace-actions>button:not(.workspace-deploy):not(.workspace-more){display:none}
+ .workspace-actions .workspace-deploy{font-size:9px}
+}
