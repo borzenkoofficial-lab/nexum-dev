@@ -230,6 +230,41 @@ app.get("/api/projects/:id/files", async (req, res) => {
   }
 });
 
+app.get("/api/projects/:id/file", async (req, res) => {
+  try {
+    const project = await projectManager.getProject(req.params.id);
+    const requested = typeof req.query.path === "string" ? req.query.path : "";
+    if (!requested) return res.status(400).json({ success: false, error: "File path is required" });
+    const filePath = resolve(project.path, requested);
+    const projectRelative = relative(project.path, filePath);
+    if (projectRelative.startsWith("..") || projectRelative.includes("../") || projectRelative.includes("..\\") || projectRelative.startsWith(".git/") || projectRelative.includes("node_modules/")) {
+      return res.status(403).json({ success: false, error: "Invalid file path" });
+    }
+    const details = await stat(filePath);
+    if (!details.isFile()) return res.status(404).json({ success: false, error: "File not found" });
+    return res.json({ success: true, path: projectRelative, content: await readFile(filePath, "utf8") });
+  } catch (error) {
+    return sendProjectError(res, error);
+  }
+});
+
+app.put("/api/projects/:id/file", async (req, res) => {
+  try {
+    const project = await projectManager.getProject(req.params.id);
+    const { path: requested, content } = req.body as { path?: unknown; content?: unknown };
+    if (typeof requested !== "string" || typeof content !== "string") return res.status(400).json({ success: false, error: "path and content are required" });
+    const filePath = resolve(project.path, requested);
+    const projectRelative = relative(project.path, filePath);
+    if (projectRelative.startsWith("..") || projectRelative.includes("../") || projectRelative.includes("..\\") || projectRelative.startsWith(".git/") || projectRelative.includes("node_modules/")) {
+      return res.status(403).json({ success: false, error: "Invalid file path" });
+    }
+    await (await import("node:fs/promises")).writeFile(filePath, content, "utf8");
+    return res.json({ success: true, path: projectRelative });
+  } catch (error) {
+    return sendProjectError(res, error);
+  }
+});
+
 app.get("/api/projects/:id/preview/status", async (req, res) => {
   try {
     const project = await projectManager.getProject(req.params.id);
