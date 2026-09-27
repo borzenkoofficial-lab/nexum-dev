@@ -95,11 +95,11 @@ export class AgentLoop {
       }
 
       const actionKey = `${plan.tool}:${plan.input}`;
-      if (seenActions.has(actionKey)) {
-        const lastFailure = [...previousResults].reverse().find((item) => !item.result.success);
-        const error = lastFailure
-          ? `Tool ${lastFailure.tool} failed: ${lastFailure.result.output}`
-          : `Agent stopped: repeated action detected (${plan.tool})`;
+      const previousSuccess = previousResults.some(
+        (item) => item.tool === plan.tool && item.input === plan.input && item.result.success,
+      );
+      if (previousSuccess) {
+        const error = `Agent stopped: repeated successful action detected (${plan.tool})`;
         this.log(iteration, plan.tool, "error");
         emit({ iteration, type: "failed", tool: plan.tool, message: error });
         return { success: false, iterations: iteration - 1, steps, error };
@@ -136,10 +136,11 @@ export class AgentLoop {
             return { success: false, iterations: iteration, steps, error };
           }
           const commandKey = `runCommand:${command}`;
-          if (seenActions.has(commandKey)) {
-            const error = `Agent stopped: repeated build command detected (${command})`;
-            emit({ iteration, type: "failed", tool: "runCommand", message: error });
-            return { success: false, iterations: iteration, steps, error };
+          const previousCommandSuccess = previousResults.some(
+            (item) => item.tool === "runCommand" && item.input === command && item.result.success,
+          );
+          if (previousCommandSuccess) {
+            continue;
           }
           seenActions.add(commandKey);
           emit({ iteration, type: "tool-start", tool: "runCommand", message: command === "npm install" ? "Устанавливаю зависимости созданного React-приложения." : "Собираю production-версию для Preview." });
@@ -158,7 +159,12 @@ export class AgentLoop {
               : `Не удалось выполнить «${command}»: ${buildResult.output.slice(0, 400)}`,
           });
           if (!buildResult.success) {
-            return { success: false, iterations: iteration, steps, error: `React/Vite build pipeline failed at ${command}: ${buildResult.output}` };
+            emit({
+              iteration,
+              type: "thinking",
+              message: `Сборка не прошла на шаге «${command}». Передаю ошибку планировщику для исправления.`,
+            });
+            break;
           }
         }
       }
