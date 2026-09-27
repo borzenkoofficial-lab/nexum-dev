@@ -337,6 +337,50 @@ ${result.output}`
       }
     }
 
+    // Deterministic recovery for existing projects. If the remote model is
+    // unavailable, we still make substantive changes without ever scaffolding over
+    // a non-empty project.
+    const existingProject = this.projectHasExistingFilesFromResults(previousResults);
+    const implementationWrites = previousResults.filter(
+      (item) => item.tool === "writeFile" && item.result.success,
+    );
+    if (existingProject && !scaffolded && /создай|сделай|разработай|сайт|лендинг|landing|website|приложени|app|dashboard|crm/i.test(normalizedTask)) {
+      const hasPackage = this.existingPathsFromResults(previousResults).includes("package.json");
+      if (hasPackage) {
+        if (implementationWrites.length === 0) {
+          return {
+            tool: "writeFile",
+            input: JSON.stringify({ path: "src/App.jsx", content: this.fallbackApp(task) }),
+          };
+        }
+        if (implementationWrites.length === 1) {
+          return {
+            tool: "writeFile",
+            input: JSON.stringify({ path: "src/styles.css", content: this.fallbackStyles() }),
+          };
+        }
+      } else {
+        if (implementationWrites.length === 0) {
+          return {
+            tool: "writeFile",
+            input: JSON.stringify({ path: "index.html", content: this.fallbackStaticIndex(task) }),
+          };
+        }
+        if (implementationWrites.length === 1) {
+          return {
+            tool: "writeFile",
+            input: JSON.stringify({ path: "style.css", content: this.fallbackStaticStyles() }),
+          };
+        }
+        if (implementationWrites.length === 2) {
+          return {
+            tool: "writeFile",
+            input: JSON.stringify({ path: "app.js", content: this.fallbackStaticJs() }),
+          };
+        }
+      }
+    }
+
     const selection = this.selectTool(task, previousResults);
     if (!selection) return null;
 
@@ -575,6 +619,43 @@ export default function App() {
 `;
   }
 
+  private fallbackStaticIndex(task: string): string {
+    const brief = this.escapeHtml(task.replace(/\s+/g, " ").trim().slice(0, 220));
+    return `<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="${brief}">
+<title>NEXUM.DEV — Digital studio</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-header"><a class="logo" href="#top">NEXUM<span>.DEV</span></a><nav><a href="#services">Услуги</a><a href="#cases">Кейсы</a><a href="#process">Процесс</a><a href="#contact">Контакт</a></nav><a class="header-cta" href="#contact">Обсудить проект</a></header>
+<main id="top">
+<section class="hero"><div class="eyebrow">DIGITAL STUDIO / 2026</div><h1>Цифровые продукты,<br><em>которые работают.</em></h1><p>Разработка сайтов, веб-приложений и AI-автоматизации под конкретную задачу бизнеса.</p><div class="hero-actions"><a class="btn primary" href="#cases">Смотреть кейсы</a><a class="btn ghost" href="#contact">Обсудить проект</a></div><div class="hero-grid"><div><strong>01</strong><span>Web products</span></div><div><strong>02</strong><span>AI automation</span></div><div><strong>03</strong><span>Digital systems</span></div></div></section>
+<section id="services" class="section"><div class="section-head"><span>01 / SERVICES</span><h2>От идеи до рабочего продукта.</h2></div><div class="cards"><article><b>01</b><h3>Сайты</h3><p>Лендинги и корпоративные сайты с сильной структурой, адаптивностью и понятной конверсией.</p></article><article><b>02</b><h3>Веб-приложения</h3><p>Кабинеты, CRM, маркетплейсы и внутренние сервисы с реальной логикой продукта.</p></article><article><b>03</b><h3>AI-автоматизация</h3><p>AI-агенты, обработка данных и автоматизация повторяющихся бизнес-процессов.</p></article></div></section>
+<section id="cases" class="section"><div class="section-head"><span>02 / CASES</span><h2>Продукты и интерфейсы.</h2></div><div class="cases"><article><div class="case-no">01</div><h3>NEXUM.DEV</h3><p>AI-платформа для создания и развития цифровых продуктов.</p><a href="#contact">Смотреть кейс →</a></article><article><div class="case-no">02</div><h3>GRUZLI</h3><p>Marketplace для диспетчеров, грузчиков и заказчиков.</p><a href="#contact">Смотреть кейс →</a></article><article><div class="case-no">03</div><h3>AI SYSTEMS</h3><p>Автоматизация сбора, анализа и маршрутизации бизнес-запросов.</p><a href="#contact">Смотреть кейс →</a></article></div></section>
+<section id="process" class="section"><div class="section-head"><span>03 / PROCESS</span><h2>Четыре шага до запуска.</h2></div><div class="process"><div><b>01</b><h3>Бриф</h3><p>Фиксируем задачу и результат.</p></div><div><b>02</b><h3>Архитектура</h3><p>Проектируем структуру и сценарии.</p></div><div><b>03</b><h3>Разработка</h3><p>Собираем интерфейс и бизнес-логику.</p></div><div><b>04</b><h3>Запуск</h3><p>Проверяем, исправляем и передаём продукт.</p></div></div></section>
+<section class="section tech"><div class="section-head"><span>04 / STACK</span><h2>Технологии под задачу.</h2></div><div class="tech-list"><span>React</span><span>TypeScript</span><span>Node.js</span><span>Python</span><span>AI</span></div></section>
+<section id="contact" class="section contact"><div><span>05 / CONTACT</span><h2>Расскажите, что нужно построить.</h2></div><form id="lead-form"><input name="name" required placeholder="Имя"><input name="contact" required placeholder="Telegram / телефон / email"><textarea name="task" required placeholder="Коротко опишите задачу"></textarea><button class="btn primary" type="submit">Отправить заявку</button><p id="form-state" role="status"></p></form></section>
+</main>
+<footer>NEXUM.DEV <span>Digital products & AI</span></footer>
+<script src="app.js"></script>
+</body></html>`;
+  }
+
+  private fallbackStaticStyles(): string {
+    return `:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;background:#f6f6f3;font-synthesis:none;scroll-behavior:smooth}
+*{box-sizing:border-box}body{margin:0;min-width:320px;background:#f6f6f3}a{color:inherit;text-decoration:none}button,input,textarea{font:inherit}.site-header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 5vw;border-bottom:1px solid #ddd;background:rgba(246,246,243,.84);backdrop-filter:blur(18px)}.logo{font-weight:900;letter-spacing:-.04em}.logo span{color:#888}.site-header nav{display:flex;gap:24px;font-size:13px;color:#555}.header-cta,.btn{border-radius:999px;padding:12px 18px;border:1px solid #111}.header-cta{font-size:13px;background:#111;color:#fff}.hero,.section{width:min(1180px,90vw);margin:auto}.hero{padding:12vh 0 9vh;min-height:82vh}.eyebrow,.section-head>span{font-size:11px;font-weight:800;letter-spacing:.16em;color:#777}.hero h1{font-size:clamp(52px,9vw,122px);line-height:.9;letter-spacing:-.07em;max-width:1050px;margin:22px 0}.hero h1 em{font-style:normal;color:#777}.hero p{max-width:650px;font-size:20px;line-height:1.5;color:#555}.hero-actions{display:flex;gap:10px;margin-top:30px}.btn{display:inline-block;cursor:pointer}.primary{background:#111;color:#fff}.ghost{background:transparent}.hero-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#ddd;margin-top:80px}.hero-grid div{padding:22px;background:#f6f6f3;display:flex;justify-content:space-between}.hero-grid span{color:#777}.section{padding:100px 0;border-top:1px solid #ddd}.section-head{display:flex;justify-content:space-between;gap:30px;margin-bottom:42px}.section h2{font-size:clamp(36px,5vw,70px);line-height:.95;letter-spacing:-.06em;margin:0;max-width:760px}.cards,.cases,.process{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.cards article,.cases article,.process div{border:1px solid #ddd;background:#fff;border-radius:24px;padding:28px;min-height:220px}.cards b,.process b{color:#999}.cards h3,.cases h3,.process h3{font-size:28px;margin:60px 0 10px}.cards p,.cases p,.process p{color:#666;line-height:1.5}.cases article a{font-size:13px;font-weight:800}.process{grid-template-columns:repeat(4,1fr)}.process h3{margin-top:50px;font-size:24px}.tech-list{display:flex;flex-wrap:wrap;gap:10px}.tech-list span{padding:14px 18px;border:1px solid #ccc;border-radius:999px;background:#fff}.contact{display:grid;grid-template-columns:1fr 1fr;gap:60px}.contact form{display:grid;gap:10px}.contact input,.contact textarea{width:100%;padding:15px 16px;border:1px solid #ccc;border-radius:14px;background:#fff;outline:none}.contact textarea{min-height:150px;resize:vertical}.contact button{border:0}.contact #form-state{min-height:24px;color:#555;font-size:13px}footer{display:flex;justify-content:space-between;padding:30px 5vw;border-top:1px solid #ddd;color:#777;font-size:12px}@media(max-width:760px){.site-header nav{display:none}.header-cta{padding:10px 13px}.hero{padding-top:8vh}.hero-grid,.cards,.cases,.process,.contact{grid-template-columns:1fr}.section-head{display:block}.section-head>span{display:block;margin-bottom:18px}.hero h1{font-size:clamp(48px,15vw,80px)}.hero-actions{flex-wrap:wrap}}`;
+  }
+
+  private fallbackStaticJs(): string {
+    return `const form=document.querySelector("#lead-form");const state=document.querySelector("#form-state");
+form?.addEventListener("submit",(event)=>{event.preventDefault();const data=Object.fromEntries(new FormData(form).entries());localStorage.setItem("nexum:lead",JSON.stringify({...data,savedAt:new Date().toISOString()}));form.reset();if(state)state.textContent="Заявка сохранена. Мы свяжемся с вами.";});
+document.querySelectorAll('a[href^="#"]').forEach((link)=>link.addEventListener("click",(event)=>{const id=link.getAttribute("href");if(!id||id==="#")return;const target=document.querySelector(id);if(target){event.preventDefault();target.scrollIntoView({behavior:"smooth",block:"start"});}}));`;
+  }
+
   private fallbackStyles(): string {
     return `:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;background:#f3f3f0;font-synthesis:none}
 *{box-sizing:border-box}
@@ -705,6 +786,15 @@ h1{max-width:760px;margin:12px 0 10px;font-size:clamp(44px,7vw,82px);line-height
       if (inspection.includes(candidate)) return candidate;
     }
     return null;
+  }
+
+  private existingPathsFromResults(results: AgentToolResult[]): string[] {
+    const inspection = results
+      .filter((item) => item.tool === "listFiles" && item.result.success)
+      .map((item) => item.result.output)
+      .join("\n");
+    return ["index.html", "package.json", "src/App.jsx", "src/App.tsx", "src/main.jsx", "src/main.tsx", "style.css", "src/styles.css", "app.js", "vite.config.js"]
+      .filter((path) => inspection.includes(path));
   }
 
   private extractPath(task: string): string {
