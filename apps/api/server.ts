@@ -387,13 +387,42 @@ app.use("/api/preview/:id", async (req, res) => {
       ".txt": "text/plain; charset=utf-8",
     };
 
-    res.type(mimeTypes[extname(filePath).toLowerCase()] ?? "application/octet-stream");
+    const extension = extname(filePath).toLowerCase();
+    res.type(mimeTypes[extension] ?? "application/octet-stream");
+    if (extension === ".html") {
+      const html = await readFile(filePath, "utf8");
+      const runtimeBridge = "<script>(() => { const projectId = " + JSON.stringify(req.params.id) + "; const report = (kind, message, stack) => { try { parent.postMessage({ source: \"nexum-preview\", projectId, kind, message: String(message || \"Preview runtime error\").slice(0, 4000), stack: stack ? String(stack).slice(0, 8000) : undefined }, \"*\"); } catch {} }; window.addEventListener(\"error\", (event) => report(\"error\", event.message, event.error && event.error.stack)); window.addEventListener(\"unhandledrejection\", (event) => report(\"unhandledrejection\", event.reason instanceof Error ? event.reason.message : String(event.reason), event.reason instanceof Error ? event.reason.stack : undefined)); })();</script>";
+      const bodyIndex = html.toLowerCase().lastIndexOf("</body>");
+      return res.send(bodyIndex >= 0 ? html.slice(0, bodyIndex) + runtimeBridge + html.slice(bodyIndex) : html + runtimeBridge);
+    }
     return res.send(await readFile(filePath));
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
     if (code === "ENOENT") return res.status(404).send("Preview is not available yet. Ask NEXUM to create the app.");
     if (error instanceof ProjectManagerError) return sendProjectError(res, error);
     return res.status(500).send("Preview failed");
+  }
+});
+
+app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
+  try {
+    const project = await projectManager.getProject(req.params.id);
+    const message = typeof req.body?.message === "string" ? req.body.message.slice(0, 4000) : "Preview runtime error";
+    const stack = typeof req.body?.stack === "string" ? req.body.stack.slice(0, 8000) : undefined;
+    const kind = typeof req.body?.kind === "string" ? req.body.kind.slice(0, 80) : "error";
+    const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
+    projectStates.set(project.id, stateManager);
+    await stateManager.refresh(undefined, undefined, [], [`preview:${kind}: ${message}`]);
+    void agentHistory.record({
+      type: "preview-runtime-error",
+      projectId: project.id,
+      status: "error",
+      message,
+      output: JSON.stringify({ kind, stack }),
+    });
+    return res.status(202).json({ success: true });
+  } catch (error) {
+    return sendProjectError(res, error);
   }
 });
 
