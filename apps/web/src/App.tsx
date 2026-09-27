@@ -299,12 +299,7 @@ function App() {
     window.setTimeout(() => document.querySelector<HTMLTextAreaElement>(".message-box textarea")?.focus(), 0);
   }
 
-  function showPlaceholder(label: string) {
-    setNotice(`${label} is not connected yet`);
-    window.setTimeout(() => setNotice(""), 3200);
-  }
-
-  function openProjectPicker() {
+    function openProjectPicker() {
     setMobileSidebarOpen(true);
     setNotice("Choose a project in the sidebar");
     window.setTimeout(() => setNotice(""), 3200);
@@ -370,7 +365,9 @@ function App() {
         <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
             <ChatPanel message={message} reply={reply} stage={agentStage} apiError={apiError} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} />
-            <QuickActions onNewProject={() => setModalOpen(true)} onOpenProject={openProjectPicker} onAsk={() => focusTask()} onTask={runTask} onPlaceholder={showPlaceholder} />
+            <QuickActions onNewProject={() => setModalOpen(true)} onOpenProject={openProjectPicker} onAsk={() => focusTask()} onTask={runTask}
+              onPreview={() => { setRightTab("preview"); setPreviewKey((key) => key + 1); setNotice("Preview refreshed"); }}
+              onDeploy={() => { window.open(`/api/preview/${activeProjectId}/index.html`, "_blank", "noopener,noreferrer"); setNotice("Preview opened in a new tab"); }} />
           </div>
           <RightPanel tab={rightTab} onTabChange={setRightTab} onOpenTerminal={() => setBottomPanelOpen(true)} projectName={activeProject?.name ?? "NEXUM"} projectId={activeProjectId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setPreviewKey((key) => key + 1)} />
         </div>
