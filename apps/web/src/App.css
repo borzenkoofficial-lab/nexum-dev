@@ -2569,3 +2569,151 @@ body { overflow-x: hidden; }
  .preview-expanded{padding:7px}
 }
 @media(prefers-reduced-motion:reduce){.project-window,.home-primary,.panel-tabs button{transition:none}}
+
+
+/* Project editor: a dedicated, distraction-free surface for one project. */
+.app-project .main {
+  width: 100%;
+  min-width: 0;
+}
+.app-project .main > .workspace {
+  height: calc(100vh - 72px);
+  min-height: 620px;
+  padding: 0 18px 18px;
+}
+.app-project .project-editor-header {
+  height: 72px;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--glass-line);
+  background: rgba(10, 13, 12, .86);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+.project-back,
+.project-editor-actions button {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--glass-text-soft);
+  font: inherit;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+.project-back {
+  justify-self: start;
+  padding: 8px 10px;
+}
+.project-back:hover,
+.project-editor-actions button:hover {
+  background: rgba(255,255,255,.055);
+  color: var(--glass-text);
+  border-color: var(--glass-line);
+}
+.project-editor-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.project-editor-title > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.project-editor-title strong {
+  color: var(--glass-text);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.project-editor-title div span {
+  color: var(--glass-muted);
+  font-size: 11px;
+}
+.project-editor-mark {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  color: #10130f;
+  background: #c9f25a;
+  font-weight: 800;
+}
+.project-editor-status {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--glass-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #626b64;
+}
+.status-dot.online {
+  background: #c9f25a;
+  box-shadow: 0 0 12px rgba(201,242,90,.45);
+}
+.project-editor-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.project-editor-actions button {
+  padding: 7px 9px;
+  font-size: 12px;
+}
+.project-editor-actions .project-editor-share {
+  margin-left: 5px;
+  padding-inline: 12px;
+  color: #10130f;
+  background: #c9f25a;
+  border-color: #c9f25a;
+  font-weight: 700;
+}
+.project-editor-actions .project-editor-share:hover {
+  color: #10130f;
+  background: #d7fb72;
+  border-color: #d7fb72;
+}
+.app-project .workspace-toolbar {
+  display: none;
+}
+.app-project .main > .workspace .main-column {
+  min-width: 0;
+}
+.app-project .main > .workspace .right-panel {
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .app-project .project-editor-header {
+    grid-template-columns: auto 1fr auto;
+    padding-inline: 12px;
+  }
+  .project-editor-status { display: none; }
+  .project-editor-actions button:not(.project-editor-share) { display: none; }
+  .app-project .main > .workspace {
+    height: calc(100vh - 64px);
+    min-height: 560px;
+    padding: 0 10px 10px;
+  }
+}
+@media (max-width: 640px) {
+  .app-project .project-editor-header { height: 60px; min-height: 60px; }
+  .project-back span { display: none; }
+  .project-editor-title strong { max-width: 120px; }
+  .app-project .main > .workspace { height: calc(100vh - 60px); padding: 0; }
+}

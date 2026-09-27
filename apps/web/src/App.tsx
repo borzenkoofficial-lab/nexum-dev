@@ -36,7 +36,10 @@ function App() {
   const [previewKey, setPreviewKey] = useState(0);
   const [builderStarted, setBuilderStarted] = useState(false);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
-  const [view, setView] = useState<"home" | "project" | "connectors" | "settings">("project");
+  const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings">(() => {
+    const path = window.location.pathname;
+    return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : "home";
+  });
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [connectedConnectors, setConnectedConnectors] = useState<string[]>([]);
@@ -70,6 +73,36 @@ function App() {
   useEffect(() => { document.documentElement.dataset.motion=uiSettings.animations?"on":"off"; document.documentElement.dataset.compact=uiSettings.compact?"on":"off"; document.documentElement.dataset.glow=uiSettings.glow?"on":"off"; }, [uiSettings]);
 
   const activeProject = projects.find((project) => project.id === activeProjectId);
+
+  function navigate(nextView: "home" | "project" | "connectors" | "settings", projectId?: string, replace = false) {
+    setViewState(nextView);
+    const target = nextView === "project"
+      ? "/projects/" + encodeURIComponent(projectId ?? activeProjectId)
+      : nextView === "connectors" ? "/connectors"
+      : nextView === "settings" ? "/settings"
+      : "/projects";
+    if (window.location.pathname !== target) {
+      if (replace) window.history.replaceState({ view: nextView, projectId }, "", target);
+      else window.history.pushState({ view: nextView, projectId }, "", target);
+    }
+  }
+
+  const setView = (nextView: "home" | "project" | "connectors" | "settings") => navigate(nextView);
+
+  useEffect(() => {
+    const onPopState = () => {
+      const path = window.location.pathname;
+      const segments = path.split("/").filter(Boolean);
+      if (segments[0] === "projects" && segments[1]) {
+        setActiveProjectId(decodeURIComponent(segments[1]));
+        setViewState("project");
+      } else if (path === "/connectors") setViewState("connectors");
+      else if (path === "/settings") setViewState("settings");
+      else setViewState("home");
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   useEffect(() => {
     conversationProjectRef.current = null;
@@ -175,7 +208,11 @@ function App() {
     }
   }
 
-  useEffect(() => { void loadProjects("nexum"); }, []);
+  useEffect(() => {
+    const segments = window.location.pathname.split("/").filter(Boolean);
+    const preferred = segments[0] === "projects" && segments[1] ? decodeURIComponent(segments[1]) : "nexum";
+    void loadProjects(preferred);
+  }, []);
 
   useEffect(() => {
     async function loadAIConfig() {
@@ -235,7 +272,10 @@ function App() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [modalOpen]);
 
-  function openProject(projectId: string) { setView("project"); void selectProject(projectId); }
+  function openProject(projectId: string) {
+    navigate("project", projectId);
+    void selectProject(projectId);
+  }
 
   async function selectProject(projectId: string) {
     setProjectActionLoading(true);
@@ -552,9 +592,10 @@ function App() {
     window.setTimeout(() => document.querySelector<HTMLTextAreaElement>(".message-box textarea")?.focus(), 0);
   }
 
-    function openProjectPicker() {
+  function openProjectPicker() {
+    navigate("home");
     setMobileSidebarOpen(true);
-    setNotice("Выберите проект в боковой панели");
+    setNotice("Выберите проект из списка");
     window.setTimeout(() => setNotice(""), 3200);
   }
 
@@ -576,10 +617,10 @@ function App() {
   ];
 
   return (
-    <div className="app">
-      <Sidebar projects={projects} activeProjectId={activeProjectId} projectsLoading={projectsLoading} projectActionLoading={projectActionLoading} mobileOpen={mobileSidebarOpen} view={view} onDeleteProject={(id) => void deleteProject(id)} onViewChange={(next) => { setMobileSidebarOpen(false); setView(next); }} onNewProject={() => { setMobileSidebarOpen(false); setModalOpen(true); }} onSelectProject={(id) => { setMobileSidebarOpen(false); openProject(id); }} />
+    <div className={"app app-" + view}>
+      {view !== "project" && <Sidebar projects={projects} activeProjectId={activeProjectId} projectsLoading={projectsLoading} projectActionLoading={projectActionLoading} mobileOpen={mobileSidebarOpen} view={view} onDeleteProject={(id) => void deleteProject(id)} onViewChange={(next) => { setMobileSidebarOpen(false); setView(next); }} onNewProject={() => { setMobileSidebarOpen(false); setModalOpen(true); }} onSelectProject={(id) => { setMobileSidebarOpen(false); openProject(id); }} />}
       <main className="main">
-        <TopBar projectName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "home" ? "NEXUM.DEV" : activeProject?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />
+        {view !== "project" && <TopBar projectName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : "NEXUM.DEV"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />}
         {view === "home" ? (
           <section className="nexum-home">
             <div className="home-hero"><div><div className="eyebrow">NEXUM.DEV</div><h1>Создавайте, не покидая рабочее пространство.</h1><p>Создайте проект, откройте его как отдельное рабочее пространство, подключите сервисы и поручите агенту разработку.</p></div><button className="home-primary" type="button" onClick={() => setModalOpen(true)}>+ Новый проект</button></div>
@@ -629,6 +670,20 @@ function App() {
                 setWorkspaceMenuOpen(false);
                 void deleteProject(activeProjectId);
               }}>Удалить проект</button></div>}
+          </div>
+        </div>
+        <div className="project-editor-header">
+          <button className="project-back" type="button" onClick={() => navigate("home")} aria-label="Вернуться к проектам">← <span>Проекты</span></button>
+          <div className="project-editor-title">
+            <span className="project-editor-mark">{(activeProject?.name ?? "N").slice(0, 1)}</span>
+            <div><strong>{activeProject?.name ?? "NEXUM"}</strong><span>Проект</span></div>
+          </div>
+          <div className="project-editor-status"><span className={previewOnline ? "status-dot online" : "status-dot"} />{agentStage && !["completed","error"].includes(agentStage) ? "Агент работает" : previewOnline ? "Preview готов" : "Готов к работе"}</div>
+          <div className="project-editor-actions">
+            <button type="button" onClick={() => setRightTab("preview")}>Preview</button>
+            <button type="button" onClick={() => setRightTab("files")}>Code</button>
+            <button type="button" onClick={() => setRightTab("agent")}>Agent</button>
+            <button className="project-editor-share" type="button" onClick={() => { const url = window.location.origin + "/api/preview/" + activeProjectId + "/index.html"; void navigator.clipboard.writeText(url).then(() => setNotice("Ссылка скопирована")).catch(() => setNotice(url)); }}>Share</button>
           </div>
         </div>
         <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
