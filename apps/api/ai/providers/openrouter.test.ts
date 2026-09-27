@@ -86,8 +86,9 @@ test("routes code and planning prompts to different free-model families", async 
     const body = JSON.parse(String(init?.body)) as { model?: string };
     return jsonResponse(200, { choices: [{ message: { content: body.model ?? "" } }] });
   });
-  const code = await withKey("test-only-key", () => provider.generate("fix this TypeScript React build error"));
-  const planning = await withKey("test-only-key", () => provider.generate("plan the architecture for a multi-step autonomous agent"));
+  provider.setRuntimeApiKey("test-only-key");
+  const code = await provider.generate("fix this TypeScript React build error");
+  const planning = await provider.generate("plan the architecture for a multi-step autonomous agent");
   assert.equal(code, "openrouter/free");
   assert.equal(planning, "openrouter/free");
 });
