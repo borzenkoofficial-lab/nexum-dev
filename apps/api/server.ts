@@ -314,6 +314,15 @@ app.post("/api/projects/:id/archive", async (req, res) => {
   }
 });
 
+app.delete("/api/projects/:id", async (req, res) => {
+  try {
+    const project = await projectManager.deleteProject(req.params.id);
+    return res.json({ success: true, project });
+  } catch (error) {
+    return sendProjectError(res, error);
+  }
+});
+
 // Static project preview. The agent writes the project files, and the preview
 // renders index.html directly without requiring a separate dev server.
 app.use("/api/preview/:id", async (req, res) => {
