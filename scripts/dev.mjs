@@ -4,6 +4,10 @@ import { existsSync } from "node:fs";
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 const ollama = process.platform === "win32" ? "ollama.exe" : "ollama";
 const root = process.cwd();
+const envFile = `${root}/.env`;
+if (existsSync(envFile) && typeof process.loadEnvFile === "function") {
+  process.loadEnvFile(envFile);
+}
 const ollamaBaseUrl = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
 const ollamaModel = process.env.OLLAMA_MODEL ?? "qwen3:4b";
 const aiProvider = process.env.AI_PROVIDER?.toLowerCase() ?? "ollama";
