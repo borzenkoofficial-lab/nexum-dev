@@ -8,6 +8,7 @@ import { OllamaProvider } from "./ai/providers/ollama.js";
 import { OpenRouterProvider } from "./ai/providers/openrouter.js";
 import { NexumAgent } from "./agent/agent.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
+import type { ProductPlan } from "./agent/types.js";
 import { ProjectManager, ProjectManagerError } from "./projects/projectManager.js";
 import { mkdir, readFile, stat, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
@@ -67,6 +68,7 @@ interface ChatJob {
   error?: string;
   stage?: "queued" | "analyzing" | "planning" | "reading" | "editing" | "building" | "testing" | "completed" | "error";
   attachments?: string[];
+  productPlan?: ProductPlan;
 }
 const chatJobs = new Map<string, ChatJob>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
@@ -169,6 +171,7 @@ async function runChatJob(
     if (result.finalResponse !== undefined) job.reply = result.finalResponse;
     void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
     job.steps = result.steps;
+    job.productPlan = result.productPlan;
     console.log("[Nexum] chat job completed", jobId);
   } catch (error) {
     job.status = "failed";
@@ -548,6 +551,7 @@ app.post("/api/chat", async (req, res) => {
       updatedAt: now,
       stage: "queued",
       attachments: normalizedAttachments.map((item) => item.name),
+      productPlan: undefined,
     });
 
     // Do not await the agent. The HTTP request returns immediately, avoiding
@@ -654,6 +658,7 @@ app.get("/api/chat/jobs/:id", (req, res) => {
       error: job.error ?? null,
       stage: job.stage ?? null,
       attachments: job.attachments ?? [],
+      productPlan: job.productPlan ?? null,
     },
   });
 });
