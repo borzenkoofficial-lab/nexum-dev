@@ -89,7 +89,7 @@ export class NexumAgent implements AgentRuntime {
       "Choose exactly one available tool for the next action, or finish the task.",
       "For app-building tasks, inspect the existing project first, then create/update the required files, then run a build/check before finishing.",
       "Never answer with a full code listing when a file should be changed: use writeFile.",
-      `The active project root is: ${this.projectRoot}`,
+      "The filesystem tools are already scoped to the active project. Never reference or reveal the physical filesystem path.",
       "All filesystem tools are already scoped to this active project root.",
       "NEVER prefix paths with projects/, the repository name, apps/, or the workspace root.",
       "Use only paths relative to the active project, such as index.html, src/app.js, style.css.",
@@ -173,37 +173,44 @@ export class NexumAgent implements AgentRuntime {
   }
 
   private parseAIPlan(response: string): AgentPlan | null {
-    const jsonCandidate = response.match(/\{[\s\S]*\}/)?.[0];
-    if (!jsonCandidate) return null;
+    const candidates = [
+      response.trim(),
+      response.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\\s*\`\`\`/i)?.[1]?.trim() ?? "",
+      response.match(/\\{[\\s\\S]*\\}/)?.[0] ?? "",
+    ].filter(Boolean);
 
-    try {
-      const parsed = JSON.parse(jsonCandidate) as {
-        tool?: unknown;
-        input?: unknown;
-        done?: unknown;
-        finalResponse?: unknown;
-      };
-
-      if (parsed.done === true) {
-        return {
-          tool: "",
-          input: "",
-          done: true,
-          ...(typeof parsed.finalResponse === "string" ? { finalResponse: parsed.finalResponse } : {}),
+    for (const jsonCandidate of candidates) {
+      try {
+        const parsed = JSON.parse(jsonCandidate) as {
+          tool?: unknown;
+          input?: unknown;
+          done?: unknown;
+          finalResponse?: unknown;
         };
-      }
 
-      if (typeof parsed.tool !== "string" || !this.tools.has(parsed.tool) || parsed.input === undefined) {
-        return null;
-      }
+        if (parsed.done === true) {
+          return {
+            tool: "",
+            input: "",
+            done: true,
+            ...(typeof parsed.finalResponse === "string" ? { finalResponse: parsed.finalResponse } : {}),
+          };
+        }
 
-      return {
-        tool: parsed.tool,
-        input: typeof parsed.input === "string" ? parsed.input : JSON.stringify(parsed.input),
-      };
-    } catch {
-      return null;
+        if (typeof parsed.tool !== "string" || !this.tools.has(parsed.tool) || parsed.input === undefined) {
+          continue;
+        }
+
+        return {
+          tool: parsed.tool,
+          input: typeof parsed.input === "string" ? parsed.input : JSON.stringify(parsed.input),
+        };
+      } catch {
+        continue;
+      }
     }
+
+    return null;
   }
 
   private selectTool(task: string): { name: string; input: string } | null {
