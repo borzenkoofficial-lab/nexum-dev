@@ -395,10 +395,10 @@ ${result.output}`
       "src/App.jsx",
       "src/main.tsx",
       "src/main.jsx",
+      "index.html",
       "src/App.css",
       "src/styles.css",
       "style.css",
-      "index.html",
     ];
     const inspectedListing = previousResults
       .filter((item) => item.tool === "listFiles" && item.result.success)
@@ -687,7 +687,7 @@ ${result.output}`
     const domainSignal = construction
       ? /строит|подряд|демонтаж|фасад|объект|бригада|ремонт|стяжк|штукатур|монтаж|кровл/.test(content)
       : /авто|автомобил|машин|автосервис|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст|сто/.test(content);
-    return !genericDigital || domainSignal;
+    return domainSignal && !genericDigital;
   }
 
   private parseAIPlan(response: string): AgentPlan | null {
