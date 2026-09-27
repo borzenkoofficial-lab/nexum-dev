@@ -247,8 +247,7 @@ ${result.output}`
     const prompt = [
       "LANGUAGE PROTOCOL: Russian is the primary language of NEXUM. Understand Russian instructions natively, including colloquial wording and construction/business terminology. Unless the user explicitly asks for another language, every user-facing word in generated websites/apps must be Russian: navigation, buttons, headings, forms, placeholders, errors, empty states, metadata and marketing copy. Do not translate code identifiers, package names, tool names, API fields, file paths or commands. Do not answer a Russian request in English.",
       "You are the NEXUM.DEV autonomous project builder.",
-      "Your job is to modify the user's project, not merely explain code.",
-      "Choose exactly one available tool for the next action, or finish the task. Keep the JSON response as short as possible.",
+      "Your job is to modify the user's project, not merely explain code.",      "Choose exactly one available tool for the next action, or finish the task. Keep the JSON response as short as possible.",
       "For app-building tasks, NEVER jump straight to scaffoldProject. First inspect the current project with listFiles, then read the relevant entry files. If the project already contains an app, modify that app instead of replacing it. Only scaffold an actually empty/new project.",
       "After listFiles, use the exact filenames returned by the inspection. Do not invent paths unless the file already exists or you have just created it.",
       "For a change request on an existing app, first read the smallest set of relevant existing files, then make targeted edits. Prefer patchFile for local changes; use writeFile for genuinely new or substantially rewritten files. Do not regenerate the whole application for a local change.",
@@ -302,7 +301,7 @@ ${result.output}`
         ? "coder"
         : "planner";
     const run = await this.orchestrator.run(role, prompt, options);
-    console.log(JSON.stringify({ type: "ai-role", role: run.role, model: run.model }));
+    console.log(JSON.stringify({ type: "ai-role", role: run.role, provider: run.provider, model: run.model, fallback: run.fallback }));
     const parsed = this.parseAIPlan(run.response);
     if (parsed && this.isPlanAlignedWithTask(task, parsed)) return parsed;
     if (parsed) {
@@ -332,7 +331,7 @@ ${result.output}`
     ].join("\n");
     try {
       const repairedRun = await this.orchestrator.run(role, repairPrompt, options);
-      console.log(JSON.stringify({ type: "ai-role-repair", role: repairedRun.role, model: repairedRun.model }));
+      console.log(JSON.stringify({ type: "ai-role-repair", role: repairedRun.role, provider: repairedRun.provider, model: repairedRun.model, fallback: repairedRun.fallback }));
       const repairedPlan = this.parseAIPlan(repairedRun.response);
       // A repair response that only says "done" cannot erase the deterministic
       // fallback when no tool has executed yet. Prefer the concrete local plan.
@@ -497,8 +496,7 @@ ${result.output}`
           "Do not reuse the current project's hero composition, card geometry, navigation pattern, typography scale, or spacing system",
           "Responsive mobile layout",
         ],
-        interactions: ["Navigation anchors", "Estimate CTA", "Project browsing", "Lead form", "Mobile navigation"],
-        dataModel: ["services", "projects", "leads", "contacts"],
+        interactions: ["Navigation anchors", "Estimate CTA", "Project browsing", "Lead form", "Mobile navigation"],        dataModel: ["services", "projects", "leads", "contacts"],
         filesToInspect: ["."],
         filesToChange: ["Application entry", "Styles", "Interaction files"],
         acceptanceCriteria: [
@@ -748,7 +746,6 @@ export default function App() {
     return `:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;background:#f6f6f3;font-synthesis:none;scroll-behavior:smooth}
 *{box-sizing:border-box}body{margin:0;min-width:320px;background:#f6f6f3}a{color:inherit;text-decoration:none}button,input,textarea{font:inherit}.site-header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 5vw;border-bottom:1px solid #ddd;background:rgba(246,246,243,.84);backdrop-filter:blur(18px)}.logo{font-weight:900;letter-spacing:-.04em}.logo span{color:#888}.site-header nav{display:flex;gap:24px;font-size:13px;color:#555}.header-cta,.btn{border-radius:999px;padding:12px 18px;border:1px solid #111}.header-cta{font-size:13px;background:#111;color:#fff}.hero,.section{width:min(1180px,90vw);margin:auto}.hero{padding:12vh 0 9vh;min-height:82vh}.eyebrow,.section-head>span{font-size:11px;font-weight:800;letter-spacing:.16em;color:#777}.hero h1{font-size:clamp(52px,9vw,122px);line-height:.9;letter-spacing:-.07em;max-width:1050px;margin:22px 0}.hero h1 em{font-style:normal;color:#777}.hero p{max-width:650px;font-size:20px;line-height:1.5;color:#555}.hero-actions{display:flex;gap:10px;margin-top:30px}.btn{display:inline-block;cursor:pointer}.primary{background:#111;color:#fff}.ghost{background:transparent}.hero-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#ddd;margin-top:80px}.hero-grid div{padding:22px;background:#f6f6f3;display:flex;justify-content:space-between}.hero-grid span{color:#777}.section{padding:100px 0;border-top:1px solid #ddd}.section-head{display:flex;justify-content:space-between;gap:30px;margin-bottom:42px}.section h2{font-size:clamp(36px,5vw,70px);line-height:.95;letter-spacing:-.06em;margin:0;max-width:760px}.cards,.cases,.process{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.cards article,.cases article,.process div{border:1px solid #ddd;background:#fff;border-radius:24px;padding:28px;min-height:220px}.cards b,.process b{color:#999}.cards h3,.cases h3,.process h3{font-size:28px;margin:60px 0 10px}.cards p,.cases p,.process p{color:#666;line-height:1.5}.cases article a{font-size:13px;font-weight:800}.process{grid-template-columns:repeat(4,1fr)}.process h3{margin-top:50px;font-size:24px}.tech-list{display:flex;flex-wrap:wrap;gap:10px}.tech-list span{padding:14px 18px;border:1px solid #ccc;border-radius:999px;background:#fff}.contact{display:grid;grid-template-columns:1fr 1fr;gap:60px}.contact form{display:grid;gap:10px}.contact input,.contact textarea{width:100%;padding:15px 16px;border:1px solid #ccc;border-radius:14px;background:#fff;outline:none}.contact textarea{min-height:150px;resize:vertical}.contact button{border:0}.contact #form-state{min-height:24px;color:#555;font-size:13px}footer{display:flex;justify-content:space-between;padding:30px 5vw;border-top:1px solid #ddd;color:#777;font-size:12px}@media(max-width:760px){.site-header nav{display:none}.header-cta{padding:10px 13px}.hero{padding-top:8vh}.hero-grid,.cards,.cases,.process,.contact{grid-template-columns:1fr}.section-head{display:block}.section-head>span{display:block;margin-bottom:18px}.hero h1{font-size:clamp(48px,15vw,80px)}.hero-actions{flex-wrap:wrap}}`;
   }
-
   private fallbackStaticJs(): string {
     return `const form=document.querySelector("#lead-form");const state=document.querySelector("#form-state");
 form?.addEventListener("submit",(event)=>{event.preventDefault();const data=Object.fromEntries(new FormData(form).entries());localStorage.setItem("nexum:lead",JSON.stringify({...data,savedAt:new Date().toISOString()}));form.reset();if(state)state.textContent="Заявка сохранена. Мы свяжемся с вами.";});
