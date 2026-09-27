@@ -66,5 +66,7 @@ test("invalid model tool calls fall back without executing arbitrary tools", asy
   const result = await loop.run("Создай простой сайт NEXUM.DEV");
 
   assert.equal(result.success, true);
-  assert.equal(result.steps.length, 0);
+  assert.equal(result.steps.length, 1);
+  assert.equal(result.steps[0]?.tool, "scaffoldProject");
+  assert.match(result.steps[0]?.input ?? "", /Создай простой сайт/);
 });
