@@ -50,10 +50,12 @@ export class AgentLoop {
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI planning failed";
           this.log(iteration, "AI planner", "error");
+          emit({ iteration, type: "failed", tool: "AI planner", message: `Не удалось получить следующий шаг от модели: ${message}` });
           return { success: false, iterations: iteration - 1, steps, error: message };
         }
       }
-      // Prefer the model plan when available; otherwise use the deterministic runtime planner.\n      const plan = modelPlan ?? this.runtime.plan(task, previousResults);
+      // Prefer the model plan when available; otherwise use the deterministic runtime planner.
+      const plan = modelPlan ?? this.runtime.plan(task, previousResults);
 
       if (!plan) {
         emit({ iteration, type: "completed", message: "Дополнительных действий не требуется. Формирую итог." });
@@ -99,6 +101,7 @@ export class AgentLoop {
           ? `Tool ${lastFailure.tool} failed: ${lastFailure.result.output}`
           : `Agent stopped: repeated action detected (${plan.tool})`;
         this.log(iteration, plan.tool, "error");
+        emit({ iteration, type: "failed", tool: plan.tool, message: error });
         return { success: false, iterations: iteration - 1, steps, error };
       }
       seenActions.add(actionKey);
