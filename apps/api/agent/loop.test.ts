@@ -272,6 +272,33 @@ test("does not let an automotive request accept a construction write plan", () =
 });
 
 
+test("does not get stuck on repeated searchFiles during Builder recovery", async () => {
+  let writes = 0;
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["listFiles", "searchFiles", "readFile", "writeFile", "testProject"],
+    plan: (_task, previousResults) => {
+      if (previousResults.length === 0) return { tool: "listFiles", input: "." };
+      if (!previousResults.some((item) => item.tool === "readFile" && item.result.success)) {
+        return { tool: "searchFiles", input: "ремонт авто" };
+      }
+      if (writes < 1) return { tool: "writeFile", input: JSON.stringify({ path: "src/App.tsx", content: "Автосервис. Диагностика и ремонт двигателя." }) };
+      if (writes < 2) return { tool: "writeFile", input: JSON.stringify({ path: "src/App.css", content: ".auto-service-site{}" }) };
+      return { tool: "", input: "", done: true, finalResponse: "Готово" };
+    },
+    executeTool: async (tool, input) => {
+      if (tool === "listFiles") return { success: true, output: "src/App.tsx\nsrc/App.css\npackage.json" };
+      if (tool === "searchFiles") return { success: true, output: "no useful match" };
+      if (tool === "readFile") return { success: true, output: "existing app" };
+      if (tool === "writeFile") { writes += 1; return { success: true, output: "written" }; }
+      return { success: true, output: "tests passed" };
+    },
+  };
+  const result = await new AgentLoop(runtime, gateway, 8).run("Сделай сайт автосервиса с диагностикой и ремонтом двигателя");
+  assert.equal(result.success, true);
+  assert.equal(writes, 2);
+  assert.equal(result.steps.some((step) => step.tool === "searchFiles"), true);
+});
+
 test("does not finish an automotive site when generated content is construction-only", async () => {
   let domainValidationSeen = false;
   const runtime: AgentRuntime = {
