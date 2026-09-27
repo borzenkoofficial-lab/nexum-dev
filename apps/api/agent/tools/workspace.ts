@@ -15,7 +15,8 @@ export class ProjectWorkspace {
     const target = isAbsolute(normalized)
       ? resolve(normalized)
       : resolve(this.root, normalized);
-    const rel = relative(this.root, target);
+    const canonicalRoot = resolve(this.root);
+    const rel = relative(canonicalRoot, target);
     if (rel.startsWith("..") || isAbsolute(rel)) {
       throw new Error("Path must stay inside the active project");
     }
