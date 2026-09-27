@@ -96,6 +96,16 @@ ${result.output}`
       const run = await this.orchestrator.run("planner", prompt, options);
       const parsed = this.parseProductPlan(run.response);
       if (parsed) return parsed;
+      const repair = await this.orchestrator.run("planner", [
+        "Repair the previous planner output.",
+        "Return ONLY one valid JSON object matching the exact Product Plan schema.",
+        "No markdown, no code fences, no commentary.",
+        "Preserve the user intent and make pages, components, interactions and acceptance criteria concrete.",
+        `User request: ${task}`,
+        `Previous planner output: ${run.response.slice(0, 6000)}`,
+      ].join("\n"), options);
+      const repaired = this.parseProductPlan(repair.response);
+      if (repaired) return repaired;
     } catch (error) {
       console.warn("[agent] product planner failed, using deterministic plan", error);
     }
@@ -171,6 +181,10 @@ ${result.output}`
       "Your job is to modify the user's project, not merely explain code.",
       "Choose exactly one available tool for the next action, or finish the task. Keep the JSON response as short as possible.",
       "For app-building tasks, NEVER jump straight to scaffoldProject. First inspect the current project with listFiles, then read the relevant entry files. If the project already contains an app, modify that app instead of replacing it. Only scaffold an actually empty/new project.",
+      "After listFiles, use the exact filenames returned by the inspection. Do not invent paths unless the file already exists or you have just created it.",
+      "For a change request on an existing app, first read the smallest set of relevant existing files, then make targeted edits. Do not regenerate the whole application for a local change.",
+      "For visual changes, inspect the existing stylesheet/component before editing. Preserve unrelated layout, content, and behavior.",
+      "After writeFile, verify the changed file when the next decision depends on its exact contents.",
       "Never answer with a full code listing when a file should be changed: use writeFile.",
       "The filesystem tools are already scoped to the active project. Never reference or reveal the physical filesystem path.",
       "All filesystem tools are already scoped to this active project root.",
@@ -213,7 +227,29 @@ ${result.output}`
         : "planner";
     const run = await this.orchestrator.run(role, prompt, options);
     console.log(JSON.stringify({ type: "ai-role", role: run.role, model: run.model }));
-    return this.parseAIPlan(run.response);
+    const parsed = this.parseAIPlan(run.response);
+    if (parsed) return parsed;
+
+    const repairPrompt = [
+      "The previous response was not valid NEXUM tool-plan JSON.",
+      "Return exactly one JSON object and nothing else.",
+      '{"tool":"...","input":"..."} or {"done":true,"finalResponse":"..."}',
+      "Use only the available tools listed below.",
+      "Never invent paths: choose paths from project inspection already provided.",
+      "If implementation is incomplete, choose the next concrete tool action instead of done=true.",
+      `User task: ${task}`,
+      `Previous results:\n${history}`,
+      `Previous invalid response:\n${run.response.slice(0, 5000)}`,
+      `Available tools:\n${toolCatalog}`,
+    ].join("\n");
+    try {
+      const repairedRun = await this.orchestrator.run(role, repairPrompt, options);
+      console.log(JSON.stringify({ type: "ai-role-repair", role: repairedRun.role, model: repairedRun.model }));
+      return this.parseAIPlan(repairedRun.response);
+    } catch (error) {
+      console.warn("[agent] AI plan repair failed", error);
+      return null;
+    }
   }
 
   plan(task: string, previousResults: AgentToolResult[]): AgentPlan | null {
