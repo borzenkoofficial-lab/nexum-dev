@@ -591,6 +591,7 @@ export class AgentLoop {
             transition("repair");
             continue;
           }
+          taskState.verified.domain = true;
           emit({ iteration, type: "tool-success", tool: "Domain Validation", message: "Тематика готового контента соответствует исходному запросу." });
         }
 
