@@ -123,17 +123,18 @@ export class AIGateway {
     ].join("\n");
 
     try {
-      return {\n        response: await provider.generate(localizedMessage, normalizedOptions.model, {
-        ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
-        ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
-      }),\n        provider: provider.id,\n        model: normalizedOptions.model ?? provider.model,\n        fallback: false,\n      };\n    } catch (error) {
+      return {
+        response: await provider.generate(localizedMessage, normalizedOptions.model, {
+          ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
+          ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
+        }),
+        provider: provider.id,
+        model: normalizedOptions.model ?? provider.model,
+        fallback: false,
+      };
+    } catch (error) {
       const fallbackId = this.fallbackProviderId;
       const reason = error instanceof Error ? error.message : "AI provider request failed";
-      // Fallback is for transient provider failures only. Authentication,
-      // permission, invalid-model and malformed-request errors must surface to
-      // the caller instead of silently switching providers and hiding the cause.
-      // An explicitly selected provider is also treated as authoritative unless
-      // the caller explicitly opts into fallback.
       const explicitProvider = typeof options === "string" || normalizedOptions.provider !== undefined;
       if (
         normalizedOptions.fallback === false ||
@@ -157,15 +158,22 @@ export class AIGateway {
       };
       this.onFallback?.(event);
 
-      return {\n        response: await fallback.generate(localizedMessage, fallback.model, {
-        ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
-        ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
-      }),\n        provider: fallback.id,\n        model: fallback.model,\n        fallback: true,\n      };\n    }\n  }
+      return {
+        response: await fallback.generate(localizedMessage, fallback.model, {
+          ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
+          ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
+        }),
+        provider: fallback.id,
+        model: fallback.model,
+        fallback: true,
+      };
+    }
+  }
+
   async generate(message: string, options: GatewayGenerateOptions | string = {}): Promise<string> {
     const result = await this.generateWithMetadata(message, options);
     return result.response;
   }
-
 
   private isTransientProviderError(message: string): boolean {
     return /(?:408|429|rate.?limit|too many requests|timeout|timed out|temporar(?:y|ily)|service unavailable|network error|fetch failed|econnreset|econnrefused|enotfound|\b5\d{2}\b)/i.test(message);
