@@ -7,7 +7,7 @@ import { MockProvider } from "./ai/providers/mock.js";
 import { OllamaProvider } from "./ai/providers/ollama.js";
 import { OpenRouterProvider } from "./ai/providers/openrouter.js";
 import { NexumAgent } from "./agent/agent.js";
-import { AgentLoop } from "./agent/loop.js";
+import { AgentLoop, type AgentEvent } from "./agent/loop.js";
 import { ProjectManager, ProjectManagerError } from "./projects/projectManager.js";
 import { readFile, stat, readdir } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
@@ -40,7 +40,9 @@ interface ChatJob {
   updatedAt: number;
   reply?: string;
   steps?: unknown[];
+  events?: AgentEvent[];
   problems?: Array<{ message: string; source?: string }>;
+  currentMessage?: string;
   commandOutput?: { command: string; stdout: string; stderr: string; exitCode: number | null };
   error?: string;
 }
@@ -68,15 +70,29 @@ async function runChatJob(
 
   job.status = "running";
   job.updatedAt = Date.now();
+  job.currentMessage = "Запускаю AI-агента и начинаю выполнение задачи.";
 
   try {
     const project = await projectManager.getActiveProject(projectId);
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const agent = new NexumAgent(aiGateway, project.path);
-    const agentLoop = new AgentLoop(agent, aiGateway, undefined, (step) => {
-      job.steps = [...(job.steps ?? []), step];
-      job.updatedAt = Date.now();
-    });
+    const agentLoop = new AgentLoop(
+      agent,
+      aiGateway,
+      undefined,
+      (step) => {
+        job.steps = [...(job.steps ?? []), step];
+        job.updatedAt = Date.now();
+      },
+      (event) => {
+        job.events = [...(job.events ?? []), event].slice(-100);
+        job.currentMessage = event.message;
+        job.updatedAt = Date.now();
+        if (event.type === "tool-error" || event.type === "failed") {
+          job.problems = [...(job.problems ?? []), { message: event.message, source: event.tool }];
+        }
+      },
+    );
     const result = await agentLoop.run(message, {
       ...(provider === undefined ? {} : { provider }),
       ...(model === undefined ? {} : { model }),
@@ -416,6 +432,8 @@ app.get("/api/chat/jobs/:id", (req, res) => {
       updatedAt: job.updatedAt,
       reply: job.reply ?? null,
       steps: job.steps ?? [],
+      events: job.events ?? [],
+      currentMessage: job.currentMessage ?? null,
       problems: job.problems ?? [],
       commandOutput: job.commandOutput ?? null,
       error: job.error ?? null,
