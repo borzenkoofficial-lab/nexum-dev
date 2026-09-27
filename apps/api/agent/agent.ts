@@ -16,6 +16,7 @@ import { RunCommandTool } from "./tools/runCommand.js";
 import { RunSandboxTool } from "./tools/runSandbox.js";
 import { GitTool } from "./tools/git.js";
 import { GitHubTool } from "./tools/github.js";
+import { ProjectWorkspace } from "./tools/workspace.js";
 import { WriteFileTool } from "./tools/writeFile.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -27,11 +28,12 @@ export class NexumAgent implements AgentRuntime {
     private readonly gateway: AIGateway,
     public readonly projectRoot = defaultProjectRoot,
   ) {
+    const workspace = new ProjectWorkspace(projectRoot);
     const tools = [
-      new ListFilesTool(projectRoot),
-      new ReadFileTool(projectRoot),
-      new WriteFileTool(projectRoot),
-      new SearchFilesTool(projectRoot),
+      new ListFilesTool(workspace),
+      new ReadFileTool(workspace),
+      new WriteFileTool(workspace),
+      new SearchFilesTool(workspace),
       new RunCommandTool(projectRoot),
       new RunSandboxTool(projectRoot),
       new GitTool(projectRoot),
