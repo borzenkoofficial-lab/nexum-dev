@@ -238,6 +238,7 @@ app.use("/api/preview/:id", async (req, res) => {
       return res.status(403).send("Invalid preview path");
     }
 
+    await assertExistingProjectPath(project.path, relative(project.path, filePath));
     const details = await stat(filePath);
     if (!details.isFile()) return res.status(404).send("Preview file not found");
 
