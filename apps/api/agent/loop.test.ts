@@ -240,3 +240,33 @@ test("recovers from a failed build after a file fix", async () => {
   assert.equal(commands.filter((command) => command === "npm run build").length, 2);
   assert.ok(result.steps.some((step) => step.tool === "writeFile" && step.input.includes('"content":"fixed"')));
 });
+
+
+test("locks auto-repair requests to the automotive domain", async () => {
+  const agent = new NexumAgent(gateway);
+  const plan = await agent.createProductPlan("Сделай сайт по ремонту авто", []);
+  assert.equal(plan.productType, "Auto repair service website");
+  assert.deepEqual(plan.pages, ["Главная", "Услуги", "Диагностика", "Цены", "Отзывы", "Контакты"]);
+  assert.ok(plan.acceptanceCriteria.some((item) => /auto repair/i.test(item)));
+  assert.ok(plan.acceptanceCriteria.every((item) => !/construction|строитель/i.test(item)));
+});
+
+test("does not let an automotive request accept a construction write plan", () => {
+  const agent = new NexumAgent(gateway);
+  const aligned = (agent as any).isPlanAlignedWithTask("Сделай сайт по ремонту авто", {
+    tool: "writeFile",
+    input: JSON.stringify({
+      path: "src/App.tsx",
+      content: "СТРОИТЕЛЬНАЯ КОМПАНИЯ. Демонтаж, фасадные работы, объекты.",
+    }),
+  });
+  const rejected = (agent as any).isPlanAlignedWithTask("Сделай сайт по ремонту авто", {
+    tool: "writeFile",
+    input: JSON.stringify({
+      path: "src/App.tsx",
+      content: "Автосервис. Диагностика автомобиля, ремонт двигателя, запись на обслуживание.",
+    }),
+  });
+  assert.equal(aligned, false);
+  assert.equal(rejected, true);
+});
