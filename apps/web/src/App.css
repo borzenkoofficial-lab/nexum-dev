@@ -570,3 +570,41 @@ button,.project,.quick-action-grid button,.preview-refresh{-webkit-tap-highlight
 
 
 .project-row{display:flex;align-items:center;gap:3px;min-width:0}.project-row .project{min-width:0;flex:1}.project-delete{width:30px;height:34px;flex:0 0 auto;border:0;border-radius:8px;background:transparent;color:#a0a6ad;font-size:18px;line-height:1;opacity:0;transition:opacity .15s ease,background .15s ease,color .15s ease}.project-row:hover .project-delete,.project-row.active .project-delete{opacity:1}.project-delete:hover{background:#fff0f0;color:#b42318}
+
+
+/* Composer send flight */
+.message-form{position:relative}
+.composer-flight{
+  position:absolute;
+  z-index:4;
+  left:18px;
+  right:18px;
+  top:10px;
+  pointer-events:none;
+  animation:composer-flight 520ms cubic-bezier(.22,1,.36,1) both;
+}
+.composer-flight span{
+  display:block;
+  width:max-content;
+  max-width:min(78%,560px);
+  margin-left:auto;
+  padding:10px 14px;
+  border-radius:16px;
+  background:#111;
+  color:#fff;
+  font-size:13px;
+  line-height:1.35;
+  box-shadow:0 12px 30px rgba(0,0,0,.16);
+  white-space:pre-wrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+@keyframes composer-flight{
+  0%{opacity:0;transform:translate(0,18px) scale(.94);filter:blur(2px)}
+  18%{opacity:1;transform:translate(0,0) scale(1);filter:blur(0)}
+  70%{opacity:1;transform:translate(0,-10px) scale(.98)}
+  100%{opacity:0;transform:translate(0,-42px) scale(.92);filter:blur(1px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .composer-flight{animation-duration:.01ms}
+}
