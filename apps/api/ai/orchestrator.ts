@@ -7,7 +7,8 @@ export type AIOrchestratorRole =
   | "debugger"
   | "tester"
   | "finalizer"
-  | "general";
+  | "general"
+  | "director";
 
 export interface AIOrchestratorRun {
   role: AIOrchestratorRole;
@@ -18,6 +19,7 @@ export interface AIOrchestratorRun {
 }
 
 const ROLE_MODELS: Record<AIOrchestratorRole, string[]> = {
+  director: [],
   planner: [
     "nvidia/nemotron-3-ultra-550b-a55b:free",
     "nvidia/nemotron-3.5-lightning:free",
@@ -122,6 +124,7 @@ export class AIOrchestrator {
 
   private maxTokensFor(role: AIOrchestratorRole): number {
     switch (role) {
+      case "director":
       case "planner":
         return 1_200;
       case "reviewer":
@@ -156,6 +159,7 @@ export class AIOrchestrator {
       debugger: "You are the debugging specialist. Trace the reported failure to a concrete cause and propose the smallest correct fix.",
       tester: "You are the verification specialist. Determine what must be checked and interpret test/build output precisely.",
       finalizer: "You are the release/finalization specialist. Summarize verified work and remaining concrete issues without dumping code.",
+      director: "You are the NEXUM director. Decompose the task, assign roles, control budget and escalation, and do not write project code.",
       general: "You are a general NEXUM.DEV assistant. Be concise and technically precise.",
     };
     return [
