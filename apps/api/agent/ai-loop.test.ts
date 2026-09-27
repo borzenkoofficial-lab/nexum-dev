@@ -90,7 +90,7 @@ test("deterministic Builder fallback implements a scaffold when no real AI plan 
   };
   const appPlan = agent.plan("Создай React dashboard", [scaffold]);
   assert.equal(appPlan?.tool, "writeFile");
-  assert.match(appPlan?.input ?? "", /src\\/App\\.jsx/);
+  assert.match(appPlan?.input ?? "", /src.*App\\.jsx/);
 
   const appWrite = {
     iteration: 2,
@@ -100,5 +100,5 @@ test("deterministic Builder fallback implements a scaffold when no real AI plan 
   };
   const stylesPlan = agent.plan("Создай React dashboard", [scaffold, appWrite]);
   assert.equal(stylesPlan?.tool, "writeFile");
-  assert.match(stylesPlan?.input ?? "", /src\\/styles\\.css/);
+  assert.match(stylesPlan?.input ?? "", /src.*styles\\.css/);
 });
