@@ -67,15 +67,66 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   }
 
   const dirty = content !== savedContent;
-  return <aside className="right-panel" aria-label="Project tools">
-    <div className="panel-tabs" role="tablist"><button className={tab === "preview" ? "active" : ""} type="button" onClick={() => onTabChange("preview")}>Preview</button><button className={tab === "files" ? "active" : ""} type="button" onClick={() => onTabChange("files")}>Files</button><button className={tab === "agent" ? "active" : ""} type="button" onClick={() => onTabChange("agent")}>Agent</button>{tab === "preview" && previewOnline && <button className="preview-refresh" type="button" onClick={onRefreshPreview} aria-label="Refresh preview">↻</button>}</div>
-    {tab === "preview" ? (previewOnline ? <div className="preview-frame-wrap"><iframe key={previewKey} className="preview-frame" title={`${projectName} live preview`} src={previewUrl} sandbox="allow-scripts allow-forms allow-modals" /></div> : <div className="preview-content"><div className="preview-icon">{projectName.slice(0,1) || "N"}</div><strong>{projectName}</strong><div className="coming-soon">Preview is waiting for an index.html</div><span>Ask the Agent: “Создай приложение и запусти preview”</span></div>) : tab === "files" ? <div className="editor-shell">
-      <div className="editor-filebar"><div className="editor-file-name">{selectedFile ? <><span>{selectedFile}</span>{dirty && <i aria-label="Unsaved changes">●</i>}</> : "Select a file"}</div>{selectedFile && <button className="editor-save" type="button" disabled={!dirty || saving} onClick={saveFile}>{saving ? "Saving…" : "Save"}</button>}</div>
-      <div className="editor-body">
-        <div className="file-tree editor-tree">{filesLoading ? <div className="files-empty">Loading files...</div> : fileError ? <div className="files-empty error-state-inline">{fileError}</div> : files.map((file) => <button key={file} className={`file-row ${selectedFile === file ? "selected" : ""}`} type="button" title={file} onClick={() => void openFile(file)}><span>{file.endsWith(".css") ? "◇" : file.endsWith(".js") || file.endsWith(".ts") || file.endsWith(".tsx") ? "ƒ" : file.endsWith(".json") ? "{}" : "□"}</span><strong>{file}</strong></button>)}</div>
-        <div className="code-editor">{editorLoading ? <div className="editor-empty">Loading file…</div> : selectedFile ? <><div className="editor-gutter" aria-hidden="true">{content.split("\n").map((_, index) => <span key={index}>{index + 1}</span>)}</div><textarea spellCheck={false} value={content} onChange={(event) => setContent(event.target.value)} onKeyDown={(event) => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") { event.preventDefault(); void saveFile(); } }} aria-label={`Editing ${selectedFile}`} /></> : <div className="editor-empty"><strong>Choose a file</strong><span>Open a project file to edit it here.</span></div>}</div>
+
+  let panelContent: React.ReactNode;
+  if (tab === "preview") {
+    panelContent = previewOnline ? (
+      <div className="preview-frame-wrap">
+        <iframe key={previewKey} className="preview-frame" title={projectName + " live preview"} src={previewUrl} sandbox="allow-scripts allow-forms allow-modals" />
       </div>
-      {editorError && <div className="editor-error">{editorError}</div>}
-    </div> : <AgentActivityPanel jobId={jobId} stage={stage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} />
-  </aside>;
+    ) : (
+      <div className="preview-content">
+        <div className="preview-icon">{projectName.slice(0, 1) || "N"}</div>
+        <strong>{projectName}</strong>
+        <div className="coming-soon">Preview is waiting for an index.html</div>
+        <span>Ask the Agent: “Создай приложение и запусти preview”</span>
+      </div>
+    );
+  } else if (tab === "files") {
+    panelContent = (
+      <div className="editor-shell">
+        <div className="editor-filebar">
+          <div className="editor-file-name">
+            {selectedFile ? <><span>{selectedFile}</span>{dirty && <i aria-label="Unsaved changes">●</i>}</> : "Select a file"}
+          </div>
+          {selectedFile && <button className="editor-save" type="button" disabled={!dirty || saving} onClick={saveFile}>{saving ? "Saving…" : "Save"}</button>}
+        </div>
+        <div className="editor-body">
+          <div className="file-tree editor-tree">
+            {filesLoading ? <div className="files-empty">Loading files...</div> : fileError ? <div className="files-empty error-state-inline">{fileError}</div> : files.map((file) => (
+              <button key={file} className={"file-row " + (selectedFile === file ? "selected" : "")} type="button" title={file} onClick={() => void openFile(file)}>
+                <span>{file.endsWith(".css") ? "◇" : file.endsWith(".js") || file.endsWith(".ts") || file.endsWith(".tsx") ? "ƒ" : file.endsWith(".json") ? "{}" : "□"}</span>
+                <strong>{file}</strong>
+              </button>
+            ))}
+          </div>
+          <div className="code-editor">
+            {editorLoading ? <div className="editor-empty">Loading file…</div> : selectedFile ? (
+              <>
+                <div className="editor-gutter" aria-hidden="true">{content.split("\n").map((_, index) => <span key={index}>{index + 1}</span>)}</div>
+                <textarea spellCheck={false} value={content} onChange={(event) => setContent(event.target.value)} onKeyDown={(event) => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") { event.preventDefault(); void saveFile(); } }} aria-label={"Editing " + selectedFile} />
+              </>
+            ) : (
+              <div className="editor-empty"><strong>Choose a file</strong><span>Open a project file to edit it here.</span></div>
+            )}
+          </div>
+        </div>
+        {editorError && <div className="editor-error">{editorError}</div>}
+      </div>
+    );
+  } else {
+    panelContent = <AgentActivityPanel jobId={jobId} stage={stage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} />;
+  }
+
+  return (
+    <aside className="right-panel" aria-label="Project tools">
+      <div className="panel-tabs" role="tablist">
+        <button className={tab === "preview" ? "active" : ""} type="button" onClick={() => onTabChange("preview")}>Preview</button>
+        <button className={tab === "files" ? "active" : ""} type="button" onClick={() => onTabChange("files")}>Files</button>
+        <button className={tab === "agent" ? "active" : ""} type="button" onClick={() => onTabChange("agent")}>Agent</button>
+        {tab === "preview" && previewOnline && <button className="preview-refresh" type="button" onClick={onRefreshPreview} aria-label="Refresh preview">↻</button>}
+      </div>
+      {panelContent}
+    </aside>
+  );
 }
