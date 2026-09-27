@@ -1,6 +1,5 @@
 import "./App.css";
 import { useEffect, useState } from "react";
-import { BottomPanel } from "./components/BottomPanel";
 import { ChatPanel } from "./components/ChatPanel";
 import { CommandPalette } from "./components/CommandPalette";
 import { NewProjectModal } from "./components/NewProjectModal";
@@ -29,8 +28,7 @@ function App() {
   const [aiModel, setAIModel] = useState("mock-v1");
   const [aiStatus, setAIStatus] = useState<AIProviderStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
-  const [rightTab, setRightTab] = useState<"preview" | "files" | "terminal">("preview");
+  const [rightTab, setRightTab] = useState<"preview" | "files" | "agent">("preview");
   const [notice, setNotice] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [previewOnline, setPreviewOnline] = useState(false);
@@ -49,8 +47,39 @@ function App() {
   const [localAITestEnabled, setLocalAITestEnabled] = useState(true);
   const [localAIConfigured, setLocalAIConfigured] = useState(false);
   const [localAIKeyLoading, setLocalAIKeyLoading] = useState(false);
+  const [conversation, setConversation] = useState<Array<{ id: string; role: "user" | "assistant"; content: string; timestamp: number; attachments?: string[] }>>([]);
+  const [pendingAttachments, setPendingAttachments] = useState<Array<{ id: string; name: string; type: string; size: number; file: File }>>([]);
 
   const activeProject = projects.find((project) => project.id === activeProjectId);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(`nexum:conversation:${activeProjectId}`) || "[]");
+      setConversation(Array.isArray(saved) ? saved.slice(-100) : []);
+    } catch { setConversation([]); }
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    try { localStorage.setItem(`nexum:conversation:${activeProjectId}`, JSON.stringify(conversation.slice(-100))); } catch {}
+  }, [activeProjectId, conversation]);
+
+  async function serializeAttachments(files: File[]) {
+    const results: Array<{ name: string; type: string; size: number; content?: string; data?: string }> = [];
+    for (const file of files.slice(0, 5)) {
+      if (file.size > 2_000_000) continue;
+      const isText = file.type.startsWith("text/") || /\\.(md|txt|json|js|jsx|ts|tsx|css|html|xml|csv|yml|yaml|env)$/i.test(file.name);
+      if (isText) {
+        results.push({ name: file.name, type: file.type || "text/plain", size: file.size, content: (await file.text()).slice(0, 80_000) });
+      } else {
+        const buffer = await file.arrayBuffer();
+        let binary = "";
+        const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        results.push({ name: file.name, type: file.type || "application/octet-stream", size: file.size, data: btoa(binary) });
+      }
+    }
+    return results;
+  }
 
   useEffect(() => {
     const report = (payload: Record<string, unknown>) => {
@@ -215,7 +244,7 @@ function App() {
     setMessage(task);
     setLastMessage(task);
     setBuilderStarted(true);
-    setRightTab("preview");
+    setRightTab("agent");
     setAgentStage("thinking");
     setReply("");
     setApiError("");
@@ -223,18 +252,15 @@ function App() {
     setActivityEvents([]);
     setCurrentActivity("Отправляю задачу AI-агенту…");
     setProblems([]);
-    setBottomPanelOpen(true);
 
     try {
+      const serializedAttachments = await serializeAttachments(pendingAttachments.map((item) => item.file));
+      setConversation((items) => [...items, { id: `user-${Date.now()}`, role: "user", content: task.trim(), timestamp: Date.now(), attachments: serializedAttachments.map((item) => item.name) }]);
+      setPendingAttachments([]);
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: task,
-          projectId: activeProjectId,
-          provider: aiProvider,
-          model: aiModel,
-        }),
+        body: JSON.stringify({ message: task, projectId: activeProjectId, provider: aiProvider, model: aiModel, attachments: serializedAttachments }),
       });
 
       if (!response.ok) {
@@ -273,6 +299,7 @@ function App() {
               success?: boolean;
               job?: {
                 status?: "queued" | "running" | "completed" | "failed";
+                stage?: string;
                 reply?: string | null;
                 steps?: Array<{ iteration: number; tool: string; success: boolean }>;
                 events?: Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>;
@@ -297,6 +324,7 @@ function App() {
           setCurrentActivity(data?.job?.currentMessage ?? "Готово.");
           setProblems(data?.job?.problems ?? []);
           setReply(data?.job?.reply ?? "");
+          if (data?.job?.reply) setConversation((items) => [...items, { id: `assistant-${Date.now()}`, role: "assistant", content: data.job!.reply!, timestamp: Date.now() }]);
           setRightTab("preview");
 
           // The agent can finish immediately after the build while the filesystem
@@ -337,7 +365,7 @@ function App() {
         setActivityEvents(data?.job?.events ?? []);
         setCurrentActivity(data?.job?.currentMessage ?? "AI выполняет задачу…");
         setProblems(data?.job?.problems ?? []);
-        setAgentStage(status === "running" ? "running" : "thinking");
+        setAgentStage((data?.job?.stage as typeof agentStage) ?? (status === "running" ? "running" : "thinking"));
         timer = window.setTimeout(pollJob, 900);
       } catch (error) {
         if (cancelled) return;
@@ -402,7 +430,7 @@ function App() {
     { label: "New Project", hint: "N", run: () => setModalOpen(true) },
     { label: "Open Project", hint: "O", run: openProjectPicker },
     { label: "Search Files", hint: "S", run: () => focusTask("Найди ") },
-    { label: "Open Terminal", hint: "T", run: () => setBottomPanelOpen(true) },
+    { label: "Open Agent Activity", hint: "A", run: () => setRightTab("agent") },
     { label: "Run Tests", hint: "T", run: () => runTask("Запусти тесты в изолированной среде") },
     { label: "Run Build", hint: "B", run: () => runTask("Проверь сборку проекта") },
     { label: "Git Status", hint: "G", run: () => runTask("Покажи статус Git") },
@@ -474,29 +502,17 @@ function App() {
         </div>
         <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
-            <ChatPanel message={message} reply={reply} stage={agentStage} apiError={apiError} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} />
+            <ChatPanel message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => setRightTab("agent")} />
             <QuickActions onNewProject={() => setModalOpen(true)} onOpenProject={openProjectPicker} onAsk={() => focusTask()} onTask={runTask}
               onPreview={() => { setRightTab("preview"); setPreviewKey((key) => key + 1); setNotice("Preview refreshed"); }}
               onDeploy={() => { window.open(`/api/preview/${activeProjectId}/index.html`, "_blank", "noopener,noreferrer"); setNotice("Preview opened in a new tab"); }} />
           </div>
-          <RightPanel tab={rightTab} onTabChange={setRightTab} onOpenTerminal={() => setBottomPanelOpen(true)} projectName={activeProject?.name ?? "NEXUM"} projectId={activeProjectId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setPreviewKey((key) => key + 1)} />
+          <RightPanel tab={rightTab} onTabChange={setRightTab} projectName={activeProject?.name ?? "NEXUM"} projectId={activeProjectId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setPreviewKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} />
         </div>
         </>
         )}
       </main>
-      <BottomPanel open={bottomPanelOpen} onClose={() => setBottomPanelOpen(false)} projectId={activeProjectId} jobId={chatJobId} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} onRunCommand={async (command) => {
-        try {
-          const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command }) });
-          const data = await response.json().catch(() => ({})) as { success?: boolean; stdout?: string; stderr?: string; error?: string; problems?: Array<{ message: string; source?: string }> };
-          setProblems(data.problems ?? []);
-          return data;
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Command failed";
-          setProblems([{ message, source: command }]);
-          return { success: false, stderr: message, stdout: "", problems: [{ message, source: command }] };
-        }
-      }} />
-      <StatusBar projectName={activeProject?.name ?? "NEXUM"} provider={aiProvider} aiStatus={aiStatus} previewOnline={previewOnline} onOpenTerminal={() => setBottomPanelOpen(true)} />
+      <StatusBar projectName={activeProject?.name ?? "NEXUM"} provider={aiProvider} aiStatus={aiStatus} previewOnline={previewOnline} />
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
       <NewProjectModal open={modalOpen} name={newProjectName} loading={projectActionLoading} onNameChange={setNewProjectName} onClose={() => setModalOpen(false)} onSubmit={(event) => void createProject(event)} />
       {connectorModal && <div className="modal-backdrop connector-backdrop" onMouseDown={() => setConnectorModal(null)}><section className="connector-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><div className="modal-top"><div><span className="eyebrow">CONNECTOR</span><h2>{connectorModal}</h2></div><button type="button" onClick={() => setConnectorModal(null)}>×</button></div><p>{connectedConnectors.includes(connectorModal) ? "This connector is enabled for this workspace UI. Provider OAuth/API credentials are not stored yet." : "Enable this connector for the current workspace. Provider OAuth/API credentials are not stored yet."}</p><div className="connector-modal-actions"><button type="button" onClick={() => setConnectorModal(null)}>Cancel</button><button className="home-primary" type="button" onClick={() => { if (!connectedConnectors.includes(connectorModal)) setConnectedConnectors((items) => [...items, connectorModal]); setConnectorModal(null); setNotice(connectorModal + " connector enabled"); }}>Continue</button></div></section></div>}
