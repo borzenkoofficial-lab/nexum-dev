@@ -46,7 +46,7 @@ export class RunSandboxTool implements Tool {
     }
 
     return {
-      projectPath: typeof request.projectPath === "string" ? request.projectPath : ".",
+      projectPath: ".",
       command: request.command,
       ...(request.timeoutMs === undefined ? {} : { timeoutMs: request.timeoutMs }),
     };
