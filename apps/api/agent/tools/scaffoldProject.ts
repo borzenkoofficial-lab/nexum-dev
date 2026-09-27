@@ -16,11 +16,17 @@ export class ScaffoldProjectTool implements Tool {
       const dir = await this.workspace.existing(".");
       await mkdir(dir, { recursive: true });
 
-      const files = [
+      const isReact = /react|vite|spa|single.?page|реакт|spa/i.test(brief);
+      const files = isReact
+        ? this.reactFiles(title, brief)
+        : [
         ["index.html", this.indexHtml(title, brief)],
         ["style.css", this.styleCss()],
         ["app.js", this.appJs()],
-      ] as const;
+          ["index.html", this.indexHtml(title, brief)],
+          ["style.css", this.styleCss()],
+          ["app.js", this.appJs()],
+        ] as const;
 
       for (const [path, content] of files) {
         const target = await this.workspace.writable(path);
@@ -37,6 +43,27 @@ export class ScaffoldProjectTool implements Tool {
         output: error instanceof Error ? error.message : "Unable to scaffold project",
       };
     }
+  }
+
+  private reactFiles(title: string, brief: string): readonly [string, string][] {
+    const safeTitle = this.escapeHtml(title);
+    const safeBrief = this.escapeHtml(brief || "A new product built with NEXUM.");
+    return [
+      ["package.json", JSON.stringify({
+        name: "nexum-app",
+        private: true,
+        version: "0.0.0",
+        type: "module",
+        scripts: { build: "vite build", dev: "vite --host 0.0.0.0" },
+        dependencies: { react: "^19.1.1", "react-dom": "^19.1.1" },
+        devDependencies: { vite: "^7.1.7", "@vitejs/plugin-react": "^5.0.4" }
+      }, null, 2)],
+      ["vite.config.js", 'import { defineConfig } from "vite";\nimport react from "@vitejs/plugin-react";\nexport default defineConfig({ plugins: [react()] });\n'],
+      ["index.html", '<!doctype html>\n<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>'+safeTitle+'</title></head><body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>'],
+      ["src/main.jsx", 'import React from "react";\nimport { createRoot } from "react-dom/client";\nimport "./styles.css";\nimport App from "./App.jsx";\ncreateRoot(document.getElementById("root")).render(<React.StrictMode><App /></React.StrictMode>);\n'],
+      ["src/App.jsx", 'export default function App(){return <main className="app"><span className="eyebrow">BUILT WITH NEXUM.DEV</span><h1>'+safeTitle+'</h1><p>'+safeBrief+'</p><button onClick={()=>alert("NEXUM preview is live")}>Get started</button></main>}\n'],
+      ["src/styles.css", 'body{margin:0;font-family:Inter,system-ui,sans-serif;background:#f5f5f2;color:#111}.app{min-height:100vh;display:grid;place-content:center;max-width:900px;margin:auto;padding:40px}.eyebrow{font-size:12px;letter-spacing:.16em;font-weight:800;color:#777}h1{font-size:clamp(48px,9vw,96px);line-height:.92;letter-spacing:-.06em;margin:18px 0}p{font-size:20px;line-height:1.5;color:#666}button{border:0;border-radius:14px;padding:13px 20px;background:#111;color:white;font-weight:800;cursor:pointer}'],
+    ];
   }
 
   private makeTitle(brief: string): string {
