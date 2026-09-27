@@ -18,6 +18,7 @@ import { GitTool } from "./tools/git.js";
 import { GitHubTool } from "./tools/github.js";
 import { ProjectWorkspace } from "./tools/workspace.js";
 import { WriteFileTool } from "./tools/writeFile.js";
+import { ScaffoldProjectTool } from "./tools/scaffoldProject.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -33,6 +34,7 @@ export class NexumAgent implements AgentRuntime {
       new ListFilesTool(workspace),
       new ReadFileTool(workspace),
       new WriteFileTool(workspace),
+      new ScaffoldProjectTool(workspace),
       new SearchFilesTool(workspace),
       new RunCommandTool(projectRoot),
       new RunSandboxTool(projectRoot),
@@ -75,6 +77,7 @@ export class NexumAgent implements AgentRuntime {
       "readFile: input is a relative file path string",
       'writeFile: input is JSON object {"path":"relative/path","content":"file contents"}',
       "searchFiles: input is the text to search for",
+      "scaffoldProject: input is the app brief; creates index.html, style.css and app.js",
       "runCommand: input is one allowlisted command for the active project, such as npm run build or npm run test",
       'runSandbox: input is JSON object {"projectPath":".","command":"npm run build"}; projectPath is always forced to the active project',
       "git: input is one of status, diff, diff-stat, log, branch",
@@ -255,7 +258,7 @@ export class NexumAgent implements AgentRuntime {
       return { name: "runCommand", input: "git log" };
     }
 
-    if (/структур|список файлов|покажи файлы|list files|project files/.test(normalizedTask)) {
+    if (/создай|сделай|разработай|build|create|make/.test(normalizedTask) && /приложени|сайт|лендинг|web app|website|landing|страниц/.test(normalizedTask)) {\n      return { name: "scaffoldProject", input: task.trim() };\n    }\n\n    if (/структур|список файлов|покажи файлы|list files|project files/.test(normalizedTask)) {
       return { name: "listFiles", input: "." };
     }
 
