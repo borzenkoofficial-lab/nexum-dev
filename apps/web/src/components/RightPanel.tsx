@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { BottomPanel as AgentActivityPanel } from "./BottomPanel";
+import type { AgentStage } from "./types";
 
 interface RightPanelProps {
   tab: "preview" | "files" | "agent";
