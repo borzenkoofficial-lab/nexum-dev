@@ -24,6 +24,7 @@ import { WriteFileTool } from "./tools/writeFile.js";
 import { ScaffoldProjectTool } from "./tools/scaffoldProject.js";
 import { ValidateProjectTool } from "./tools/validateProject.js";
 import { PatchFileTool } from "./tools/patchFile.js";
+import { TestProjectTool } from "./tools/testProject.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -44,6 +45,7 @@ export class NexumAgent implements AgentRuntime {
       new ScaffoldProjectTool(workspace),
       new ValidateProjectTool(workspace),
       new PatchFileTool(workspace),
+      new TestProjectTool(workspace),
       new SearchFilesTool(workspace),
       new RunCommandTool(projectRoot),
       new RunSandboxTool(projectRoot),
