@@ -30,7 +30,7 @@ function App() {
   const [aiStatus, setAIStatus] = useState<AIProviderStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
-  const [rightTab, setRightTab] = useState<"preview" | "terminal">("preview");
+  const [rightTab, setRightTab] = useState<"preview" | "files" | "terminal">("preview");
   const [notice, setNotice] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [previewOnline, setPreviewOnline] = useState(false);
