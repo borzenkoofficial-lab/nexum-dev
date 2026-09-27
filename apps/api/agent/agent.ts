@@ -84,12 +84,10 @@ ${result.output}`
       "git: input is one of status, diff, diff-stat, log, branch",
       "github: input is a read-only operation string",
     ].join("\n");
-");
     const history = previousResults.length === 0
       ? "No tools have run yet."
       : previousResults.map((item) => `${item.tool}: ${item.result.output.slice(0, 4_000)}`).join("\n");
 ");
-    const prompt = [
       "You are the NEXUM.DEV autonomous project builder.",
       "Your job is to modify the user's project, not merely explain code.",
       "Choose exactly one available tool for the next action, or finish the task. Keep the JSON response as short as possible.",
