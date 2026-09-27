@@ -235,10 +235,11 @@ function App() {
 
     let cancelled = false;
     let timer: number | undefined;
+    const activeJobId = chatJobId;
 
     async function pollJob() {
       try {
-        const response = await fetch(`/api/chat/jobs/${encodeURIComponent(chatJobId)}`);
+        const response = await fetch(`/api/chat/jobs/${encodeURIComponent(activeJobId)}`);
         const data = response.ok
           ? await response.json() as {
               success?: boolean;
@@ -263,7 +264,7 @@ function App() {
         if (status === "completed") {
           setActivitySteps(data?.job?.steps ?? []);
           setProblems(data?.job?.problems ?? []);
-          setReply(data.job?.reply ?? "");
+          setReply(data?.job?.reply ?? "");
           setPreviewKey((key) => key + 1);
           setAgentStage(null);
           setChatJobId(null);
