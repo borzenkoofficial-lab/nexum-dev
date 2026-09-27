@@ -29,6 +29,8 @@ export interface ProductReview {
   risks: string[];
 }
 
+export type AgentPhase = "analyze" | "plan" | "implement" | "validate" | "repair" | "verify" | "finish";
+
 export interface AgentPlan {
   tool: string;
   input: string;
@@ -65,6 +67,7 @@ export interface AgentStep {
 }
 
 export interface AgentLoopResult {
+  phase: AgentPhase;
   success: boolean;
   iterations: number;
   productPlan?: ProductPlan;
