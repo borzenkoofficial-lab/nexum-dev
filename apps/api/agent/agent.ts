@@ -408,19 +408,8 @@ ${result.output}`
       if (existingPath) return { tool: "readFile", input: existingPath };
     }
 
-    // Provider-independent Builder fallback: a remote planner outage must not
-    // leave the user with an unchanged project after successful inspection.
-    const deterministicImplementation = this.selectDeterministicImplementation(task, previousResults);
-    if (deterministicImplementation) {
-      const alreadyCompleted = previousResults.some(
-        (item) =>
-          item.tool === deterministicImplementation.name &&
-          item.input === deterministicImplementation.input &&
-          item.result.success,
-      );
-      if (!alreadyCompleted) return deterministicImplementation;
-    }
-
+    // Provider-independent Builder fallback: if the remote planner is unavailable,
+    // keep implementing the requested site instead of returning a false completion.
     const deterministicWrite = this.deterministicBuilderWrite(task, previousResults);
     if (deterministicWrite) return deterministicWrite;
 
@@ -437,61 +426,82 @@ ${result.output}`
     const lower = task.toLowerCase();
     const isAuto = /авто|автомобил|машин|сто|автосервис|ремонт.*авто|ремонт.*машин|диагностик|шиномонтаж|кузов|двигател|тормоз|масл|запчаст/.test(lower);
     const isConstruction = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
-    const writes = previousResults.filter((item) =>
-      (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
+    const isBuilder = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|website|landing|web app|страниц/.test(lower);
+    if (!isBuilder) return null;
+
+    const writes = previousResults.filter(
+      (item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
     ).length;
     if (writes >= 2) return null;
 
     const inspection = previousResults
       .filter((item) => item.tool === "listFiles" && item.result.success)
       .map((item) => item.result.output)
-      .join("\\n");
-    const reactApp = /(?:^|\\n)(?:src\\/)?App\\.(?:tsx|jsx)(?:\\n|$)/i.test(inspection)
-      || previousResults.some((item) => item.tool === "readFile" && /(?:^|\\/)App\\.(?:tsx|jsx)$/i.test(item.input));
-    const appPath = previousResults.some((item) => /(?:^|\\/)App\\.jsx$/i.test(item.input)) ? "src/App.jsx" : "src/App.tsx";
-    const cssPath = "src/App.css";
+      .join("\n");
 
-    if (!reactApp && !/(?:^|\\n)index\\.html(?:\\n|$)/i.test(inspection)) return null;
+    const hasReactApp = inspection.includes("src/App.tsx") || inspection.includes("src/App.jsx");
+    const appPath = inspection.includes("src/App.jsx") ? "src/App.jsx" : "src/App.tsx";
+    const hasCss = inspection.includes("src/App.css") || inspection.includes("src/styles.css") || inspection.includes("style.css");
+    const cssPath = inspection.includes("src/App.css")
+      ? "src/App.css"
+      : inspection.includes("src/styles.css")
+        ? "src/styles.css"
+        : "style.css";
+    const hasStatic = inspection.includes("index.html") && inspection.includes("style.css");
 
-    const readApp = previousResults.some((item) =>
-      item.tool === "readFile" && item.result.success && /(?:^|\\/)App\\.(?:tsx|jsx)$/i.test(item.input),
-    );
-    const readCss = previousResults.some((item) =>
-      item.tool === "readFile" && item.result.success && /(?:^|\\/)(?:App\\.css|styles\\.css|style\\.css)$/i.test(item.input),
-    );
+    if (hasReactApp && hasCss) {
+      const appWritten = previousResults.some(
+        (item) => item.tool === "writeFile" && item.result.success && item.input.includes(appPath),
+      );
+      if (!appWritten) {
+        let content = this.fallbackApp(task);
+        if (cssPath.startsWith("src/")) {
+          content = content.replace(
+            'import { useState } from "react";',
+            'import { useState } from "react";\nimport "./' + cssPath.slice(4) + '";',
+          );
+        }
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({ path: appPath, content }),
+        };
+      }
 
-    const title = isAuto ? "Автосервис" : isConstruction ? "Строительная компания" : "Компания";
-    const subtitle = isAuto
-      ? "Диагностика, ремонт и обслуживание автомобилей"
-      : isConstruction
-        ? "Строительство, демонтаж и ремонтные работы под ключ"
-        : task.trim();
-
-    if (reactApp && !readApp) return null;
-
-    if (reactApp && readApp && !appWasWritten) {
-      return {
-        tool: "writeFile",
-        input: JSON.stringify({
-          path: appPath,
-          content: \`import "./App.css";
-export default function App() {
-  return <main className="site"><h1>${title}</h1><p>${subtitle}</p></main>;
-}\`
-        }),
-      };
+      const cssWritten = previousResults.some(
+        (item) => item.tool === "writeFile" && item.result.success && item.input.includes(cssPath),
+      );
+      if (!cssWritten) {
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({ path: cssPath, content: this.fallbackStyles() }),
+        };
+      }
     }
 
-    if (reactApp && readApp && !cssWasWritten) {
-      return {
-        tool: "writeFile",
-        input: JSON.stringify({
-          path: cssPath,
-          content: \`.site{min-height:100vh;padding:48px;max-width:1200px;margin:0 auto;font-family:Inter,system-ui,sans-serif;color:#171717}.header{display:flex;align-items:center;justify-content:space-between;gap:20px}.header nav{display:flex;gap:18px}.header a{color:inherit;text-decoration:none}.hero{padding:96px 0}.hero h1{font-size:clamp(44px,7vw,88px);line-height:.98;letter-spacing:-.05em;max-width:900px}.lead{font-size:20px;line-height:1.5;color:#666;max-width:720px}.button{display:inline-flex;padding:14px 22px;border-radius:999px;background:#171717;color:#fff;text-decoration:none;border:0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.section{padding:72px 0}.card,.hero-card{padding:28px;border:1px solid #ddd;border-radius:24px;background:#fafafa}.contact{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding:72px 0}.contact form{display:grid;gap:12px}.contact input{padding:15px;border:1px solid #ccc;border-radius:12px;font:inherit}@media(max-width:760px){.site{padding:24px}.header nav{display:none}.grid,.contact{grid-template-columns:1fr}.hero{padding:56px 0}}\`
-        }),
-      };
+    if (hasStatic) {
+      const indexWritten = previousResults.some(
+        (item) => item.tool === "writeFile" && item.result.success && item.input.includes("index.html"),
+      );
+      if (!indexWritten) {
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({ path: "index.html", content: this.fallbackStaticIndex(task) }),
+        };
+      }
+
+      const cssWritten = previousResults.some(
+        (item) => item.tool === "writeFile" && item.result.success && item.input.includes("style.css"),
+      );
+      if (!cssWritten) {
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({ path: "style.css", content: this.fallbackStaticStyles() }),
+        };
+      }
     }
 
+    // If the project is not one of the recognized layouts, let the normal
+    // deterministic planner inspect it rather than overwriting unknown files.
     return null;
   }
 
