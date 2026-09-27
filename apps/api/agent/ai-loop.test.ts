@@ -102,4 +102,4 @@ test("deterministic Builder recovery inspects an existing scaffold before editin
   ]);
   assert.equal(appRead?.tool, "readFile");
   assert.equal(appRead?.input, "src/App.jsx");
-});\n
+});
