@@ -187,8 +187,18 @@ app.post("/api/chat", async (req, res) => {
       ...(model === undefined ? {} : { model }),
     });
 
+    if (!result.success) {
+      return res.status(502).json({
+        success: false,
+        error: result.error ?? "AI agent failed",
+        reply: null,
+        steps: result.steps,
+      });
+    }
+
     return res.json({
-      reply: result.success ? result.finalResponse : result.error,
+      success: true,
+      reply: result.finalResponse,
       steps: result.steps,
     });
   } catch (error) {
