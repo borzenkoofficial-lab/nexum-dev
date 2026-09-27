@@ -122,14 +122,25 @@ export class AIGateway {
       });
     } catch (error) {
       const fallbackId = this.fallbackProviderId;
-      if (normalizedOptions.fallback === false || !fallbackId || fallbackId === provider.id) {
+      const reason = error instanceof Error ? error.message : "AI provider request failed";
+      // Fallback is for transient provider failures only. Authentication,
+      // permission, invalid-model and malformed-request errors must surface to
+      // the caller instead of silently switching providers and hiding the cause.
+      // An explicitly selected provider is also treated as authoritative unless
+      // the caller explicitly opts into fallback.
+      const explicitProvider = typeof options === "object" && options.provider !== undefined;
+      if (
+        normalizedOptions.fallback === false ||
+        (!normalizedOptions.fallback && explicitProvider) ||
+        !fallbackId ||
+        fallbackId === provider.id ||
+        !this.isTransientProviderError(reason)
+      ) {
         throw error;
       }
 
       const fallback = this.providers.get(fallbackId);
       if (!fallback) throw error;
-
-      const reason = error instanceof Error ? error.message : "AI provider request failed";
       const event: GatewayFallbackEvent = {
         fromProvider: provider.id,
         fromModel: normalizedOptions.model ?? provider.model,
@@ -145,6 +156,10 @@ export class AIGateway {
         ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
       });
     }
+  }
+
+  private isTransientProviderError(message: string): boolean {
+    return /(?:429|rate.?limit|too many requests|timeout|timed out|temporar(?:y|ily)|service unavailable|\b5\d{2}\b)/i.test(message);
   }
 
   getProviders(): GatewayProviderInfo[] {
