@@ -39,9 +39,9 @@ function App() {
   const [chatJobId, setChatJobId] = useState<string | null>(null);
   const [view, setView] = useState<"home" | "project" | "connectors" | "settings">("project");
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
-  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);\n  const [connectedConnectors, setConnectedConnectors] = useState<string[]>([]);
 
-  const activeProject = projects.find((project) => project.id === activeProjectId);
+  const activeProject = projects.find((project) => project.id === activeProjectId);\n\n  useEffect(() => {\n    if (!activeProjectId) return;\n    fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/preview/status`).then(async (response) => {\n      if (!response.ok) return;\n      const data = await response.json() as { online?: boolean };\n      setPreviewOnline(Boolean(data.online));\n    }).catch(() => setPreviewOnline(false));\n  }, [activeProjectId, previewKey]);
   const selectedModels = aiModels[aiProvider] ?? [];
 
   async function loadProjects(preferredId = activeProjectId) {
@@ -319,7 +319,7 @@ function App() {
         ) : view === "connectors" ? (
           <section className="connectors-page">
             <div className="page-heading"><div><div className="eyebrow">INTEGRATIONS</div><h1>Connectors</h1><p>Give Nexum access to the services your projects use.</p></div><button className="home-primary" type="button" onClick={() => setConnectorModal("Custom connector")}>+ Add connector</button></div>
-            <div className="connector-grid">{[["GitHub","Repository, branches, commits and issues","Development"],["Supabase","Database, auth and storage","Backend"],["OpenAI","AI models and API access","AI"],["Telegram","Bots, messages and automation","Communication"],["Stripe","Payments and subscriptions","Commerce"],["Notion","Pages, databases and knowledge","Productivity"]].map(([name,description,category]) => <article className="connector-card" key={name}><div className="connector-icon">{name.slice(0,1)}</div><div className="connector-copy"><span>{category}</span><strong>{name}</strong><p>{description}</p></div><button type="button" onClick={() => setConnectorModal(name)}>Connect</button></article>)}</div>
+            <div className="connector-grid">{[["GitHub","Repository, branches, commits and issues","Development"],["Supabase","Database, auth and storage","Backend"],["OpenAI","AI models and API access","AI"],["Telegram","Bots, messages and automation","Communication"],["Stripe","Payments and subscriptions","Commerce"],["Notion","Pages, databases and knowledge","Productivity"]].map(([name,description,category]) => <article className="connector-card" key={name}><div className="connector-icon">{name.slice(0,1)}</div><div className="connector-copy"><span>{category}</span><strong>{name}</strong><p>{description}</p></div><button type="button" onClick={() => { setConnectedConnectors((items) => items.includes(name) ? items.filter((item) => item !== name) : [...items, name]); setConnectorModal(name); }}>Connect</button></article>)}</div>
           </section>
         ) : view === "settings" ? (
           <section className="settings-page"><div className="page-heading"><div><div className="eyebrow">WORKSPACE</div><h1>Settings</h1><p>Workspace configuration and AI defaults.</p></div></div><div className="settings-card"><strong>AI provider</strong><span>{aiProvider} · {aiModel}</span><small>Change the active provider and model from the top bar.</small></div><div className="settings-card"><strong>Projects</strong><span>{projects.filter((project) => project.status === "active").length} active</span><small>Each project has its own workspace and files.</small></div></section>
@@ -329,10 +329,10 @@ function App() {
           <div className="workspace-breadcrumb"><span>Projects</span><b>/</b><strong>{activeProject?.name ?? "NEXUM"}</strong></div>
           <div className="workspace-actions">
             <button type="button" onClick={() => setConnectorModal("Project connector")}>◇ Connect</button>
-            <button type="button" onClick={() => setNotice("Share link generation is next")}>↗ Share</button>
-            <button className="workspace-deploy" type="button" onClick={() => setNotice("Deploy pipeline is ready for the next integration step")}>Deploy</button>
+            <button type="button" onClick={async () => { const url = `${window.location.origin}/api/preview/${activeProjectId}/index.html`; try { await navigator.clipboard.writeText(url); setNotice("Preview link copied"); } catch { setNotice(url); } }}>↗ Share</button>
+            <button className="workspace-deploy" type="button" onClick={() => { const url = `/api/preview/${activeProjectId}/index.html`; window.open(url, "_blank", "noopener,noreferrer"); setNotice("Preview opened in a new tab"); }}>Deploy</button>
             <button className="workspace-more" type="button" aria-label="Project menu" onClick={() => setWorkspaceMenuOpen((open) => !open)}>•••</button>
-            {workspaceMenuOpen && <div className="workspace-menu"><button type="button" onClick={() => { setWorkspaceMenuOpen(false); setView("settings"); }}>Project settings</button><button type="button" onClick={() => { setWorkspaceMenuOpen(false); setNotice("Project duplication is next"); }}>Duplicate project</button></div>}
+            {workspaceMenuOpen && <div className="workspace-menu"><button type="button" onClick={() => { setWorkspaceMenuOpen(false); setView("settings"); }}>Project settings</button><button type="button" onClick={() => { setWorkspaceMenuOpen(false); setNotice("Duplicate requires a project-copy API; the current workspace is unchanged"); }}>Duplicate project</button></div>}
           </div>
         </div>
         <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
@@ -345,7 +345,7 @@ function App() {
         </>
         )}
       </main>
-      <BottomPanel open={bottomPanelOpen} onClose={() => setBottomPanelOpen(false)} />
+      <BottomPanel open={bottomPanelOpen} onClose={() => setBottomPanelOpen(false)} projectId={activeProjectId} jobId={chatJobId} />
       <StatusBar projectName={activeProject?.name ?? "NEXUM"} provider={aiProvider} aiStatus={aiStatus} previewOnline={previewOnline} onOpenTerminal={() => setBottomPanelOpen(true)} />
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
       <NewProjectModal open={modalOpen} name={newProjectName} loading={projectActionLoading} onNameChange={setNewProjectName} onClose={() => setModalOpen(false)} onSubmit={(event) => void createProject(event)} />
