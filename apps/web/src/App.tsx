@@ -588,42 +588,6 @@ function App() {
             <div className="settings-card" style={{marginTop:12}}><strong>AI API key</strong><span>Automatic provider detection</span><small>Paste an OpenAI, OpenRouter, or OrcaRouter key. NEXUM verifies the key and keeps it only in running server memory.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={aiApiKey} onChange={event=>setAiApiKey(event.target.value)} placeholder="Paste API key" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={aiApiKeyLoading||!aiApiKey.trim()} onClick={()=>void connectAIKey()}>{aiApiKeyLoading?"Checking…":"Connect AI"}</button></div></div>
             {localAITestEnabled && <div className="settings-card" style={{marginTop:12}}><strong>OpenRouter test session</strong><span>{localAIConfigured?"Connected":"Not connected"}</span><small>Temporary session key for testing models without storing credentials in the repository.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={localAIKey} onChange={event=>setLocalAIKey(event.target.value)} placeholder="sk-or-v1-…" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={localAIKeyLoading||!localAIKey.trim()} onClick={()=>void saveLocalAIKey()}>{localAIKeyLoading?"Checking…":"Connect"}</button></div></div>}
           </section>
-            <div className="settings-card">
-              <strong>AI API key</strong>
-              <span>Automatic provider detection</span>
-              <small>Paste an OpenAI, OpenRouter, or OrcaRouter key. NEXUM detects the provider, verifies the key, and keeps it only in the running server memory; it is not written to GitHub or project files. OrcaRouter can provide the free DeepSeek V4 Flash endpoint.</small>
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <input
-                  type="password"
-                  value={aiApiKey}
-                  onChange={(event) => setAiApiKey(event.target.value)}
-                  placeholder="Paste API key"
-                  autoComplete="off"
-                  style={{ flex: 1, minWidth: 0 }}
-                />
-                <button type="button" className="home-primary" disabled={aiApiKeyLoading || !aiApiKey.trim()} onClick={() => void connectAIKey()}>
-                  {aiApiKeyLoading ? "Checking…" : "Connect AI"}
-                </button>
-              </div>
-            </div>
-            {localAITestEnabled && <div className="settings-card">
-              <strong>Quick OpenRouter test</strong>
-              <span>{localAIConfigured ? "Connected for this session" : "Not connected"}</span>
-              <small>For local testing only. The key stays in the running NEXUM server memory and is not written to GitHub or project files.</small>
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <input
-                  type="password"
-                  value={localAIKey}
-                  onChange={(event) => setLocalAIKey(event.target.value)}
-                  placeholder="sk-or-v1-…"
-                  autoComplete="off"
-                  style={{ flex: 1, minWidth: 0 }}
-                />
-                <button type="button" className="home-primary" disabled={localAIKeyLoading || !localAIKey.trim()} onClick={() => void saveLocalAIKey()}>
-                  {localAIKeyLoading ? "Checking…" : "Connect"}
-                </button>
-              </div>
-            </div>}<div className="settings-card"><strong>Projects</strong><span>{projects.filter((project) => project.status === "active").length} active</span><small>Each project has its own workspace and files.</small></div></section>
         ) : (
         <>
         <div className="workspace-toolbar">
