@@ -10,7 +10,8 @@ if (existsSync(envFile) && typeof process.loadEnvFile === "function") {
 }
 const ollamaBaseUrl = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
 const ollamaModel = process.env.OLLAMA_MODEL ?? "qwen3:4b";
-const aiProvider = process.env.AI_PROVIDER?.toLowerCase() ?? "ollama";
+const aiProvider = process.env.AI_PROVIDER?.toLowerCase()
+  ?? (process.env.OPENROUTER_API_KEY?.trim() ? "openrouter" : "ollama");
 
 function runInstall(dir) {
   const packageJson = `${root}/${dir}/package.json`;
@@ -107,7 +108,7 @@ async function main() {
     stdio: "inherit",
     env: {
       ...process.env,
-      AI_PROVIDER: process.env.AI_PROVIDER ?? "ollama",
+      AI_PROVIDER: aiProvider,
       OLLAMA_BASE_URL: ollamaBaseUrl,
       OLLAMA_MODEL: ollamaModel,
     },
