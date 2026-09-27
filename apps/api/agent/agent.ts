@@ -86,8 +86,9 @@ ${result.output}`
     options?: AgentModelOptions,
   ): Promise<ProductPlan> {
     const lowerTask = task.toLowerCase();
-    const isConstructionTask = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lowerTask);
-    if (isConstructionTask) {
+    const isConstructionTask = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lowerTask);
+    const isAutoRepairTask = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lowerTask);
+    if (isConstructionTask || isAutoRepairTask) {
       return this.fallbackProductPlan(task, previousResults);
     }
 
@@ -481,29 +482,31 @@ ${result.output}`
 
   private fallbackProductPlan(task: string, previousResults: AgentToolResult[]): ProductPlan {
     const lower = task.toLowerCase();
-    const construction = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
-    if (construction) {
+    const construction = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
+    const autoRepair = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lower);
+    if (autoRepair) {
       return {
         goal: task.trim(),
-        productType: "Construction company website",
+        productType: "Auto repair service website",
         targetUser: "Property owners, general contractors and commercial customers",
-        pages: ["Home", "Services", "Projects", "Process", "About", "Contacts"],
-        components: ["Construction header", "Hero with estimate CTA", "Services grid", "Project cases", "Work process", "Trust/experience block", "Contact form"],
+        pages: ["Главная", "Услуги", "Диагностика", "Цены", "Отзывы", "Контакты"],
+        components: ["Автосервис header", "Hero with booking CTA", "Services grid", "Repair categories", "Advantages/trust block", "Reviews", "Booking form"],
         visualSystem: [
-          "Choose a visual direction that is materially different from the current project's existing design",
-          "Possible directions: editorial architecture, premium monochrome gallery, industrial grid, bold photographic portfolio, warm material/minimal, or Swiss-style technical",
-          "Use the user's requested industry and geography as the visual/content source",
+          "Choose a visual direction appropriate to an automotive service business and materially different from the current project's existing design",
+          "Possible directions: premium dark garage, clean technical service, bold motorsport-inspired, editorial automotive, or bright modern workshop",
+          "Use automotive repair, diagnostics, trust and booking as the content source",
           "Do not reuse the current project's hero composition, card geometry, navigation pattern, typography scale, or spacing system",
           "Responsive mobile layout",
         ],
-        interactions: ["Navigation anchors", "Estimate CTA", "Project browsing", "Lead form", "Mobile navigation"],        dataModel: ["services", "projects", "leads", "contacts"],
+        interactions: ["Service navigation", "Book service CTA", "Repair category browsing", "Booking/contact form", "Mobile navigation"],
+        dataModel: ["services", "repairCategories", "reviews", "appointments", "contacts"],
         filesToInspect: ["."],
         filesToChange: ["Application entry", "Styles", "Interaction files"],
         acceptanceCriteria: [
-          "The site is unmistakably about the requested construction business",
-          "Services, projects, process, trust and contacts are visible",
+          "The site is unmistakably about the requested auto repair business",
+          "Services, diagnostics, repair categories, trust and contacts are visible",
           "No NEXUM, SaaS, AI studio or digital-product copy remains in the site",
-          "Primary CTA requests an estimate/contact",
+          "Primary CTA books a repair/diagnostics appointment",
           "Responsive layout works on mobile",
           "Production build succeeds"
         ],
@@ -555,15 +558,18 @@ ${result.output}`
 
   private isPlanAlignedWithTask(task: string, plan: AgentPlan): boolean {
     const lower = task.toLowerCase();
-    const construction = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
-    if (!construction) return true;
+    const construction = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
+    const autoRepair = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lower);
+    if (!construction && !autoRepair) return true;
     const input = String(plan.input ?? "").toLowerCase();
     if (plan.done) return false;
     if (plan.tool !== "writeFile" && plan.tool !== "patchFile") return true;
     const content = input;
     const genericDigital = /nexum\.dev|digital products|ai studio|saas|software products|web products|digital systems/.test(content);
-    const constructionSignal = /строит|подряд|демонтаж|фасад|объект|бригада|ремонт|стяжк|штукатур|монтаж|кровл/.test(content);
-    return !genericDigital || constructionSignal;
+    const domainSignal = construction
+      ? /строит|подряд|демонтаж|фасад|объект|бригада|ремонт|стяжк|штукатур|монтаж|кровл/.test(content)
+      : /авто|автомобил|машин|автосервис|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст|сто/.test(content);
+    return !genericDigital || domainSignal;
   }
 
   private parseAIPlan(response: string): AgentPlan | null {
