@@ -48,8 +48,9 @@ app.get("/api/ai/models", async (_req, res) => {
 
 app.get("/api/ai/status", async (req, res) => {
   const provider = typeof req.query.provider === "string" ? req.query.provider : undefined;
+  const model = typeof req.query.model === "string" ? req.query.model : undefined;
   try {
-    return res.json({ success: true, status: await aiGateway.getStatus(provider) });
+    return res.json({ success: true, status: await aiGateway.getStatus(provider, model) });
   } catch (error) {
     return res.status(400).json({
       success: false,
