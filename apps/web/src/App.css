@@ -2946,3 +2946,27 @@ body { overflow-x: hidden; }
     padding: 20px 18px 32px;
   }
 }
+
+
+/* Conversation itself is the only growing region; composer/header remain anchored. */
+.app-project .chat {
+  position: relative;
+}
+.app-project .conversation {
+  flex: 0 0 auto;
+  width: 100%;
+}
+.app-project .conversation-message {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.app-project .agent-activity-live {
+  flex: 0 0 auto;
+}
+.app-project .message-form {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  background: linear-gradient(to bottom, rgba(13,15,13,0), #0d0f0d 18px, #0d0f0d 100%);
+  padding-top: 20px;
+}
