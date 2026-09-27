@@ -151,7 +151,15 @@ export function ChatPanel({ message, reply, stage, apiError, messages, attachmen
         <p>Опишите задачу. NEXUM работает в фоне: изменяет проект, собирает его и показывает результат.</p>
       </div>
       {messages.length > 0 && <div className="conversation" aria-live="polite">{messages.map((item) => <article key={item.id} className={`conversation-message ${item.role}`}><div className="conversation-meta">{item.role === "user" ? "Вы" : "NEXUM"} · {new Date(item.timestamp).toLocaleTimeString()}</div><div className="conversation-content">{item.content}</div>{item.attachments?.length ? <div className="conversation-attachments">{item.attachments.map((name) => <span key={name}>↳ {name}</span>)}</div> : null}</article>)}</div>}
-      <div className={`agent-activity agent-activity-live ${busy ? "active" : ""}`} aria-live="polite"><span className={`activity-dot ${busy ? "working" : ""}`} /><strong>{stageLabel}</strong><button type="button" onClick={onOpenAgent}>Открыть работу агента</button></div>
+      <div className={`agent-activity agent-activity-live ${busy ? "active" : ""}`} aria-live="polite"><span className={`activity-dot ${busy ? "working" : ""}`} /><div className="activity-copy"><strong>{stageLabel}</strong><span>{busy ? "NEXUM выполняет задачу в фоне" : "Готов к следующей задаче"}</span></div><button type="button" onClick={onOpenAgent}>Открыть агента</button></div>
+      {messages.length === 0 && !busy && (
+        <div className="starter-grid" aria-label="Быстрый старт">
+          <button type="button" onClick={() => onQuickTask("Создай современный адаптивный сайт компании")}>Сайт компании<span>Лендинг · адаптив</span></button>
+          <button type="button" onClick={() => onQuickTask("Создай современное веб-приложение с авторизацией и личным кабинетом")}>Веб-приложение<span>UI · логика · кабинет</span></button>
+          <button type="button" onClick={() => onQuickTask("Создай административную панель с таблицами, фильтрами и аналитикой")}>Dashboard<span>Данные · таблицы · аналитика</span></button>
+          <button type="button" onClick={() => onQuickTask("Создай API с документацией и тестами")}>API<span>Endpoints · тесты · docs</span></button>
+        </div>
+      )}
       <form className="message-form" onSubmit={(event) => { event.preventDefault(); handleSubmit(); }}>
         {sendingText && <div className="composer-flight" aria-hidden="true"><span>{sendingText}</span></div>}
         <div className="message-box">
