@@ -406,3 +406,32 @@ button:focus-visible, textarea:focus-visible, input:focus-visible {
   .quick-actions { padding: 0 18px; }
   .quick-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+
+.preview-frame-wrap {
+  flex: 1;
+  min-height: 0;
+  padding: 14px;
+  background: #0a0c0a;
+}
+.preview-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.preview-refresh {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+}
+.preview-refresh:hover { color: var(--text); border-color: #566150; }
+.preview-content strong { color: var(--text); font-size: 18px; }
+.preview-content span { max-width: 320px; text-align: center; line-height: 1.5; }
