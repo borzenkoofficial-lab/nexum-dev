@@ -59,9 +59,21 @@ export class AIOrchestrator {
     prompt: string,
     options?: GatewayGenerateOptions,
   ): Promise<AIOrchestratorRun> {
-    const candidates = ROLE_MODELS[role];
     const requested = options?.model?.trim();
-    const models = requested ? [requested] : candidates.length ? candidates : ["openrouter/free"];
+    const explicitProvider = options?.provider?.trim();
+    // When the user explicitly selected a provider, its configured default model
+    // is authoritative unless a model was explicitly selected. This is critical
+    // for OrcaRouter: role-specific OpenRouter model IDs must never silently
+    // replace the user's configured DeepSeek/other OrcaRouter model.
+    const providerDefault = explicitProvider ? this.gateway.getDefaultModel(explicitProvider) : undefined;
+    const candidates = ROLE_MODELS[role];
+    const models = requested
+      ? [requested]
+      : providerDefault
+        ? [providerDefault]
+        : candidates.length
+          ? candidates
+          : ["openrouter/free"];
     let lastError: unknown;
 
     // If the caller selected a concrete model, make exactly one request. For the
@@ -72,7 +84,7 @@ export class AIOrchestrator {
       try {
         const response = await this.gateway.generate(
           this.decoratePrompt(role, prompt),
-          { ...options, model },
+          { ...options, model, maxTokens: this.maxTokensFor(role) },
         );
         return { role, model, response };
       } catch (error) {
@@ -88,6 +100,23 @@ export class AIOrchestrator {
 
   private shouldTryNextModel(message: string): boolean {
     return /(?:429|rate.?limit|too many requests|temporar|timeout|timed out|5\d{2})/i.test(message);
+  }
+
+  private maxTokensFor(role: AIOrchestratorRole): number {
+    switch (role) {
+      case "planner":
+      case "reviewer":
+      case "tester":
+        return 700;
+      case "debugger":
+        return 900;
+      case "coder":
+        return 1600;
+      case "finalizer":
+      case "general":
+      default:
+        return 900;
+    }
   }
 
   modelFor(role: AIOrchestratorRole): string {
