@@ -33,7 +33,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   const [fileError, setFileError] = useState("");
   const [selectedFile, setSelectedFile] = useState("");
   const [content, setContent] = useState("");
-  const [savedContent, setСохранитьdContent] = useState("");
+  const [savedContent, setSavedContent] = useState("");
   const [editorLoading, setEditorLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editorError, setEditorError] = useState("");
@@ -55,7 +55,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/file?path=${encodeURIComponent(path)}`);
       const data = await response.json() as { content?: string; error?: string };
       if (!response.ok) throw new Error(data.error || `File API: HTTP ${response.status}`);
-      setContent(data.content ?? ""); setСохранитьdContent(data.content ?? "");
+      setContent(data.content ?? ""); setSavedContent(data.content ?? "");
     } catch (error) {
       setEditorError(error instanceof Error ? error.message : "Не удалось открыть файл");
     } finally { setEditorLoading(false); }
@@ -68,7 +68,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/file`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: selectedFile, content }) });
       const data = await response.json() as { error?: string };
       if (!response.ok) throw new Error(data.error || `Сохранить API: HTTP ${response.status}`);
-      setСохранитьdContent(content); onRefreshPreview();
+      setSavedContent(content); onRefreshPreview();
     } catch (error) {
       setEditorError(error instanceof Error ? error.message : "Не удалось сохранить файл");
     } finally { setSaving(false); }
