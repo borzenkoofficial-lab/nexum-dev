@@ -25,7 +25,7 @@ export class NexumAgent implements AgentRuntime {
 
   constructor(
     private readonly gateway: AIGateway,
-    projectRoot = defaultProjectRoot,
+    public readonly projectRoot = defaultProjectRoot,
   ) {
     const tools = [
       new ListFilesTool(projectRoot),
@@ -41,6 +41,7 @@ export class NexumAgent implements AgentRuntime {
   }
 
   async handle(task: string, options?: GatewayGenerateOptions): Promise<string> {
+    console.log(`[agent] projectRoot: ${this.projectRoot}`);
     console.log(`[agent] task: ${task}`);
     const selection = this.plan(task, []);
 
@@ -86,7 +87,11 @@ export class NexumAgent implements AgentRuntime {
       "Choose exactly one available tool for the next action, or finish the task.",
       "For app-building tasks, inspect the existing project first, then create/update the required files, then run a build/check before finishing.",
       "Never answer with a full code listing when a file should be changed: use writeFile.",
-      "The project root is already scoped to the active project. Use relative paths such as index.html, style.css, app.js.",
+      `The active project root is: ${this.projectRoot}`,
+      "All filesystem tools are already scoped to this active project root.",
+      "NEVER prefix paths with projects/, the repository name, apps/, or the workspace root.",
+      "Use only paths relative to the active project, such as index.html, src/app.js, style.css.",
+      "Do not modify another project or the NEXUM repository root.",
       "For a new web app, ensure index.html, style.css, and app.js exist and are connected.",
       "Keep existing working code unless the user's task requires replacing it.",
       "When a build/check fails, inspect the error and fix the relevant file instead of stopping immediately.",
