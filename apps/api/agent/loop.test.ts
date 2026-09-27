@@ -270,3 +270,41 @@ test("does not let an automotive request accept a construction write plan", () =
   assert.equal(aligned, false);
   assert.equal(rejected, true);
 });
+
+
+test("does not finish an automotive site when generated content is construction-only", async () => {
+  let domainValidationSeen = false;
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["writeFile", "testProject"],
+    plan: (_task, previousResults) => {
+      if (previousResults.length === 0) {
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({
+            path: "src/App.tsx",
+            content: "Строительная компания. Демонтаж, фасад, стяжка и подрядные работы.",
+          }),
+        };
+      }
+      if (previousResults.some((item) => item.tool === "domainValidation" && !item.result.success)) {
+        domainValidationSeen = true;
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({
+            path: "src/App.tsx",
+            content: "Автосервис. Диагностика автомобиля, ремонт двигателя, тормозы и запись.",
+          }),
+        };
+      }
+      return { tool: "", input: "", done: true, finalResponse: "Готово" };
+    },
+    executeTool: async (tool, input) => {
+      if (tool === "writeFile") return { success: true, output: input };
+      return { success: true, output: "tests passed" };
+    },
+  };
+
+  const result = await new AgentLoop(runtime, gateway).run("Сделай сайт по ремонту авто");
+  assert.equal(domainValidationSeen, true);
+  assert.equal(result.success, true);
+});
