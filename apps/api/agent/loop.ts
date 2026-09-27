@@ -271,13 +271,13 @@ export class AgentLoop {
           item.tool === "scaffoldProject" &&
           /React\/Vite scaffold created/i.test(item.result.output),
         ) || previousResults.some((item) =>
-          item.tool === "writeFile" &&
-          /"path"\s*:\s*"(?:(?:src\/)|(?:package\.json$)|(?:vite\.config\.)|(?:index\.html$))/i.test(item.input),
+          (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
         );
         const lastProjectChangeIndex = previousResults.reduce((lastIndex, item, index) => {
           if (
             item.tool === "scaffoldProject" ||
-            item.tool === "writeFile"
+            item.tool === "writeFile" ||
+            item.tool === "patchFile"
           ) return index;
           return lastIndex;
         }, -1);
@@ -326,6 +326,33 @@ export class AgentLoop {
             (item) => item.tool === "runCommand" && item.input === "npm run build" && item.result.success,
           );
           if (!buildSucceeded) continue;
+        }
+
+        const hasSuccessfulProjectTest = previousResults.some(
+          (item) => item.tool === "testProject" && item.result.success,
+        );
+        if (builderTask && !hasSuccessfulProjectTest && availableTools.includes("testProject")) {
+          emit({
+            iteration,
+            type: "tool-start",
+            tool: "testProject",
+            message: "Запускаю автоматический Tester Agent перед финальным self-review.",
+          });
+          const testResult = await this.runtime.executeTool("testProject", ".");
+          const testStep: AgentStep = { iteration, tool: "testProject", input: ".", success: testResult.success };
+          steps.push(testStep);
+          this.onStep?.(testStep);
+          previousResults.push({ iteration, tool: "testProject", input: ".", result: testResult });
+          this.log(iteration, "testProject", testResult.success ? "success" : "error");
+          emit({
+            iteration,
+            type: testResult.success ? "tool-success" : "tool-error",
+            tool: "testProject",
+            message: testResult.success
+              ? "Автоматические проверки проекта пройдены."
+              : `Tester Agent нашёл проблему: ${testResult.output.slice(0, 900)}`,
+          });
+          if (!testResult.success) continue;
         }
 
         if (builderTask && productPlan && this.runtime.reviewProduct && productReviewAttempts < 2) {
@@ -513,7 +540,7 @@ export class AgentLoop {
 
     const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
     if (builderTask) {
-      const writes = results.filter((item) => item.tool === "writeFile" && item.result.success).length;
+      const writes = results.filter((item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success).length;
       const builds = results.filter((item) => (item.tool === "runCommand" || item.tool === "runSandbox") && /npm run build/.test(item.input) && item.result.success).length;
       return `Готово. NEXUM изменил проект по запросу: ${task.trim().slice(0, 160)}. Выполнено изменений: ${writes}. Production-сборка: ${builds > 0 ? "проверена" : "не запускалась"}. Откройте Preview для результата и AI Activity для деталей.`;
     }
