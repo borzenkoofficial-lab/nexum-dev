@@ -20,7 +20,7 @@ function App() {
   const [agentStage, setAgentStage] = useState<AgentStage>(null);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [projectActionLoading, setProjectActionLoading] = useState(false);
-  const [apiError, setApiError] = useState(false);
+  const [apiError, setApiError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [aiProviders, setAIProviders] = useState<AIProviderInfo[]>([]);
@@ -44,7 +44,7 @@ function App() {
     setProjectsLoading(true);
     try {
       const response = await fetch("/api/projects");
-      if (!response.ok) throw new Error("Projects request failed");
+      if (!response.ok) throw new Error(`Projects API: HTTP ${response.status}`);
       const data = (await response.json()) as { projects?: Project[] };
       const nextProjects = data.projects ?? [];
       const preferred = nextProjects.find((project) => project.id === preferredId && project.status === "active");
@@ -52,10 +52,10 @@ function App() {
         ?? nextProjects.find((project) => project.status === "active");
       setProjects(nextProjects);
       setActiveProjectId(preferred?.id ?? fallback?.id ?? "nexum");
-      setApiError(false);
+      setApiError("");
     } catch (error) {
       console.error("[Nexum] API projects request failed:", error);
-      setApiError(true);
+      setApiError(error instanceof Error ? error.message : "Cannot reach API");
     } finally {
       setProjectsLoading(false);
     }
@@ -70,7 +70,7 @@ function App() {
           fetch("/api/ai/providers"),
           fetch("/api/ai/models"),
         ]);
-        if (!providersResponse.ok || !modelsResponse.ok) throw new Error("AI config unavailable");
+        if (!providersResponse.ok || !modelsResponse.ok) throw new Error(`AI config API: HTTP ${!providersResponse.ok ? providersResponse.status : modelsResponse.status}`);
         const providersData = (await providersResponse.json()) as { providers?: AIProviderInfo[] };
         const modelsData = (await modelsResponse.json()) as { models?: Record<string, string[]> };
         const providers = providersData.providers ?? [];
@@ -124,7 +124,7 @@ function App() {
     setProjectActionLoading(true);
     try {
       const response = await fetch(`/api/projects/${projectId}/select`, { method: "POST" });
-      if (!response.ok) throw new Error("Project selection failed");
+      if (!response.ok) throw new Error(`Project selection API: HTTP ${response.status}`);
       setActiveProjectId(projectId);
       setReply("");
       await loadProjects(projectId);
@@ -145,7 +145,7 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newProjectName.trim() }),
       });
-      if (!response.ok) throw new Error("Project creation failed");
+      if (!response.ok) throw new Error(`Project creation API: HTTP ${response.status}`);
       const data = (await response.json()) as { project: Project };
       await selectProject(data.project.id);
       setNewProjectName("");
@@ -174,7 +174,7 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: task, projectId: activeProjectId, provider: aiProvider, model: aiModel }),
       });
-      if (!response.ok) throw new Error("API request failed");
+      if (!response.ok) { const body = await response.json().catch(() => null) as { error?: string } | null; throw new Error(body?.error || `Chat API: HTTP ${response.status}`); }
       const data = (await response.json()) as {
         reply?: string;
         error?: string;
