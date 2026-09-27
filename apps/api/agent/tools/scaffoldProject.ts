@@ -51,14 +51,17 @@ export class ScaffoldProjectTool implements Tool {
 
       await mkdir(dir, { recursive: true });
 
-      const isReact = /react|vite|spa|single.?page|реакт|spa/i.test(brief);
-      const files = isReact
-        ? this.reactFiles(title, brief)
-        : [
-          ["index.html", this.indexHtml(title, brief)],
-          ["style.css", "html,body{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#fff;color:#111}"],
-          ["app.js", 'console.info("NEXUM project foundation ready");'],
-        ] as const;
+      const isApi = /api|backend|бекенд|серверн|rest api|graphql/i.test(brief);
+      const isReact = /react|vite|spa|single.?page|реакт|web app|веб-прилож|saas|dashboard|панель управления/i.test(brief);
+      const files = isApi
+        ? this.apiFiles(title)
+        : isReact
+          ? this.reactFiles(title, brief)
+          : [
+            ["index.html", this.indexHtml(title, brief)],
+            ["style.css", "html,body{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#fff;color:#111}"],
+            ["app.js", 'console.info("NEXUM project foundation ready");'],
+          ] as const;
 
       for (const [path, content] of files) {
         const target = await this.workspace.writable(path);
@@ -68,7 +71,11 @@ export class ScaffoldProjectTool implements Tool {
 
       return {
         success: true,
-        output: isReact ? `React/Vite scaffold created for “${title}”. Run npm install and npm run build to generate the production preview.` : `Scaffold created: index.html, style.css, app.js for “${title}”.`,
+        output: isApi
+          ? `Backend/API scaffold created for “${title}”. Run npm install and npm run build or npm run start as applicable.`
+          : isReact
+            ? `React/Vite scaffold created for “${title}”. Run npm install and npm run build to generate the production preview.`
+            : `Website scaffold created: index.html, style.css, app.js for “${title}”.`,
       };
     } catch (error) {
       return {
@@ -95,6 +102,36 @@ export class ScaffoldProjectTool implements Tool {
       ["src/main.jsx", 'import React from "react";\nimport { createRoot } from "react-dom/client";\nimport "./styles.css";\nimport App from "./App.jsx";\ncreateRoot(document.getElementById("root")).render(<React.StrictMode><App /></React.StrictMode>);\n'],
       ["src/App.jsx", 'export default function App(){return <main id="nexum-root" aria-label="Application"><h1>Loading product…</h1></main>}\n'],
       ["src/styles.css", 'html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#fff;color:#111}button,input,textarea,select{font:inherit}'],
+    ];
+  }
+
+
+
+  private apiFiles(title: string): readonly [string, string][] {
+    const safeTitle = this.escapeHtml(title);
+    return [
+      ["package.json", JSON.stringify({
+        name: "nexum-api",
+        private: true,
+        version: "0.0.0",
+        type: "module",
+        scripts: { build: "tsc", start: "node dist/server.js", dev: "tsx src/server.ts" },
+        dependencies: { express: "^5.1.0" },
+        devDependencies: { "@types/express": "^5.0.5", "@types/node": "^24.0.0", tsx: "^4.20.3", typescript: "^5.9.2" }
+      }, null, 2)],
+      ["tsconfig.json", JSON.stringify({
+        compilerOptions: { target: "ES2022", module: "NodeNext", moduleResolution: "NodeNext", outDir: "dist", rootDir: "src", strict: true, esModuleInterop: true, skipLibCheck: true },
+        include: ["src/**/*.ts"]
+      }, null, 2)],
+      ["src/server.ts", `import express from "express";
+
+const app = express();
+app.use(express.json());
+
+app.get("/health", (_req, res) => res.json({ ok: true, service: "${safeTitle}" }));
+
+app.listen(3000, () => console.log("API listening on http://localhost:3000"));
+`],
     ];
   }
 
