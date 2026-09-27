@@ -22,10 +22,10 @@ test("orchestrator assigns specialized free models by role", async () => {
   const planner = await orchestrator.run("planner", "plan a multi-step build");
   const coder = await orchestrator.run("coder", "implement the UI");
   const reviewer = await orchestrator.run("reviewer", "review the generated code");
-  const debugger = await orchestrator.run("debugger", "fix the build error");
+  const debugRun = await orchestrator.run("debugger", "fix the build error");
   assert.match(planner.model, /nemotron/);
   assert.match(coder.model, /north-mini-code|laguna/);
   assert.match(reviewer.model, /qwen|dots|nemotron/);
-  assert.match(debugger.model, /north-mini-code|laguna/);
+  assert.match(debugRun.model, /north-mini-code|laguna/);
   assert.equal(provider.calls.length, 4);
 });
