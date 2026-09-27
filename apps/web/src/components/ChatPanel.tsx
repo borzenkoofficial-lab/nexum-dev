@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { AgentStage } from "./types";
 
 interface ChatPanelProps {
@@ -19,6 +19,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({ message, reply, stage, apiError, messages, attachments, onMessageChange, onSubmit, onRetry, onQuickTask, onFilesSelected, onRemoveAttachment, onOpenAgent }: ChatPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [sendingText, setSendingText] = useState("");
   const stageLabel = stage === "thinking" || stage === "analyzing" ? "Analyzing" : stage === "planning" ? "Planning" : stage === "reading" ? "Reading files" : stage === "editing" ? "Editing project" : stage === "building" ? "Building" : stage === "testing" ? "Testing" : stage === "error" ? "Needs attention" : stage === "completed" ? "Completed" : "Ready";
   const busy = Boolean(stage && !["completed", "error"].includes(stage));
 
@@ -36,7 +37,8 @@ export function ChatPanel({ message, reply, stage, apiError, messages, attachmen
       <div className="welcome"><span className="eyebrow">NEXUM AGENT</span><h1>What do you want to build?</h1><p>Describe the task. NEXUM works in the background, changes the project, builds it and shows the result.</p></div>
       {messages.length > 0 && <div className="conversation" aria-live="polite">{messages.map((item) => <article key={item.id} className={`conversation-message ${item.role}`}><div className="conversation-meta">{item.role === "user" ? "You" : "NEXUM"} · {new Date(item.timestamp).toLocaleTimeString()}</div><div className="conversation-content">{item.content}</div>{item.attachments?.length ? <div className="conversation-attachments">{item.attachments.map((name) => <span key={name}>↳ {name}</span>)}</div> : null}</article>)}</div>}
       <div className={`agent-activity agent-activity-live ${busy ? "active" : ""}`} aria-live="polite"><span className={`activity-dot ${busy ? "working" : ""}`} /><strong>{stageLabel}</strong><button type="button" onClick={onOpenAgent}>View agent activity</button></div>
-      <form className="message-form" onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
+      <form className="message-form" onSubmit={(event) => { event.preventDefault(); handleSubmit(); }}>
+        {sendingText && <div className="composer-flight" aria-hidden="true"><span>{sendingText}</span></div>}
         <div className="message-box">
           <textarea value={message} onChange={(event) => onMessageChange(event.target.value)} placeholder="Describe what you want to create or change..." aria-label="Describe your task" disabled={busy} />
           {attachments.length > 0 && <div className="attachment-strip">{attachments.map((item) => <span className="attachment-chip" key={item.id}>{item.name}<button type="button" aria-label={`Remove ${item.name}`} onClick={() => onRemoveAttachment(item.id)}>×</button></span>)}</div>}
