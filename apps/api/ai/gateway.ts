@@ -4,6 +4,8 @@ export interface GatewayGenerateOptions {
   provider?: string;
   model?: string;
   fallback?: boolean;
+  maxTokens?: number;
+  temperature?: number;
 }
 
 export interface GatewayProviderInfo {
@@ -91,6 +93,10 @@ export class AIGateway {
     return Boolean(provider && typeof (provider as { hasApiKey?: () => boolean }).hasApiKey === "function" && (provider as unknown as { hasApiKey: () => boolean }).hasApiKey());
   }
 
+  getDefaultModel(providerId = this.defaultProviderId): string {
+    return this.providers.get(providerId)?.model ?? this.providers.get(this.defaultProviderId)!.model;
+  }
+
   async generate(message: string, options: GatewayGenerateOptions | string = {}): Promise<string> {
     const normalizedOptions = typeof options === "string" ? { provider: options } : options;
     const providerId = normalizedOptions.provider ?? this.defaultProviderId;
@@ -106,7 +112,10 @@ export class AIGateway {
     ].join("\n");
 
     try {
-      return await provider.generate(localizedMessage, normalizedOptions.model);
+      return await provider.generate(localizedMessage, normalizedOptions.model, {
+        ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
+        ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
+      });
     } catch (error) {
       const fallbackId = this.fallbackProviderId;
       if (normalizedOptions.fallback === false || !fallbackId || fallbackId === provider.id) {
@@ -127,7 +136,10 @@ export class AIGateway {
       };
       this.onFallback?.(event);
 
-      return fallback.generate(localizedMessage, fallback.model);
+      return fallback.generate(localizedMessage, fallback.model, {
+        ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
+        ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
+      });
     }
   }
 
