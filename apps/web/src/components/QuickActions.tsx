@@ -4,10 +4,10 @@ interface QuickActionsProps {
   onAsk: () => void;
   onTask: (task: string) => void;
   onPreview: () => void;
-  onОпубликовать: () => void;
+  onDeploy: () => void;
 }
 
-export function QuickActions({ onNewProject, onOpenProject, onAsk, onTask, onPreview, onОпубликовать }: QuickActionsProps) {
+export function QuickActions({ onNewProject, onOpenProject, onAsk, onTask, onPreview, onDeploy }: QuickActionsProps) {
   const actions = [
     { label: "Новый проект", run: onNewProject },
     { label: "Открыть проект", run: onOpenProject },
@@ -15,7 +15,7 @@ export function QuickActions({ onNewProject, onOpenProject, onAsk, onTask, onPre
     { label: "Запустить тесты", run: () => onTask("Запусти тесты в изолированной среде") },
     { label: "Открыть предпросмотр", run: onPreview },
     { label: "Статус Git", run: () => onTask("Покажи статус Git") },
-    { label: "Опубликовать", run: onОпубликовать },
+    { label: "Опубликовать", run: onDeploy },
     { label: "GitHub", run: () => onTask("Покажи информацию о репозитории GitHub") },
   ];
 
