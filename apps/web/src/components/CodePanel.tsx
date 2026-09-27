@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 interface CodePanelProps {
   projectId: string;
@@ -91,7 +91,7 @@ export function CodePanel({ projectId, projectName, previewOnline, previewKey, o
     }
   }
 
-  function onEditorKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+  function onEditorKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
       event.preventDefault();
       void saveFile();
