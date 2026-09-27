@@ -505,6 +505,38 @@ export class AgentLoop {
           if (!testResult.success) { transition("repair"); continue; }
         }
 
+        // Hard domain gate: never report success when the generated file content belongs to another industry.
+        // This catches a planner that technically wrote files but reused an old template/domain.
+        if (builderTask && productPlan) {
+          const successfulWrites = previousResults
+            .filter((item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success)
+            .map((item) => item.input)
+            .join("\n");
+          const taskLower = task.toLowerCase();
+          const autoRequested = /авто|автомобил|автосервис|ремонт.*авто|ремонт.*машин|сто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(taskLower);
+          const constructionRequested = /строит|строитель|демонтаж|фасад|подряд|отделк|стяжк|штукатур|монтаж|кровл|бетон/.test(taskLower);
+          const contentLower = successfulWrites.toLowerCase();
+          const hasAutoSignals = /авто|автомобил|автосервис|диагностик|шиномонтаж|двигател|ходов|тормоз|масл|запчаст|сто/.test(contentLower);
+          const hasConstructionSignals = /строит|строитель|демонтаж|фасад|подряд|отделк|стяжк|штукатур|монтаж|кровл|бетон/.test(contentLower);
+          const wrongDomain = (autoRequested && hasConstructionSignals && !hasAutoSignals)
+            || (constructionRequested && hasAutoSignals && !hasConstructionSignals);
+          if (wrongDomain) {
+            const expectedDomain = autoRequested ? "автосервис/ремонт автомобилей" : "строительство/подряд";
+            const wrongDomainName = autoRequested ? "строительство" : "автосервис";
+            const message = `DOMAIN_MISMATCH: запрос пользователя относится к ${expectedDomain}, но созданный контент относится к ${wrongDomainName}. Нельзя завершать задачу. Перепиши/исправь содержимое файлов так, чтобы весь сайт соответствовал исходному запросу.`;
+            previousResults.push({
+              iteration,
+              tool: "domainValidation",
+              input: expectedDomain,
+              result: { success: false, output: message },
+            });
+            emit({ iteration, type: "tool-error", tool: "Domain Validation", message });
+            transition("repair");
+            continue;
+          }
+          emit({ iteration, type: "tool-success", tool: "Domain Validation", message: "Тематика готового контента соответствует исходному запросу." });
+        }
+
         if (builderTask && productPlan && this.runtime.reviewProduct && productReviewAttempts < MAX_PRODUCT_REVIEW_CALLS) {
           productReviewAttempts += 1;
           emit({ iteration, type: "thinking", message: "Запускаю финальный self-review: сверяю реализацию с Product Plan и ищу недостающие функции." });
