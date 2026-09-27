@@ -153,6 +153,7 @@ export function ChatPanel({ message, reply, stage, apiError, messages, attachmen
 
   return (
     <div className="chat">
+      <div className="chat-history">
       <div className="chat-project-context"><span className="context-dot" /><div><small>Текущий проект</small><strong>{projectName}</strong></div><span className="context-lock">КОНТЕКСТ ЗАКРЕПЛЁН</span></div>
       <div className="welcome">
         <span className="eyebrow">NEXUM AGENT</span>
@@ -163,6 +164,7 @@ export function ChatPanel({ message, reply, stage, apiError, messages, attachmen
       </div>
       {messages.length > 0 && <div className="conversation" aria-live="polite">{messages.map((item) => <article key={item.id} className={`conversation-message ${item.role}`}><div className="conversation-meta">{item.role === "user" ? "Вы" : "NEXUM"} · {new Date(item.timestamp).toLocaleTimeString()}</div><div className="conversation-content">{item.content}</div>{item.attachments?.length ? <div className="conversation-attachments">{item.attachments.map((name) => <span key={name}>↳ {name}</span>)}</div> : null}</article>)}</div>}
       <div className={`agent-activity agent-activity-live ${busy ? "active" : ""}`} aria-live="polite"><span className={`activity-dot ${busy ? "working" : ""}`} /><div className="activity-copy"><strong>{stageLabel}</strong><span>{busy ? "NEXUM выполняет задачу в фоне" : "Готов к следующей задаче"}</span></div><button type="button" onClick={onOpenAgent}>Открыть агента</button></div>
+      </div>
       <form className="message-form" onSubmit={(event) => { event.preventDefault(); handleSubmit(); }}>
         {sendingText && <div className="composer-flight" aria-hidden="true"><span>{sendingText}</span></div>}
         <div className="message-box">
@@ -185,9 +187,11 @@ export function ChatPanel({ message, reply, stage, apiError, messages, attachmen
         </div>
         <button className="send-button" type="submit" aria-label="Отправить задачу агенту NEXUM" disabled={busy || !message.trim()}>Отправить</button>
       </form>
-      {apiError && <div className="error-state" role="alert"><span>{apiError}</span><button type="button" className="retry-button" aria-label="Повторить запрос" onClick={onRetry}>Повторить</button></div>}
+      {apiError && <div className="chat-error-fixed" role="alert"><span>{apiError}</span><button type="button" className="retry-button" aria-label="Повторить запрос" onClick={onRetry}>Повторить</button></div>}
+      <div className="chat-footer-fixed">
       <div className="chat-steps"><span>01</span> Чат <span>02</span> Агент <span>03</span> Предпросмотр <span>04</span> Итерация</div>
       <button className="quick-git" type="button" onClick={() => onQuickTask("Покажи статус Git")}>Проверить статус Git</button>
+      </div>
     </div>
   );
 }
