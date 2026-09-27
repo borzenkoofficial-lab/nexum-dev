@@ -32,7 +32,7 @@ function fakeRuntime(
   };
 }
 
-test("skips a duplicate AI planner context", async () => {
+test("replans when project context changes after an action", async () => {
   let plannerCalls = 0;
   let localPlans = 0;
   const runtime: AgentRuntime = {
@@ -49,7 +49,7 @@ test("skips a duplicate AI planner context", async () => {
   };
   const result = await new AgentLoop(runtime, gateway, 3).run("repeat the same AI context");
   assert.equal(result.success, false);
-  assert.equal(plannerCalls, 1);
+  assert.equal(plannerCalls, 2);
   assert.equal(localPlans, 3);
 });
 
