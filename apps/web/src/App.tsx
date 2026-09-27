@@ -32,7 +32,7 @@ function App() {
   const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"preview" | "terminal">("preview");
   const [notice, setNotice] = useState("");
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);\n  const [previewOnline, setPreviewOnline] = useState(false);\n  const [previewKey, setPreviewKey] = useState(0);
 
   const activeProject = projects.find((project) => project.id === activeProjectId);
   const selectedModels = aiModels[aiProvider] ?? [];
@@ -76,7 +76,7 @@ function App() {
         setAIProviders(providers);
         setAIModels(modelsData.models ?? {});
         if (defaultProvider) { setAIProvider(defaultProvider.id); setAIModel(defaultProvider.model); }
-        setOllamaStatus(statusData?.status ?? null);
+        const ollama = statusData?.status ?? null;\n        setOllamaStatus(ollama);\n        if (ollama?.available) {\n          setAIProvider("ollama");\n          setAIModel(ollama.model);\n        }
       } catch {
         setApiError(true);
       }
@@ -216,11 +216,11 @@ function App() {
             <ChatPanel message={message} reply={reply} stage={agentStage} apiError={apiError} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} />
             <QuickActions onNewProject={() => setModalOpen(true)} onOpenProject={openProjectPicker} onAsk={() => focusTask()} onTask={runTask} onPlaceholder={showPlaceholder} />
           </div>
-          <RightPanel tab={rightTab} onTabChange={setRightTab} onOpenTerminal={() => setBottomPanelOpen(true)} projectName={activeProject?.name ?? "NEXUM"} />
+          <RightPanel tab={rightTab} onTabChange={setRightTab} onOpenTerminal={() => setBottomPanelOpen(true)} projectName={activeProject?.name ?? "NEXUM"} projectId={activeProjectId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setPreviewKey((key) => key + 1)} />
         </div>
       </main>
       <BottomPanel open={bottomPanelOpen} onClose={() => setBottomPanelOpen(false)} />
-      <StatusBar projectName={activeProject?.name ?? "NEXUM"} provider={aiProvider} previewOnline={false} onOpenTerminal={() => setBottomPanelOpen(true)} />
+      <StatusBar projectName={activeProject?.name ?? "NEXUM"} provider={aiProvider} previewOnline={previewOnline} onOpenTerminal={() => setBottomPanelOpen(true)} />
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
       <NewProjectModal open={modalOpen} name={newProjectName} loading={projectActionLoading} onNameChange={setNewProjectName} onClose={() => setModalOpen(false)} onSubmit={(event) => void createProject(event)} />
       {notice && <div className="toast" role="status">{notice}</div>}
