@@ -79,3 +79,15 @@ test("maps OpenRouter timeout without the key", async () => {
   assert.equal(result.available, false);
   assert.equal(result.error, "OpenRouter request timed out");
 });
+
+
+test("routes code and planning prompts to different free-model families", async () => {
+  const provider = new OpenRouterProvider("https://openrouter.test", "openrouter/free", 1000, async (_input, init) => {
+    const body = JSON.parse(String(init?.body)) as { model?: string };
+    return jsonResponse(200, { choices: [{ message: { content: body.model ?? "" } }] });
+  });
+  const code = await withKey("test-only-key", () => provider.generate("fix this TypeScript React build error"));
+  const planning = await withKey("test-only-key", () => provider.generate("plan the architecture for a multi-step autonomous agent"));
+  assert.match(code, /north-mini-code|laguna/);
+  assert.match(planning, /nemotron/);
+});
