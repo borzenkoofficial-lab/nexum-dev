@@ -32,6 +32,27 @@ function fakeRuntime(
   };
 }
 
+test("skips a duplicate AI planner context", async () => {
+  let plannerCalls = 0;
+  let localPlans = 0;
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["fake"],
+    plan: () => {
+      localPlans += 1;
+      return { tool: "fake", input: "same" };
+    },
+    planWithAI: async () => {
+      plannerCalls += 1;
+      return { tool: "fake", input: "same" };
+    },
+    executeTool: async () => ({ success: true, output: "ok" }),
+  };
+  const result = await new AgentLoop(runtime, gateway, 3).run("repeat the same AI context");
+  assert.equal(result.success, false);
+  assert.equal(plannerCalls, 1);
+  assert.equal(localPlans, 2);
+});
+
 test("completes a one-operation task", async () => {
   const agent = new NexumAgent(gateway);
   const runtime = fakeRuntime(
