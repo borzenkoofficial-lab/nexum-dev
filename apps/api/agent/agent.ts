@@ -638,7 +638,46 @@ ${result.output}`
   private fallbackApp(task: string): string {
     const brief = task.replace(/\\s+/g, " ").trim().slice(0, 320);
     const lower = task.toLowerCase();
+    const autoRepair = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lower);
     const construction = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|бригада|грузчик|отделк|бетон|кровл|инженерн/.test(lower);
+
+    if (autoRepair) {
+      return `import { useState } from "react";
+
+const brief = ${JSON.stringify(brief)};
+const services = ["Диагностика автомобиля", "Ремонт двигателя", "Ремонт ходовой", "Тормозная система", "Замена масла и расходников", "Электрика и компьютерная диагностика"];
+
+export default function App() {
+  const [active, setActive] = useState("Услуги");
+  const sections = ["Услуги", "Диагностика", "Цены", "Отзывы", "Контакты"];
+
+  return (
+    <main className="auto-service-site">
+      <header className="topbar">
+        <div className="brand">AUTO<span>SERVICE</span></div>
+        <nav aria-label="Основная навигация">{sections.map((item) => <button key={item} className={active === item ? "tab active" : "tab"} onClick={() => setActive(item)}>{item}</button>)}</nav>
+        <button className="primary" onClick={() => setActive("Контакты")}>Записаться в сервис</button>
+      </header>
+      <section className="auto-hero">
+        <div>
+          <span className="kicker">АВТОСЕРВИС / ДИАГНОСТИКА / РЕМОНТ</span>
+          <h1>Ремонт автомобиля<br /><em>без лишних обещаний.</em></h1>
+          <p>{brief}</p>
+          <div className="hero-actions">
+            <button className="primary" onClick={() => setActive("Контакты")}>Записаться на диагностику</button>
+            <button className="secondary" onClick={() => setActive("Услуги")}>Услуги сервиса</button>
+          </div>
+        </div>
+        <div className="hero-facts"><div><strong>10+</strong><span>лет опыта</span></div><div><strong>01</strong><span>диагностика перед ремонтом</span></div><div><strong>100%</strong><span>согласование работ</span></div></div>
+      </section>
+      <section className="content-section"><span className="kicker">01 / УСЛУГИ</span><h2>Работы для автомобиля в одном сервисе.</h2><div className="cards">{services.map((item, index) => <article key={item}><b>0{index + 1}</b><h3>{item}</h3><p>Осмотр, диагностика, согласование работ и обслуживание автомобиля.</p></article>)}</div></section>
+      <section className="content-section"><span className="kicker">02 / ЗАПИСЬ</span><div className="contact-panel"><div><h2>Нужна диагностика или ремонт?</h2><p>Оставьте заявку — согласуем время визита и перечень работ.</p></div><button className="primary" onClick={() => setActive("Контакты")}>Оставить заявку</button></div></section>
+      <footer>Автосервис <span>Диагностика · Ремонт · Обслуживание</span></footer>
+    </main>
+  );
+}
+`;
+    }
 
     if (construction) {
       return `import { useState } from "react";
@@ -739,7 +778,23 @@ export default function App() {
 
   private fallbackStaticIndex(task: string): string {
     const brief = this.escapeHtml(task.replace(/\\s+/g, " ").trim().slice(0, 260));
-    const construction = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(task.toLowerCase());
+    const lowerTask = task.toLowerCase();
+    const autoRepair = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lowerTask);
+    const construction = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lowerTask);
+
+    if (autoRepair) {
+      return `<!doctype html>
+<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${brief}"><title>Автосервис — диагностика и ремонт</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header class="site-header"><a class="logo" href="#top">AUTO<span>SERVICE</span></a><nav><a href="#services">Услуги</a><a href="#diagnostics">Диагностика</a><a href="#prices">Цены</a><a href="#reviews">Отзывы</a><a href="#contact">Контакт</a></nav><a class="header-cta" href="#contact">Записаться</a></header>
+<main id="top"><section class="hero"><div class="eyebrow">АВТОСЕРВИС / ДИАГНОСТИКА / РЕМОНТ</div><h1>Ремонт автомобиля<br><em>без лишних обещаний.</em></h1><p>${brief}</p><div class="hero-actions"><a class="btn primary" href="#contact">Записаться на диагностику</a><a class="btn ghost" href="#services">Услуги сервиса</a></div></section>
+<section id="services" class="section"><div class="section-head"><span>01 / УСЛУГИ</span><h2>Основные направления ремонта.</h2></div><div class="cards"><article><b>01</b><h3>Диагностика</h3><p>Компьютерная и техническая диагностика перед ремонтом.</p></article><article><b>02</b><h3>Двигатель и ходовая</h3><p>Поиск неисправностей и ремонт основных узлов автомобиля.</p></article><article><b>03</b><h3>Тормоза и обслуживание</h3><p>Тормозная система, масла, расходники и плановое ТО.</p></article></div></section>
+<section id="diagnostics" class="section"><div class="section-head"><span>02 / ДИАГНОСТИКА</span><h2>Сначала определяем причину, затем согласовываем работы.</h2></div></section>
+<section id="prices" class="section"><div class="section-head"><span>03 / ЦЕНЫ</span><h2>Стоимость согласовывается до начала ремонта.</h2></div></section>
+<section id="reviews" class="section"><div class="section-head"><span>04 / ОТЗЫВЫ</span><h2>Отзывы клиентов и история обслуживания.</h2></div></section>
+<section id="contact" class="section"><div class="contact-panel"><div><h2>Записаться в автосервис</h2><p>Оставьте контакт и опишите проблему автомобиля.</p></div><a class="btn primary" href="tel:+70000000000">Связаться с сервисом</a></div></section></main>
+<footer>Автосервис · Диагностика · Ремонт · Обслуживание</footer></body></html>`;
+    }
 
     if (construction) {
       return `<!doctype html>
