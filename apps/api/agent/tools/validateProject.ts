@@ -31,12 +31,12 @@ export class ValidateProjectTool implements Tool {
         }
 
         if (extension === ".html") {
-          if (!/^\\s*<!doctype html>/i.test(source)) problems.push(`${relative}: missing HTML5 doctype`);
-          if (!/<html[\\s>]/i.test(source) || !/<body[\\s>]/i.test(source)) problems.push(`${relative}: missing html/body element`);
+          if (!/^\s*<!doctype html>/i.test(source)) problems.push(`${relative}: missing HTML5 doctype`);
+          if (!/<html[\s>]/i.test(source) || !/<body[\s>]/i.test(source)) problems.push(`${relative}: missing html/body element`);
           if (/content=["']?width=["']/i.test(source) || /initial-scale=["'][^"']*["'][^=]*=/i.test(source)) {
             problems.push(`${relative}: malformed viewport meta tag`);
           }
-          if ((source.match(/<script\\b/gi) ?? []).length !== (source.match(/<\\/script>/gi) ?? []).length) {
+          if ((source.match(/<script\b/gi) ?? []).length !== (source.match(/<\/script>/gi) ?? []).length) {
             problems.push(`${relative}: unbalanced script tags`);
           }
         }
