@@ -79,6 +79,7 @@ interface ChatJob {
   stage?: "queued" | "analyzing" | "planning" | "reading" | "editing" | "building" | "testing" | "completed" | "error";
   attachments?: string[];
   productPlan?: ProductPlan;
+  checkpointId?: string;
 }
 const chatJobs = new Map<string, ChatJob>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
@@ -114,7 +115,17 @@ async function runChatJob(
     const project = await projectManager.getActiveProject(projectId);
     const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.id, stateManager);
+    const checkpoint = await checkpointManager.create(project.id, project.path, `before agent job ${jobId}`);
+    job.checkpointId = checkpoint.id;
     await stateManager.refresh(message);
+    void agentHistory.record({
+      type: "checkpoint-created",
+      jobId,
+      projectId: project.id,
+      status: "success",
+      message: "Automatic pre-task checkpoint created",
+      output: JSON.stringify({ checkpointId: checkpoint.id, files: checkpoint.files.length }),
+    });
     const attachmentDir = resolve(project.path, ".nexum", "attachments", jobId);
     const attachmentNames: string[] = [];
     const attachmentContext: string[] = [];
@@ -895,6 +906,7 @@ app.get("/api/chat/jobs/:id", (req, res) => {
       stage: job.stage ?? null,
       attachments: job.attachments ?? [],
       productPlan: job.productPlan ?? null,
+      checkpointId: job.checkpointId ?? null,
     },
   });
 });
