@@ -20,6 +20,7 @@ import { GitTool } from "./agent/tools/git.js";
 import { RunCommandTool } from "./agent/tools/runCommand.js";
 import { assertExistingProjectPath, assertWritableProjectPath, ProjectPathError } from "./agent/tools/path.js";
 import { AgentHistory } from "./agent/history.js";
+import { CheckpointManager } from "./agent/checkpoint.js";
 import { ProjectStateManager } from "./projects/projectState.js";
 
 dotenv.config();
@@ -38,6 +39,7 @@ const defaultProvider = configuredProvider === "ollama" || configuredProvider ==
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const projectManager = new ProjectManager(workspaceRoot);
 const agentHistory = new AgentHistory(workspaceRoot);
+const checkpointManager = new CheckpointManager(workspaceRoot);
 const projectStates = new Map<string, ProjectStateManager>();
 const fallbackProvider = process.env.AI_FALLBACK_PROVIDER?.toLowerCase() ||
   (defaultProvider === "ollama" ? "openrouter" : defaultProvider === "orcarouter" ? "openrouter" : undefined);
@@ -633,6 +635,54 @@ app.post("/api/projects/:id/run", async (req, res) => {
       exitCode: result.exitCode,
       problems,
     });
+  } catch (error) {
+    return sendProjectError(res, error);
+  }
+});
+
+app.get("/api/projects/:id/checkpoints", async (req, res) => {
+  try {
+    const project = await projectManager.getProject(req.params.id);
+    const checkpoints = await checkpointManager.list(project.id, project.path);
+    return res.json({ success: true, checkpoints });
+  } catch (error) {
+    return sendProjectError(res, error);
+  }
+});
+
+app.post("/api/projects/:id/checkpoints", async (req, res) => {
+  try {
+    const project = await projectManager.getProject(req.params.id);
+    const label = typeof req.body?.label === "string" ? req.body.label : "before agent changes";
+    const checkpoint = await checkpointManager.create(project.id, project.path, label);
+    void agentHistory.record({
+      type: "checkpoint-created",
+      projectId: project.id,
+      status: "success",
+      message: \`Checkpoint \${checkpoint.id} created\`,
+      output: JSON.stringify({ label: checkpoint.label, files: checkpoint.files.length }),
+    });
+    return res.status(201).json({ success: true, checkpoint });
+  } catch (error) {
+    return sendProjectError(res, error);
+  }
+});
+
+app.post("/api/projects/:id/checkpoints/:checkpointId/rollback", async (req, res) => {
+  try {
+    const project = await projectManager.getProject(req.params.id);
+    const checkpoint = await checkpointManager.rollback(project.id, project.path, req.params.checkpointId);
+    const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
+    projectStates.set(project.id, stateManager);
+    await stateManager.refresh(undefined, undefined, [], [\`rollback:\${checkpoint.id}\`]);
+    void agentHistory.record({
+      type: "checkpoint-rollback",
+      projectId: project.id,
+      status: "success",
+      message: \`Rolled back to checkpoint \${checkpoint.id}\`,
+      output: JSON.stringify({ label: checkpoint.label, files: checkpoint.files.length }),
+    });
+    return res.json({ success: true, checkpoint });
   } catch (error) {
     return sendProjectError(res, error);
   }
