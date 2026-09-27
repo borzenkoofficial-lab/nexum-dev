@@ -3,11 +3,14 @@ import type { AIProvider, AIProviderStatus } from "../types.js";
 const DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
 const DEFAULT_MODEL = "openrouter/free";
 const DEFAULT_FREE_MODELS = [
-  "cohere/north-mini-code:free",
   "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "poolside/laguna-s-2.1:free",
+  "nvidia/nemotron-3.5-lightning:free",
+  "dots-studio/dots3-note-preview:free",
+  "cohere/north-mini-code:free",
+  "poolside/laguna-xs-2.1:free",
   "qwen/qwen3.8-27b:free",
   "google/gemma-4-26b-a4b-it:free",
-  "poolside/laguna-s-2.1:free",
 ];
 const DEFAULT_TIMEOUT_MS = 60_000;
 
@@ -76,11 +79,11 @@ export class OpenRouterProvider implements AIProvider {
     const text = message.toLowerCase();
 
     if (/code|typescript|javascript|react|vite|npm|bug|error|debug|refactor|file|component|api|database|build|compile|terminal/.test(text)) {
-      return this.models.find((model) => model.includes("north-mini-code") || model.includes("laguna")) ?? this.models[0];
+      return this.models.find((model) => model.includes("north-mini-code") || model.includes("laguna-s-2.1") || model.includes("laguna-xs-2.1")) ?? this.models[0];
     }
 
     if (/plan|architect|architecture|reason|analy[sz]|research|compare|strategy|agent|multi-step/.test(text)) {
-      return this.models.find((model) => model.includes("nemotron")) ?? this.models[0];
+      return this.models.find((model) => model.includes("nemotron-3-ultra") || model.includes("nemotron-3.5-lightning")) ?? this.models[0];
     }
 
     if (/image|visual|design|ui|ux|screenshot|photo/.test(text)) {
