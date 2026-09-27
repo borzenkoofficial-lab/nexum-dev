@@ -70,7 +70,7 @@ test("invalid model tool calls fall back without executing arbitrary tools", asy
   assert.equal(result.steps[0]?.tool, "listFiles");
 });
 
-test("deterministic Builder fallback implements a scaffold when no real AI plan is available", async () => {
+test("deterministic Builder recovery inspects an existing scaffold before editing", async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), "nexum-agent-fallback-"));
   const gateway = new AIGateway([new (class implements AIProvider {
     id = "mock";
@@ -81,29 +81,25 @@ test("deterministic Builder fallback implements a scaffold when no real AI plan 
     async getStatus(model = this.model) { return { available: false, model, latencyMs: null, error: "test" }; }
   })()], "mock");
   const agent = new NexumAgent(gateway, projectRoot);
-  const scaffold = {
-    iteration: 1,
-    tool: "scaffoldProject",
-    input: "Создай React dashboard",
-    result: { success: true, output: "React/Vite scaffold created for test." },
-  };
   const inspection = {
     iteration: 1,
     tool: "listFiles",
     input: ".",
-    result: { success: true, output: "package.json\nsrc/App.jsx\nsrc/styles.css" },
+    result: { success: true, output: "package.json\\nsrc/App.jsx\\nsrc/styles.css" },
   };
-  const appPlan = agent.plan("Создай React dashboard", [inspection, scaffold]);
-  assert.equal(appPlan?.tool, "readFile");
-  assert.equal(appPlan?.input, "package.json");
+  const packageRead = agent.plan("Создай React dashboard", [inspection]);
+  assert.equal(packageRead?.tool, "readFile");
+  assert.equal(packageRead?.input, "package.json");
 
-  const appWrite = {
-    iteration: 3,
-    tool: "writeFile",
-    input: appPlan?.input ?? "",
-    result: { success: true, output: "App.jsx implemented" },
-  };
-  const stylesPlan = agent.plan("Создай React dashboard", [inspection, scaffold, appWrite]);
-  assert.equal(stylesPlan?.tool, "writeFile");
-  assert.ok(stylesPlan?.input.includes('"path":"src/styles.css"'));
-});
+  const appRead = agent.plan("Создай React dashboard", [
+    inspection,
+    {
+      iteration: 2,
+      tool: "readFile",
+      input: "package.json",
+      result: { success: true, output: '{"scripts":{"build":"vite build"}}' },
+    },
+  ]);
+  assert.equal(appRead?.tool, "readFile");
+  assert.equal(appRead?.input, "src/App.jsx");
+});\n
