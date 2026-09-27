@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 
 interface RightPanelProps {
-  tab: "preview" | "files" | "terminal";
-  onTabChange: (tab: "preview" | "files" | "terminal") => void;
-  onOpenTerminal: () => void;
+  tab: "preview" | "files" | "agent";
+  onTabChange: (tab: "preview" | "files" | "agent") => void;
+  jobId: string | null;
+  stage: AgentStage;
+  activitySteps: Array<{ iteration: number; tool: string; success: boolean }>;
+  activityEvents: Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>;
+  currentActivity: string;
+  problems: Array<{ message: string; source?: string }>;
   projectName: string;
   projectId: string;
   previewOnline: boolean;
@@ -11,7 +16,7 @@ interface RightPanelProps {
   onRefreshPreview: () => void;
 }
 
-export function RightPanel({ tab, onTabChange, onOpenTerminal, projectName, projectId, previewOnline, previewKey, onRefreshPreview }: RightPanelProps) {
+export function RightPanel({ tab, onTabChange, projectName, projectId, previewOnline, previewKey, onRefreshPreview, jobId, stage, activitySteps, activityEvents, currentActivity, problems }: RightPanelProps) {
   const previewUrl = projectId ? `/api/preview/${projectId}/index.html` : "";
   const [files, setFiles] = useState<string[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
@@ -61,7 +66,7 @@ export function RightPanel({ tab, onTabChange, onOpenTerminal, projectName, proj
 
   const dirty = content !== savedContent;
   return <aside className="right-panel" aria-label="Project tools">
-    <div className="panel-tabs" role="tablist"><button className={tab === "preview" ? "active" : ""} type="button" onClick={() => onTabChange("preview")}>Preview</button><button className={tab === "files" ? "active" : ""} type="button" onClick={() => onTabChange("files")}>Files</button><button className={tab === "terminal" ? "active" : ""} type="button" onClick={() => onTabChange("terminal")}>Terminal</button>{tab === "preview" && previewOnline && <button className="preview-refresh" type="button" onClick={onRefreshPreview} aria-label="Refresh preview">↻</button>}</div>
+    <div className="panel-tabs" role="tablist"><button className={tab === "preview" ? "active" : ""} type="button" onClick={() => onTabChange("preview")}>Preview</button><button className={tab === "files" ? "active" : ""} type="button" onClick={() => onTabChange("files")}>Files</button><button className={tab === "agent" ? "active" : ""} type="button" onClick={() => onTabChange("agent")}>Agent</button>{tab === "preview" && previewOnline && <button className="preview-refresh" type="button" onClick={onRefreshPreview} aria-label="Refresh preview">↻</button>}</div>
     {tab === "preview" ? (previewOnline ? <div className="preview-frame-wrap"><iframe key={previewKey} className="preview-frame" title={`${projectName} live preview`} src={previewUrl} sandbox="allow-scripts allow-forms allow-modals" /></div> : <div className="preview-content"><div className="preview-icon">{projectName.slice(0,1) || "N"}</div><strong>{projectName}</strong><div className="coming-soon">Preview is waiting for an index.html</div><span>Ask the Agent: “Создай приложение и запусти preview”</span></div>) : tab === "files" ? <div className="editor-shell">
       <div className="editor-filebar"><div className="editor-file-name">{selectedFile ? <><span>{selectedFile}</span>{dirty && <i aria-label="Unsaved changes">●</i>}</> : "Select a file"}</div>{selectedFile && <button className="editor-save" type="button" disabled={!dirty || saving} onClick={saveFile}>{saving ? "Saving…" : "Save"}</button>}</div>
       <div className="editor-body">
@@ -69,6 +74,6 @@ export function RightPanel({ tab, onTabChange, onOpenTerminal, projectName, proj
         <div className="code-editor">{editorLoading ? <div className="editor-empty">Loading file…</div> : selectedFile ? <><div className="editor-gutter" aria-hidden="true">{content.split("\n").map((_, index) => <span key={index}>{index + 1}</span>)}</div><textarea spellCheck={false} value={content} onChange={(event) => setContent(event.target.value)} onKeyDown={(event) => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") { event.preventDefault(); void saveFile(); } }} aria-label={`Editing ${selectedFile}`} /></> : <div className="editor-empty"><strong>Choose a file</strong><span>Open a project file to edit it here.</span></div>}</div>
       </div>
       {editorError && <div className="editor-error">{editorError}</div>}
-    </div> : <div className="terminal-empty"><span className="terminal-prompt">$</span><span>Use the Agent to run safe build and test commands.</span><button type="button" onClick={onOpenTerminal}>Open panel</button></div>}
+    </div> : <AgentActivityPanel jobId={jobId} stage={stage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} />
   </aside>;
 }
