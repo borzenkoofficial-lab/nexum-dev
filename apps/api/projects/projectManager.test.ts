@@ -99,3 +99,17 @@ test("scaffolds a runnable web preview inside the active project", async () => {
   assert.equal((await readFile(join(project.path, "style.css"), "utf8")).length > 100, true);
   assert.equal((await readFile(join(project.path, "app.js"), "utf8")).length > 20, true);
 });
+
+test("creates a React/Vite scaffold for SPA requests", async () => {
+  const { manager } = await createManager();
+  await manager.initialize();
+  const project = await manager.createProject("React Preview");
+  const agent = new NexumAgent(new AIGateway([new MockProvider()]), project.path);
+
+  const result = await agent.executeTool("scaffoldProject", "Создай React приложение для портфолио");
+  assert.equal(result.success, true);
+  const packageJson = JSON.parse(await readFile(join(project.path, "package.json"), "utf8")) as { scripts?: { build?: string } };
+  assert.equal(packageJson.scripts?.build, "vite build");
+  assert.equal((await readFile(join(project.path, "src/App.jsx"), "utf8")).includes("NEXUM"), true);
+  assert.equal((await readFile(join(project.path, "vite.config.js"), "utf8")).includes("@vitejs/plugin-react"), true);
+});
