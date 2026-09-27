@@ -447,7 +447,23 @@ app.use("/api/preview/:id", async (req, res) => {
     const extension = extname(filePath).toLowerCase();
     res.type(mimeTypes[extension] ?? "application/octet-stream");
     if (extension === ".html") {
-      const html = await readFile(filePath, "utf8");
+      let html = await readFile(filePath, "utf8");
+
+      // Preview is mounted below /api/preview/:id, while Vite production builds
+      // usually emit root-relative /assets/... URLs. Rewrite those URLs so the
+      // iframe can load JS/CSS/images from the same project preview namespace.
+      const previewBase = `/api/preview/${encodeURIComponent(req.params.id)}/`;
+      html = html
+        .replace(/(src|href|action)=(["'])\\/(?!\\/)/gi, `$1=$2${previewBase}`)
+        .replace(/url\\((["']?)\\/(?!\\/)/gi, `url($1${previewBase}`);
+
+      const headTag = "<base href=\"" + previewBase + "\">";
+      if (!/<base\\s/i.test(html)) {
+        const headIndex = html.toLowerCase().indexOf("<head");
+        const headClose = html.toLowerCase().indexOf(">", headIndex);
+        html = headClose >= 0 ? html.slice(0, headClose + 1) + headTag + html.slice(headClose + 1) : headTag + html;
+      }
+
       const runtimeBridge = "<script>(() => { const projectId = " + JSON.stringify(req.params.id) + "; const report = (kind, message, stack) => { try { parent.postMessage({ source: \"nexum-preview\", projectId, kind, message: String(message || \"Preview runtime error\").slice(0, 4000), stack: stack ? String(stack).slice(0, 8000) : undefined }, \"*\"); } catch {} }; window.addEventListener(\"error\", (event) => report(\"error\", event.message, event.error && event.error.stack)); window.addEventListener(\"unhandledrejection\", (event) => report(\"unhandledrejection\", event.reason instanceof Error ? event.reason.message : String(event.reason), event.reason instanceof Error ? event.reason.stack : undefined)); })();</script>";
       const bodyIndex = html.toLowerCase().lastIndexOf("</body>");
       return res.send(bodyIndex >= 0 ? html.slice(0, bodyIndex) + runtimeBridge + html.slice(bodyIndex) : html + runtimeBridge);
