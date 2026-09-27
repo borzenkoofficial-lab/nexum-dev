@@ -83,11 +83,11 @@ ${result.output}`
       'runSandbox: input is JSON object {"projectPath":".","command":"npm run build"}; projectPath is always forced to the active project',
       "git: input is one of status, diff, diff-stat, log, branch",
       "github: input is a read-only operation string",
-    ].join("
+    ].join("\n");
 ");
     const history = previousResults.length === 0
       ? "No tools have run yet."
-      : previousResults.map((item) => `${item.tool}: ${item.result.output.slice(0, 4_000)}`).join("
+      : previousResults.map((item) => `${item.tool}: ${item.result.output.slice(0, 4_000)}`).join("\n");
 ");
     const prompt = [
       "You are the NEXUM.DEV autonomous project builder.",
@@ -121,9 +121,9 @@ ${result.output}`
       "Available tools and input formats:",
       toolCatalog,
       `User task: ${task}`,
-      `Previous tool results:
+      `Previous tool results:\n${history}`,
 ${history}`,
-    ].join("
+    ].join("\n");
 
 ");
     const response = await this.gateway.generate(prompt, options);
@@ -323,7 +323,7 @@ ${history}`,
     const candidate = explicitCommand || task.trim();
     const normalizedCandidate = candidate.toLowerCase();
 
-    if (!/[;&|`$()<>
+    if (!/[;&|`$()<>\n\r\\]/.test(candidate)) {
 \r\\]/.test(candidate)) {
       if (/git\s+diff\s+--stat/.test(normalizedCandidate) || /статистик.*изменени/.test(normalizedCandidate)) {
         return "diff-stat";
