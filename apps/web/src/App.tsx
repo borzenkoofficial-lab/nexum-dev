@@ -46,7 +46,7 @@ function App() {
   const [currentActivity, setCurrentActivity] = useState("");
   const [problems, setProblems] = useState<Array<{ message: string; source?: string }>>([]);
   const [localAIKey, setLocalAIKey] = useState("");
-  const [localAITestEnabled, setLocalAITestEnabled] = useState(false);
+  const [localAITestEnabled, setLocalAITestEnabled] = useState(true);
   const [localAIConfigured, setLocalAIConfigured] = useState(false);
   const [localAIKeyLoading, setLocalAIKeyLoading] = useState(false);
 
