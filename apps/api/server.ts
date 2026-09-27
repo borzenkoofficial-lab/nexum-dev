@@ -125,8 +125,8 @@ async function runChatJob(
 
   try {
     const project = await getProjectManager(userId).getActiveProject(projectId);
-    const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
-    projectStates.set(project.id, stateManager);
+    const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
+    projectStates.set(project.path, stateManager);
     const checkpoint = await checkpointManager.create(project.id, project.path, `before agent job ${jobId}`);
     job.checkpointId = checkpoint.id;
     await stateManager.refresh(message);
@@ -584,8 +584,8 @@ app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
     const message = typeof req.body?.message === "string" ? req.body.message.slice(0, 4000) : "Preview runtime error";
     const stack = typeof req.body?.stack === "string" ? req.body.stack.slice(0, 8000) : undefined;
     const kind = typeof req.body?.kind === "string" ? req.body.kind.slice(0, 80) : "error";
-    const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
-    projectStates.set(project.id, stateManager);
+    const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
+    projectStates.set(project.path, stateManager);
     await stateManager.refresh(undefined, undefined, [], [`preview:${kind}: ${message}`]);
     void agentHistory.record({
       type: "preview-runtime-error",
@@ -736,8 +736,8 @@ app.post("/api/projects/:id/checkpoints/:checkpointId/rollback", async (req, res
   try {
     const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const checkpoint = await checkpointManager.rollback(project.id, project.path, req.params.checkpointId);
-    const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
-    projectStates.set(project.id, stateManager);
+    const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
+    projectStates.set(project.path, stateManager);
     await stateManager.refresh(undefined, undefined, [], [`rollback:${checkpoint.id}`]);
     void agentHistory.record({
       type: "checkpoint-rollback",
@@ -755,8 +755,8 @@ app.post("/api/projects/:id/checkpoints/:checkpointId/rollback", async (req, res
 app.get("/api/projects/:id/state", async (req, res) => {
   try {
     const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
-    const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
-    projectStates.set(project.id, stateManager);
+    const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
+    projectStates.set(project.path, stateManager);
     const state = await stateManager.refresh();
     return res.json({ success: true, state });
   } catch (error) {
