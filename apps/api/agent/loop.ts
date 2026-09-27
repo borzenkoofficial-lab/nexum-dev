@@ -604,7 +604,7 @@ export class AgentLoop {
         })
         .filter(Boolean)
         .slice(-6);
-      return `Готово. Проект реально изменён. Файлов изменено: ${writes}.\${changedFiles.length ? ` Изменения: ${changedFiles.join(", ")}.` : ""} Production-сборка: ${builds > 0 ? "проверена" : "не запускалась"}. Откройте Preview и AI Activity.`;
+      return `Готово. Проект реально изменён. Файлов изменено: ${writes}.${changedFiles.length ? ` Изменения: ${changedFiles.join(", ")}.` : ""} Production-сборка: ${builds > 0 ? "проверена" : "не запускалась"}. Откройте Preview и AI Activity.`;
     }
 
     const summary = results
