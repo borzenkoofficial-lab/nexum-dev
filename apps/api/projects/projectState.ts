@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import type { ProductPlan } from "../agent/types.js";
 
 export interface ProjectState {
-  version: 1;
+  version: 2;
   projectId: string;
   projectType: "static" | "node" | "react" | "unknown";
   framework: string | null;
@@ -17,6 +17,8 @@ export interface ProjectState {
   failedActions: string[];
   changedFiles: string[];
   knownErrors: string[];
+  lastSuccessfulBuildAt?: string | null;
+  lastFailedTool?: string | null;
   architecture: string[];
   designSystem: string[];
   routes: string[];
@@ -63,11 +65,22 @@ export class ProjectStateManager {
       failedActions: errors.length ? [...(previous?.failedActions ?? []), ...errors].slice(-50) : previous?.failedActions ?? [],
       changedFiles: successfulChanges,
       knownErrors: errors.length ? [...new Set([...(previous?.knownErrors ?? []), ...errors])].slice(-50) : previous?.knownErrors ?? [],
+      lastSuccessfulBuildAt: previous?.lastSuccessfulBuildAt ?? null,
+      lastFailedTool: errors.length ? errors.at(-1)?.split(":")[0] ?? null : previous?.lastFailedTool ?? null,
       architecture: plan ? [`${plan.productType}: ${plan.pages.join(", ")}`, ...plan.components].slice(0, 50) : previous?.architecture ?? [],
       designSystem: plan?.visualSystem ?? previous?.designSystem ?? [],
       routes: plan?.pages ?? previous?.routes ?? [],
       updatedAt: new Date().toISOString(),
     };
+    await this.write(state);
+    return state;
+  }
+
+  async markBuildSucceeded(): Promise<ProjectState> {
+    const state = (await this.read()) ?? await this.refresh();
+    state.lastSuccessfulBuildAt = new Date().toISOString();
+    state.lastFailedTool = null;
+    state.updatedAt = new Date().toISOString();
     await this.write(state);
     return state;
   }
