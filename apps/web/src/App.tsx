@@ -42,6 +42,13 @@ function App() {
   const [activitySteps, setActivitySteps] = useState<Array<{ iteration: number; tool: string; success: boolean }>>([]);
   const [activityEvents, setActivityEvents] = useState<Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>>([]);
   const [currentActivity, setCurrentActivity] = useState("");
+  const [productPlan, setProductPlan] = useState<{
+    goal: string;
+    productType: string;
+    pages: string[];
+    components: string[];
+    acceptanceCriteria: string[];
+  } | null>(null);
   const [problems, setProblems] = useState<Array<{ message: string; source?: string }>>([]);
   const [localAIKey, setLocalAIKey] = useState("");
   const [localAITestEnabled, setLocalAITestEnabled] = useState(true);
@@ -306,6 +313,13 @@ function App() {
                 currentMessage?: string | null;
                 problems?: Array<{ message: string; source?: string }>;
                 error?: string | null;
+                productPlan?: {
+                  goal?: string;
+                  productType?: string;
+                  pages?: string[];
+                  components?: string[];
+                  acceptanceCriteria?: string[];
+                } | null;
               };
               error?: string;
             }
@@ -323,6 +337,13 @@ function App() {
           setActivityEvents(data?.job?.events ?? []);
           setCurrentActivity(data?.job?.currentMessage ?? "Готово.");
           setProblems(data?.job?.problems ?? []);
+          if (data?.job?.productPlan) setProductPlan({
+            goal: data.job.productPlan.goal ?? "",
+            productType: data.job.productPlan.productType ?? "Product",
+            pages: data.job.productPlan.pages ?? [],
+            components: data.job.productPlan.components ?? [],
+            acceptanceCriteria: data.job.productPlan.acceptanceCriteria ?? [],
+          });
           setReply(data?.job?.reply ?? "");
           if (data?.job?.reply) setConversation((items) => [...items, { id: `assistant-${Date.now()}`, role: "assistant", content: data.job!.reply!, timestamp: Date.now() }]);
           setRightTab("preview");
@@ -365,6 +386,13 @@ function App() {
         setActivityEvents(data?.job?.events ?? []);
         setCurrentActivity(data?.job?.currentMessage ?? "AI выполняет задачу…");
         setProblems(data?.job?.problems ?? []);
+        if (data?.job?.productPlan) setProductPlan({
+          goal: data.job.productPlan.goal ?? "",
+          productType: data.job.productPlan.productType ?? "Product",
+          pages: data.job.productPlan.pages ?? [],
+          components: data.job.productPlan.components ?? [],
+          acceptanceCriteria: data.job.productPlan.acceptanceCriteria ?? [],
+        });
         setAgentStage((data?.job?.stage as typeof agentStage) ?? (status === "running" ? "running" : "thinking"));
         timer = window.setTimeout(pollJob, 900);
       } catch (error) {
@@ -507,7 +535,7 @@ function App() {
               onPreview={() => { setRightTab("preview"); setPreviewKey((key) => key + 1); setNotice("Preview refreshed"); }}
               onDeploy={() => { window.open(`/api/preview/${activeProjectId}/index.html`, "_blank", "noopener,noreferrer"); setNotice("Preview opened in a new tab"); }} />
           </div>
-          <RightPanel tab={rightTab} onTabChange={setRightTab} projectName={activeProject?.name ?? "NEXUM"} projectId={activeProjectId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setPreviewKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} />
+          <RightPanel tab={rightTab} onTabChange={setRightTab} projectName={activeProject?.name ?? "NEXUM"} projectId={activeProjectId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setPreviewKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} />
         </div>
         </>
         )}
