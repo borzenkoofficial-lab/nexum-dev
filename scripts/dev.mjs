@@ -98,8 +98,9 @@ async function main() {
   const ollamaReady = await ensureOllama();
   if (ollamaReady) await ensureModel();
 
-  const children = [
-    spawn(npm, ["--prefix", "apps/api", "run", "dev"], {
+  // Start the API independently of Ollama. The UI must remain usable even
+  // when the local model is unavailable.
+  const apiProcess = spawn(npm, ["--prefix", "apps/api", "run", "dev"], {
       cwd: root,
       stdio: "inherit",
       env: {
@@ -108,12 +109,17 @@ async function main() {
         OLLAMA_BASE_URL: ollamaBaseUrl,
         OLLAMA_MODEL: ollamaModel,
       },
-    }),
+    });
+
+  const children = [
+    apiProcess,
     spawn(npm, ["--prefix", "apps/web", "run", "dev"], {
       cwd: root,
       stdio: "inherit",
     }),
   ];
+
+  await waitForApi();
 
   let shuttingDown = false;
 
@@ -144,6 +150,20 @@ async function main() {
   console.log("[Nexum] API: http://localhost:3001");
   console.log(`[Nexum] AI: Ollama / ${ollamaModel}`);
   console.log("[Nexum] Press Ctrl+C to stop both.");
+}
+
+async function waitForApi() {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    try {
+      const response = await fetch("http://127.0.0.1:3001/api/health");
+      if (response.ok) {
+        console.log("[Nexum] API health: OK");
+        return;
+      }
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  console.error("[Nexum] API did not become ready on port 3001. Check the API process output above.");
 }
 
 main().catch((error) => {
