@@ -99,6 +99,7 @@ test("deterministic Builder recovery inspects an existing scaffold before editin
 
   const appRead = agent.plan("Создай React dashboard", [
     inspection,
+    scaffold,
     {
       iteration: 2,
       tool: "readFile",
