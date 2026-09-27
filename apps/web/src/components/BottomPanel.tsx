@@ -57,7 +57,7 @@ export function BottomPanel({ open, onClose, projectId, jobId, activitySteps, pr
     {tab === "terminal" && <div className="bottom-output">
       <div className="terminal-command-row"><span className="terminal-prompt">$</span><input value={command} onChange={(event) => setCommand(event.target.value)} aria-label="Project command" /><button type="button" disabled={running} onClick={async () => { setRunning(true); setTerminalOutput("Running…"); const result = await onRunCommand(command); setTerminalOutput(result.stdout || result.stderr || result.error || (result.success ? "Command completed." : "Command failed.")); setRunning(false); }}>Run</button></div>
       <pre>{terminalOutput}</pre>
-    </div>
+    </div>}
     {tab === "problems" && <div className="bottom-output">{problems.length ? problems.map((problem, i) => <div key={i} className="problem-row"><strong>×</strong><span>{problem.source ? `${problem.source}: ` : ""}{problem.message}</span></div>) : <span>No problems reported.</span>}</div>
     {tab === "logs" && <div className="bottom-output">{logs.length ? logs.map((line, i) => <div key={i}>{line}</div>) : <span>No Git commits yet.</span>}</div>}
     {tab === "git" && <div className="bottom-output">{gitError ? <span className="error-state-inline">{gitError}</span> : <pre>{gitText}</pre>}</div>}
