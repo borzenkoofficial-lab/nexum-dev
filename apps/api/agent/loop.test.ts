@@ -89,7 +89,7 @@ test("automatically installs and builds a generated React/Vite scaffold", async 
     getAvailableTools: () => ["scaffoldProject", "runCommand"],
     plan: (_task, previousResults) => previousResults.length === 0
       ? { tool: "scaffoldProject", input: "Создай React приложение" }
-      : { done: true, finalResponse: "Готово" },
+      : { tool: "", input: "", done: true, finalResponse: "Готово" },
     executeTool: async (tool, input) => {
       if (tool === "scaffoldProject") {
         return { success: true, output: "React/Vite scaffold created for test. Run npm install and npm run build." };
