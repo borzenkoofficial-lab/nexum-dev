@@ -11,11 +11,17 @@ export class ProjectPathError extends Error {
 export function resolveProjectPath(projectRoot: string, requestedPath: string): string {
   const input = requestedPath.trim();
 
-  if (!input || isAbsolute(input) || input.split(/[\\/]/).includes("..")) {
+  if (!input) {
     throw new ProjectPathError("Path must stay inside the project directory");
   }
 
-  const resolvedPath = resolve(projectRoot, input);
+  // AI models sometimes return the full active-project path. Accept it only
+  // when it resolves inside the active project; never allow an external path.
+  const resolvedPath = isAbsolute(input) ? resolve(input) : resolve(projectRoot, input);
+  if (!isAbsolute(input) && input.split(/[\\/]/).includes("..")) {
+    throw new ProjectPathError("Path must stay inside the project directory");
+  }
+
   const relativePath = relative(projectRoot, resolvedPath);
 
   if (relativePath.startsWith("..") || isAbsolute(relativePath)) {
