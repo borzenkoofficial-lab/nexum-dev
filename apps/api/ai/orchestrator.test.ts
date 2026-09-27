@@ -48,7 +48,7 @@ test("orchestrator fails over to the next compatible model after a rate limit", 
   const gateway = new AIGateway([provider], "openrouter");
   const orchestrator = new AIOrchestrator(gateway);
   const result = await orchestrator.run("planner", "plan a build");
-  assert.equal(result.finalResponse, "recovered");
+  assert.equal(result.response, JSON.stringify({ done: true, finalResponse: "recovered" }));
   assert.equal(provider.calls.length, 2);
   assert.notEqual(provider.calls[0], provider.calls[1]);
 });
