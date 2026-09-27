@@ -475,7 +475,7 @@ function App() {
       const provider = data.provider || "openai";
       setAiApiKey("");
       setAIProvider(provider);
-      setAIModel(data.model || aiModels[provider]?.[0] || (provider === "openai" ? "gpt-5" : "openrouter/free"));
+      setAIModel(data.model || aiModels[provider]?.[0] || (provider === "openai" ? "gpt-5" : provider === "orcarouter" ? "deepseek/deepseek-v4-flash-free" : "openrouter/free"));
       setNotice(provider === "openai" ? "OpenAI connected — GPT models are ready" : "OpenRouter connected");
       window.setTimeout(() => setNotice(""), 3200);
       const modelsResponse = await fetch("/api/ai/models");
@@ -570,7 +570,7 @@ function App() {
             <div className="settings-card">
               <strong>AI API key</strong>
               <span>Automatic provider detection</span>
-              <small>Paste an OpenAI key for GPT models or an OpenRouter key. NEXUM verifies the key and keeps it only in the running server memory; it is not written to GitHub or project files.</small>
+              <small>Paste an OpenAI, OpenRouter, or OrcaRouter key. NEXUM detects the provider, verifies the key, and keeps it only in the running server memory; it is not written to GitHub or project files. OrcaRouter can provide the free DeepSeek V4 Flash endpoint.</small>
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                 <input
                   type="password"
