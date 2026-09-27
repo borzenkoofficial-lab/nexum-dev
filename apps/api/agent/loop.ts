@@ -39,8 +39,8 @@ export function compactAgentHistory(results: AgentToolResult[]): AgentToolResult
 
   const normalized = results
     .map((item) => {
-      const output = item.result.output.replace(/\|\\bсто\\b\|диагностикs+/g, " ").trim();
-      const input = item.input.replace(/\|\\bсто\\b\|диагностикs+/g, " ").trim();
+      const output = item.result.output.replace(/\s+/g, " ").trim();
+      const input = item.input.replace(/\s+/g, " ").trim();
       const compactInput = (() => {
         try {
           const parsed = JSON.parse(item.input) as Record<string, unknown>;
@@ -151,19 +151,19 @@ export class AgentLoop {
     const projectHasBuildScript = (results: AgentToolResult[]): boolean => {
       const packageResult = [...results]
         .reverse()
-        .find((item) => item.tool === "readFile" && item.result.success && /"scripts"\|\\bсто\\b\|диагностикs*:/i.test(item.result.output));
+        .find((item) => item.tool === "readFile" && item.result.success && /"scripts"\s*:/i.test(item.result.output));
       if (packageResult) {
         try {
           const parsed = JSON.parse(packageResult.result.output);
           return typeof parsed?.scripts?.build === "string" && parsed.scripts.build.trim().length > 0;
         } catch {
-          return /"build"\|\\bсто\\b\|диагностикs*:/i.test(packageResult.result.output);
+          return /"build"\s*:/i.test(packageResult.result.output);
         }
       }
       return results.some((item) =>
         item.tool === "scaffoldProject" &&
         item.result.success &&
-        /React\|\\bсто\\b\|диагностик/Vite scaffold created/i.test(item.result.output)
+        /React\/Vite scaffold created/i.test(item.result.output)
       );
     };
     const transition = (next: AgentPhase) => {
@@ -451,7 +451,7 @@ export class AgentLoop {
         );
         const hasStaticProject = previousResults.some(
           (item) => item.tool === "listFiles" && item.result.success &&
-            /(?:^|\|\\bсто\\b\|диагностик\|\\bсто\\b\|диагностикn)index\|\\bсто\\b\|диагностик\|\\bсто\\b\|диагностик.html(?:\|\\bсто\\b\|диагностик\|\\bсто\\b\|диагностикn|$)/.test(item.result.output),
+            /(?:^|\\n)index\\.html(?:\\n|$)/.test(item.result.output),
         ) && !projectHasBuildScript(previousResults);
         if (
           builderTask &&
@@ -484,7 +484,7 @@ export class AgentLoop {
 
         const hasProjectChanges = previousResults.some((item) =>
           item.tool === "scaffoldProject" &&
-          /React\|\\bсто\\b\|диагностик/Vite scaffold created/i.test(item.result.output),
+          /React\/Vite scaffold created/i.test(item.result.output),
         ) || previousResults.some((item) =>
           (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
         );
@@ -587,12 +587,12 @@ export class AgentLoop {
               latestWritesByPath.set(`__write_${item.iteration}_${item.tool}`, item.input);
             }
           }
-          const successfulWrites = [...latestWritesByPath.values()].join("\|\\bсто\\b\|диагностикn");
+          const successfulWrites = [...latestWritesByPath.values()].join("\n");
           const taskLower = task.toLowerCase();
-          const autoRequested = /авто|автомобил|автосервис|ремонт.*авто|ремонт.*машин|сто|\|\\bсто\\b\|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(taskLower);
+          const autoRequested = /авто|автомобил|автосервис|ремонт.*авто|ремонт.*машин|сто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(taskLower);
           const constructionRequested = /строит|строитель|демонтаж|фасад|подряд|отделк|стяжк|штукатур|монтаж|кровл|бетон/.test(taskLower);
           const contentLower = successfulWrites.toLowerCase();
-          const hasAutoSignals = /авто|автомобил|автосервис|\|\\bсто\\b\|диагностик|шиномонтаж|двигател|ходов|тормоз|масл|запчаст|сто/.test(contentLower);
+          const hasAutoSignals = /авто|автомобил|автосервис|диагностик|шиномонтаж|двигател|ходов|тормоз|масл|запчаст|\bсто\b/.test(contentLower);
           const hasConstructionSignals = /строит|строитель|демонтаж|фасад|подряд|отделк|стяжк|штукатур|монтаж|кровл|бетон/.test(contentLower);
           const wrongDomain = (autoRequested && hasConstructionSignals && !hasAutoSignals)
             || (constructionRequested && hasAutoSignals && !hasConstructionSignals);
@@ -625,7 +625,7 @@ export class AgentLoop {
               "Final self-review failed.",
               review.missing.length ? `Missing: ${review.missing.join("; ")}` : "",
               review.risks.length ? `Risks: ${review.risks.join("; ")}` : "",
-            ].filter(Boolean).join("\|\\bсто\\b\|диагностикn");
+            ].filter(Boolean).join("\n");
             const reviewResult = { success: false, output: feedback };
             previousResults.push({ iteration, tool: "productReview", input: "final", result: reviewResult });
             emit({ iteration, type: "tool-error", tool: "productReview", message: feedback.slice(0, 1200) });
@@ -785,7 +785,7 @@ export class AgentLoop {
         previousResults.some((item) => item.tool === "scaffoldProject" && item.result.success) &&
         availableTools.includes("runCommand")
       ) {
-        const packageChanged = /"path"\|\\bсто\\b\|диагностикs*:\|\\bсто\\b\|диагностикs*"package\|\\bсто\\b\|диагностик.json"/i.test(plan.input);
+        const packageChanged = /"path"\s*:\s*"package\.json"/i.test(plan.input);
         const commands = projectHasBuildScript(previousResults)
           ? (packageChanged ? ["npm install", "npm run build"] : ["npm run build"])
           : (packageChanged ? ["npm install"] : []);
@@ -810,7 +810,7 @@ export class AgentLoop {
       // A React/Vite scaffold is not usable in Preview until its production
       // bundle exists. Build it automatically instead of leaving that step
       // to the user or the model's next planning iteration.
-      if (result.success && plan.tool === "scaffoldProject" && /React\|\\bсто\\b\|диагностик/Vite scaffold created/i.test(result.output)) {
+      if (result.success && plan.tool === "scaffoldProject" && /React\/Vite scaffold created/i.test(result.output)) {
         for (const command of ["npm install", "npm run build"]) {
           if (!availableTools.includes("runCommand")) {
             const error = "React/Vite project was created, but runCommand is unavailable to install dependencies and build it.";
@@ -907,10 +907,10 @@ export class AgentLoop {
         if (item.tool === "readFile") return "readFile: file content inspected successfully";
         return `${item.tool}: ${item.result.output}`;
       })
-      .join("\|\\bсто\\b\|диагностикn");
+      .join("\n");
     try {
       if (!options) return "Задача выполнена. Дополнительный финальный AI-ответ отключён: лимит токенов задачи исчерпан.";
-      return await this.gateway.generate(`Задача выполнена: ${task}\|\\bсто\\b\|диагностикnРезультаты инструментов:\|\\bсто\\b\|диагностикn${summary}`, options);
+      return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, options);
     } catch (error) {
       const detail = error instanceof Error ? error.message : "AI response generation failed";
       return `Задача выполнена, но финальный ответ AI недоступен: ${detail}. Откройте Preview и вкладку AI Activity для проверки результата.`;
@@ -934,7 +934,7 @@ export class AgentLoop {
   }
 
   private describeToolSuccess(tool: string, output: string): string {
-    const tail = output.replace(/\|\\bсто\\b\|диагностикs+/g, " ").trim().slice(0, 180);
+    const tail = output.replace(/\s+/g, " ").trim().slice(0, 180);
     const labels: Record<string, string> = {
       listFiles: "Структура проекта получена.",
       readFile: "Файл прочитан.",
@@ -950,12 +950,12 @@ export class AgentLoop {
   }
 
   private describeToolError(tool: string, output: string): string {
-    const detail = output.replace(/\|\\bсто\\b\|диагностикs+/g, " ").trim().slice(0, 260);
+    const detail = output.replace(/\s+/g, " ").trim().slice(0, 260);
     return `${tool} завершился с ошибкой. Анализирую проблему и попробую исправить её. ${detail}`.trim();
   }
 
   private actionFingerprint(tool: string, input: string): string {
-    const normalized = input.replace(/\|\\bсто\\b\|диагностикs+/g, " ").replace(/\|\\bсто\\b\|диагностикb\|\\bсто\\b\|диагностикd{10,}\|\\bсто\\b\|диагностикb/g, "<id>").trim().slice(0, MAX_ACTION_FINGERPRINT_LENGTH);
+    const normalized = input.replace(/\s+/g, " ").replace(/\b\d{10,}\b/g, "<id>").trim().slice(0, MAX_ACTION_FINGERPRINT_LENGTH);
     return `${tool}:${normalized}`;
   }
 
