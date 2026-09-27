@@ -7,6 +7,13 @@ const scrypt = promisify(scryptCallback);
 const COOKIE_NAME = "nexum_session";
 const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 const JWT_SECRET = process.env.NEXUM_AUTH_SECRET?.trim();
+const AUTH_ENABLED = process.env.NEXUM_AUTH_ENABLED === "true";
+const DEV_USER: AuthUser = {
+  id: "00000000-0000-4000-8000-000000000001",
+  email: "dev@nexum.local",
+  name: "Nexum Developer",
+  createdAt: new Date(0).toISOString(),
+};
 
 export interface AuthUser {
   id: string;
@@ -99,6 +106,11 @@ export function issueSession(response: Response, user: AuthUser): void {
 }
 
 export function authMiddleware(request: Request, response: Response, next: NextFunction): void {
+  if (!AUTH_ENABLED) {
+    request.user = DEV_USER;
+    next();
+    return;
+  }
   const token = getCookie(request, COOKIE_NAME) ?? (request.headers.authorization?.startsWith("Bearer ") ? request.headers.authorization.slice(7) : null);
   if (!token) {
     response.status(401).json({ success: false, error: "Authentication required" });
