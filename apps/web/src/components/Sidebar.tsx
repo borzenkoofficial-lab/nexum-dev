@@ -28,19 +28,19 @@ export function Sidebar({
   return (
     <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
       <div className="logo" aria-label="NEXUM.DEV">NEXUM<span>.DEV</span></div>
-      <nav className="sidebar-nav" aria-label="Workspace">
-        <button className={view === "home" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("home")}><span>⌂</span>Overview</button>
-        <button className={view === "connectors" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("connectors")}><span>◇</span>Connectors</button>
+      <nav className="sidebar-nav" aria-label="Рабочее пространство">
+        <button className={view === "home" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("home")}><span>⌂</span>Обзор</button>
+        <button className={view === "connectors" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("connectors")}><span>◇</span>Интеграции</button>
       </nav>
-      <button className="new-project" type="button" aria-label="Create a new project" onClick={onNewProject}>
-        + New Project
+      <button className="new-project" type="button" aria-label="Создать новый проект" onClick={onNewProject}>
+        + Новый проект
       </button>
-      <div className="section-title">PROJECTS</div>
-      <div className="projects" aria-label="Projects">
+      <div className="section-title">ПРОЕКТЫ</div>
+      <div className="projects" aria-label="Проекты">
         {projectsLoading ? (
-          <div className="project-placeholder" role="status">Loading projects...</div>
+          <div className="project-placeholder" role="status">Загрузка проектов…</div>
         ) : projects.length === 0 ? (
-          <div className="project-placeholder">No projects yet</div>
+          <div className="project-placeholder">Проектов пока нет</div>
         ) : (
           projects.filter((project) => project.status === "active").map((project) => (
             <div className={`project-row ${project.id === activeProjectId ? "active" : ""}`} key={project.id}>
@@ -48,7 +48,7 @@ export function Sidebar({
                 className="project"
                 type="button"
                 aria-current={project.id === activeProjectId ? "page" : undefined}
-                aria-label={`Select project ${project.name}`}
+                aria-label={`Выбрать проект ${project.name}`}
                 disabled={projectActionLoading}
                 onClick={() => onSelectProject(project.id)}
               >
@@ -59,8 +59,8 @@ export function Sidebar({
                 <button
                   className="project-delete"
                   type="button"
-                  aria-label={`Delete project ${project.name}`}
-                  title="Delete project"
+                  aria-label={`Удалить проект ${project.name}`}
+                  title="Удалить проект"
                   disabled={projectActionLoading}
                   onClick={() => onDeleteProject(project.id)}
                 >×</button>
@@ -70,7 +70,7 @@ export function Sidebar({
         )}
       </div>
       <div className="sidebar-bottom">
-        <button className={view === "settings" ? "sidebar-setting active" : "sidebar-setting"} type="button" aria-label="Open settings" onClick={() => onViewChange("settings")}><span>⚙</span>Settings</button>
+        <button className={view === "settings" ? "sidebar-setting active" : "sidebar-setting"} type="button" aria-label="Открыть настройки" onClick={() => onViewChange("settings")}><span>⚙</span>Настройки</button>
       </div>
     </aside>
   );
