@@ -1,55 +1,55 @@
 import { useRef, useState } from "react";
-import type { AgentStage } from "./types";
+import type { АгентStage } from "./types";
 
-interface ChatPanelProps {
+interface ЧатPanelProps {
   message: string;
   reply: string;
-  stage: AgentStage;
+  stage: АгентStage;
   apiError: string;
   messages: Array<{ id: string; role: "user" | "assistant"; content: string; timestamp: number; attachments?: string[] }>;
   attachments: Array<{ id: string; name: string; type: string; size: number; file: File }>;
   onMessageChange: (message: string) => void;
   onSubmit: () => void;
-  onRetry: () => void;
+  onПовторить: () => void;
   onQuickTask: (task: string) => void;
   onFilesSelected: (files: File[]) => void;
   onRemoveAttachment: (id: string) => void;
-  onOpenAgent: () => void;
+  onOpenАгент: () => void;
 }
 
-export function ChatPanel({ message, reply, stage, apiError, messages, attachments, onMessageChange, onSubmit, onRetry, onQuickTask, onFilesSelected, onRemoveAttachment, onOpenAgent }: ChatPanelProps) {
+export function ЧатPanel({ message, reply, stage, apiError, messages, attachments, onMessageChange, onSubmit, onПовторить, onQuickTask, onFilesSelected, onRemoveAttachment, onOpenАгент }: ЧатPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [sendingText, setSendingText] = useState("");
-  const stageLabel = stage === "thinking" || stage === "analyzing" ? "Analyzing" : stage === "planning" ? "Planning" : stage === "reading" ? "Reading files" : stage === "editing" ? "Editing project" : stage === "building" ? "Building" : stage === "testing" ? "Testing" : stage === "error" ? "Needs attention" : stage === "completed" ? "Completed" : "Ready";
+  const [sendingText, setОтправитьingText] = useState("");
+  const stageLabel = stage === "thinking" || stage === "analyzing" ? "Анализирую" : stage === "planning" ? "Планирую" : stage === "reading" ? "Читаю файлы" : stage === "editing" ? "Изменяю проект" : stage === "building" ? "Собираю" : stage === "testing" ? "Проверяю" : stage === "error" ? "Требуется внимание" : stage === "completed" ? "Готово" : "Готов";
   const busy = Boolean(stage && !["completed", "error"].includes(stage));
 
   function handleSubmit() {
     const text = message.trim();
     if (!text || busy) return;
-    setSendingText(text);
+    setОтправитьingText(text);
     onMessageChange("");
     onSubmit();
-    window.setTimeout(() => setSendingText(""), 520);
+    window.setTimeout(() => setОтправитьingText(""), 520);
   }
 
   return (
     <div className="chat">
-      <div className="welcome"><span className="eyebrow">NEXUM AGENT</span><h1>What do you want to build?</h1><p>Describe the task. NEXUM works in the background, changes the project, builds it and shows the result.</p></div>
-      {messages.length > 0 && <div className="conversation" aria-live="polite">{messages.map((item) => <article key={item.id} className={`conversation-message ${item.role}`}><div className="conversation-meta">{item.role === "user" ? "You" : "NEXUM"} · {new Date(item.timestamp).toLocaleTimeString()}</div><div className="conversation-content">{item.content}</div>{item.attachments?.length ? <div className="conversation-attachments">{item.attachments.map((name) => <span key={name}>↳ {name}</span>)}</div> : null}</article>)}</div>}
-      <div className={`agent-activity agent-activity-live ${busy ? "active" : ""}`} aria-live="polite"><span className={`activity-dot ${busy ? "working" : ""}`} /><strong>{stageLabel}</strong><button type="button" onClick={onOpenAgent}>View agent activity</button></div>
+      <div className="welcome"><span className="eyebrow">NEXUM AGENT</span><h1>Что вы хотите создать?</h1><p>Опишите задачу. NEXUM работает в фоне: изменяет проект, собирает его и показывает результат.</p></div>
+      {messages.length > 0 && <div className="conversation" aria-live="polite">{messages.map((item) => <article key={item.id} className={`conversation-message ${item.role}`}><div className="conversation-meta">{item.role === "user" ? "Вы" : "NEXUM"} · {new Date(item.timestamp).toLocaleTimeString()}</div><div className="conversation-content">{item.content}</div>{item.attachments?.length ? <div className="conversation-attachments">{item.attachments.map((name) => <span key={name}>↳ {name}</span>)}</div> : null}</article>)}</div>}
+      <div className={`agent-activity agent-activity-live ${busy ? "active" : ""}`} aria-live="polite"><span className={`activity-dot ${busy ? "working" : ""}`} /><strong>{stageLabel}</strong><button type="button" onClick={onOpenАгент}>Открыть работу агента</button></div>
       <form className="message-form" onSubmit={(event) => { event.preventDefault(); handleSubmit(); }}>
         {sendingText && <div className="composer-flight" aria-hidden="true"><span>{sendingText}</span></div>}
         <div className="message-box">
-          <textarea value={message} onChange={(event) => onMessageChange(event.target.value)} placeholder="Describe what you want to create or change..." aria-label="Describe your task" disabled={busy} />
+          <textarea value={message} onChange={(event) => onMessageChange(event.target.value)} placeholder="Опишите, что создать или изменить…" aria-label="Опишите задачу" disabled={busy} />
           {attachments.length > 0 && <div className="attachment-strip">{attachments.map((item) => <span className="attachment-chip" key={item.id}>{item.name}<button type="button" aria-label={`Remove ${item.name}`} onClick={() => onRemoveAttachment(item.id)}>×</button></span>)}</div>}
           {reply && messages.length === 0 && <div className="reply" aria-live="polite">{reply}</div>}
-          <div className="composer-actions"><button type="button" className="attach-button" disabled={busy} onClick={() => inputRef.current?.click()}>＋ Attach</button><input ref={inputRef} type="file" multiple hidden onChange={(event) => { if (event.target.files) onFilesSelected([...event.target.files]); event.currentTarget.value = ""; }} /><span>Up to 5 files · 2 MB each</span></div>
+          <div className="composer-actions"><button type="button" className="attach-button" disabled={busy} onClick={() => inputRef.current?.click()}>＋ Прикрепить</button><input ref={inputRef} type="file" multiple hidden onChange={(event) => { if (event.target.files) onFilesSelected([...event.target.files]); event.currentTarget.value = ""; }} /><span>До 5 файлов · 2 МБ каждый</span></div>
         </div>
-        <button className="send-button" type="submit" aria-label="Send task to NEXUM Agent" disabled={busy || !message.trim()}>Send</button>
+        <button className="send-button" type="submit" aria-label="Отправить задачу агенту NEXUM" disabled={busy || !message.trim()}>Отправить</button>
       </form>
-      {apiError && <div className="error-state" role="alert"><span>{apiError}</span><button type="button" className="retry-button" aria-label="Retry API request" onClick={onRetry}>Retry</button></div>}
-      <div className="chat-steps"><span>01</span> Chat <span>02</span> Agent <span>03</span> Preview <span>04</span> Iterate</div>
-      <button className="quick-git" type="button" onClick={() => onQuickTask("Покажи статус Git")}>Check Git status</button>
+      {apiError && <div className="error-state" role="alert"><span>{apiError}</span><button type="button" className="retry-button" aria-label="Повторить запрос" onClick={onПовторить}>Повторить</button></div>}
+      <div className="chat-steps"><span>01</span> Чат <span>02</span> Агент <span>03</span> Предпросмотр <span>04</span> Итерация</div>
+      <button className="quick-git" type="button" onClick={() => onQuickTask("Покажи статус Git")}>Проверить статус Git</button>
     </div>
   );
 }
