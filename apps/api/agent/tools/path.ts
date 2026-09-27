@@ -1,5 +1,5 @@
 import { access, realpath } from "node:fs/promises";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 
 export class ProjectPathError extends Error {
   constructor(message: string) {
@@ -15,12 +15,29 @@ export function resolveProjectPath(projectRoot: string, requestedPath: string): 
     throw new ProjectPathError("Path must stay inside the project directory");
   }
 
-  // AI models sometimes return the full active-project path. Accept it only
-  // when it resolves inside the active project; never allow an external path.
-  const resolvedPath = isAbsolute(input) ? resolve(input) : resolve(projectRoot, input);
-  if (!isAbsolute(input) && input.split(/[\\/]/).includes("..")) {
+  // Normalize paths that AI models commonly return:
+  // - index.html
+  // - projects/<active-project>/index.html
+  // - /.../projects/<active-project>/index.html
+  // The final path is always forced back into the active project root.
+  const normalizedInput = input.replace(/\\/g, "/");
+  const activeProjectName = basename(projectRoot);
+  const projectMarker = "/projects/" + activeProjectName + "/";
+  const relativeProjectMarker = "projects/" + activeProjectName + "/";
+  let candidate = normalizedInput;
+
+  const markerIndex = normalizedInput.lastIndexOf(projectMarker);
+  if (markerIndex >= 0) {
+    candidate = normalizedInput.slice(markerIndex + projectMarker.length);
+  } else if (normalizedInput.startsWith(relativeProjectMarker)) {
+    candidate = normalizedInput.slice(relativeProjectMarker.length);
+  }
+
+  if (!isAbsolute(candidate) && candidate.split("/").includes("..")) {
     throw new ProjectPathError("Path must stay inside the project directory");
   }
+
+  const resolvedPath = isAbsolute(candidate) ? resolve(candidate) : resolve(projectRoot, candidate);
 
   const relativePath = relative(projectRoot, resolvedPath);
 
