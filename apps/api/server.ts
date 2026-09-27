@@ -7,6 +7,7 @@ import { MockProvider } from "./ai/providers/mock.js";
 import { OllamaProvider } from "./ai/providers/ollama.js";
 import { OpenRouterProvider } from "./ai/providers/openrouter.js";
 import { OpenAIProvider } from "./ai/providers/openai.js";
+import { AnthropicProvider } from "./ai/providers/anthropic.js";
 import { OrcaRouterProvider } from "./ai/providers/orcarouter.js";
 import { NexumAgent } from "./agent/agent.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
@@ -29,7 +30,7 @@ dotenv.config();
 
 const app = express();
 const configuredProvider = process.env.AI_PROVIDER?.toLowerCase();
-const defaultProvider = configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai" || configuredProvider === "orcarouter"
+const defaultProvider = configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai" || configuredProvider === "anthropic" || configuredProvider === "orcarouter"
   ? configuredProvider
   : process.env.ORCAROUTER_API_KEY?.trim()
     ? "orcarouter"
@@ -56,7 +57,7 @@ const fallbackProvider = process.env.AI_FALLBACK_PROVIDER?.toLowerCase() ||
   (defaultProvider === "ollama" ? "openrouter" : defaultProvider === "orcarouter" ? "openrouter" : undefined);
 
 const aiGateway = new AIGateway(
-  [new MockProvider(), new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new OrcaRouterProvider()],
+  [new MockProvider(), new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider()],
   defaultProvider,
   {
     fallbackProviderId: fallbackProvider,
