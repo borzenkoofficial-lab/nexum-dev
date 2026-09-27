@@ -11,8 +11,10 @@ export type AIOrchestratorRole =
 
 export interface AIOrchestratorRun {
   role: AIOrchestratorRole;
+  provider: string;
   model: string;
   response: string;
+  fallback: boolean;
 }
 
 const ROLE_MODELS: Record<AIOrchestratorRole, string[]> = {
@@ -84,11 +86,17 @@ export class AIOrchestrator {
     // does not immediately collapse the whole Builder session.
     for (const model of models) {
       try {
-        const response = await this.gateway.generate(
+        const generation = await this.gateway.generateWithMetadata(
           this.decoratePrompt(role, prompt),
           { ...options, model, maxTokens: this.maxTokensFor(role) },
         );
-        return { role, model, response };
+        return {
+          role,
+          provider: generation.provider,
+          model: generation.model,
+          response: generation.response,
+          fallback: generation.fallback,
+        };
       } catch (error) {
         lastError = error;
         const message = error instanceof Error ? error.message : String(error);
