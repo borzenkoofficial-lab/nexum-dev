@@ -61,7 +61,11 @@ export class AIOrchestrator {
   ): Promise<AIOrchestratorRun> {
     const candidates = ROLE_MODELS[role];
     const requested = options?.model?.trim();
-    const model = requested && requested !== "openrouter/free"
+    // If the user explicitly selected OpenRouter's free router, preserve it.
+    // The provider is responsible for routing that request to an available free model.
+    // Previously NEXUM replaced openrouter/free with a hard-coded role model, which
+    // made the "free router" setting misleading and could select unavailable models.
+    const model = requested
       ? requested
       : (candidates.at(0) ?? "openrouter/free");
 
