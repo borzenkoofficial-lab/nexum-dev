@@ -18,6 +18,7 @@ import { GitTool } from "./agent/tools/git.js";
 import { RunCommandTool } from "./agent/tools/runCommand.js";
 import { assertExistingProjectPath, assertWritableProjectPath, ProjectPathError } from "./agent/tools/path.js";
 import { AgentHistory } from "./agent/history.js";
+import { ProjectStateManager } from "./projects/projectState.js";
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ const defaultProvider = configuredProvider === "ollama" || configuredProvider ==
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const projectManager = new ProjectManager(workspaceRoot);
 const agentHistory = new AgentHistory(workspaceRoot);
+const projectStates = new Map<string, ProjectStateManager>();
 const fallbackProvider = process.env.AI_FALLBACK_PROVIDER?.toLowerCase() ||
   (defaultProvider === "ollama" ? "openrouter" : undefined);
 
@@ -101,6 +103,9 @@ async function runChatJob(
 
   try {
     const project = await projectManager.getActiveProject(projectId);
+    const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
+    projectStates.set(project.id, stateManager);
+    await stateManager.refresh(message);
     const attachmentDir = resolve(project.path, ".nexum", "attachments", jobId);
     const attachmentNames: string[] = [];
     const attachmentContext: string[] = [];
@@ -178,6 +183,13 @@ async function runChatJob(
     void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
     job.steps = result.steps;
     job.productPlan = result.productPlan;
+    await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
+      try {
+        const parsed = JSON.parse(step.input);
+        return typeof parsed.path === "string" ? parsed.path : "";
+      } catch { return ""; }
+    }).filter(Boolean));
+    await stateManager.markCompleted(message.slice(0, 240));
     console.log("[Nexum] chat job completed", jobId);
   } catch (error) {
     job.status = "failed";
@@ -486,6 +498,19 @@ app.post("/api/projects/:id/run", async (req, res) => {
     });
   } catch (error) {
     return sendProjectError(res, error);
+  }
+});
+
+app.get("/api/projects/:id/state", async (req, res) => {
+  try {
+    const project = await projectManager.getProject(req.params.id);
+    const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
+    projectStates.set(project.id, stateManager);
+    const state = await stateManager.refresh();
+    return res.json({ success: true, state });
+  } catch (error) {
+    if (error instanceof ProjectManagerError) return sendProjectError(res, error);
+    return res.status(500).json({ success: false, error: "Unable to read project state" });
   }
 });
 
