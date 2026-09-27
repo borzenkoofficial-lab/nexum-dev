@@ -423,6 +423,13 @@ export class AgentLoop {
       }
     }
 
+    const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
+    if (builderTask) {
+      const writes = results.filter((item) => item.tool === "writeFile" && item.result.success).length;
+      const builds = results.filter((item) => (item.tool === "runCommand" || item.tool === "runSandbox") && /npm run build/.test(item.input) && item.result.success).length;
+      return `Готово. NEXUM изменил проект по запросу: ${task.trim().slice(0, 160)}. Выполнено изменений: ${writes}. Production-сборка: ${builds > 0 ? "проверена" : "не запускалась"}. Откройте Preview для результата и AI Activity для деталей.`;
+    }
+
     const summary = results
       .map((item) => {
         if (item.tool === "readFile") return "readFile: file content inspected successfully";
