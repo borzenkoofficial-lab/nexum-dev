@@ -102,7 +102,7 @@ export class RunCommandTool implements Tool {
   }
 
   private validateNpm(args: string[]): { executable: string; args: string[] } {
-    const normalizedArgs = [...args];
+    const normalizedArgs = args;
     const prefixIndex = normalizedArgs.indexOf("--prefix");
 
     if (prefixIndex !== -1) {
