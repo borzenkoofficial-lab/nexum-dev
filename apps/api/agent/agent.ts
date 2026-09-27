@@ -96,6 +96,15 @@ ${result.output}`
       const run = await this.orchestrator.run("planner", prompt, options);
       const parsed = this.parseProductPlan(run.response);
       if (parsed) return parsed;
+
+      // A malformed response is worth one repair pass, but a provider rate-limit
+      // is not: retrying immediately only burns another request and delays the
+      // deterministic fallback. The caller will continue with a local plan.
+      if (this.isRateLimitError(run.response)) {
+        console.warn("[agent] product planner returned a rate-limit response; using deterministic plan");
+        return this.fallbackProductPlan(task, previousResults);
+      }
+
       const repair = await this.orchestrator.run("planner", [
         "Repair the previous planner output.",
         "Return ONLY one valid JSON object matching the exact Product Plan schema.",
@@ -230,6 +239,14 @@ ${result.output}`
     const parsed = this.parseAIPlan(run.response);
     if (parsed) return parsed;
 
+    // Do not spend a second provider request repairing a known 429 response.
+    // The deterministic planner is deliberately kept usable without a remote
+    // model so a temporary OpenRouter limit cannot corrupt the build flow.
+    if (this.isRateLimitError(run.response)) {
+      console.warn("[agent] AI planner returned a rate-limit response; using deterministic planner");
+      return null;
+    }
+
     const repairPrompt = [
       "The previous response was not valid NEXUM tool-plan JSON.",
       "Return exactly one JSON object and nothing else.",
@@ -272,7 +289,7 @@ ${result.output}`
 
     if (/создай файл|запиши файл|write file|create file/.test(normalizedTask) && /проверь|проверь результат|verify/.test(normalizedTask)) {
       if (!this.hasSuccessfulResult(previousResults, "writeFile")) {
-        const selection = this.selectTool(task);
+        const selection = this.selectTool(task, previousResults);
         return selection ? { tool: selection.name, input: selection.input } : null;
       }
 
@@ -320,7 +337,7 @@ ${result.output}`
       }
     }
 
-    const selection = this.selectTool(task);
+    const selection = this.selectTool(task, previousResults);
     if (!selection) return null;
 
     const alreadyCompleted = previousResults.some(
@@ -339,6 +356,10 @@ ${result.output}`
     const result = await tool.execute(input);
     console.log(`[agent] ${tool.name}: ${result.success ? "success" : "failed"}`);
     return result;
+  }
+
+  private isRateLimitError(response: string): boolean {
+    return /(?:rate limit|rate-limit|too many requests|429)/i.test(response);
   }
 
   private parseProductPlan(response: string): ProductPlan | null {
@@ -575,7 +596,7 @@ h1{max-width:760px;margin:12px 0 10px;font-size:clamp(44px,7vw,82px);line-height
 `;
   }
 
-  private selectTool(task: string): { name: string; input: string } | null {
+  private selectTool(task: string, previousResults: AgentToolResult[] = []): { name: string; input: string } | null {
     const normalizedTask = task.toLowerCase();
 
     if (/запусти тесты.*(?:sandbox|изолирован)|тесты в изолирован/.test(normalizedTask)) {
@@ -617,7 +638,20 @@ h1{max-width:760px;margin:12px 0 10px;font-size:clamp(44px,7vw,82px);line-height
     }
 
     if (/создай|сделай|разработай|build|create|make/.test(normalizedTask) && /приложени|сайт|лендинг|web app|website|landing|страниц/.test(normalizedTask)) {
-      return { name: "scaffoldProject", input: task.trim() };
+      // Critical safety rule: scaffoldProject is only valid for a genuinely
+      // empty/new project. If the current project already contains files, never
+      // use the user's "create/rebuild" wording as permission to wipe/replace it.
+      // The loop will have inspected the project first; deterministic recovery
+      // must preserve that decision as well.
+      const hasExistingProject = this.projectHasExistingFilesFromResults(arguments[1] as AgentToolResult[]);
+      if (!hasExistingProject) {
+        return { name: "scaffoldProject", input: task.trim() };
+      }
+      const existingPath = this.firstRelevantExistingPath(arguments[1] as AgentToolResult[]);
+      if (existingPath) {
+        return { name: "readFile", input: existingPath };
+      }
+      return { name: "listFiles", input: "." };
     }
 
     if (/структур|список файлов|покажи файлы|list files|project files/.test(normalizedTask)) {
@@ -641,6 +675,35 @@ h1{max-width:760px;margin:12px 0 10px;font-size:clamp(44px,7vw,82px);line-height
       return { name: "searchFiles", input: this.extractSearchQuery(task) };
     }
 
+    return null;
+  }
+
+  private projectHasExistingFilesFromResults(results: AgentToolResult[]): boolean {
+    const inspection = results
+      .filter((item) => item.tool === "listFiles" && item.result.success)
+      .map((item) => item.result.output)
+      .join("\n");
+    if (inspection.trim()) {
+      const normalized = inspection.toLowerCase();
+      if (/(?:^|[\n, ])(?:empty|no files|directory is empty|пуст)/.test(normalized)) return false;
+      return /(?:index\.html|package\.json|src[\\/]\w+|style\.css|app\.js|vite\.config|main\.(?:js|jsx|ts|tsx))/.test(inspection);
+    }
+    return results.some((item) => item.result.success && (
+      item.tool === "readFile" ||
+      item.tool === "writeFile" ||
+      item.tool === "scaffoldProject"
+    ));
+  }
+
+  private firstRelevantExistingPath(results: AgentToolResult[]): string | null {
+    const inspection = results
+      .filter((item) => item.tool === "listFiles" && item.result.success)
+      .map((item) => item.result.output)
+      .join("\n");
+    const candidates = ["index.html", "package.json", "src/App.jsx", "src/App.tsx", "src/main.jsx", "src/main.tsx", "style.css", "src/styles.css", "app.js"];
+    for (const candidate of candidates) {
+      if (inspection.includes(candidate)) return candidate;
+    }
     return null;
   }
 
