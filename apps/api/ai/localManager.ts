@@ -29,7 +29,7 @@ export class LocalAIManager {
     timeoutMs = Number(process.env.OLLAMA_TIMEOUT_MS || 15_000),
     fetchImpl: typeof fetch = fetch,
   ) {
-    this.baseUrl = baseUrl.replace(/\\/+$/, "");
+    this.baseUrl = baseUrl.replace(/\/+$/, "");
     this.timeoutMs = timeoutMs;
     this.fetchImpl = fetchImpl;
   }
