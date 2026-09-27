@@ -11,3 +11,6 @@ services:
         value: "22"
       - key: AI_PROVIDER
         value: "openrouter"
+      # Secret is entered in Render Environment; never commit the API key.
+      - key: OPENROUTER_API_KEY
+        sync: false
