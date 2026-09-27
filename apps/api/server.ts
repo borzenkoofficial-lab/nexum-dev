@@ -150,6 +150,12 @@ async function runChatJob(
           ];
         }
       },
+      (plan) => {
+        job.productPlan = plan;
+        job.stage = "planning";
+        job.currentMessage = "Product Plan сформирован. Перехожу к реализации.";
+        job.updatedAt = Date.now();
+      },
     );
     const result = await agentLoop.run(agentMessage, {
       ...(provider === undefined ? {} : { provider }),
