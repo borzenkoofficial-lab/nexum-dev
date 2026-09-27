@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BottomPanel as AgentActivityPanel } from "./BottomPanel";
 import type { AgentStage } from "./types";
 
@@ -26,7 +26,7 @@ interface RightPanelProps {
 }
 
 export function RightPanel({ tab, onTabChange, projectName, projectId, previewOnline, previewKey, onRefreshPreview, jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan }: RightPanelProps) {
-  const previewUrl = projectId ? `/api/preview/${projectId}/index.html` : "";
+  const previewUrl = projectId ? `/api/preview/${projectId}/index.html?v=${previewKey}` : "";
   const [files, setFiles] = useState<string[]>([]);
   const [previewExpanded, setPreviewExpanded] = useState(false);
   const [filesLoading, setFilesLoading] = useState(false);
@@ -37,6 +37,8 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   const [editorLoading, setEditorLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editorError, setEditorError] = useState("");
+  const [previewError, setPreviewError] = useState("");
+  const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
 
   useEffect(() => {
     if (tab !== "files" || !projectId) return;
@@ -76,11 +78,38 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
 
   const dirty = content !== savedContent;
 
+  useEffect(() => {
+    setPreviewError("");
+  }, [projectId, previewKey, previewOnline]);
+
+  function handlePreviewLoad() {
+    setPreviewError("");
+    const frame = previewFrameRef.current;
+    const frameWindow = frame?.contentWindow;
+    if (!frameWindow) return;
+
+    const handleError = (event: ErrorEvent) => {
+      const message = event.message || "Ошибка выполнения Preview";
+      setPreviewError(message.slice(0, 600));
+    };
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason instanceof Error ? event.reason.message : String(event.reason ?? "Unhandled promise rejection");
+      setPreviewError(reason.slice(0, 600));
+    };
+
+    frameWindow.addEventListener("error", handleError);
+    frameWindow.addEventListener("unhandledrejection", handleRejection);
+    window.setTimeout(() => {
+      frameWindow.removeEventListener("error", handleError);
+      frameWindow.removeEventListener("unhandledrejection", handleRejection);
+    }, 5 * 60 * 1000);
+  }
+
   let panelContent: ReactNode;
   if (tab === "preview") {
     panelContent = previewOnline ? (
       <div className="preview-frame-wrap">
-        <iframe key={previewKey} className="preview-frame" title={projectName + " live preview"} src={previewUrl} sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" />
+        <iframe ref={previewFrameRef} key={previewKey} className="preview-frame" title={projectName + " live preview"} src={previewUrl} onLoad={handlePreviewLoad} sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" />
       </div>
     ) : (
       <div className="preview-content">
