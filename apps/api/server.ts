@@ -329,7 +329,8 @@ app.use("/api/projects", authMiddleware);
 app.use("/api/chat", authMiddleware);
 app.use("/api/agent/history", authMiddleware);
 app.use("/api/agent/diagnostics", authMiddleware);
-\napp.get("/api/ai/providers", (_req, res) => {
+
+app.get("/api/ai/providers", (_req, res) => {
   return res.json({ success: true, providers: aiGateway.getProviders() });
 });
 
