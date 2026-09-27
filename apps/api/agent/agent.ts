@@ -421,19 +421,6 @@ ${result.output}`
       if (!alreadyCompleted) return deterministicImplementation;
     }
 
-    // Provider-independent Builder fallback: a remote planner outage must not
-    // leave the user with an unchanged project after successful inspection.
-    const deterministicImplementation = this.selectDeterministicImplementation(task, previousResults);
-    if (deterministicImplementation) {
-      const alreadyCompleted = previousResults.some(
-        (item) =>
-          item.tool === deterministicImplementation.name &&
-          item.input === deterministicImplementation.input &&
-          item.result.success,
-      );
-      if (!alreadyCompleted) return deterministicImplementation;
-    }
-
     const deterministicWrite = this.deterministicBuilderWrite(task, previousResults);
     if (deterministicWrite) return deterministicWrite;
 
