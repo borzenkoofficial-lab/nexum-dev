@@ -39,9 +39,19 @@ function App() {
   const [chatJobId, setChatJobId] = useState<string | null>(null);
   const [view, setView] = useState<"home" | "project" | "connectors" | "settings">("project");
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
-  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);\n  const [connectedConnectors, setConnectedConnectors] = useState<string[]>([]);
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const [connectedConnectors, setConnectedConnectors] = useState<string[]>([]);
 
-  const activeProject = projects.find((project) => project.id === activeProjectId);\n\n  useEffect(() => {\n    if (!activeProjectId) return;\n    fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/preview/status`).then(async (response) => {\n      if (!response.ok) return;\n      const data = await response.json() as { online?: boolean };\n      setPreviewOnline(Boolean(data.online));\n    }).catch(() => setPreviewOnline(false));\n  }, [activeProjectId, previewKey]);
+  const activeProject = projects.find((project) => project.id === activeProjectId);
+
+  useEffect(() => {
+    if (!activeProjectId) return;
+    fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/preview/status`).then(async (response) => {
+      if (!response.ok) return;
+      const data = await response.json() as { online?: boolean };
+      setPreviewOnline(Boolean(data.online));
+    }).catch(() => setPreviewOnline(false));
+  }, [activeProjectId, previewKey]);
   const selectedModels = aiModels[aiProvider] ?? [];
 
   async function loadProjects(preferredId = activeProjectId) {
