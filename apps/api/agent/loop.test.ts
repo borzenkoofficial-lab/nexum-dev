@@ -112,8 +112,8 @@ test("never scaffolds over an existing project during deterministic recovery", (
   ]);
 
   assert.notEqual(result?.tool, "scaffoldProject");
-  assert.equal(result?.tool, "readFile");
-  assert.equal(result?.input, "index.html");
+  assert.equal(result?.tool, "writeFile");
+  assert.match(result?.input ?? "", /index\.html/);
 });
 
 test("automatically installs and builds a generated React/Vite scaffold", async () => {
@@ -172,9 +172,13 @@ test("recovers from a failed build after a file fix", async () => {
   const commands: string[] = [];
   let buildAttempts = 0;
   const runtime: AgentRuntime = {
-    getAvailableTools: () => ["writeFile", "runCommand"],
+    getAvailableTools: () => ["listFiles", "readFile", "writeFile", "runCommand"],
     plan: (_task, previousResults) => {
-      if (previousResults.length === 0) {
+      if (previousResults.length === 0) return { tool: "listFiles", input: "." };
+      if (previousResults.some((item) => item.tool === "listFiles") && !previousResults.some((item) => item.tool === "readFile")) {
+        return { tool: "readFile", input: "package.json" };
+      }
+      if (previousResults.some((item) => item.tool === "readFile") && !previousResults.some((item) => item.tool === "writeFile")) {
         return { tool: "writeFile", input: JSON.stringify({ path: "src/App.jsx", content: "broken" }) };
       }
       if (previousResults.some((item) => item.tool === "runCommand" && item.input === "npm run build" && !item.result.success) &&
@@ -184,6 +188,8 @@ test("recovers from a failed build after a file fix", async () => {
       return { tool: "", input: "", done: true, finalResponse: "Готово" };
     },
     executeTool: async (tool, input) => {
+      if (tool === "listFiles") return { success: true, output: "package.json\nsrc/App.jsx" };
+      if (tool === "readFile") return { success: true, output: JSON.stringify({ scripts: { build: "vite build" } }) };
       if (tool === "writeFile") return { success: true, output: input.includes('"content":"fixed"') ? "fixed App.jsx" : "initial App.jsx" };
       commands.push(input);
       if (input === "npm install") return { success: true, output: "installed" };
