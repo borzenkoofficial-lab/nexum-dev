@@ -291,7 +291,12 @@ export class AgentLoop {
     options?: GatewayGenerateOptions,
   ): Promise<string> {
     if (results.length === 0) {
-      return this.gateway.generate(task, options);
+      try {
+        return await this.gateway.generate(task, options);
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : "AI response generation failed";
+        return `NEXUM завершил выполнение, но финальный ответ AI недоступен: ${detail}. Проверьте Preview и AI Activity.`;
+      }
     }
 
     const summary = results
@@ -300,7 +305,12 @@ export class AgentLoop {
         return `${item.tool}: ${item.result.output.slice(0, MAX_RESULT_LENGTH)}`;
       })
       .join("\n");
-    return this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, options);
+    try {
+      return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, options);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "AI response generation failed";
+      return `Задача выполнена, но финальный ответ AI недоступен: ${detail}. Откройте Preview и вкладку AI Activity для проверки результата.`;
+    }
   }
 
   private describeToolStart(tool: string, input: string): string {
