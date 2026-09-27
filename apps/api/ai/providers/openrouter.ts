@@ -1,4 +1,4 @@
-import type { AIProvider, AIProviderStatus } from "../types.js";
+import type { AIProvider, AIProviderStatus, AIGenerateOptions } from "../types.js";
 
 const DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
 const DEFAULT_MODEL = "openrouter/free";
@@ -64,7 +64,7 @@ export class OpenRouterProvider implements AIProvider {
     return Boolean(this.runtimeApiKey);
   }
 
-  async generate(message: string, model = this.selectModel(message)): Promise<string> {
+  async generate(message: string, model = this.selectModel(message), options: AIGenerateOptions = {}): Promise<string> {
     const candidates = this.buildCandidates(model, message);
     let lastError: unknown;
 
@@ -75,6 +75,8 @@ export class OpenRouterProvider implements AIProvider {
           body: JSON.stringify({
             model: candidate,
             messages: [{ role: "user", content: message }],
+            ...(options.maxTokens === undefined ? {} : { max_tokens: options.maxTokens }),
+            ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
           }),
         });
         const content = data.choices?.[0]?.message?.content;
