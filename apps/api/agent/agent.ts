@@ -434,6 +434,9 @@ ${result.output}`
       if (!alreadyCompleted) return deterministicImplementation;
     }
 
+    const deterministicWrite = this.deterministicBuilderWrite(task, previousResults);
+    if (deterministicWrite) return deterministicWrite;
+
     const selection = this.selectTool(task, previousResults);
     if (!selection) return null;
 
@@ -441,6 +444,119 @@ ${result.output}`
       (item) => item.tool === selection.name && item.input === selection.input && item.result.success,
     );
     return alreadyCompleted ? null : { tool: selection.name, input: selection.input };
+  }
+
+  private deterministicBuilderWrite(task: string, previousResults: AgentToolResult[]): AgentPlan | null {
+    const lower = task.toLowerCase();
+    const isAuto = /авто|автомобил|машин|сто|автосервис|ремонт.*авто|ремонт.*машин|диагностик|шиномонтаж|кузов|двигател|тормоз|масл|запчаст/.test(lower);
+    const isConstruction = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
+    const writes = previousResults.filter((item) =>
+      (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
+    ).length;
+    if (writes >= 2) return null;
+
+    const inspection = previousResults
+      .filter((item) => item.tool === "listFiles" && item.result.success)
+      .map((item) => item.result.output)
+      .join("\\n");
+    const reactApp = /(?:^|\\n)(?:src\\/)?App\\.(?:tsx|jsx)(?:\\n|$)/i.test(inspection)
+      || previousResults.some((item) => item.tool === "readFile" && /(?:^|\\/)App\\.(?:tsx|jsx)$/i.test(item.input));
+    const appPath = previousResults.some((item) => /(?:^|\\/)App\\.jsx$/i.test(item.input)) ? "src/App.jsx" : "src/App.tsx";
+    const cssPath = "src/App.css";
+
+    if (!reactApp && !/(?:^|\\n)index\\.html(?:\\n|$)/i.test(inspection)) return null;
+
+    const readApp = previousResults.some((item) =>
+      item.tool === "readFile" && item.result.success && /(?:^|\\/)App\\.(?:tsx|jsx)$/i.test(item.input),
+    );
+    const readCss = previousResults.some((item) =>
+      item.tool === "readFile" && item.result.success && /(?:^|\\/)(?:App\\.css|styles\\.css|style\\.css)$/i.test(item.input),
+    );
+
+    const title = isAuto ? "Автосервис" : isConstruction ? "Строительная компания" : "Компания";
+    const subtitle = isAuto
+      ? "Диагностика, ремонт и обслуживание автомобилей"
+      : isConstruction
+        ? "Строительство, демонтаж и ремонтные работы под ключ"
+        : task.trim();
+
+    if (reactApp && !readApp) return null;
+
+    if (reactApp && readApp && !readCss) {
+      return {
+        tool: "writeFile",
+        input: JSON.stringify({
+          path: appPath,
+          content: \`import "./App.css";
+
+const services = ${JSON.stringify(isAuto
+            ? ["Диагностика автомобиля", "Ремонт двигателя", "Тормозная система", "Ходовая часть", "Техническое обслуживание", "Шиномонтаж"]
+            : isConstruction
+              ? ["Демонтаж", "Фасадные работы", "Общестроительные работы", "Бетонные работы", "Отделка", "Вывоз строительного мусора"]
+              : ["Консультация", "Основная услуга", "Сопровождение", "Расчёт стоимости"])};
+
+export default function App() {
+  return (
+    <main className="site">
+      <header className="header">
+        <strong className="logo">${title}</strong>
+        <nav><a href="#services">Услуги</a><a href="#about">О компании</a><a href="#contacts">Контакты</a></nav>
+        <a className="button button-small" href="#contacts">Оставить заявку</a>
+      </header>
+      <section className="hero">
+        <div><p className="eyebrow">${title}</p><h1>${subtitle}</h1>
+          <p className="lead">${isAuto ? "Профессиональный сервис с понятной диагностикой, прозрачной стоимостью и записью на удобное время." : isConstruction ? "Организуем работы для коммерческих и частных объектов. Смета, сроки и контроль выполнения на каждом этапе." : "Профессиональная команда и понятный процесс работы от первого обращения до результата."}</p>
+          <a className="button" href="#contacts">${isAuto ? "Записаться на диагностику" : "Получить расчёт"}</a>
+        </div>
+        <div className="hero-card"><span>01</span><b>${isAuto ? "Диагностика перед ремонтом" : isConstruction ? "Расчёт и план работ" : "Персональный подход"}</b><p>Свяжитесь с нами, чтобы обсудить задачу и получить предложение.</p></div>
+      </section>
+      <section id="services" className="section"><p className="eyebrow">Услуги</p><h2>Что мы делаем</h2>
+        <div className="grid">{services.map((service) => <article className="card" key={service}><span>—</span><h3>{service}</h3><p>Опишем объём работ, сроки и стоимость до начала выполнения.</p></article>)}</div>
+      </section>
+      <section id="about" className="section split"><div><p className="eyebrow">О компании</p><h2>Работаем по понятному процессу</h2></div><p className="lead">Сначала уточняем задачу, затем предлагаем решение, согласовываем стоимость и выполняем работу с контролем результата.</p></section>
+      <section id="contacts" className="contact"><div><p className="eyebrow">Контакты</p><h2>${isAuto ? "Запишитесь на диагностику" : "Получите расчёт стоимости"}</h2><p>Оставьте контакты — специалист свяжется с вами.</p></div>
+        <form onSubmit={(event) => event.preventDefault()}><input placeholder="Ваше имя" /><input placeholder="Телефон" /><button className="button" type="submit">Отправить заявку</button></form>
+      </section>
+    </main>
+  );
+}\`
+        }),
+      };
+    }
+
+    if (reactApp && !readApp) return null;
+
+    const appWasWritten = previousResults.some((item) =>
+      item.tool === "writeFile" && item.result.success && item.input.includes(\`"path":"${appPath}"\`),
+    );
+    const cssWasWritten = previousResults.some((item) =>
+      item.tool === "writeFile" && item.result.success && item.input.includes(\`"path":"${cssPath}"\`),
+    );
+
+    if (reactApp && readApp && !appWasWritten) {
+      return {
+        tool: "writeFile",
+        input: JSON.stringify({
+          path: appPath,
+          content: \`import "./App.css";
+export default function App() {
+  return <main className="site"><h1>${title}</h1><p>${subtitle}</p></main>;
+}\`
+        }),
+      };
+    }
+
+    if (reactApp && readApp && !cssWasWritten) {
+      return {
+        tool: "writeFile",
+        input: JSON.stringify({
+          path: cssPath,
+          content: \`.site{min-height:100vh;padding:48px;max-width:1200px;margin:0 auto;font-family:Inter,system-ui,sans-serif;color:#171717}.header{display:flex;align-items:center;justify-content:space-between;gap:20px}.header nav{display:flex;gap:18px}.header a{color:inherit;text-decoration:none}.hero{padding:96px 0}.hero h1{font-size:clamp(44px,7vw,88px);line-height:.98;letter-spacing:-.05em;max-width:900px}.lead{font-size:20px;line-height:1.5;color:#666;max-width:720px}.button{display:inline-flex;padding:14px 22px;border-radius:999px;background:#171717;color:#fff;text-decoration:none;border:0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.section{padding:72px 0}.card,.hero-card{padding:28px;border:1px solid #ddd;border-radius:24px;background:#fafafa}.contact{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding:72px 0}.contact form{display:grid;gap:12px}.contact input{padding:15px;border:1px solid #ccc;border-radius:12px;font:inherit}@media(max-width:760px){.site{padding:24px}.header nav{display:none}.grid,.contact{grid-template-columns:1fr}.hero{padding:56px 0}}\`
+        }),
+      };
+    }
+
+    return null;
   }
 
   async executeTool(toolName: string, input: string): Promise<ToolResult> {
