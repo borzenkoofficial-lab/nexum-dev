@@ -64,7 +64,10 @@ export class AgentLoop {
 
       const actionKey = `${plan.tool}:${plan.input}`;
       if (seenActions.has(actionKey)) {
-        const error = `Agent stopped: repeated action detected (${plan.tool})`;
+        const lastFailure = [...previousResults].reverse().find((item) => !item.result.success);
+        const error = lastFailure
+          ? `Tool ${lastFailure.tool} failed: ${lastFailure.result.output}`
+          : `Agent stopped: repeated action detected (${plan.tool})`;
         this.log(iteration, plan.tool, "error");
         return { success: false, iterations: iteration - 1, steps, error };
       }
@@ -89,7 +92,10 @@ export class AgentLoop {
       }
     }
 
-    const error = `Agent stopped: maximum iterations reached (${this.maxIterations})`;
+    const lastFailure = [...previousResults].reverse().find((item) => !item.result.success);
+    const error = lastFailure
+      ? `Tool ${lastFailure.tool} failed after recovery attempts: ${lastFailure.result.output}`
+      : `Agent stopped: maximum iterations reached (${this.maxIterations})`;
     this.log(this.maxIterations, "loop", "error");
     return { success: false, iterations: this.maxIterations, steps, error };
   }
