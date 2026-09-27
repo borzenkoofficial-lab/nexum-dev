@@ -724,11 +724,11 @@ h1{max-width:760px;margin:12px 0 10px;font-size:clamp(44px,7vw,82px);line-height
       // use the user's "create/rebuild" wording as permission to wipe/replace it.
       // The loop will have inspected the project first; deterministic recovery
       // must preserve that decision as well.
-      const hasExistingProject = this.projectHasExistingFilesFromResults(arguments[1] as AgentToolResult[]);
+      const hasExistingProject = this.projectHasExistingFilesFromResults(previousResults);
       if (!hasExistingProject) {
         return { name: "scaffoldProject", input: task.trim() };
       }
-      const existingPath = this.firstRelevantExistingPath(arguments[1] as AgentToolResult[]);
+      const existingPath = this.firstRelevantExistingPath(previousResults);
       if (existingPath) {
         return { name: "readFile", input: existingPath };
       }
