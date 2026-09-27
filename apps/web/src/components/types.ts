@@ -23,3 +23,8 @@ export interface AIProviderStatus {
 }
 
 export type AgentStage = "thinking" | "running" | "building" | null;
+
+export interface PreviewStatus {
+  online: boolean;
+  url: string | null;
+}
