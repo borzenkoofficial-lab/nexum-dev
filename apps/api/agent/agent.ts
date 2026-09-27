@@ -484,6 +484,28 @@ ${result.output}`
     const lower = task.toLowerCase();
     const construction = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
     const autoRepair = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lower);
+    if (construction) {
+      return {
+        goal: task.trim(),
+        productType: "Construction company website",
+        targetUser: "Клиенты и заказчики строительных услуг",
+        pages: ["Главная", "Услуги", "Объекты", "Процесс", "О компании", "Контакты"],
+        components: ["Construction header", "Hero with estimate CTA", "Services grid", "Project cases", "Work process", "Trust block", "Contact form"],
+        visualSystem: ["Distinct construction visual direction", "Architecture/industrial imagery", "Strong typography hierarchy", "Responsive mobile layout"],
+        interactions: ["Service navigation", "Estimate CTA", "Project browsing", "Lead form", "Mobile navigation"],
+        dataModel: ["services", "projects", "leads", "contacts"],
+        filesToInspect: ["."],
+        filesToChange: ["Application entry", "Styles", "Interaction files"],
+        acceptanceCriteria: [
+          "The site is unmistakably about the requested construction business",
+          "Services, projects, process, trust and contacts are visible",
+          "No NEXUM, SaaS, AI studio or digital-product copy remains in the site",
+          "Primary CTA requests an estimate/contact",
+          "Responsive layout works on mobile",
+          "Production build succeeds"
+        ],
+      };
+    }
     if (autoRepair) {
       return {
         goal: task.trim(),
