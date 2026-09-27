@@ -259,6 +259,7 @@ function App() {
     setActivityEvents([]);
     setCurrentActivity("Отправляю задачу AI-агенту…");
     setProblems([]);
+    setProductPlan(null);
 
     try {
       const serializedAttachments = await serializeAttachments(pendingAttachments.map((item) => item.file));
