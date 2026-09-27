@@ -275,8 +275,10 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
 app.get("/api/health", async (_req, res) => {
+  const database = await pingDatabase();
   res.json({
-    status: "ok",
+    status: database.ok ? "ok" : "degraded",
+    database,
     service: "NEXUM.DEV API",
     aiProvider: defaultProvider,
     aiFallbackProvider: fallbackProvider ?? null,
