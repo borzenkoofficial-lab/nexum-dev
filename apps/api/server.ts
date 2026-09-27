@@ -36,6 +36,8 @@ const defaultProvider = configuredProvider === "ollama" || configuredProvider ==
     ? "orcarouter"
     : process.env.OPENAI_API_KEY?.trim()
       ? "openai"
+      : process.env.ANTHROPIC_API_KEY?.trim()
+        ? "anthropic"
       : process.env.OPENROUTER_API_KEY?.trim()
         ? "openrouter"
         : "mock";
