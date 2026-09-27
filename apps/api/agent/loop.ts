@@ -508,10 +508,21 @@ export class AgentLoop {
         // Hard domain gate: never report success when the generated file content belongs to another industry.
         // This catches a planner that technically wrote files but reused an old template/domain.
         if (builderTask) {
-          const successfulWrites = previousResults
-            .filter((item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success)
-            .map((item) => item.input)
-            .join("\n");
+          const latestWritesByPath = new Map<string, string>();
+          for (const item of previousResults) {
+            if ((item.tool !== "writeFile" && item.tool !== "patchFile") || !item.result.success) continue;
+            try {
+              const parsed = JSON.parse(item.input) as { path?: unknown; content?: unknown };
+              if (typeof parsed.path === "string") {
+                latestWritesByPath.set(parsed.path, item.input);
+              } else {
+                latestWritesByPath.set(`__write_${item.iteration}_${item.tool}`, item.input);
+              }
+            } catch {
+              latestWritesByPath.set(`__write_${item.iteration}_${item.tool}`, item.input);
+            }
+          }
+          const successfulWrites = [...latestWritesByPath.values()].join("\n");
           const taskLower = task.toLowerCase();
           const autoRequested = /авто|автомобил|автосервис|ремонт.*авто|ремонт.*машин|сто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(taskLower);
           const constructionRequested = /строит|строитель|демонтаж|фасад|подряд|отделк|стяжк|штукатур|монтаж|кровл|бетон/.test(taskLower);
