@@ -1,0 +1,11 @@
+export interface OllamaModel { name: string; size?: number; digest?: string; modified_at?: string; details?: Record<string, unknown> }
+export interface OllamaStatus { available: boolean; version?: string; error?: string }
+export class OllamaClient {
+  constructor(private readonly baseUrl: string, private readonly timeoutMs = 15000) {}
+  async status(): Promise<OllamaStatus> { try { const d=await this.request<{version?:string}>("/api/version",{method:"GET"}); return {available:true,version:d.version}; } catch(e) { return {available:false,error:e instanceof Error?e.message:"Ollama unavailable"}; } }
+  async listModels(): Promise<OllamaModel[]> { const d=await this.request<{models?:OllamaModel[]}>("/api/tags",{method:"GET"}); return d.models??[]; }
+  async pull(model:string):Promise<void>{this.validate(model);await this.request("/api/pull",{method:"POST",body:JSON.stringify({model,stream:false})},600000)}
+  async chat(model:string,prompt:string,context:string):Promise<string>{this.validate(model);const content="You are Nexum Local AI. Work only with supplied workspace context.\n\nWORKSPACE:\n"+context+"\n\nTASK:\n"+prompt;const d=await this.request<{message?:{content?:string}}>("/api/chat",{method:"POST",body:JSON.stringify({model,messages:[{role:"user",content}],stream:false,think:false,keep_alive:"10m"})},120000);if(!d.message?.content)throw new Error("Ollama returned an empty response.");return d.message.content}
+  private async request<T=unknown>(path:string,init:RequestInit,timeoutMs=this.timeoutMs):Promise<T>{const c=new AbortController();const timer=setTimeout(()=>c.abort(),timeoutMs);try{const r=await fetch(this.baseUrl+path,{...init,headers:{"Accept":"application/json","Content-Type":"application/json",...(init.headers??{})},signal:c.signal});const body=await r.text();if(!r.ok)throw new Error("Ollama request failed ("+r.status+")");return body?JSON.parse(body) as T:{} as T}catch(e){if(c.signal.aborted)throw new Error("Ollama request timed out.");if(e instanceof Error&&e.message.startsWith("Ollama"))throw e;throw new Error("Cannot connect to Ollama at "+this.baseUrl)}finally{clearTimeout(timer)}}
+  private validate(model:string){if(!model||model.length>128||!/^[A-Za-z0-9][A-Za-z0-9._:/-]*$/.test(model))throw new Error("Invalid Ollama model name.")}
+}
