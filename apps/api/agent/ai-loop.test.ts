@@ -31,19 +31,18 @@ async function createLoop(responses: string[]) {
 
 test("AI structured plan selects writeFile and executes it", async () => {
   const { projectRoot, loop } = await createLoop([
-    JSON.stringify({ goal: "Build the requested site", productType: "Website", targetUser: "Users", pages: ["Home"], components: ["Header", "Content", "CTA"], visualSystem: ["Distinct typography"], interactions: ["Primary CTA"], dataModel: [], filesToInspect: ["."], filesToChange: ["index.html"], acceptanceCriteria: ["Requested product is implemented", "Build passes"] }),
     JSON.stringify({ tool: "writeFile", input: { path: "index.html", content: "<h1>NEXUM.DEV</h1>" } }),
     JSON.stringify({ tool: "runCommand", input: "node --version" }),
     JSON.stringify({ done: true, finalResponse: "Created index.html and verified the project." }),
   ]);
 
-  const result = await loop.run("Создай простой сайт NEXUM.DEV", { provider: "openrouter", model: "openrouter/free" });
+  const result = await loop.run("Запиши index.html", { provider: "openrouter", model: "openrouter/free" });
   const content = await readFile(join(projectRoot, "index.html"), "utf8");
 
   assert.equal(result.success, true);
   assert.deepEqual(result.steps.map((step) => step.tool), ["writeFile", "runCommand"]);
   assert.equal(content, "<h1>NEXUM.DEV</h1>");
-  assert.match(result.finalResponse ?? "", /Готово|NEXUM изменил проект/);
+  assert.match(result.finalResponse ?? "", /Created index\.html/);
   assert.equal((result.finalResponse ?? "").includes("<h1>NEXUM.DEV</h1>"), false);
 });
 
@@ -88,17 +87,23 @@ test("deterministic Builder fallback implements a scaffold when no real AI plan 
     input: "Создай React dashboard",
     result: { success: true, output: "React/Vite scaffold created for test." },
   };
-  const appPlan = agent.plan("Создай React dashboard", [scaffold]);
+  const inspection = {
+    iteration: 1,
+    tool: "listFiles",
+    input: ".",
+    result: { success: true, output: "package.json\nsrc/App.jsx\nsrc/styles.css" },
+  };
+  const appPlan = agent.plan("Создай React dashboard", [inspection, scaffold]);
   assert.equal(appPlan?.tool, "writeFile");
   assert.ok(appPlan?.input.includes('"path":"src/App.jsx"'));
 
   const appWrite = {
-    iteration: 2,
+    iteration: 3,
     tool: "writeFile",
     input: appPlan?.input ?? "",
     result: { success: true, output: "App.jsx implemented" },
   };
-  const stylesPlan = agent.plan("Создай React dashboard", [scaffold, appWrite]);
+  const stylesPlan = agent.plan("Создай React dashboard", [inspection, scaffold, appWrite]);
   assert.equal(stylesPlan?.tool, "writeFile");
   assert.ok(stylesPlan?.input.includes('"path":"src/styles.css"'));
 });
