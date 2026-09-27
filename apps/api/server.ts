@@ -313,7 +313,9 @@ app.put("/api/projects/:id/file", async (req, res) => {
     if (projectRelative.startsWith("..") || projectRelative.includes("../") || projectRelative.includes("..\\") || projectRelative.startsWith(".git/") || projectRelative.includes("node_modules/")) {
       return res.status(403).json({ success: false, error: "Invalid file path" });
     }
-    await (await import("node:fs/promises")).writeFile(filePath, content, "utf8");
+    const fs = await import("node:fs/promises");
+    await fs.mkdir(dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, content, "utf8");
     return res.json({ success: true, path: projectRelative });
   } catch (error) {
     return sendProjectError(res, error);
@@ -367,10 +369,25 @@ app.post("/api/projects/:id/run", async (req, res) => {
 app.get("/api/projects/:id/preview/status", async (req, res) => {
   try {
     const project = await projectManager.getProject(req.params.id);
-    await stat(resolve(project.path, "index.html"));
-    return res.json({ online: true, url: `/api/preview/${project.id}/index.html` });
-  } catch {
-    return res.json({ online: false, url: null });
+    const packagePath = resolve(project.path, "package.json");
+    const distIndexPath = resolve(project.path, "dist", "index.html");
+    const sourceIndexPath = resolve(project.path, "index.html");
+    const hasPackage = await stat(packagePath).then((details) => details.isFile()).catch(() => false);
+    const hasDist = await stat(distIndexPath).then((details) => details.isFile()).catch(() => false);
+    const hasSource = await stat(sourceIndexPath).then((details) => details.isFile()).catch(() => false);
+
+    // React/Vite apps must have a production bundle. Static HTML projects can
+    // be previewed directly from their source index.html.
+    const online = hasPackage ? hasDist : hasSource;
+    return res.json({
+      online,
+      url: online ? `/api/preview/${project.id}/index.html` : null,
+      mode: hasPackage ? "built-app" : "static",
+      reason: online ? null : hasPackage ? "Production build is missing" : "index.html is missing",
+    });
+  } catch (error) {
+    if (error instanceof ProjectManagerError) return sendProjectError(res, error);
+    return res.status(500).json({ online: false, url: null, error: "Unable to determine preview status" });
   }
 });
 
