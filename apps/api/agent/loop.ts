@@ -586,8 +586,8 @@ export class AgentLoop {
         if (builderTask && productPlan && this.runtime.reviewProduct && productReviewAttempts < MAX_PRODUCT_REVIEW_CALLS) {
           productReviewAttempts += 1;
           emit({ iteration, type: "thinking", message: "Запускаю финальный self-review: сверяю реализацию с Product Plan и ищу недостающие функции." });
-          const aiOptions = aiOptionsForTask(options);
-        if (!aiOptions) throw new Error("Task AI token budget exhausted");
+          const aiOptions = aiOptionsForTask(options, "reviewer");
+          if (!aiOptions) throw new Error("Task AI token budget exhausted");
             const review = await this.runtime.reviewProduct(task, compactAgentHistory(previousResults), productPlan, aiOptions as AgentModelOptions);
           if (!review.passed) {
             const feedback = [
@@ -632,7 +632,7 @@ export class AgentLoop {
           steps,
           productPlan: productPlan ?? undefined,
           phase,
-          finalResponse: plan.finalResponse ?? await this.finalResponse(task, previousResults, aiOptionsForTask(options)),
+          finalResponse: plan.finalResponse ?? await this.finalResponse(task, previousResults, aiOptionsForTask(options, "finalizer")),
         };
       }
 
