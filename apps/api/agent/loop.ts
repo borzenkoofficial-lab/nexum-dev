@@ -195,7 +195,7 @@ export class AgentLoop {
         previousResults.some((item) => item.tool === "scaffoldProject" && item.result.success) &&
         availableTools.includes("runCommand")
       ) {
-        const packageChanged = /"path"\\s*:\\s*"package\\.json"/i.test(plan.input);
+        const packageChanged = /"path"\s*:\s*"package\.json"/i.test(plan.input);
         const commands = packageChanged ? ["npm install", "npm run build"] : ["npm run build"];
         for (const command of commands) {
           const commandResult = await this.runtime.executeTool("runCommand", command);
