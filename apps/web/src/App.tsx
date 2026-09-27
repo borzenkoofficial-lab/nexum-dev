@@ -67,7 +67,7 @@ function App() {
     const results: Array<{ name: string; type: string; size: number; content?: string; data?: string }> = [];
     for (const file of files.slice(0, 5)) {
       if (file.size > 2_000_000) continue;
-      const isText = file.type.startsWith("text/") || /\\.(md|txt|json|js|jsx|ts|tsx|css|html|xml|csv|yml|yaml|env)$/i.test(file.name);
+      const isText = file.type.startsWith("text/") || /\.(md|txt|json|js|jsx|ts|tsx|css|html|xml|csv|yml|yaml|env)$/i.test(file.name);
       if (isText) {
         results.push({ name: file.name, type: file.type || "text/plain", size: file.size, content: (await file.text()).slice(0, 80_000) });
       } else {
