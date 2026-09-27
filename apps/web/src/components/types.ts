@@ -1,6 +1,8 @@
 export interface Project {
   id: string;
   name: string;
+  description?: string;
+  type?: string;
   path: string;
   status: "active" | "archived";
   createdAt: string;
