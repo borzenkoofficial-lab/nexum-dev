@@ -11,7 +11,9 @@ import type {
   AgentToolResult,
 } from "./types.js";
 
-const DEFAULT_MAX_ITERATIONS = 20;
+const DEFAULT_MAX_ITERATIONS = 8;
+const MAX_AI_PLANNER_CALLS = 3;
+const MAX_PRODUCT_REVIEW_CALLS = 1;
 const MAX_RESULT_LENGTH = 8_000;
 
 export interface AgentEvent {
@@ -41,6 +43,8 @@ export class AgentLoop {
     let productPlan: ProductPlan | null = null;
     let productReviewAttempts = 0;
     let remotePlannerRateLimited = false;
+    let aiPlannerCalls = 0;
+    let productPlannerCreated = false;
     const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
 
     // Build is optional for static projects. Only enforce npm run build when
@@ -90,9 +94,10 @@ export class AgentLoop {
         continue;
       }
 
-      if (builderTask && !productPlan && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
+      if (builderTask && !productPlan && !productPlannerCreated && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
         emit({ iteration, type: "thinking", message: "Формирую Product Plan: страницы, компоненты, визуальную систему и критерии готовности." });
         try {
+          productPlannerCreated = true;
           productPlan = await this.runtime.createProductPlan(task, previousResults, options as AgentModelOptions);
           this.onPlan?.(productPlan);
           emit({ iteration, type: "thinking", message: `План готов: ${productPlan.productType}; ${productPlan.pages.length} экранов; ${productPlan.acceptanceCriteria.length} критериев проверки.` });
@@ -102,8 +107,9 @@ export class AgentLoop {
       }
       emit({ iteration, type: "thinking", message: `Шаг ${iteration}: анализирую состояние проекта и результаты предыдущего действия.` });
       let modelPlan: AgentPlan | null = null;
-      if (this.runtime.planWithAI && !remotePlannerRateLimited) {
+      if (this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < MAX_AI_PLANNER_CALLS) {
         try {
+          aiPlannerCalls += 1;
           modelPlan = await this.runtime.planWithAI(task, previousResults, options as AgentModelOptions, productPlan ?? undefined);
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI planning failed";
@@ -355,7 +361,7 @@ export class AgentLoop {
           if (!testResult.success) continue;
         }
 
-        if (builderTask && productPlan && this.runtime.reviewProduct && productReviewAttempts < 2) {
+        if (builderTask && productPlan && this.runtime.reviewProduct && productReviewAttempts < MAX_PRODUCT_REVIEW_CALLS) {
           productReviewAttempts += 1;
           emit({ iteration, type: "thinking", message: "Запускаю финальный self-review: сверяю реализацию с Product Plan и ищу недостающие функции." });
           const review = await this.runtime.reviewProduct(task, previousResults, productPlan, options as AgentModelOptions);
