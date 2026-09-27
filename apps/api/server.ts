@@ -12,6 +12,7 @@ import { ProjectManager, ProjectManagerError } from "./projects/projectManager.j
 import { readFile, stat } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { randomUUID } from "node:crypto";
 
 dotenv.config();
 
@@ -28,6 +29,72 @@ const aiGateway = new AIGateway(
 );
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const projectManager = new ProjectManager(workspaceRoot);
+
+type ChatJobStatus = "queued" | "running" | "completed" | "failed";
+interface ChatJob {
+  id: string;
+  status: ChatJobStatus;
+  createdAt: number;
+  updatedAt: number;
+  reply?: string;
+  steps?: unknown[];
+  error?: string;
+}
+const chatJobs = new Map<string, ChatJob>();
+const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
+
+function cleanupChatJobs() {
+  const cutoff = Date.now() - CHAT_JOB_TTL_MS;
+  for (const [id, job] of chatJobs) {
+    if (job.updatedAt < cutoff && (job.status === "completed" || job.status === "failed")) {
+      chatJobs.delete(id);
+    }
+  }
+}
+
+async function runChatJob(
+  jobId: string,
+  message: string,
+  projectId: string | undefined,
+  provider: string | undefined,
+  model: string | undefined,
+) {
+  const job = chatJobs.get(jobId);
+  if (!job) return;
+
+  job.status = "running";
+  job.updatedAt = Date.now();
+
+  try {
+    const project = await projectManager.getActiveProject(projectId);
+    console.log("[Nexum] chat job started", jobId, project.id, project.path);
+    const agent = new NexumAgent(aiGateway, project.path);
+    const agentLoop = new AgentLoop(agent, aiGateway);
+    const result = await agentLoop.run(message, {
+      ...(provider === undefined ? {} : { provider }),
+      ...(model === undefined ? {} : { model }),
+    });
+
+    job.updatedAt = Date.now();
+    if (!result.success) {
+      job.status = "failed";
+      job.error = result.error ?? "AI agent failed";
+      job.steps = result.steps;
+      return;
+    }
+
+    job.status = "completed";
+    job.reply = result.finalResponse;
+    job.steps = result.steps;
+    console.log("[Nexum] chat job completed", jobId);
+  } catch (error) {
+    job.status = "failed";
+    job.updatedAt = Date.now();
+    job.error = error instanceof Error ? error.message : "AI provider request failed";
+    console.error("[Nexum] chat job failed", jobId, error);
+  }
+}
+
 
 await projectManager.initialize();
 
@@ -178,34 +245,64 @@ app.post("/api/chat", async (req, res) => {
   }
 
   try {
-    const project = await projectManager.getActiveProject(projectId);
-    console.log("[Nexum] chat project", project.id, project.path);
-    const agent = new NexumAgent(aiGateway, project.path);
-    const agentLoop = new AgentLoop(agent, aiGateway);
-    const result = await agentLoop.run(message, {
-      ...(provider === undefined ? {} : { provider }),
-      ...(model === undefined ? {} : { model }),
+    // Validate the project before creating the background job so bad project IDs
+    // still fail immediately instead of creating a job that can never run.
+    await projectManager.getActiveProject(projectId);
+
+    cleanupChatJobs();
+    const jobId = randomUUID();
+    const now = Date.now();
+    chatJobs.set(jobId, {
+      id: jobId,
+      status: "queued",
+      createdAt: now,
+      updatedAt: now,
     });
 
-    if (!result.success) {
-      return res.status(502).json({
-        success: false,
-        error: result.error ?? "AI agent failed",
-        reply: null,
-        steps: result.steps,
-      });
-    }
+    // Do not await the agent. The HTTP request returns immediately, avoiding
+    // platform/proxy 504s while local Ollama or another provider is generating.
+    void runChatJob(
+      jobId,
+      message.trim(),
+      projectId,
+      provider,
+      model,
+    );
 
-    return res.json({
+    return res.status(202).json({
       success: true,
-      reply: result.finalResponse,
-      steps: result.steps,
+      jobId,
+      status: "queued",
     });
   } catch (error) {
     return res.status(502).json({
-      error: error instanceof Error ? error.message : "AI provider request failed",
+      error: error instanceof Error ? error.message : "Chat job creation failed",
     });
   }
+});
+
+app.get("/api/chat/jobs/:id", (req, res) => {
+  cleanupChatJobs();
+  const job = chatJobs.get(req.params.id);
+  if (!job) {
+    return res.status(404).json({
+      success: false,
+      error: "Chat job not found or expired",
+    });
+  }
+
+  return res.json({
+    success: true,
+    job: {
+      id: job.id,
+      status: job.status,
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
+      reply: job.reply ?? null,
+      steps: job.steps ?? [],
+      error: job.error ?? null,
+    },
+  });
 });
 
 const webDist = resolve(workspaceRoot, "apps/web/dist");
