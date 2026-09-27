@@ -133,6 +133,7 @@ export function canFinishBuilder(
   hasTestTool = true,
 ): { ok: boolean; reason?: string } {
   if (state.changedFiles.size === 0) return { ok: false, reason: "No project files were changed." };
+  if (state.changeVersion < 2) return { ok: false, reason: "At least two substantive implementation changes are required before completion." };
   if (hasBuildScript && state.verifiedAtChangeVersion.build !== state.changeVersion) {
     return { ok: false, reason: "Production build has not been verified after the latest changes." };
   }
