@@ -635,3 +635,37 @@ button,textarea,input,select{transition:background .2s var(--ease),border-color 
 @keyframes rise-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}@keyframes panel-in{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}@keyframes toast-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}@keyframes pulse-glow{0%,100%{opacity:.65;box-shadow:0 0 12px rgba(217,255,74,.35)}50%{opacity:1;box-shadow:0 0 28px rgba(217,255,74,.8)}}
 html[data-motion="off"] *,html[data-motion="off"] *:before,html[data-motion="off"] *:after{animation:none!important;transition:none!important}html[data-compact="on"] .header{min-height:62px!important}html[data-compact="on"] .workspace-toolbar{min-height:46px!important}html[data-compact="on"] .chat{padding-top:40px!important}html[data-glow="off"] .welcome h1:after,html[data-glow="off"] .activity-dot.working{box-shadow:none!important}
 @media (max-width:1050px) and (min-width:621px){.sidebar{width:82px!important}.workspace{grid-template-columns:minmax(0,1fr) minmax(360px,.9fr)!important}.bottom-panel{left:82px}}@media (max-width:900px){.workspace{grid-template-columns:1fr!important}.right-panel{min-height:62vh}.chat{padding:44px 28px 60px!important}.settings-grid{grid-template-columns:1fr}}@media (max-width:620px){.header{padding:0 16px!important}.workspace-toolbar{padding:0 12px!important}.workspace-actions>button:not(.workspace-deploy):not(.workspace-more){display:none}.chat{padding:34px 18px 54px!important}.welcome h1{font-size:40px!important}.quick-actions{padding:0 18px!important}.settings-page{padding:34px 18px 70px!important}}
+
+/* Final dark frosted-glass pass */
+.chat .reply,
+.conversation-message.assistant,
+.agent-panel,
+.right-panel,
+.preview,
+.bottom-panel {
+  background: rgba(8, 11, 10, 0.78) !important;
+  backdrop-filter: blur(26px) saturate(110%) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(110%) !important;
+  border-color: rgba(255,255,255,.065) !important;
+}
+.chat .reply {
+  color: #dce3da !important;
+  border: 1px solid rgba(255,255,255,.065) !important;
+}
+.conversation-message.assistant .conversation-content {
+  color: #dfe6df !important;
+}
+.agent-panel {
+  box-shadow: -24px 0 80px rgba(0,0,0,.42), inset 1px 0 rgba(255,255,255,.025) !important;
+}
+.agent-current,
+.agent-plan-card,
+.agent-timeline,
+.agent-problems > div,
+.agent-event {
+  background: rgba(255,255,255,.018) !important;
+}
+.preview-content,
+.terminal-empty {
+  background: rgba(5,7,6,.42) !important;
+}
