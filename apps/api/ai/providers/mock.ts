@@ -2,11 +2,11 @@ import type { AIProvider, AIProviderStatus } from "../types.js";
 
 export class MockProvider implements AIProvider {
   id = "mock";
-  name = "NEXUM Mock Provider";
-  model = "mock-v1";
+  name = "NEXUM Demo";
+  model = "demo-v1";
 
   async generate(message: string): Promise<string> {
-    return `NEXUM AI: ${message}`;
+    return `NEXUM Demo: ${message}`;
   }
 
   async listModels(): Promise<string[]> {
@@ -14,6 +14,11 @@ export class MockProvider implements AIProvider {
   }
 
   async getStatus(model = this.model): Promise<AIProviderStatus> {
-    return { available: true, model, latencyMs: 0 };
+    return {
+      available: false,
+      model,
+      latencyMs: null,
+      error: "Demo provider is not a real AI model",
+    };
   }
 }
