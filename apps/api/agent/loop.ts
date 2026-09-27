@@ -15,6 +15,8 @@ const DEFAULT_MAX_ITERATIONS = 8;
 const MAX_AI_PLANNER_CALLS = 3;
 const MAX_PRODUCT_REVIEW_CALLS = 1;
 const MAX_RESULT_LENGTH = 8_000;
+const MAX_CONTEXT_RESULTS = 6;
+const MAX_ACTION_FINGERPRINT_LENGTH = 1800;
 
 export interface AgentEvent {
   id: number;
@@ -39,6 +41,7 @@ export class AgentLoop {
     const steps: AgentStep[] = [];
     const previousResults: AgentToolResult[] = [];
     const seenActions = new Set<string>();
+    const actionAttempts = new Map<string, number>();
     let eventId = 0;
     let productPlan: ProductPlan | null = null;
     let productReviewAttempts = 0;
@@ -84,6 +87,8 @@ export class AgentLoop {
         steps.push(step);
         this.onStep?.(step);
         previousResults.push({ iteration, tool: "listFiles", input: ".", result: inspection });
+        seenActions.add(this.actionFingerprint("listFiles", "."));
+        actionAttempts.set(this.actionFingerprint("listFiles", "."), 1);
         this.log(iteration, "listFiles", inspection.success ? "success" : "error");
         emit({
           iteration,
@@ -135,11 +140,12 @@ export class AgentLoop {
       // already failed, switch to the deterministic planner so recovery can continue.
       let plan = modelPlan ?? this.runtime.plan(task, previousResults);
       if (modelPlan) {
-        const modelActionKey = `${modelPlan.tool}:${modelPlan.input}`;
+        const modelActionKey = this.actionFingerprint(modelPlan.tool, modelPlan.input);
         const repeatedFailure = previousResults.some(
           (item) => item.tool === modelPlan.tool && item.input === modelPlan.input && !item.result.success,
         );
-        if (repeatedFailure || seenActions.has(modelActionKey)) {
+        const attempts = actionAttempts.get(modelActionKey) ?? 0;
+        if (repeatedFailure || seenActions.has(modelActionKey) || attempts >= 2) {
           emit({
             iteration,
             type: "thinking",
@@ -454,6 +460,9 @@ export class AgentLoop {
       seenActions.add(actionKey);
 
       emit({ iteration, type: "tool-start", tool: plan.tool, message: this.describeToolStart(plan.tool, plan.input) });
+      const fingerprint = this.actionFingerprint(plan.tool, plan.input);
+      actionAttempts.set(fingerprint, (actionAttempts.get(fingerprint) ?? 0) + 1);
+      seenActions.add(fingerprint);
       const result = await this.runtime.executeTool(plan.tool, plan.input);
       const step: AgentStep = {
         iteration,
