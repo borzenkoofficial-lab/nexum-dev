@@ -408,6 +408,32 @@ ${result.output}`
       if (existingPath) return { tool: "readFile", input: existingPath };
     }
 
+    // Provider-independent Builder fallback: a remote planner outage must not
+    // leave the user with an unchanged project after successful inspection.
+    const deterministicImplementation = this.selectDeterministicImplementation(task, previousResults);
+    if (deterministicImplementation) {
+      const alreadyCompleted = previousResults.some(
+        (item) =>
+          item.tool === deterministicImplementation.name &&
+          item.input === deterministicImplementation.input &&
+          item.result.success,
+      );
+      if (!alreadyCompleted) return deterministicImplementation;
+    }
+
+    // Provider-independent Builder fallback: a remote planner outage must not
+    // leave the user with an unchanged project after successful inspection.
+    const deterministicImplementation = this.selectDeterministicImplementation(task, previousResults);
+    if (deterministicImplementation) {
+      const alreadyCompleted = previousResults.some(
+        (item) =>
+          item.tool === deterministicImplementation.name &&
+          item.input === deterministicImplementation.input &&
+          item.result.success,
+      );
+      if (!alreadyCompleted) return deterministicImplementation;
+    }
+
     const selection = this.selectTool(task, previousResults);
     if (!selection) return null;
 
@@ -863,6 +889,65 @@ h1{max-width:760px;margin:12px 0 10px;font-size:clamp(44px,7vw,82px);line-height
 `;
   }
 
+  private selectDeterministicImplementation(task: string, previousResults: AgentToolResult[]): { name: string; input: string } | null {
+    const normalized = task.toLowerCase();
+    const builder = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|website|landing|web app|страниц/.test(normalized);
+    if (!builder) return null;
+
+    const inspection = previousResults
+      .filter((item) => item.tool === "listFiles" && item.result.success)
+      .map((item) => item.result.output)
+      .join("\n");
+    if (!inspection) return null;
+
+    const reactApp = inspection.includes("src/App.tsx") || inspection.includes("src/App.jsx");
+    const appPath = inspection.includes("src/App.tsx") ? "src/App.tsx" : "src/App.jsx";
+    const cssPath = inspection.includes("src/App.css")
+      ? "src/App.css"
+      : inspection.includes("src/styles.css")
+        ? "src/styles.css"
+        : inspection.includes("style.css")
+          ? "style.css"
+          : reactApp ? "src/App.css" : null;
+
+    if (reactApp && cssPath) {
+      const appWritten = previousResults.some(
+        (item) => item.tool === "writeFile" && item.result.success && item.input.includes(appPath),
+      );
+      if (!appWritten) {
+        const cssImport = cssPath.startsWith("src/") ? cssPath.slice(4) : cssPath;
+        const app = this.fallbackApp(task).replace(
+          /import \{ useState \} from "react";/,
+          'import { useState } from "react";\nimport "./' + cssImport + '";',
+        );
+        return { name: "writeFile", input: JSON.stringify({ path: appPath, content: app }) };
+      }
+
+      const cssWritten = previousResults.some(
+        (item) => item.tool === "writeFile" && item.result.success && item.input.includes(cssPath),
+      );
+      if (!cssWritten) {
+        return { name: "writeFile", input: JSON.stringify({ path: cssPath, content: this.fallbackStyles() }) };
+      }
+    }
+
+    if (inspection.includes("index.html") && inspection.includes("style.css")) {
+      const indexWritten = previousResults.some(
+        (item) => item.tool === "writeFile" && item.result.success && item.input.includes("index.html"),
+      );
+      if (!indexWritten) {
+        return { name: "writeFile", input: JSON.stringify({ path: "index.html", content: this.fallbackStaticIndex(task) }) };
+      }
+      const cssWritten = previousResults.some(
+        (item) => item.tool === "writeFile" && item.result.success && item.input.includes("style.css"),
+      );
+      if (!cssWritten) {
+        return { name: "writeFile", input: JSON.stringify({ path: "style.css", content: this.fallbackStaticStyles() }) };
+      }
+    }
+
+    return null;
+  }
   private selectTool(task: string, previousResults: AgentToolResult[] = []): { name: string; input: string } | null {
     const normalizedTask = task.toLowerCase();
 
