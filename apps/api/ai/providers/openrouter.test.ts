@@ -14,7 +14,7 @@ test("requires OPENROUTER_API_KEY without exposing it", async () => {
   const result = await provider.getStatus();
 
   assert.equal(result.available, false);
-  assert.equal(result.error, "OPENROUTER_API_KEY is not configured");
+  assert.equal(result.error, "OPENROUTER_API_KEY is not configured. Add it to the deployment environment.");
   assert.equal(JSON.stringify(result).includes("sk-"), false);
 });
 
@@ -72,6 +72,6 @@ test("routes code and planning prompts to different free-model families", async 
   provider.setRuntimeApiKey("test-only-key");
   const code = await provider.generate("fix this TypeScript React build error");
   const planning = await provider.generate("plan the architecture for a multi-step autonomous agent");
-  assert.equal(code, "openrouter/free");
-  assert.equal(planning, "openrouter/free");
+  assert.match(code, /north-mini-code|laguna-s-2\.1|laguna-xs-2\.1/);
+  assert.match(planning, /nemotron-3-ultra|nemotron-3\.5-lightning/);
 });
