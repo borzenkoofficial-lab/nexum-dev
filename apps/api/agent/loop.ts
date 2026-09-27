@@ -408,7 +408,7 @@ export class AgentLoop {
       : `Agent stopped: maximum iterations reached (${this.maxIterations})`;
     this.log(this.maxIterations, "loop", "error");
     emit({ iteration: this.maxIterations, type: "failed", message: error });
-    return { success: false, iterations: this.maxIterations, steps, error };
+    return { success: false, iterations: this.maxIterations, steps, productPlan: productPlan ?? undefined, error };
   }
 
   private async finalResponse(
