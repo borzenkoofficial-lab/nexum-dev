@@ -54,6 +54,12 @@ export class ProjectManager {
         await this.writeStore(existing);
       }
     }
+    let metadataChanged = false;
+    for (const project of existing?.projects ?? []) {
+      if (!project.description) { project.description = ""; metadataChanged = true; }
+      if (!project.type) { project.type = project.id === this.defaultProject.id ? "Пустой проект" : "Веб-приложение"; metadataChanged = true; }
+    }
+    if (metadataChanged && existing) await this.writeStore(existing);
     await this.ensureStarterFiles(this.defaultProject);
     this.initialized = true;
   }
