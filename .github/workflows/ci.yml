@@ -1,0 +1,27 @@
+name: NEXUM CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            apps/api/package-lock.json
+            apps/web/package-lock.json
+      - name: Install API
+        run: npm ci --prefix apps/api
+      - name: Install Web
+        run: npm ci --prefix apps/web
+      - name: Build Web
+        run: npm --prefix apps/web run build
+      - name: Lint Web
+        run: npm --prefix apps/web run lint
