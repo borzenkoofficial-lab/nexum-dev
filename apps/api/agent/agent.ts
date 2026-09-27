@@ -482,57 +482,6 @@ ${result.output}`
 
     if (reactApp && !readApp) return null;
 
-    if (reactApp && readApp && !readCss) {
-      return {
-        tool: "writeFile",
-        input: JSON.stringify({
-          path: appPath,
-          content: \`import "./App.css";
-
-const services = ${JSON.stringify(isAuto
-            ? ["Диагностика автомобиля", "Ремонт двигателя", "Тормозная система", "Ходовая часть", "Техническое обслуживание", "Шиномонтаж"]
-            : isConstruction
-              ? ["Демонтаж", "Фасадные работы", "Общестроительные работы", "Бетонные работы", "Отделка", "Вывоз строительного мусора"]
-              : ["Консультация", "Основная услуга", "Сопровождение", "Расчёт стоимости"])};
-
-export default function App() {
-  return (
-    <main className="site">
-      <header className="header">
-        <strong className="logo">${title}</strong>
-        <nav><a href="#services">Услуги</a><a href="#about">О компании</a><a href="#contacts">Контакты</a></nav>
-        <a className="button button-small" href="#contacts">Оставить заявку</a>
-      </header>
-      <section className="hero">
-        <div><p className="eyebrow">${title}</p><h1>${subtitle}</h1>
-          <p className="lead">${isAuto ? "Профессиональный сервис с понятной диагностикой, прозрачной стоимостью и записью на удобное время." : isConstruction ? "Организуем работы для коммерческих и частных объектов. Смета, сроки и контроль выполнения на каждом этапе." : "Профессиональная команда и понятный процесс работы от первого обращения до результата."}</p>
-          <a className="button" href="#contacts">${isAuto ? "Записаться на диагностику" : "Получить расчёт"}</a>
-        </div>
-        <div className="hero-card"><span>01</span><b>${isAuto ? "Диагностика перед ремонтом" : isConstruction ? "Расчёт и план работ" : "Персональный подход"}</b><p>Свяжитесь с нами, чтобы обсудить задачу и получить предложение.</p></div>
-      </section>
-      <section id="services" className="section"><p className="eyebrow">Услуги</p><h2>Что мы делаем</h2>
-        <div className="grid">{services.map((service) => <article className="card" key={service}><span>—</span><h3>{service}</h3><p>Опишем объём работ, сроки и стоимость до начала выполнения.</p></article>)}</div>
-      </section>
-      <section id="about" className="section split"><div><p className="eyebrow">О компании</p><h2>Работаем по понятному процессу</h2></div><p className="lead">Сначала уточняем задачу, затем предлагаем решение, согласовываем стоимость и выполняем работу с контролем результата.</p></section>
-      <section id="contacts" className="contact"><div><p className="eyebrow">Контакты</p><h2>${isAuto ? "Запишитесь на диагностику" : "Получите расчёт стоимости"}</h2><p>Оставьте контакты — специалист свяжется с вами.</p></div>
-        <form onSubmit={(event) => event.preventDefault()}><input placeholder="Ваше имя" /><input placeholder="Телефон" /><button className="button" type="submit">Отправить заявку</button></form>
-      </section>
-    </main>
-  );
-}\`
-        }),
-      };
-    }
-
-    if (reactApp && !readApp) return null;
-
-    const appWasWritten = previousResults.some((item) =>
-      item.tool === "writeFile" && item.result.success && item.input.includes(\`"path":"${appPath}"\`),
-    );
-    const cssWasWritten = previousResults.some((item) =>
-      item.tool === "writeFile" && item.result.success && item.input.includes(\`"path":"${cssPath}"\`),
-    );
-
     if (reactApp && readApp && !appWasWritten) {
       return {
         tool: "writeFile",
