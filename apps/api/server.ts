@@ -170,6 +170,39 @@ app.get("/api/ai/models", async (_req, res) => {
   return res.json({ success: true, models: await aiGateway.getModels() });
 });
 
+const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM_LOCAL_TEST_MODE !== "false";
+
+app.get("/api/ai/local-test", (_req, res) => {
+  return res.json({ enabled: localTestMode, configured: aiGateway.hasOpenRouterKey() });
+});
+
+app.post("/api/ai/local-test", async (req, res) => {
+  if (!localTestMode) {
+    return res.status(403).json({ success: false, error: "Local AI key setup is disabled in production." });
+  }
+
+  const apiKey = typeof req.body?.apiKey === "string" ? req.body.apiKey.trim() : "";
+  if (!apiKey) {
+    return res.status(400).json({ success: false, error: "Enter an OpenRouter API key." });
+  }
+
+  try {
+    const provider = new OpenRouterProvider();
+    provider.setRuntimeApiKey(apiKey);
+    const status = await provider.getStatus();
+    if (!status.available) {
+      return res.status(401).json({ success: false, error: status.error ?? "OpenRouter key could not be verified." });
+    }
+    aiGateway.setRuntimeOpenRouterKey(apiKey);
+    return res.json({ success: true, configured: true, status });
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      error: error instanceof Error ? error.message : "OpenRouter key verification failed",
+    });
+  }
+});
+
 app.get("/api/ai/status", async (req, res) => {
   const provider = typeof req.query.provider === "string" ? req.query.provider : undefined;
   const model = typeof req.query.model === "string" ? req.query.model : undefined;
