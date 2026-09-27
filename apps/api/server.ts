@@ -7,6 +7,7 @@ import { MockProvider } from "./ai/providers/mock.js";
 import { OllamaProvider } from "./ai/providers/ollama.js";
 import { OpenRouterProvider } from "./ai/providers/openrouter.js";
 import { OpenAIProvider } from "./ai/providers/openai.js";
+import { OrcaRouterProvider } from "./ai/providers/orcarouter.js";
 import { NexumAgent } from "./agent/agent.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
 import type { ProductPlan } from "./agent/types.js";
@@ -25,22 +26,24 @@ dotenv.config();
 
 const app = express();
 const configuredProvider = process.env.AI_PROVIDER?.toLowerCase();
-const defaultProvider = configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai"
+const defaultProvider = configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai" || configuredProvider === "orcarouter"
   ? configuredProvider
-  : process.env.OPENAI_API_KEY?.trim()
-    ? "openai"
-    : process.env.OPENROUTER_API_KEY?.trim()
-      ? "openrouter"
-      : "mock";
+  : process.env.ORCAROUTER_API_KEY?.trim()
+    ? "orcarouter"
+    : process.env.OPENAI_API_KEY?.trim()
+      ? "openai"
+      : process.env.OPENROUTER_API_KEY?.trim()
+        ? "openrouter"
+        : "mock";
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const projectManager = new ProjectManager(workspaceRoot);
 const agentHistory = new AgentHistory(workspaceRoot);
 const projectStates = new Map<string, ProjectStateManager>();
 const fallbackProvider = process.env.AI_FALLBACK_PROVIDER?.toLowerCase() ||
-  (defaultProvider === "ollama" ? "openrouter" : undefined);
+  (defaultProvider === "ollama" ? "openrouter" : defaultProvider === "orcarouter" ? "openrouter" : undefined);
 
 const aiGateway = new AIGateway(
-  [new MockProvider(), new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider()],
+  [new MockProvider(), new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new OrcaRouterProvider()],
   defaultProvider,
   {
     fallbackProviderId: fallbackProvider,
@@ -218,6 +221,7 @@ app.get("/api/health", (_req, res) => {
     aiFallbackProvider: fallbackProvider ?? null,
     openRouterKeyConfigured: aiGateway.hasOpenRouterKey(),
     openAIKeyConfigured: aiGateway.hasOpenAIKey(),
+    orcaRouterKeyConfigured: aiGateway.hasOrcaRouterKey(),
   });
 });
 
@@ -232,7 +236,7 @@ app.get("/api/ai/models", async (_req, res) => {
 const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM_LOCAL_TEST_MODE !== "false";
 
 app.get("/api/ai/key-status", (_req, res) => {
-  return res.json({ success: true, providers: { openai: aiGateway.hasOpenAIKey(), openrouter: aiGateway.hasOpenRouterKey() } });
+  return res.json({ success: true, providers: { openai: aiGateway.hasOpenAIKey(), openrouter: aiGateway.hasOpenRouterKey(), orcarouter: aiGateway.hasOrcaRouterKey() } });
 });
 
 app.post("/api/ai/connect-key", async (req, res) => {
@@ -242,7 +246,10 @@ app.post("/api/ai/connect-key", async (req, res) => {
   const requestedProvider = typeof req.body?.provider === "string" ? req.body.provider.toLowerCase() : "";
   const candidates = requestedProvider === "openai" ? ["openai"]
     : requestedProvider === "openrouter" ? ["openrouter"]
-    : /or-|openrouter/i.test(apiKey) ? ["openrouter", "openai"] : ["openai", "openrouter"];
+    : requestedProvider === "orcarouter" ? ["orcarouter"]
+    : /sk-orca-|orcarouter/i.test(apiKey) ? ["orcarouter", "openrouter", "openai"]
+    : /or-|openrouter/i.test(apiKey) ? ["openrouter", "orcarouter", "openai"]
+    : ["openai", "orcarouter", "openrouter"];
 
   const errors: string[] = [];
   for (const providerId of candidates) {
@@ -255,6 +262,15 @@ app.post("/api/ai/connect-key", async (req, res) => {
         aiGateway.setRuntimeOpenAIKey(apiKey);
         return res.json({ success: true, provider: "openai", model: status.model, status });
       }
+      if (providerId === "orcarouter") {
+        const provider = new OrcaRouterProvider();
+        provider.setRuntimeApiKey(apiKey);
+        const status = await provider.getStatus();
+        if (!status.available) throw new Error(status.error ?? "OrcaRouter key verification failed");
+        aiGateway.setRuntimeOrcaRouterKey(apiKey);
+        return res.json({ success: true, provider: "orcarouter", model: status.model, status });
+      }
+
       const provider = new OpenRouterProvider();
       provider.setRuntimeApiKey(apiKey);
       const status = await provider.getStatus();
