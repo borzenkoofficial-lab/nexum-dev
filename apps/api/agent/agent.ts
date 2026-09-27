@@ -324,7 +324,6 @@ ${result.output}`
     const normalizedCandidate = candidate.toLowerCase();
 
     if (!/[;&|`$()<>\n\r\\]/.test(candidate)) {
-    if (!/[;&|`$()<>\n\r\\]/.test(candidate)) {
       if (/git\s+diff\s+--stat/.test(normalizedCandidate) || /статистик.*изменени/.test(normalizedCandidate)) {
         return "diff-stat";
       }
