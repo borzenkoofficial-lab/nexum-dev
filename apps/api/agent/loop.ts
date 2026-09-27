@@ -507,7 +507,7 @@ export class AgentLoop {
 
         // Hard domain gate: never report success when the generated file content belongs to another industry.
         // This catches a planner that technically wrote files but reused an old template/domain.
-        if (builderTask && productPlan) {
+        if (builderTask) {
           const successfulWrites = previousResults
             .filter((item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success)
             .map((item) => item.input)
