@@ -7,6 +7,7 @@ interface SidebarProps {
   projectActionLoading: boolean;
   onNewProject: () => void;
   onSelectProject: (id: string) => void;
+  onDeleteProject: (id: string) => void;
   mobileOpen: boolean;
   view: "home" | "project" | "connectors" | "settings";
   onViewChange: (view: "home" | "project" | "connectors" | "settings") => void;
@@ -19,6 +20,7 @@ export function Sidebar({
   projectActionLoading,
   onNewProject,
   onSelectProject,
+  onDeleteProject,
   mobileOpen,
   view,
   onViewChange,
@@ -41,18 +43,29 @@ export function Sidebar({
           <div className="project-placeholder">No projects yet</div>
         ) : (
           projects.filter((project) => project.status === "active").map((project) => (
-            <button
-              className={`project ${project.id === activeProjectId ? "active" : ""}`}
-              type="button"
-              key={project.id}
-              aria-current={project.id === activeProjectId ? "page" : undefined}
-              aria-label={`Select project ${project.name}`}
-              disabled={projectActionLoading}
-              onClick={() => onSelectProject(project.id)}
-            >
-              <span className="project-mark" aria-hidden="true">{project.name.slice(0, 1)}</span>
-              <span>{project.name}</span>
-            </button>
+            <div className={`project-row ${project.id === activeProjectId ? "active" : ""}`} key={project.id}>
+              <button
+                className="project"
+                type="button"
+                aria-current={project.id === activeProjectId ? "page" : undefined}
+                aria-label={`Select project ${project.name}`}
+                disabled={projectActionLoading}
+                onClick={() => onSelectProject(project.id)}
+              >
+                <span className="project-mark" aria-hidden="true">{project.name.slice(0, 1)}</span>
+                <span>{project.name}</span>
+              </button>
+              {project.id !== "nexum" && (
+                <button
+                  className="project-delete"
+                  type="button"
+                  aria-label={`Delete project ${project.name}`}
+                  title="Delete project"
+                  disabled={projectActionLoading}
+                  onClick={() => onDeleteProject(project.id)}
+                >×</button>
+              )}
+            </div>
           ))
         )}
       </div>
