@@ -46,6 +46,8 @@ function App() {
 
   const activeProject = projects.find((project) => project.id === activeProjectId);
 
+  useEffect(() => { try { localStorage.setItem("nexum:connectors", JSON.stringify(connectedConnectors)); } catch {} }, [connectedConnectors]);
+
   useEffect(() => {
     if (!activeProjectId) return;
     fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/preview/status`).then(async (response) => {
@@ -253,6 +255,8 @@ function App() {
 
         const status = data?.job?.status;
         if (status === "completed") {
+          setActivitySteps(data?.job?.steps ?? []);
+          setProblems(data?.job?.problems ?? []);
           setReply(data.job?.reply ?? "");
           setPreviewKey((key) => key + 1);
           setAgentStage(null);
