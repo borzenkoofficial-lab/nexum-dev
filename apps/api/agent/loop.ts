@@ -186,6 +186,36 @@ export class AgentLoop {
         message: result.success ? this.describeToolSuccess(plan.tool, result.output) : this.describeToolError(plan.tool, result.output),
       });
 
+      // A scaffold is only the baseline. Once the agent writes the requested
+      // implementation, immediately rebuild so Preview always reflects the
+      // latest generated files rather than the pre-implementation scaffold.
+      if (
+        result.success &&
+        plan.tool === "writeFile" &&
+        previousResults.some((item) => item.tool === "scaffoldProject" && item.result.success) &&
+        availableTools.includes("runCommand")
+      ) {
+        const packageChanged = /"path"\\s*:\\s*"package\\.json"/i.test(plan.input);
+        const commands = packageChanged ? ["npm install", "npm run build"] : ["npm run build"];
+        for (const command of commands) {
+          const commandResult = await this.runtime.executeTool("runCommand", command);
+          const commandStep: AgentStep = { iteration, tool: "runCommand", input: command, success: commandResult.success };
+          steps.push(commandStep);
+          this.onStep?.(commandStep);
+          previousResults.push({ iteration, tool: "runCommand", input: command, result: commandResult });
+          this.log(iteration, `runCommand ${command}`, commandResult.success ? "success" : "error");
+          emit({
+            iteration,
+            type: commandResult.success ? "tool-success" : "tool-error",
+            tool: "runCommand",
+            message: commandResult.success
+              ? (command === "npm install" ? "Зависимости обновлены." : "Preview пересобран после изменения файла.")
+              : `Не удалось пересобрать Preview: ${commandResult.output.slice(0, 400)}`,
+          });
+          if (!commandResult.success) break;
+        }
+      }
+
       // A React/Vite scaffold is not usable in Preview until its production
       // bundle exists. Build it automatically instead of leaving that step
       // to the user or the model's next planning iteration.
