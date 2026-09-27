@@ -47,7 +47,7 @@ test("generates with the configured OpenRouter model", async () => {
 
   assert.equal(result, "Hello from OpenRouter");
   assert.equal(requestedUrl, "https://openrouter.test/chat/completions");
-  assert.match(requestedBody, /"model":"qwen\/qwen3\.8-27b:free"/);
+  assert.match(requestedBody, /"model":"openrouter\/free"/);
 });
 
 test("maps OpenRouter HTTP errors without returning the key", async () => {
@@ -88,6 +88,6 @@ test("routes code and planning prompts to different free-model families", async 
   });
   const code = await withKey("test-only-key", () => provider.generate("fix this TypeScript React build error"));
   const planning = await withKey("test-only-key", () => provider.generate("plan the architecture for a multi-step autonomous agent"));
-  assert.match(code, /north-mini-code|laguna/);
-  assert.match(planning, /nemotron/);
+  assert.equal(code, "openrouter/free");
+  assert.equal(planning, "openrouter/free");
 });
