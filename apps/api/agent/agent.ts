@@ -276,7 +276,11 @@ ${result.output}`
     try {
       const repairedRun = await this.orchestrator.run(role, repairPrompt, options);
       console.log(JSON.stringify({ type: "ai-role-repair", role: repairedRun.role, model: repairedRun.model }));
-      return this.parseAIPlan(repairedRun.response);
+      const repairedPlan = this.parseAIPlan(repairedRun.response);
+      // A repair response that only says "done" cannot erase the deterministic
+      // fallback when no tool has executed yet. Prefer the concrete local plan.
+      if (repairedPlan?.done && previousResults.length === 0) return null;
+      return repairedPlan;
     } catch (error) {
       console.warn("[agent] AI plan repair failed", error);
       return null;
