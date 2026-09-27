@@ -26,6 +26,8 @@ export class ProjectManager {
     this.defaultProject = {
       id: "nexum",
       name: "NEXUM",
+      description: "Рабочее пространство NEXUM для разработки и экспериментов.",
+      type: "Пустой проект",
       path: resolve(this.projectsRoot, "nexum"),
       status: "active",
       createdAt: now,
@@ -56,7 +58,7 @@ export class ProjectManager {
     this.initialized = true;
   }
 
-  async createProject(name: string): Promise<Project> {
+  async createProject(name: string, description = "", type = "Веб-приложение"): Promise<Project> {
     await this.initialize();
     const validName = this.validateName(name);
     const id = this.createId(validName);
@@ -74,6 +76,8 @@ export class ProjectManager {
     const project: Project = {
       id,
       name: validName,
+      description: description.trim().slice(0, 500),
+      type: type.trim().slice(0, 80) || "Веб-приложение",
       path: projectPath,
       status: "active",
       createdAt: now,
@@ -99,7 +103,7 @@ export class ProjectManager {
     await this.assertProjectPath(projectPath);
     await cp(source.path, projectPath, { recursive: true, force: false });
     const now = new Date().toISOString();
-    const project: Project = { id: newId, name, path: projectPath, status: "active", createdAt: now, updatedAt: now };
+    const project: Project = { id: newId, name, description: source.description, type: source.type, path: projectPath, status: "active", createdAt: now, updatedAt: now };
     store.projects.push(project);
     await this.writeStore(store);
     return project;
