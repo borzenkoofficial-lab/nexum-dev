@@ -4,6 +4,7 @@ import type {
   AgentModelOptions,
   AgentPlan,
   AgentLoopResult,
+  ProductPlan,
   AgentRuntime,
   AgentStep,
   AgentToolResult,
@@ -35,6 +36,9 @@ export class AgentLoop {
     const previousResults: AgentToolResult[] = [];
     const seenActions = new Set<string>();
     let eventId = 0;
+    let productPlan: ProductPlan | null = null;
+    let productReviewAttempts = 0;
+    const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
     const emit = (event: Omit<AgentEvent, "id" | "timestamp">) => {
       this.onEvent?.({ ...event, id: ++eventId, timestamp: Date.now() });
     };
@@ -42,11 +46,40 @@ export class AgentLoop {
 
     for (let iteration = 1; iteration <= this.maxIterations; iteration += 1) {
       const availableTools = this.runtime.getAvailableTools();
+
+      // Builder sessions always inspect the active project before planning or editing.
+      // This prevents the model from inventing a new app or answering with source code.
+      if (builderTask && previousResults.length === 0 && availableTools.includes("listFiles")) {
+        emit({ iteration, type: "tool-start", tool: "listFiles", message: "Изучаю текущий проект перед планированием." });
+        const inspection = await this.runtime.executeTool("listFiles", ".");
+        const step: AgentStep = { iteration, tool: "listFiles", input: ".", success: inspection.success };
+        steps.push(step);
+        this.onStep?.(step);
+        previousResults.push({ iteration, tool: "listFiles", input: ".", result: inspection });
+        this.log(iteration, "listFiles", inspection.success ? "success" : "error");
+        emit({
+          iteration,
+          type: inspection.success ? "tool-success" : "tool-error",
+          tool: "listFiles",
+          message: inspection.success ? "Структура проекта изучена." : `Не удалось изучить проект: ${inspection.output.slice(0, 400)}`,
+        });
+        continue;
+      }
+
+      if (builderTask && !productPlan && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
+        emit({ iteration, type: "thinking", message: "Формирую Product Plan: страницы, компоненты, визуальную систему и критерии готовности." });
+        try {
+          productPlan = await this.runtime.createProductPlan(task, previousResults, options as AgentModelOptions);
+          emit({ iteration, type: "thinking", message: `План готов: ${productPlan.productType}; ${productPlan.pages.length} экранов; ${productPlan.acceptanceCriteria.length} критериев проверки.` });
+        } catch (error) {
+          emit({ iteration, type: "tool-error", tool: "Product Planner", message: error instanceof Error ? error.message : "Product planning failed" });
+        }
+      }
       emit({ iteration, type: "thinking", message: `Шаг ${iteration}: анализирую состояние проекта и результаты предыдущего действия.` });
       let modelPlan: AgentPlan | null = null;
       if (this.runtime.planWithAI) {
         try {
-          modelPlan = await this.runtime.planWithAI(task, previousResults, options as AgentModelOptions);
+          modelPlan = await this.runtime.planWithAI(task, previousResults, options as AgentModelOptions, productPlan ?? undefined);
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI planning failed";
           this.log(iteration, "AI planner", "error");
@@ -217,7 +250,26 @@ export class AgentLoop {
           if (!buildSucceeded) continue;
         }
 
-        emit({ iteration, type: "completed", message: "Все запланированные действия выполнены. Формирую итог и обновляю результат." });
+        if (builderTask && productPlan && this.runtime.reviewProduct && productReviewAttempts < 2) {
+          productReviewAttempts += 1;
+          emit({ iteration, type: "thinking", message: "Запускаю финальный self-review: сверяю реализацию с Product Plan и ищу недостающие функции." });
+          const review = await this.runtime.reviewProduct(task, previousResults, productPlan, options as AgentModelOptions);
+          if (!review.passed) {
+            const feedback = [
+              "Final self-review failed.",
+              review.missing.length ? `Missing: ${review.missing.join("; ")}` : "",
+              review.risks.length ? `Risks: ${review.risks.join("; ")}` : "",
+            ].filter(Boolean).join("\n");
+            const reviewResult = { success: false, output: feedback };
+            previousResults.push({ iteration, tool: "productReview", input: "final", result: reviewResult });
+            emit({ iteration, type: "tool-error", tool: "productReview", message: feedback.slice(0, 1200) });
+            continue;
+          }
+          previousResults.push({ iteration, tool: "productReview", input: "final", result: { success: true, output: "Product review passed." } });
+          emit({ iteration, type: "tool-success", tool: "productReview", message: "Self-review пройден: реализация соответствует плану." });
+        }
+
+        emit({ iteration, type: "completed", message: "Все запланированные действия выполнены. Self-review и проверки пройдены." });
         return {
           success: true,
           iterations: iteration - 1,
