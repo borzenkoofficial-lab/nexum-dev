@@ -112,8 +112,8 @@ test("never scaffolds over an existing project during deterministic recovery", (
   ]);
 
   assert.notEqual(result?.tool, "scaffoldProject");
-  assert.equal(result?.tool, "writeFile");
-  assert.match(result?.input ?? "", /index\.html/);
+  assert.equal(result?.tool, "readFile");
+  assert.equal(result?.input, "index.html");
 });
 
 test("automatically installs and builds a generated React/Vite scaffold", async () => {
