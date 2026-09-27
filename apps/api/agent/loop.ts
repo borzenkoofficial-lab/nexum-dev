@@ -25,7 +25,7 @@ const MAX_PRODUCT_REVIEW_CALLS = 1;
 // One bounded token budget is shared by every remote AI call in a single task.
 // The budget is based on requested max tokens, so a long agent run cannot
 // silently accumulate several independent per-call limits.
-const DEFAULT_TASK_TOKEN_BUDGET = 7_000;
+const DEFAULT_TASK_TOKEN_BUDGET = 18_000;
 const MAX_RESULT_LENGTH = 8_000;
 const MAX_CONTEXT_RESULTS = 6;
 const MAX_ACTION_FINGERPRINT_LENGTH = 1800;
