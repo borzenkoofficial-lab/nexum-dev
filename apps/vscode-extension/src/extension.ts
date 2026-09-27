@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { OllamaClient } from "./ollamaClient.js";
 import { AgentBridge } from "./agentBridge.js";
-import { diagnosticsText, runProjectCheck } from "./taskRunner.js";
+import { detectProject, diagnosticsText, runProjectCheck } from "./taskRunner.js";
 import { repairLoop } from "./repairLoop.js";
 
 function config() {
@@ -60,7 +60,7 @@ async function agent() {
     } catch (e) { void vscode.window.showErrorMessage(e instanceof Error ? e.message : "Nexum Agent failed."); }
   });
 }
-async function checkProject(kind: "build" | "test") {
+async function checkProject(kind: "build" | "test" | "lint" | "typecheck") {
   try {
     const result = await runProjectCheck(kind);
     const diagnostics = diagnosticsText();
@@ -92,6 +92,9 @@ export function activate(ctx: vscode.ExtensionContext) {
     vscode.commands.registerCommand("nexum.openAgent", agent),
     vscode.commands.registerCommand("nexum.buildProject", () => checkProject("build")),
     vscode.commands.registerCommand("nexum.testProject", () => checkProject("test")),
+    vscode.commands.registerCommand("nexum.lintProject", () => checkProject("lint")),
+    vscode.commands.registerCommand("nexum.typecheckProject", () => checkProject("typecheck")),
+    vscode.commands.registerCommand("nexum.inspectProject", async () => { try { void vscode.window.showInformationMessage("Nexum profile: " + JSON.stringify(await detectProject())); } catch (e) { void vscode.window.showErrorMessage(e instanceof Error ? e.message : "Project inspection failed."); } }),
     vscode.commands.registerCommand("nexum.repairProject", repair)
   );
 }
