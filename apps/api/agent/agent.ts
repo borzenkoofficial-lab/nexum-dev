@@ -258,7 +258,7 @@ ${result.output}`
   }
 
   private fallbackApp(task: string): string {
-    const brief = task.replace(/\\s+/g, " ").trim().slice(0, 180);
+    const brief = task.replace(/\s+/g, " ").trim().slice(0, 180);
     const lower = task.toLowerCase();
     const mode = /дашборд|dashboard|crm/.test(lower)
       ? "dashboard"
