@@ -2778,3 +2778,98 @@ body { overflow-x: hidden; }
   .app-project .project-editor-actions button{padding:7px 8px;font-size:10px}
   .app-project .project-editor-actions .project-editor-share{display:none}
 }
+
+
+/* Nexum Code — in-product manual development workspace */
+.project-code-button {
+  border-color: rgba(215,243,91,.42) !important;
+  color: var(--accent) !important;
+  background: rgba(215,243,91,.07) !important;
+}
+.project-code-button:hover { background: rgba(215,243,91,.12) !important; }
+
+.nexum-code {
+  position: fixed;
+  inset: 0 0 34px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #0d0f0d;
+  color: var(--text);
+}
+.nexum-code-topbar {
+  height: 54px;
+  flex: 0 0 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+  background: #151815;
+}
+.nexum-code-brand { display:flex; align-items:center; gap:10px; min-width:0; }
+.nexum-code-brand button {
+  width:32px;height:32px;border:1px solid var(--line);border-radius:5px;
+  background:transparent;color:var(--muted);font-size:17px;
+}
+.nexum-code-brand button:hover { color:var(--text); border-color:#505a4c; }
+.nexum-code-brand strong { font-size:13px; letter-spacing:.08em; white-space:nowrap; }
+.nexum-code-brand strong span { color:var(--accent); }
+.nexum-code-brand em { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px;font-style:normal;border-left:1px solid var(--line);padding-left:10px; }
+.nexum-code-actions { display:flex;align-items:center;gap:6px; }
+.nexum-code-actions button {
+  min-height:32px;padding:0 11px;border:1px solid var(--line);border-radius:5px;
+  background:#1b1f1a;color:var(--muted);font-size:11px;font-weight:700;
+}
+.nexum-code-actions button:hover,.nexum-code-actions button.active { color:var(--text);border-color:#515b4e;background:#20251f; }
+.nexum-code-actions .nexum-code-save { color:var(--accent);border-color:rgba(215,243,91,.32); }
+.nexum-code-actions .nexum-code-save:disabled { color:var(--muted);border-color:var(--line); }
+.nexum-code-main { min-height:0;flex:1;display:flex;overflow:hidden; }
+.nexum-code-sidebar { width:245px;flex:0 0 245px;border-right:1px solid var(--line);background:#121512;overflow:auto;padding:10px 0; }
+.nexum-code-sidebar-title { display:flex;justify-content:space-between;padding:6px 13px 9px;color:#737c70;font-size:9px;font-weight:800;letter-spacing:.14em; }
+.nexum-code-sidebar-title span { color:#4e574c;font-family:monospace; }
+.nexum-code-project-name { padding:7px 13px;color:#bfc8ba;font-size:11px;font-weight:700; }
+.nexum-code-file { width:100%;display:flex;align-items:center;gap:8px;min-height:29px;padding:0 12px 0 19px;border:0;border-left:2px solid transparent;background:transparent;color:#8f998c;text-align:left;font-size:11px; }
+.nexum-code-file:hover { background:#191d18;color:var(--text); }
+.nexum-code-file.active { border-left-color:var(--accent);background:#1b2019;color:var(--text); }
+.nexum-code-file span { width:19px;color:#6e796b;font-family:monospace;font-size:9px; }
+.nexum-code-file b { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500; }
+.nexum-code-file i { margin-left:auto;color:var(--accent);font-style:normal;font-size:9px; }
+.nexum-code-empty { padding:15px;color:#6c7569;font-size:11px; }
+.nexum-code-editor { min-width:0;flex:1;display:flex;flex-direction:column;background:#0e100e; }
+.nexum-code-tabs { height:38px;flex:0 0 38px;display:flex;align-items:center;border-bottom:1px solid var(--line);background:#131613;color:#667064;font-size:10px; }
+.nexum-code-tab { height:100%;display:flex;align-items:center;gap:7px;padding:0 14px;border-right:1px solid var(--line);border-top:2px solid transparent; }
+.nexum-code-tab.active { color:#dfe6db;border-top-color:var(--accent);background:#0e100e; }
+.nexum-code-tab i { color:var(--accent);font-style:normal;font-size:9px; }
+.nexum-code-edit-wrap { min-height:0;flex:1;display:flex;overflow:auto;position:relative; }
+.nexum-code-gutter { flex:0 0 52px;padding:14px 10px 60px 0;border-right:1px solid #1b1e1a;color:#4e574d;font:12px/1.55 "SFMono-Regular",Consolas,monospace;text-align:right;user-select:none; }
+.nexum-code-gutter span { display:block;min-height:18.6px; }
+.nexum-code-textarea { min-width:0;flex:1;resize:none;border:0;outline:0;padding:14px 18px 60px;color:#dce5d8;background:transparent;font:12px/1.55 "SFMono-Regular",Consolas,monospace;tab-size:2;white-space:pre;overflow:auto; }
+.nexum-code-textarea:focus { box-shadow:inset 0 0 0 1px rgba(215,243,91,.06); }
+.nexum-code-loading { flex:1;display:grid;place-items:center;color:#697267;font-size:12px; }
+.nexum-code-error { flex:0 0 auto;padding:9px 13px;border-top:1px solid rgba(255,157,145,.22);background:rgba(70,20,16,.32);color:var(--danger);font-size:11px; }
+.nexum-code-status { min-height:24px;display:flex;align-items:center;gap:15px;padding:0 10px;border-top:1px solid var(--line);background:#171a17;color:#697267;font:9px "SFMono-Regular",Consolas,monospace;white-space:nowrap; }
+.nexum-code-status span:first-child { color:var(--accent);font-weight:800;letter-spacing:.08em; }
+.nexum-code-status-right { margin-left:auto; }
+.nexum-code-terminal { width:360px;flex:0 0 360px;border-left:1px solid var(--line);background:#0b0d0b;display:flex;flex-direction:column; }
+.nexum-code-terminal-head { height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid var(--line);font-size:9px;letter-spacing:.12em;color:#858e80; }
+.nexum-code-terminal-head button { border:0;background:transparent;color:#687166;font-size:17px; }
+.nexum-code-terminal-body { padding:13px;color:#aeb8aa;font:11px/1.6 "SFMono-Regular",Consolas,monospace;overflow:auto; }
+.nexum-code-terminal-note { margin-top:15px;padding-top:12px;border-top:1px solid var(--line);color:#687166;font-family:"IBM Plex Sans","Segoe UI",sans-serif;line-height:1.45; }
+@media (max-width: 800px) {
+  .nexum-code-sidebar { width:190px;flex-basis:190px; }
+  .nexum-code-terminal { display:none; }
+  .nexum-code-brand em { display:none; }
+}
+@media (max-width: 560px) {
+  .nexum-code-sidebar { width:150px;flex-basis:150px; }
+  .nexum-code-sidebar-title { padding-left:9px;padding-right:9px; }
+  .nexum-code-project-name { padding-left:9px; }
+  .nexum-code-file { padding-left:10px; }
+  .nexum-code-file b { font-size:10px; }
+  .nexum-code-gutter { flex-basis:40px;padding-right:7px; }
+  .nexum-code-textarea { padding-left:10px;padding-right:10px; }
+  .nexum-code-actions button:not(.nexum-code-save) { display:none; }
+}
