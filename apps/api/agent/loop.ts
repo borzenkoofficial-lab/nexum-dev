@@ -167,7 +167,7 @@ export class AgentLoop {
       if (plan.done) {
         const buildTask = /создай|сделай|разработай|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(task);
         const scaffoldedProject = previousResults.some((item) => item.tool === "scaffoldProject" && item.result.success);
-        const meaningfulImplementationCount = previousResults.filter((item) => item.tool === "writeFile" && item.result.success).length;
+        const meaningfulImplementationCount = previousResults.filter((item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success).length;
         const meaningfulImplementation = meaningfulImplementationCount >= 2;
         const inspectedProject = previousResults.some((item) => (item.tool === "listFiles" || item.tool === "readFile" || item.tool === "searchFiles") && item.result.success);
         const verifiedBuild = previousResults.some((item) => item.tool === "runCommand" && item.input === "npm run build" && item.result.success);
