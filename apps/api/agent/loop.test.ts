@@ -315,13 +315,18 @@ test("does not finish an automotive site when generated content is construction-
       }
       if (previousResults.some((item) => item.tool === "domainValidation" && !item.result.success)) {
         domainValidationSeen = true;
-        return {
-          tool: "writeFile",
-          input: JSON.stringify({
-            path: "src/App.tsx",
-            content: "Автосервис. Диагностика автомобиля, ремонт двигателя, тормозы и запись.",
-          }),
-        };
+        const repaired = previousResults.some(
+          (item) => item.tool === "writeFile" && item.result.success && /Автосервис\. Диагностика автомобиля/i.test(item.input),
+        );
+        if (!repaired) {
+          return {
+            tool: "writeFile",
+            input: JSON.stringify({
+              path: "src/App.tsx",
+              content: "Автосервис. Диагностика автомобиля, ремонт двигателя, тормозы и запись.",
+            }),
+          };
+        }
       }
       return { tool: "", input: "", done: true, finalResponse: "Готово" };
     },
@@ -332,6 +337,6 @@ test("does not finish an automotive site when generated content is construction-
   };
 
   const result = await new AgentLoop(runtime, gateway).run("Сделай сайт по ремонту авто");
-  assert.equal(domainValidationSeen, true, JSON.stringify(result));
-  assert.equal(result.success, true, JSON.stringify(result));
+  assert.equal(domainValidationSeen, true);
+  assert.equal(result.success, true);
 });
