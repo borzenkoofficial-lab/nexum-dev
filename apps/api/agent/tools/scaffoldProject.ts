@@ -23,9 +23,6 @@ export class ScaffoldProjectTool implements Tool {
         ["index.html", this.indexHtml(title, brief)],
         ["style.css", this.styleCss()],
         ["app.js", this.appJs()],
-          ["index.html", this.indexHtml(title, brief)],
-          ["style.css", this.styleCss()],
-          ["app.js", this.appJs()],
         ] as const;
 
       for (const [path, content] of files) {
@@ -35,7 +32,7 @@ export class ScaffoldProjectTool implements Tool {
 
       return {
         success: true,
-        output: `Scaffold created: index.html, style.css, app.js for “${title}”.`,
+        output: isReact ? `React/Vite scaffold created for “${title}”. Run npm install and npm run build to generate the production preview.` : `Scaffold created: index.html, style.css, app.js for “${title}”.`,
       };
     } catch (error) {
       return {
