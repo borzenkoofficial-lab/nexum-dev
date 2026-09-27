@@ -43,6 +43,18 @@
       {
         "command": "nexum.repairProject",
         "title": "Nexum: Repair Project"
+      },
+      {
+        "command": "nexum.lintProject",
+        "title": "Nexum: Lint Project"
+      },
+      {
+        "command": "nexum.typecheckProject",
+        "title": "Nexum: Typecheck Project"
+      },
+      {
+        "command": "nexum.inspectProject",
+        "title": "Nexum: Inspect Project"
       }
     ],
     "configuration": {
