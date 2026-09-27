@@ -96,8 +96,8 @@ test("scaffolds a runnable web preview inside the active project", async () => {
   const result = await agent.executeTool("scaffoldProject", "Создай приложение для портфолио строительной компании");
   assert.equal(result.success, true);
   assert.equal((await readFile(join(project.path, "index.html"), "utf8")).includes("<!doctype html>"), true);
-  assert.equal((await readFile(join(project.path, "style.css"), "utf8")).length > 100, true);
-  assert.equal((await readFile(join(project.path, "app.js"), "utf8")).length > 20, true);
+  assert.match(await readFile(join(project.path, "style.css"), "utf8"), /body/);
+  assert.match(await readFile(join(project.path, "app.js"), "utf8"), /NEXUM project foundation/);
 });
 
 test("creates a React/Vite scaffold for SPA requests", async () => {
@@ -110,6 +110,6 @@ test("creates a React/Vite scaffold for SPA requests", async () => {
   assert.equal(result.success, true);
   const packageJson = JSON.parse(await readFile(join(project.path, "package.json"), "utf8")) as { scripts?: { build?: string } };
   assert.equal(packageJson.scripts?.build, "vite build");
-  assert.equal((await readFile(join(project.path, "src/App.jsx"), "utf8")).includes("NEXUM"), true);
+  assert.match(await readFile(join(project.path, "src/App.jsx"), "utf8"), /nexum-root/);
   assert.equal((await readFile(join(project.path, "vite.config.js"), "utf8")).includes("@vitejs/plugin-react"), true);
 });
