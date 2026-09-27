@@ -83,6 +83,22 @@ test("stops repeated identical actions", async () => {
   assert.match(result.error ?? "", /repeated.*action/i);
 });
 
+test("never scaffolds over an existing project during deterministic recovery", () => {
+  const agent = new NexumAgent(gateway);
+  const result = agent.plan("Создай заново сайт digital-агентства", [
+    {
+      iteration: 1,
+      tool: "listFiles",
+      input: ".",
+      result: { success: true, output: "index.html\nstyle.css\napp.js" },
+    },
+  ]);
+
+  assert.notEqual(result?.tool, "scaffoldProject");
+  assert.equal(result?.tool, "readFile");
+  assert.equal(result?.input, "index.html");
+});
+
 test("automatically installs and builds a generated React/Vite scaffold", async () => {
   const commands: string[] = [];
   const runtime: AgentRuntime = {
