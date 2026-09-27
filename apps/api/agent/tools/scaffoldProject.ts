@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { Tool, ToolResult } from "../types.js";
 import { ProjectWorkspace } from "./workspace.js";
@@ -12,8 +12,28 @@ export class ScaffoldProjectTool implements Tool {
   async execute(input: string): Promise<ToolResult> {
     try {
       const brief = input.trim();
+      if (!brief) return { success: false, output: "scaffoldProject requires a non-empty app brief" };
+
       const title = this.makeTitle(brief);
-      const dir = await this.workspace.existing(".");
+      let dir: string;
+      try {
+        dir = await this.workspace.existing(".");
+      } catch {
+        dir = await this.workspace.writable(".");
+      }
+
+      // Hard safety boundary: scaffolding is initialization, never an overwrite
+      // mechanism. The planner may be wrong; the tool itself must still protect
+      // the user's existing project.
+      const entries = await readdir(dir, { withFileTypes: true });
+      const meaningfulEntries = entries.filter((entry) => ![".git", "node_modules", "dist"].includes(entry.name));
+      if (meaningfulEntries.length > 0) {
+        return {
+          success: false,
+          output: "Refused to scaffold a non-empty project. Inspect and edit the existing files instead.",
+        };
+      }
+
       await mkdir(dir, { recursive: true });
 
       const isReact = /react|vite|spa|single.?page|реакт|spa/i.test(brief);
