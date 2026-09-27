@@ -123,12 +123,23 @@ export function ChatPanel({ message, reply, stage, apiError, messages, attachmen
   const inputRef = useRef<HTMLInputElement>(null);
   const [sendingText, setSendingText] = useState("");
   const [promptIndex, setPromptIndex] = useState(0);
+  const [promptVisible, setPromptVisible] = useState(true);
   const stageLabel = stage === "thinking" || stage === "analyzing" ? "Анализирую" : stage === "planning" ? "Планирую" : stage === "reading" ? "Читаю файлы" : stage === "editing" ? "Изменяю проект" : stage === "building" ? "Собираю" : stage === "testing" ? "Проверяю" : stage === "error" ? "Требуется внимание" : stage === "completed" ? "Готово" : "Готов";
   const busy = Boolean(stage && !["completed", "error"].includes(stage));
 
   useEffect(() => {
-    const timer = window.setInterval(() => setPromptIndex((index) => (index + 1) % CINEMATIC_PROMPTS.length), 5200);
-    return () => window.clearInterval(timer);
+    let revealTimer: number | undefined;
+    const timer = window.setInterval(() => {
+      setPromptVisible(false);
+      revealTimer = window.setTimeout(() => {
+        setPromptIndex((index) => (index + 1) % CINEMATIC_PROMPTS.length);
+        requestAnimationFrame(() => setPromptVisible(true));
+      }, 220);
+    }, 5200);
+    return () => {
+      window.clearInterval(timer);
+      if (revealTimer !== undefined) window.clearTimeout(revealTimer);
+    };
   }, []);
 
   function handleSubmit() {
@@ -146,7 +157,7 @@ export function ChatPanel({ message, reply, stage, apiError, messages, attachmen
       <div className="welcome">
         <span className="eyebrow">NEXUM AGENT</span>
         <h1 className="cinematic-prompt" aria-live="polite" aria-label={CINEMATIC_PROMPTS[promptIndex]}>
-          <span key={promptIndex} className="cinematic-prompt-text">{CINEMATIC_PROMPTS[promptIndex]}</span>
+          <span className={`cinematic-prompt-text ${promptVisible ? "is-visible" : "is-hidden"}`}>{CINEMATIC_PROMPTS[promptIndex]}</span>
         </h1>
         <p>Опишите задачу. NEXUM работает в фоне: изменяет проект, собирает его и показывает результат.</p>
       </div>
