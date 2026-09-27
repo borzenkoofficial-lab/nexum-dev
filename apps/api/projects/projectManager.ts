@@ -1,4 +1,4 @@
-import { access, cp, mkdir, lstat, readFile, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, lstat, readFile, rm, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { assertExistingProjectPath, resolveProjectPath } from "../agent/tools/path.js";
 import type { Project, ProjectStatus, ProjectStore } from "./types.js";
@@ -158,7 +158,30 @@ export class ProjectManager {
   }
 
   async deleteProject(id: string): Promise<Project> {
-    return this.archiveProject(id);
+    const project = await this.getProject(id);
+    if (project.id === this.defaultProject.id) {
+      throw new ProjectManagerError("The default NEXUM project cannot be deleted", 409);
+    }
+
+    const store = await this.requireStore();
+    const projectPath = resolve(project.path);
+    const relativePath = relative(this.projectsRoot, projectPath);
+    if (relativePath.startsWith("..") || isAbsolute(relativePath) || relativePath === "") {
+      throw new ProjectManagerError("Project path is invalid", 400);
+    }
+
+    await rm(projectPath, { recursive: true, force: false });
+    store.projects = store.projects.filter((item) => item.id !== id);
+
+    if (store.activeProjectId === id) {
+      const fallback = store.projects.find((item) => item.status === "active")
+        ?? store.projects.find((item) => item.id === this.defaultProject.id);
+      if (!fallback) throw new ProjectManagerError("No fallback project is available", 500);
+      store.activeProjectId = fallback.id;
+    }
+
+    await this.writeStore(store);
+    return project;
   }
 
   private async requireStore(): Promise<ProjectStore> {
