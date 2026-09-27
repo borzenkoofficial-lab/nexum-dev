@@ -121,8 +121,15 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   if (tab === "preview") {
     panelContent = previewOnline ? (
       <div className="preview-frame-wrap">
-        <iframe ref={previewFrameRef} key={previewKey} className="preview-frame" title={projectName + " live preview"} src={previewUrl} onLoad={handlePreviewLoad} sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" />
-        {previewError && <div className="preview-runtime-error" role="alert">{previewError}</div>}
+        <div className="preview-browser-bar" aria-label="Панель предпросмотра">
+          <div className="preview-browser-dots" aria-hidden="true"><i /><i /><i /></div>
+          <div className="preview-address"><span className="preview-address-lock">⌁</span><span>/preview/{projectId}</span><b>{previewOnline ? "LIVE" : "OFFLINE"}</b></div>
+          <button type="button" className="preview-browser-reload" onClick={onRefreshPreview} aria-label="Перезагрузить предпросмотр">↻</button>
+        </div>
+        <div className="preview-viewport">
+          <iframe ref={previewFrameRef} key={previewKey} className="preview-frame" title={projectName + " live preview"} src={previewUrl} onLoad={handlePreviewLoad} sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" />
+          {previewError && <div className="preview-runtime-error" role="alert">{previewError}</div>}
+        </div>
       </div>
     ) : (
       <div className="preview-content">
@@ -184,4 +191,53 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
       </div>
     </aside>
   );
+}
+
+
+/* Preview browser chrome */
+.preview-browser-bar{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:42px;
+  padding:7px 10px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.025);
+}
+.preview-browser-dots{display:flex;gap:5px;flex:0 0 auto}
+.preview-browser-dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18)}
+.preview-address{
+  min-width:0;
+  flex:1;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-height:27px;
+  padding:0 9px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:7px;
+  background:rgba(0,0,0,.14);
+  color:#8f9a91;
+  font-size:10px;
+}
+.preview-address span:nth-child(2){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preview-address-lock{opacity:.7}
+.preview-address b{margin-left:auto;font-size:8px;letter-spacing:.08em;opacity:.75}
+.preview-browser-reload{
+  width:28px;height:28px;flex:0 0 auto;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:7px;
+  background:rgba(255,255,255,.025);
+  color:inherit;
+  transition:transform var(--nexum-fast) var(--nexum-ease),background var(--nexum-fast) ease;
+}
+.preview-browser-reload:hover{transform:rotate(-12deg);background:rgba(255,255,255,.06)}
+.preview-browser-reload:active{transform:scale(.92)}
+.preview-viewport{position:relative;min-height:0;flex:1;overflow:hidden}
+.preview-viewport .preview-frame{height:100%}
+.preview-expanded .preview-browser-bar{border-radius:10px 10px 0 0}
+@media (max-width:520px){
+  .preview-browser-dots{display:none}
+  .preview-address{font-size:9px}
 }
