@@ -70,3 +70,35 @@ test("invalid model tool calls fall back without executing arbitrary tools", asy
   assert.equal(result.steps[0]?.tool, "scaffoldProject");
   assert.match(result.steps[0]?.input ?? "", /Создай простой сайт/);
 });
+
+test("deterministic Builder fallback implements a scaffold when no real AI plan is available", async () => {
+  const projectRoot = await mkdtemp(join(tmpdir(), "nexum-agent-fallback-"));
+  const gateway = new AIGateway([new (class implements AIProvider {
+    id = "mock";
+    name = "Mock";
+    model = "mock";
+    async generate(): Promise<string> { return "demo"; }
+    async listModels(): Promise<string[]> { return ["mock"]; }
+    async getStatus(model = this.model) { return { available: false, model, latencyMs: null, error: "test" }; }
+  })()], "mock");
+  const agent = new NexumAgent(gateway, projectRoot);
+  const scaffold = {
+    iteration: 1,
+    tool: "scaffoldProject",
+    input: "Создай React dashboard",
+    result: { success: true, output: "React/Vite scaffold created for test." },
+  };
+  const appPlan = agent.plan("Создай React dashboard", [scaffold]);
+  assert.equal(appPlan?.tool, "writeFile");
+  assert.match(appPlan?.input ?? "", /src\\/App\\.jsx/);
+
+  const appWrite = {
+    iteration: 2,
+    tool: "writeFile",
+    input: appPlan?.input ?? "",
+    result: { success: true, output: "App.jsx implemented" },
+  };
+  const stylesPlan = agent.plan("Создай React dashboard", [scaffold, appWrite]);
+  assert.equal(stylesPlan?.tool, "writeFile");
+  assert.match(stylesPlan?.input ?? "", /src\\/styles\\.css/);
+});
