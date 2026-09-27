@@ -123,8 +123,20 @@ export class RunCommandTool implements Tool {
       return { executable: "npm", args: normalizedArgs };
     }
 
-    if (normalizedArgs[0] !== "run" || !["build", "test", "lint", "typecheck"].includes(normalizedArgs[1] ?? "")) {
-      throw new Error("Only npm run build/test/lint/typecheck are allowed");
+    if (normalizedArgs[0] !== "run") {
+      throw new Error("Only npm install, npm --version and npm run <script> are allowed");
+    }
+
+    // "npm run" without a script only prints package scripts; it does not
+    // execute project code. The builder uses it to discover whether a build
+    // command actually exists before forcing a production build.
+    if (!normalizedArgs[1]) {
+      return { executable: "npm", args: normalizedArgs };
+    }
+
+    const allowedScripts = new Set(["build", "test", "lint", "typecheck", "dev", "start", "preview"]);
+    if (!allowedScripts.has(normalizedArgs[1])) {
+      throw new Error("npm script is not allowed");
     }
 
     return { executable: "npm", args: normalizedArgs };
