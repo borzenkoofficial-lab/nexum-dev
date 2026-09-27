@@ -368,7 +368,17 @@ export class AgentLoop {
         }
       }
 
-      if (!plan) continue;
+      if (!plan) {
+        transition("finish");
+        emit({ iteration, type: "completed", message: "Детерминированный план завершён." });
+        return {
+          phase: "finish",
+          success: true,
+          iterations: iteration,
+          steps,
+          productPlan: productPlan ?? undefined,
+        };
+      }
 
       if (plan.done) {
         transition("verify");
