@@ -26,7 +26,7 @@ test("CheckpointManager excludes protected runtime dependencies", async () => {
     const root = await mkdtemp(join(tmpdir(), "nexum-checkpoint-"));
     await mkdir(join(root, "node_modules"), { recursive: true });
     await writeFile(join(root, "node_modules", "ignored.txt"), "ignored", "utf8");
-    const manager = new CheckpointManager(root);
+    const manager = new CheckpointManager();
     const checkpoint = await manager.create("p2", root);
     assert.equal(checkpoint.files.some((file) => file.path.startsWith("node_modules/")), false);
   });
