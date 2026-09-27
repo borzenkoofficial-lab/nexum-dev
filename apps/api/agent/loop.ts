@@ -667,6 +667,11 @@ export class AgentLoop {
     return `${tool} завершился с ошибкой. Анализирую проблему и попробую исправить её. ${detail}`.trim();
   }
 
+  private actionFingerprint(tool: string, input: string): string {
+    const normalized = input.replace(/\\s+/g, " ").replace(/\\b\\d{10,}\\b/g, "<id>").trim().slice(0, MAX_ACTION_FINGERPRINT_LENGTH);
+    return `${tool}:${normalized}`;
+  }
+
   private log(iteration: number, tool: string, status: "success" | "error"): void {
     console.log(JSON.stringify({ iteration, tool, status }));
   }
