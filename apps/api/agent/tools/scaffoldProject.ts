@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname } from "node:path";
 import type { Tool, ToolResult } from "../types.js";
 import { ProjectWorkspace } from "./workspace.js";
 
