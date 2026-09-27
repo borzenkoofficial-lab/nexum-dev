@@ -344,76 +344,20 @@ ${result.output}`
     const scaffolded = previousResults.some(
       (item) => item.tool === "scaffoldProject" && item.result.success,
     );
-    if (scaffolded) {
-      const implementationWrites = previousResults.filter(
-        (item) => item.tool === "writeFile" && item.result.success,
-      );
-      if (implementationWrites.length === 0 && this.getAvailableTools().includes("writeFile")) {
-        return {
-          tool: "writeFile",
-          input: JSON.stringify({
-            path: "src/App.jsx",
-            content: this.fallbackApp(task),
-          }),
-        };
-      }
-      if (
-        implementationWrites.length === 1 &&
-        !implementationWrites.some((item) => item.input.includes('"path":"src/styles.css"')) &&
-        this.getAvailableTools().includes("writeFile")
-      ) {
-        return {
-          tool: "writeFile",
-          input: JSON.stringify({
-            path: "src/styles.css",
-            content: this.fallbackStyles(),
-          }),
-        };
-      }
-    }
 
-    // Deterministic recovery for existing projects. If the remote model is
-    // unavailable, we still make substantive changes without ever scaffolding over
-    // a non-empty project.
-    const existingProject = this.projectHasExistingFilesFromResults(previousResults);
-    const implementationWrites = previousResults.filter(
-      (item) => item.tool === "writeFile" && item.result.success,
-    );
-    if (existingProject && !scaffolded && /создай|сделай|разработай|сайт|лендинг|landing|website|приложени|app|dashboard|crm/i.test(normalizedTask)) {
-      const hasPackage = this.existingPathsFromResults(previousResults).includes("package.json");
-      if (hasPackage) {
-        if (implementationWrites.length === 0) {
-          return {
-            tool: "writeFile",
-            input: JSON.stringify({ path: "src/App.jsx", content: this.fallbackApp(task) }),
-          };
-        }
-        if (implementationWrites.length === 1) {
-          return {
-            tool: "writeFile",
-            input: JSON.stringify({ path: "src/styles.css", content: this.fallbackStyles() }),
-          };
-        }
-      } else {
-        if (implementationWrites.length === 0) {
-          return {
-            tool: "writeFile",
-            input: JSON.stringify({ path: "index.html", content: this.fallbackStaticIndex(task) }),
-          };
-        }
-        if (implementationWrites.length === 1) {
-          return {
-            tool: "writeFile",
-            input: JSON.stringify({ path: "style.css", content: this.fallbackStaticStyles() }),
-          };
-        }
-        if (implementationWrites.length === 2) {
-          return {
-            tool: "writeFile",
-            input: JSON.stringify({ path: "app.js", content: this.fallbackStaticJs() }),
-          };
-        }
-      }
+    // IMPORTANT: normal Builder execution must never silently fall back to a
+    // hard-coded website template. That made every construction request look
+    // identical and only changed the text. If the AI planner cannot produce an
+    // implementation action, stop/replan instead of overwriting the project with
+    // fallbackApp/fallbackStyles/fallbackStatic*.
+    //
+    // The fallback generators remain available for emergency/internal recovery,
+    // but they are intentionally not selected by the normal Builder route.
+    if (scaffolded && !previousResults.some((item) =>
+      (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success
+    )) {
+      const existingPath = this.firstRelevantExistingPath(previousResults);
+      if (existingPath) return { tool: "readFile", input: existingPath };
     }
 
     const selection = this.selectTool(task, previousResults);
