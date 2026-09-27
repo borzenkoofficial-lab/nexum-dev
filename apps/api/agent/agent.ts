@@ -115,7 +115,7 @@ ${result.output}`
     const prompt = [
       "You are the NEXUM final implementation reviewer.",
       "Review whether the coding agent actually implemented the requested product, not merely a scaffold.",
-      "Return JSON only: {"passed":true|false,"missing":["..."],"risks":["..."]}.",
+      'Return JSON only: {"passed":true|false,"missing":["..."],"risks":["..."]}.',
       "Do not require backend functionality unless the user requested it.",
       "Treat placeholder/demo copy, generic starter UI, or an unverified build as a failure.",
       `User request: ${task}`,
