@@ -435,3 +435,48 @@ button:focus-visible, textarea:focus-visible, input:focus-visible {
 .preview-refresh:hover { color: var(--text); border-color: #566150; }
 .preview-content strong { color: var(--text); font-size: 18px; }
 .preview-content span { max-width: 320px; text-align: center; line-height: 1.5; }
+
+
+/* AI builder mode: preview opens as a dedicated workspace pane after the first prompt */
+.workspace.builder-idle .right-panel {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  min-width: 0;
+  border-left: 0;
+}
+
+.workspace.builder-idle {
+  grid-template-columns: minmax(0, 1fr) 0;
+}
+
+.workspace.builder-started .right-panel {
+  animation: builder-panel-in 220ms ease-out both;
+}
+
+.workspace.builder-started .main-column {
+  border-right: 1px solid var(--line);
+}
+
+@keyframes builder-panel-in {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (max-width: 900px) {
+  .workspace.builder-started .right-panel {
+    display: flex;
+    min-height: 60vh;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .workspace.builder-started {
+    display: flex;
+    flex-direction: column;
+  }
+  .workspace.builder-started .main-column {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
