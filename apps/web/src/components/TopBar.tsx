@@ -1,15 +1,15 @@
-import type { AIProviderInfo, AIProviderStatus, AgentStage } from "./types";
+import type { AIПровайдерInfo, AIПровайдерStatus, AgentStage } from "./types";
 
 interface TopBarProps {
   projectName: string;
-  providers: AIProviderInfo[];
+  providers: AIПровайдерInfo[];
   models: string[];
   provider: string;
   model: string;
-  aiStatus: AIProviderStatus | null;
+  aiStatus: AIПровайдерStatus | null;
   stage: AgentStage;
-  onProviderChange: (id: string) => void;
-  onModelChange: (model: string) => void;
+  onПровайдерChange: (id: string) => void;
+  onМодельChange: (model: string) => void;
   onToggleSidebar: () => void;
 }
 
@@ -21,25 +21,25 @@ export function TopBar({
   model,
   aiStatus,
   stage,
-  onProviderChange,
-  onModelChange,
+  onПровайдерChange,
+  onМодельChange,
   onToggleSidebar,
 }: TopBarProps) {
-  const stageLabel = stage === "thinking" ? "Thinking..." : stage === "analyzing" ? "Analyzing project..." : stage === "planning" ? "Planning..." : stage === "reading" ? "Reading files..." : stage === "editing" ? "Editing files..." : stage === "running" ? "Running agent..." : stage === "building" ? "Building..." : stage === "testing" ? "Testing..." : stage === "completed" ? "Completed" : stage === "error" ? "Needs attention" : "Ready";
+  const stageLabel = stage === "thinking" ? "Думаю…" : stage === "analyzing" ? "Анализирую проект…" : stage === "planning" ? "Планирую…" : stage === "reading" ? "Читаю файлы…" : stage === "editing" ? "Изменяю файлы…" : stage === "running" ? "Агент работает…" : stage === "building" ? "Собираю…" : stage === "testing" ? "Проверяю…" : stage === "completed" ? "Готово" : stage === "error" ? "Требуется внимание" : "Готов";
 
   return (
     <header className="header">
       <div>
-        <button className="mobile-menu" type="button" aria-label="Open project drawer" onClick={onToggleSidebar}>☰</button>
+        <button className="mobile-menu" type="button" aria-label="Открыть меню проектов" onClick={onToggleSidebar}>☰</button>
         <div className="title">{projectName}</div>
-        <div className="subtitle">AI development workspace</div>
+        <div className="subtitle">Рабочее пространство разработки с ИИ</div>
       </div>
       <div className="header-tools">
-        <div className="ai-controls" aria-label="AI provider and model selection">
-          <label><span>Provider</span><select value={provider} aria-label="AI provider" onChange={(event) => onProviderChange(event.target.value)}>
+        <div className="ai-controls" aria-label="Выбор провайдера и модели ИИ">
+          <label><span>Провайдер</span><select value={provider} aria-label="AI provider" onChange={(event) => onПровайдерChange(event.target.value)}>
             {providers.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
           </select></label>
-          <label><span>Model</span><select value={model} aria-label="AI model" onChange={(event) => onModelChange(event.target.value)}>
+          <label><span>Модель</span><select value={model} aria-label="AI model" onChange={(event) => onМодельChange(event.target.value)}>
             {(models.length > 0 ? models : [model]).map((item) => <option value={item} key={item}>{item}</option>)}
           </select></label>
           {aiStatus && (
@@ -50,8 +50,8 @@ export function TopBar({
             >
               <i aria-hidden="true" />
               {aiStatus.available
-                ? `AI online · ${aiStatus.latencyMs ?? "—"}ms`
-                : aiStatus.error ?? `AI offline · ${aiStatus.model}`}
+                ? `ИИ онлайн · ${aiStatus.latencyMs ?? "—"}ms`
+                : aiStatus.error ?? `ИИ офлайн · ${aiStatus.model}`}
             </span>
           )}
         </div>
