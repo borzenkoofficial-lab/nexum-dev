@@ -1,4 +1,6 @@
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import assert from "node:assert/strict";
+import test from "node:test";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectWorkspace } from "./workspace.js";
@@ -12,8 +14,8 @@ test("patchFile applies one exact targeted replacement", async () => {
     find: 'const title = "Old";',
     replace: 'const title = "New";',
   }));
-  expect(result.success).toBe(true);
-  expect(await readFile(resolve(root, "app.js"), "utf8")).toContain('const title = "New";');
+  assert.equal(result.success, true);
+  assert.match(await readFile(resolve(root, "app.js"), "utf8"), /const title = "New";/);
 });
 
 test("patchFile refuses ambiguous replacements", async () => {
@@ -25,5 +27,5 @@ test("patchFile refuses ambiguous replacements", async () => {
     replace: 'const title = "New";',
     expectedMatches: 2,
   }));
-  expect(result.success).toBe(false);
+  assert.equal(result.success, false);
 });
