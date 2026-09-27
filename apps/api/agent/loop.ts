@@ -668,7 +668,7 @@ export class AgentLoop {
   }
 
   private actionFingerprint(tool: string, input: string): string {
-    const normalized = input.replace(/\\s+/g, " ").replace(/\\b\\d{10,}\\b/g, "<id>").trim().slice(0, MAX_ACTION_FINGERPRINT_LENGTH);
+    const normalized = input.replace(/\s+/g, " ").replace(/\b\d{10,}\b/g, "<id>").trim().slice(0, MAX_ACTION_FINGERPRINT_LENGTH);
     return `${tool}:${normalized}`;
   }
 
