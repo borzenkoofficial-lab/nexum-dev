@@ -16,6 +16,7 @@ import { randomUUID } from "node:crypto";
 import { GitTool } from "./agent/tools/git.js";
 import { RunCommandTool } from "./agent/tools/runCommand.js";
 import { assertExistingProjectPath, assertWritableProjectPath, ProjectPathError } from "./agent/tools/path.js";
+import { AgentHistory } from "./agent/history.js";
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ const aiGateway = new AIGateway(
 );
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const projectManager = new ProjectManager(workspaceRoot);
+const agentHistory = new AgentHistory(workspaceRoot);
 
 type ChatJobStatus = "queued" | "running" | "completed" | "failed";
 interface ChatJob {
@@ -71,6 +73,7 @@ async function runChatJob(
 
   job.status = "running";
   job.updatedAt = Date.now();
+  void agentHistory.record({ type: "job-start", jobId, projectId, provider, model, message });
   job.currentMessage = "Запускаю AI-агента и начинаю выполнение задачи.";
 
   try {
@@ -89,6 +92,7 @@ async function runChatJob(
         job.events = [...(job.events ?? []), event].slice(-100);
         job.currentMessage = event.message;
         job.updatedAt = Date.now();
+        void agentHistory.record({ type: "agent-event", jobId, projectId, provider, model, iteration: event.iteration, tool: event.tool, status: event.type, message: event.message });
         if (event.type === "tool-error" || event.type === "failed") {
           job.problems = [
             ...(job.problems ?? []),
@@ -106,18 +110,21 @@ async function runChatJob(
     if (!result.success) {
       job.status = "failed";
       job.error = result.error ?? "AI agent failed";
+      void agentHistory.record({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
       return;
     }
 
     job.status = "completed";
     if (result.finalResponse !== undefined) job.reply = result.finalResponse;
+    void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
     job.steps = result.steps;
     console.log("[Nexum] chat job completed", jobId);
   } catch (error) {
     job.status = "failed";
     job.updatedAt = Date.now();
     job.error = error instanceof Error ? error.message : "AI provider request failed";
+    void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
     console.error("[Nexum] chat job failed", jobId, error);
   }
 }
@@ -455,6 +462,11 @@ app.post("/api/chat", async (req, res) => {
       error: error instanceof Error ? error.message : "Chat job creation failed",
     });
   }
+});
+
+app.get("/api/agent/history", async (req, res) => {
+  const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : 200;
+  return res.json({ success: true, entries: await agentHistory.recent(Number.isFinite(limit) ? limit : 200) });
 });
 
 app.get("/api/chat/jobs/:id", (req, res) => {
