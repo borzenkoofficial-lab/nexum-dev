@@ -175,8 +175,8 @@ export class NexumAgent implements AgentRuntime {
   private parseAIPlan(response: string): AgentPlan | null {
     const candidates = [
       response.trim(),
-      response.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\\s*\`\`\`/i)?.[1]?.trim() ?? "",
-      response.match(/\\{[\\s\\S]*\\}/)?.[0] ?? "",
+      response.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1]?.trim() ?? "",
+      response.match(/\{[\s\S]*\}/)?.[0] ?? "",
     ].filter(Boolean);
 
     for (const jsonCandidate of candidates) {
