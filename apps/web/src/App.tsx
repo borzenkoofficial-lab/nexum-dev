@@ -51,12 +51,12 @@ function App() {
     acceptanceCriteria: string[];
   } | null>(null);
   const [problems, setProblems] = useState<Array<{ message: string; source?: string }>>([]);
-  const [localAIKey, setLocalИИKey] = useState("");
+  const [localAIKey, setLocalAIKey] = useState("");
   const [aiApiKey, setAiApiKey] = useState("");
   const [aiApiKeyLoading, setAiApiKeyLoading] = useState(false);
   const localAITestEnabled = true;
-  const [localAIConfigured, setLocalИИConfigured] = useState(false);
-  const [localAIKeyLoading, setLocalИИKeyLoading] = useState(false);
+  const [localAIConfigured, setLocalAIConfigured] = useState(false);
+  const [localAIKeyLoading, setLocalAIKeyLoading] = useState(false);
   const [conversation, setConversation] = useState<Array<{ id: string; role: "user" | "assistant"; content: string; timestamp: number; attachments?: string[] }>>([]);
   const [pendingAttachments, setPendingAttachments] = useState<Array<{ id: string; name: string; type: string; size: number; file: File }>>([]);
   const [uiSettings, setUiSettings] = useState(() => {
@@ -165,7 +165,7 @@ function App() {
       setApiError("");
     } catch (error) {
       console.error("[Nexum] API projects request failed:", error);
-      setApiError(error instanceof Error ? error.message : "Cannot reach API");
+      setApiError(error instanceof Error ? error.message : "Не удалось связаться с API");
     } finally {
       setProjectsLoading(false);
     }
@@ -242,7 +242,7 @@ function App() {
       setReply("");
       await loadProjects(projectId);
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : "Project selection failed");
+      setApiError(error instanceof Error ? error.message : "Не удалось выбрать проект");
     } finally {
       setProjectActionLoading(false);
     }
@@ -339,12 +339,12 @@ function App() {
         status?: string;
         error?: string;
       };
-      if (!data.jobId) throw new Error(data.error || "Chat API did not return a job ID");
+      if (!data.jobId) throw new Error(data.error || "API чата не вернул идентификатор задачи");
 
       setChatJobId(data.jobId);
     } catch (error) {
       console.error("[Nexum] Chat job creation failed:", error);
-      setApiError(error instanceof Error ? error.message : "Chat API request failed");
+      setApiError(error instanceof Error ? error.message : "Не удалось отправить запрос к чату");
       setAgentStage(null);
     }
   }
@@ -437,7 +437,7 @@ function App() {
         }
 
         if (status === "failed") {
-          throw new Error(data?.job?.error || "AI agent failed");
+          throw new Error(data?.job?.error || "ИИ-агент завершил работу с ошибкой");
         }
 
         setActivitySteps(data?.job?.steps ?? []);
@@ -456,7 +456,7 @@ function App() {
       } catch (error) {
         if (cancelled) return;
         console.error("[Nexum] Chat job polling failed:", error);
-        setApiError(error instanceof Error ? error.message : "Chat job polling failed");
+        setApiError(error instanceof Error ? error.message : "Ошибка получения статуса задачи чата");
         setAgentStage("error");
         setChatJobId(null);
       }
@@ -480,7 +480,7 @@ function App() {
         body: JSON.stringify({ apiKey: aiApiKey.trim() }),
       });
       const data = await response.json().catch(() => ({})) as { success?: boolean; provider?: string; model?: string; error?: string };
-      if (!response.ok || !data.success) throw new Error(data.error || "API key verification failed");
+      if (!response.ok || !data.success) throw new Error(data.error || "Не удалось проверить API-ключ");
       const provider = data.provider || "openai";
       setAiApiKey("");
       setAIProvider(provider);
@@ -501,7 +501,7 @@ function App() {
 
   async function saveLocalAIKey() {
     if (!localAIKey.trim()) return;
-    setLocalИИKeyLoading(true);
+    setLocalAIKeyLoading(true);
     setApiError("");
     try {
       const response = await fetch("/api/ai/local-test", {
@@ -510,9 +510,9 @@ function App() {
         body: JSON.stringify({ apiKey: localAIKey.trim() }),
       });
       const data = await response.json().catch(() => ({})) as { success?: boolean; error?: string };
-      if (!response.ok || !data.success) throw new Error(data.error || "OpenRouter key verification failed");
-      setLocalИИConfigured(true);
-      setLocalИИKey("");
+      if (!response.ok || !data.success) throw new Error(data.error || "Не удалось проверить ключ OpenRouter");
+      setLocalAIConfigured(true);
+      setLocalAIKey("");
       setAIProvider("openrouter");
       setAIModel("openrouter/free");
       setNotice("OpenRouter подключён for this local test session");
@@ -520,7 +520,7 @@ function App() {
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Не удалось подключить ключ OpenRouter");
     } finally {
-      setLocalИИKeyLoading(false);
+      setLocalAIKeyLoading(false);
     }
   }
 
@@ -562,7 +562,7 @@ function App() {
     <div className="app">
       <Sidebar projects={projects} activeProjectId={activeProjectId} projectsLoading={projectsLoading} projectActionLoading={projectActionLoading} mobileOpen={mobileSidebarOpen} view={view} onDeleteProject={(id) => void deleteProject(id)} onViewChange={(next) => { setMobileSidebarOpen(false); setView(next); }} onNewProject={() => { setMobileSidebarOpen(false); setModalOpen(true); }} onSelectProject={(id) => { setMobileSidebarOpen(false); openProject(id); }} />
       <main className="main">
-        <TopBar projectName={view === "connectors" ? "Подключитьors" : view === "settings" ? "Настройки" : view === "home" ? "NEXUM.DEV" : activeProject?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />
+        <TopBar projectName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "home" ? "NEXUM.DEV" : activeProject?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />
         {view === "home" ? (
           <section className="nexum-home">
             <div className="home-hero"><div><div className="eyebrow">NEXUM.DEV</div><h1>Создавайте, не покидая рабочее пространство.</h1><p>Создайте проект, откройте его как отдельное рабочее пространство, подключите сервисы и поручите агенту разработку.</p></div><button className="home-primary" type="button" onClick={() => setModalOpen(true)}>+ Новый проект</button></div>
@@ -571,8 +571,8 @@ function App() {
           </section>
         ) : view === "connectors" ? (
           <section className="connectors-page">
-            <div className="page-heading"><div><div className="eyebrow">ИНТЕГРАЦИИ</div><h1>Подключитьors</h1><p>Подключите сервисы, которые используют ваши проекты.</p></div><button className="home-primary" type="button" onClick={() => setConnectorModal("Custom connector")}>+ Добавить интеграцию</button></div>
-            <div className="connector-grid">{[["GitHub","Репозиторий, ветки, коммиты и задачи","Разработка"],["Supabase","База данных, авторизация и хранилище","Бэкенд"],["OpenAI","ИИ models and API access","ИИ"],["Telegram","Боты, сообщения и автоматизация","Коммуникации"],["Stripe","Платежи и подписки","Платежи"],["Notion","Страницы, базы данных и база знаний","Продуктивность"]].map(([name,description,category]) => <article className="connector-card" key={name}><div className="connector-icon">{name.slice(0,1)}</div><div className="connector-copy"><span>{category}</span><strong>{name}</strong><p>{description}</p></div><button type="button" onClick={() => { setConnectedConnectors((items) => items.includes(name) ? items.filter((item) => item !== name) : [...items, name]); setConnectorModal(name); }}>Подключить</button></article>)}</div>
+            <div className="page-heading"><div><div className="eyebrow">ИНТЕГРАЦИИ</div><h1>Интеграции</h1><p>Подключите сервисы, которые используют ваши проекты.</p></div><button className="home-primary" type="button" onClick={() => setConnectorModal("Пользовательская интеграция")}>+ Добавить интеграцию</button></div>
+            <div className="connector-grid">{[["GitHub","Репозиторий, ветки, коммиты и задачи","Разработка"],["Supabase","База данных, авторизация и хранилище","Бэкенд"],["OpenAI","Модели ИИ и доступ к API","ИИ"],["Telegram","Боты, сообщения и автоматизация","Коммуникации"],["Stripe","Платежи и подписки","Платежи"],["Notion","Страницы, базы данных и база знаний","Продуктивность"]].map(([name,description,category]) => <article className="connector-card" key={name}><div className="connector-icon">{name.slice(0,1)}</div><div className="connector-copy"><span>{category}</span><strong>{name}</strong><p>{description}</p></div><button type="button" onClick={() => { setConnectedConnectors((items) => items.includes(name) ? items.filter((item) => item !== name) : [...items, name]); setConnectorModal(name); }}>Подключить</button></article>)}</div>
           </section>
         ) : view === "settings" ? (
           <section className="settings-page">
@@ -587,16 +587,16 @@ function App() {
               <div className="settings-card"><strong>Хранилище проектов</strong><span>{projects.filter((project) => project.status === "active").length} активных проектов</span><small>Каждый проект хранит собственные файлы, предпросмотр и контекст диалога.</small></div>
             </div>
             <div className="settings-card" style={{marginTop:12}}><strong>ИИ API key</strong><span>Автоматическое определение провайдера</span><small>Paste an OpenAI, OpenRouter, or OrcaRouter key. NEXUM verifies the key and keeps it only in running server memory.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={aiApiKey} onChange={event=>setAiApiKey(event.target.value)} placeholder="Вставьте API-ключ" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={aiApiKeyLoading||!aiApiKey.trim()} onClick={()=>void connectAIKey()}>{aiApiKeyLoading?"Проверяю…":"Подключить ИИ"}</button></div></div>
-            {localAITestEnabled && <div className="settings-card" style={{marginTop:12}}><strong>Тестовая сессия OpenRouter</strong><span>{localAIConfigured?"Подключено":"Не подключено"}</span><small>Временный ключ сессии для тестирования моделей без хранения учётных данных в репозитории.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={localAIKey} onChange={event=>setLocalИИKey(event.target.value)} placeholder="sk-or-v1-…" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={localAIKeyLoading||!localAIKey.trim()} onClick={()=>void saveLocalAIKey()}>{localAIKeyLoading?"Проверяю…":"Подключить"}</button></div></div>}
+            {localAITestEnabled && <div className="settings-card" style={{marginTop:12}}><strong>Тестовая сессия OpenRouter</strong><span>{localAIConfigured?"Подключено":"Не подключено"}</span><small>Временный ключ сессии для тестирования моделей без хранения учётных данных в репозитории.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={localAIKey} onChange={event=>setLocalAIKey(event.target.value)} placeholder="sk-or-v1-…" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={localAIKeyLoading||!localAIKey.trim()} onClick={()=>void saveLocalAIKey()}>{localAIKeyLoading?"Проверяю…":"Подключить"}</button></div></div>}
           </section>
         ) : (
         <>
         <div className="workspace-toolbar">
           <div className="workspace-breadcrumb"><span>Проекты</span><b>/</b><strong>{activeProject?.name ?? "NEXUM"}</strong></div>
           <div className="workspace-actions">
-            <button type="button" onClick={() => setConnectorModal("Project connector")}>◇ Подключить</button>
-            <button type="button" onClick={async () => { const url = `${window.location.origin}/api/preview/${activeProjectId}/index.html`; try { await navigator.clipboard.writeText(url); setNotice("Preview link copied"); } catch { setNotice(url); } }}>↗ Share</button>
-            <button className="workspace-deploy" type="button" onClick={() => { const url = `/api/preview/${activeProjectId}/index.html`; window.open(url, "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }}>Deploy</button>
+            <button type="button" onClick={() => setConnectorModal("Интеграция проекта")}>◇ Подключить</button>
+            <button type="button" onClick={async () => { const url = `${window.location.origin}/api/preview/${activeProjectId}/index.html`; try { await navigator.clipboard.writeText(url); setNotice("Ссылка на предпросмотр скопирована"); } catch { setNotice(url); } }}>↗ Share</button>
+            <button className="workspace-deploy" type="button" onClick={() => { const url = `/api/preview/${activeProjectId}/index.html`; window.open(url, "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }}>Опубликовать</button>
             <button className="workspace-more" type="button" aria-label="Project menu" onClick={() => setWorkspaceMenuOpen((open) => !open)}>•••</button>
             {workspaceMenuOpen && <div className="workspace-menu"><button type="button" onClick={() => { setWorkspaceMenuOpen(false); setView("settings"); }}>Project settings</button><button type="button" onClick={async () => {
                 setWorkspaceMenuOpen(false);
