@@ -79,8 +79,11 @@ export class AgentLoop {
         // If the agent wrote project files but did not build, perform the final
         // install/build deterministically and let the model repair any failure.
         const hasProjectChanges = previousResults.some((item) =>
-          item.tool === "scaffoldProject" ||
-          (item.tool === "writeFile" && /"path"\s*:\s*"(?:(?:src\/)|(?:package\.json$)|(?:vite\.config\.)|(?:index\.html$))/i.test(item.input)),
+          item.tool === "scaffoldProject" &&
+          /React\/Vite scaffold created/i.test(item.result.output),
+        ) || previousResults.some((item) =>
+          item.tool === "writeFile" &&
+          /"path"\s*:\s*"(?:(?:src\/)|(?:package\.json$)|(?:vite\.config\.)|(?:index\.html$))/i.test(item.input),
         );
         const hasSuccessfulBuild = previousResults.some(
           (item) => item.tool === "runCommand" && item.input === "npm run build" && item.result.success,
