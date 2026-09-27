@@ -33,10 +33,10 @@ export function CommandPalette({ open, onClose, actions }: CommandPaletteProps) 
 
   return (
     <div className="palette-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div className="command-palette" role="dialog" aria-modal="true" aria-label="Command Palette">
-        <div className="palette-search"><span aria-hidden="true">⌘K</span><input autoFocus value={query} onChange={(event) => { setQuery(event.target.value); setActiveIndex(0); }} placeholder="Search commands..." aria-label="Search commands" /></div>
+      <div className="command-palette" role="dialog" aria-modal="true" aria-label="Палитра команд">
+        <div className="palette-search"><span aria-hidden="true">⌘K</span><input autoFocus value={query} onChange={(event) => { setQuery(event.target.value); setActiveIndex(0); }} placeholder="Поиск команд…" aria-label="Поиск команд" /></div>
         <div className="palette-list" role="listbox">
-          {filteredActions.length === 0 ? <div className="palette-empty">No commands found</div> : filteredActions.map((action, index) => (
+          {filteredActions.length === 0 ? <div className="palette-empty">Команды не найдены</div> : filteredActions.map((action, index) => (
             <button className={`palette-item ${index === activeIndex ? "active" : ""}`} type="button" role="option" aria-selected={index === activeIndex} key={action.label} onMouseEnter={() => setActiveIndex(index)} onClick={() => { action.run(); onClose(); }}>
               <span>{action.label}</span><kbd>{action.hint}</kbd>
             </button>
