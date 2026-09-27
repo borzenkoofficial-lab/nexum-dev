@@ -12,7 +12,7 @@ export function resolveProjectPath(projectRoot: string, requestedPath: string): 
   const input = requestedPath.trim();
 
   if (!input) {
-    throw new ProjectPathError("Path must stay inside the project directory");
+    throw new ProjectPathError(`Path must stay inside the project directory: ${requestedPath}`);
   }
 
   // Normalize paths that AI models commonly return:
@@ -21,13 +21,19 @@ export function resolveProjectPath(projectRoot: string, requestedPath: string): 
   // - /.../projects/<active-project>/index.html
   // The final path is always forced back into the active project root.
   const normalizedInput = input.replace(/\\/g, "/");
-  const activeProjectName = basename(projectRoot);
+  const normalizedRoot = projectRoot.replace(/\\/g, "/").replace(/\/+$/, "");
+  const activeProjectName = basename(normalizedRoot);
   const projectMarker = "/projects/" + activeProjectName + "/";
+  const rootMarker = normalizedRoot + "/";
   const relativeProjectMarker = "projects/" + activeProjectName + "/";
   let candidate = normalizedInput;
 
+  if (normalizedInput.startsWith(rootMarker)) {
+    candidate = normalizedInput.slice(rootMarker.length);
+  }
+
   const markerIndex = normalizedInput.lastIndexOf(projectMarker);
-  if (markerIndex >= 0) {
+  if (markerIndex >= 0 && candidate === normalizedInput) {
     candidate = normalizedInput.slice(markerIndex + projectMarker.length);
   } else if (normalizedInput.startsWith(relativeProjectMarker)) {
     candidate = normalizedInput.slice(relativeProjectMarker.length);
