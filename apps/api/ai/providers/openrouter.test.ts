@@ -47,7 +47,7 @@ test("generates with the configured OpenRouter model", async () => {
 
   assert.equal(result, "Hello from OpenRouter");
   assert.equal(requestedUrl, "https://openrouter.test/chat/completions");
-  assert.match(requestedBody, /"model":"openrouter\/free"/);
+  assert.match(requestedBody, /"model":"qwen\/qwen3\.8-27b:free"/);
 });
 
 test("maps OpenRouter HTTP errors without returning the key", async () => {
