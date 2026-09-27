@@ -51,6 +51,8 @@ function App() {
   } | null>(null);
   const [problems, setProblems] = useState<Array<{ message: string; source?: string }>>([]);
   const [localAIKey, setLocalAIKey] = useState("");
+  const [aiApiKey, setAiApiKey] = useState("");
+  const [aiApiKeyLoading, setAiApiKeyLoading] = useState(false);
   const localAITestEnabled = true;
   const [localAIConfigured, setLocalAIConfigured] = useState(false);
   const [localAIKeyLoading, setLocalAIKeyLoading] = useState(false);
@@ -458,6 +460,36 @@ function App() {
     };
   }, [chatJobId]);
 
+  async function connectAIKey() {
+    if (!aiApiKey.trim()) return;
+    setAiApiKeyLoading(true);
+    setApiError("");
+    try {
+      const response = await fetch("/api/ai/connect-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: aiApiKey.trim() }),
+      });
+      const data = await response.json().catch(() => ({})) as { success?: boolean; provider?: string; model?: string; error?: string };
+      if (!response.ok || !data.success) throw new Error(data.error || "API key verification failed");
+      const provider = data.provider || "openai";
+      setAiApiKey("");
+      setAIProvider(provider);
+      setAIModel(data.model || aiModels[provider]?.[0] || (provider === "openai" ? "gpt-5" : "openrouter/free"));
+      setNotice(provider === "openai" ? "OpenAI connected — GPT models are ready" : "OpenRouter connected");
+      window.setTimeout(() => setNotice(""), 3200);
+      const modelsResponse = await fetch("/api/ai/models");
+      if (modelsResponse.ok) {
+        const modelsData = await modelsResponse.json() as { models?: Record<string, string[]> };
+        setAIModels(modelsData.models ?? {});
+      }
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "AI key setup failed");
+    } finally {
+      setAiApiKeyLoading(false);
+    }
+  }
+
   async function saveLocalAIKey() {
     if (!localAIKey.trim()) return;
     setLocalAIKeyLoading(true);
@@ -535,6 +567,24 @@ function App() {
           </section>
         ) : view === "settings" ? (
           <section className="settings-page"><div className="page-heading"><div><div className="eyebrow">WORKSPACE</div><h1>Settings</h1><p>Workspace configuration and AI defaults.</p></div></div><div className="settings-card"><strong>AI provider</strong><span>{aiProvider} · {aiModel}</span><small>Change the active provider and model from the top bar.</small></div>
+            <div className="settings-card">
+              <strong>AI API key</strong>
+              <span>Automatic provider detection</span>
+              <small>Paste an OpenAI key for GPT models or an OpenRouter key. NEXUM verifies the key and keeps it only in the running server memory; it is not written to GitHub or project files.</small>
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <input
+                  type="password"
+                  value={aiApiKey}
+                  onChange={(event) => setAiApiKey(event.target.value)}
+                  placeholder="Paste API key"
+                  autoComplete="off"
+                  style={{ flex: 1, minWidth: 0 }}
+                />
+                <button type="button" className="home-primary" disabled={aiApiKeyLoading || !aiApiKey.trim()} onClick={() => void connectAIKey()}>
+                  {aiApiKeyLoading ? "Checking…" : "Connect AI"}
+                </button>
+              </div>
+            </div>
             {localAITestEnabled && <div className="settings-card">
               <strong>Quick OpenRouter test</strong>
               <span>{localAIConfigured ? "Connected for this session" : "Not connected"}</span>
