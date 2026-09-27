@@ -21,6 +21,77 @@ const DEFAULT_TASK_TOKEN_BUDGET = 7_000;
 const MAX_RESULT_LENGTH = 8_000;
 const MAX_CONTEXT_RESULTS = 6;
 const MAX_ACTION_FINGERPRINT_LENGTH = 1800;
+const MAX_COMPACT_HISTORY_CHARS = 5_000;
+const MAX_COMPACT_HISTORY_ITEMS = 8;
+const MAX_COMPACT_INPUT_CHARS = 320;
+const MAX_COMPACT_OUTPUT_CHARS = 520;
+
+export function compactAgentHistory(results: AgentToolResult[]): AgentToolResult[] {
+  if (results.length === 0) return [];
+
+  const normalized = results
+    .map((item) => {
+      const output = item.result.output.replace(/\s+/g, " ").trim();
+      const input = item.input.replace(/\s+/g, " ").trim();
+      const compactInput = (() => {
+        try {
+          const parsed = JSON.parse(item.input) as Record<string, unknown>;
+          if (item.tool === "writeFile" && typeof parsed.path === "string") {
+            return JSON.stringify({ path: parsed.path, content: `<${typeof parsed.content === "string" ? parsed.content.length : 0} chars>` });
+          }
+          if (item.tool === "patchFile" && typeof parsed.path === "string") {
+            return JSON.stringify({
+              path: parsed.path,
+              find: typeof parsed.find === "string" ? parsed.find.slice(0, 120) : "",
+              replace: `<${typeof parsed.replace === "string" ? parsed.replace.length : 0} chars>`,
+            });
+          }
+          if (item.tool === "runSandbox" && typeof parsed.command === "string") {
+            return JSON.stringify({ command: parsed.command });
+          }
+        } catch {
+          // Keep non-JSON tool inputs as text.
+        }
+        return input.slice(0, MAX_COMPACT_INPUT_CHARS);
+      })();
+
+      const outputLimit = item.result.success
+        ? (item.tool === "listFiles" || item.tool === "searchFiles" ? 700 : MAX_COMPACT_OUTPUT_CHARS)
+        : 700;
+      const compactOutput = output.length <= outputLimit
+        ? output
+        : `${output.slice(0, Math.max(120, outputLimit - 180))} … ${output.slice(-160)}`;
+      return {
+        ...item,
+        input: compactInput,
+        result: { ...item.result, output: compactOutput },
+      };
+    })
+    .filter((item, index, all) => !all.slice(0, index).some((candidate) =>
+      candidate.tool === item.tool &&
+      candidate.input === item.input &&
+      candidate.result.success === item.result.success &&
+      candidate.result.output === item.result.output,
+    ));
+
+  const recent = normalized.slice(-MAX_COMPACT_HISTORY_ITEMS);
+  const recentKeys = new Set(recent.map((item) => `${item.tool}|${item.input}|${item.result.success}`));
+  const recentFailures = normalized
+    .filter((item) => !item.result.success)
+    .slice(-3)
+    .filter((item) => !recentKeys.has(`${item.tool}|${item.input}|${item.result.success}`));
+  const selected = [...recentFailures, ...recent];
+
+  const compacted: AgentToolResult[] = [];
+  let usedChars = 0;
+  for (const item of selected) {
+    const lineSize = item.tool.length + item.input.length + item.result.output.length + 48;
+    if (compacted.length > 0 && usedChars + lineSize > MAX_COMPACT_HISTORY_CHARS) break;
+    compacted.push(item);
+    usedChars += lineSize;
+  }
+  return compacted;
+}
 
 export interface AgentEvent {
   id: number;
@@ -118,7 +189,7 @@ export class AgentLoop {
           productPlannerCreated = true;
           const aiOptions = aiOptionsForTask(options);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
-          productPlan = await this.runtime.createProductPlan(task, previousResults, aiOptions as AgentModelOptions);
+          productPlan = await this.runtime.createProductPlan(task, compactAgentHistory(previousResults), aiOptions as AgentModelOptions);
           this.onPlan?.(productPlan);
           emit({ iteration, type: "thinking", message: `План готов: ${productPlan.productType}; ${productPlan.pages.length} экранов; ${productPlan.acceptanceCriteria.length} критериев проверки.` });
         } catch (error) {
@@ -132,7 +203,7 @@ export class AgentLoop {
           aiPlannerCalls += 1;
           const aiOptions = aiOptionsForTask(options);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
-          modelPlan = await this.runtime.planWithAI(task, previousResults, aiOptions as AgentModelOptions, productPlan ?? undefined);
+          modelPlan = await this.runtime.planWithAI(task, compactAgentHistory(previousResults), aiOptions as AgentModelOptions, productPlan ?? undefined);
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI planning failed";
           if (/(?:rate limit|rate-limit|too many requests|429)/i.test(message)) {
@@ -247,7 +318,6 @@ export class AgentLoop {
             });
             continue;
           }
-
           if (!meaningfulImplementation) continue;
 
           if (!verifiedBuild && projectHasBuildScript(previousResults) && availableTools.includes("runCommand")) {
@@ -407,7 +477,7 @@ export class AgentLoop {
           emit({ iteration, type: "thinking", message: "Запускаю финальный self-review: сверяю реализацию с Product Plan и ищу недостающие функции." });
           const aiOptions = aiOptionsForTask(options);
             if (!aiOptions) throw new Error("Task AI token budget exhausted");
-            const review = await this.runtime.reviewProduct(task, previousResults, productPlan, aiOptions as AgentModelOptions);
+            const review = await this.runtime.reviewProduct(task, compactAgentHistory(previousResults), productPlan, aiOptions as AgentModelOptions);
           if (!review.passed) {
             const feedback = [
               "Final self-review failed.",
@@ -497,8 +567,7 @@ export class AgentLoop {
           ? (packageChanged ? ["npm install", "npm run build"] : ["npm run build"])
           : (packageChanged ? ["npm install"] : []);
         for (const command of commands) {
-          const commandResult = await this.runtime.executeTool("runCommand", command);
-          const commandStep: AgentStep = { iteration, tool: "runCommand", input: command, success: commandResult.success };
+          const commandResult = await this.runtime.executeTool("runCommand", command);          const commandStep: AgentStep = { iteration, tool: "runCommand", input: command, success: commandResult.success };
           steps.push(commandStep);
           this.onStep?.(commandStep);
           previousResults.push({ iteration, tool: "runCommand", input: command, result: commandResult });
@@ -611,10 +680,10 @@ export class AgentLoop {
       return `Готово. Проект реально изменён. Файлов изменено: ${writes}.${changedFiles.length ? ` Изменения: ${changedFiles.join(", ")}.` : ""} Production-сборка: ${builds > 0 ? "проверена" : "не запускалась"}. Откройте Preview и AI Activity.`;
     }
 
-    const summary = results
+    const summary = compactAgentHistory(results)
       .map((item) => {
         if (item.tool === "readFile") return "readFile: file content inspected successfully";
-        return `${item.tool}: ${item.result.output.slice(0, MAX_RESULT_LENGTH)}`;
+        return `${item.tool}: ${item.result.output}`;
       })
       .join("\n");
     try {
