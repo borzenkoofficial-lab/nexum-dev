@@ -157,6 +157,48 @@ export class ProjectManager {
     await writeFile(this.storePath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
   }
 
+  private defaultIndexHtml(name: string): string {
+    return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${name}</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="shell">
+    <section class="card">
+      <span class="eyebrow">NEXUM.DEV</span>
+      <h1>${name}</h1>
+      <p>Your project is ready. Ask the Agent to design and build it.</p>
+      <button id="action">Start building</button>
+    </section>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>`;
+  }
+
+  private defaultStyleCss(): string {
+    return `:root { font-family: Inter, system-ui, sans-serif; color: #111; background: #f4f4f0; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+.shell { min-height: 100vh; display: grid; place-items: center; padding: 32px; }
+.card { width: min(720px, 100%); padding: 48px; border: 1px solid #ddd; border-radius: 24px; background: white; box-shadow: 0 20px 60px rgba(0,0,0,.08); }
+.eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .16em; color: #666; }
+h1 { font-size: clamp(40px, 8vw, 76px); line-height: .95; margin: 16px 0; }
+p { color: #666; font-size: 18px; line-height: 1.5; }
+button { border: 0; border-radius: 12px; padding: 14px 20px; background: #111; color: white; font-weight: 700; cursor: pointer; }`;
+  }
+
+  private defaultAppJs(name: string): string {
+    return `document.getElementById("action")?.addEventListener("click", () => {
+  document.querySelector("p").textContent = "NEXUM Agent can now replace this starter with your real product.";
+  document.title = "${name} — NEXUM";
+});`;
+  }
+
   private validateName(name: string): string {
     const value = name.trim();
     if (!value || value.length > 64 || !/^[\p{L}\p{N}][\p{L}\p{N} _-]*$/u.test(value)) {
