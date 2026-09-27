@@ -21,7 +21,7 @@ export function diagnoseError(output: string): ErrorDiagnosis {
   const fileMatches = [...text.matchAll(/(?:^|\s)([A-Za-z0-9_.-]+\/(?:[A-Za-z0-9_./-]+)|(?:src|app|pages)\/[A-Za-z0-9_./-]+):\d+(?::\d+)?/g)]
     .map((match) => match[1])
     .filter(Boolean);
-  const likelyFiles = [...new Set(fileMatches)].slice(0, 8);
+  const likelyFiles = [...new Set(fileMatches.filter((file): file is string => Boolean(file)))].slice(0, 8);
 
   if (/(?:TS\d+|TypeScript|tsc)/i.test(text)) {
     return { category: "typescript", summary: "TypeScript error", evidence: text.slice(-1600), likelyFiles, strategy: "Inspect the reported file and type error, apply the smallest targeted fix, then rerun typecheck/build." };
