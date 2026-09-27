@@ -97,7 +97,7 @@ export interface AgentEvent {
   id: number;
   timestamp: number;
   iteration: number;
-  type: "thinking" | "tool-start" | "tool-success" | "tool-error" | "completed" | "failed";
+  type: "thinking" | "tool-start" | "tool-success" | "tool-error" | "completed" | "failed";\n  phase: AgentPhase;
   tool?: string;
   message: string;
 }
@@ -119,6 +119,7 @@ export class AgentLoop {
     const actionAttempts = new Map<string, number>();
     const seenPlannerContexts = new Set<string>();
     let eventId = 0;
+    let phase: AgentPhase = "analyze";
     let productPlan: ProductPlan | null = null;
     let productReviewAttempts = 0;
     let remotePlannerRateLimited = false;
@@ -155,13 +156,19 @@ export class AgentLoop {
         /React\/Vite scaffold created/i.test(item.result.output)
       );
     };
-    const emit = (event: Omit<AgentEvent, "id" | "timestamp">) => {
-      this.onEvent?.({ ...event, id: ++eventId, timestamp: Date.now() });
+    const transition = (next: AgentPhase) => {
+      if (phase === next) return;
+      phase = next;
+      emit({ iteration: 0, type: "thinking", phase, message: `Стадия агента: ${phase}.` });
     };
-    emit({ iteration: 0, type: "thinking", message: "Принял запрос. Анализирую проект и выбираю следующий шаг." });
+    const emit = (event: Omit<AgentEvent, "id" | "timestamp" | "phase"> & { phase?: AgentPhase }) => {
+      this.onEvent?.({ ...event, phase: event.phase ?? phase, id: ++eventId, timestamp: Date.now() });
+    };
+    emit({ iteration: 0, type: "thinking", phase: "analyze", message: "Принял запрос. Анализирую проект и выбираю следующий шаг." });
 
     for (let iteration = 1; iteration <= this.maxIterations; iteration += 1) {
       const availableTools = this.runtime.getAvailableTools();
+      transition(previousResults.length === 0 ? "analyze" : phase === "repair" ? "repair" : "plan");
 
       // Builder sessions always inspect the active project before planning or editing.
       // This prevents the model from inventing a new app or answering with source code.
@@ -250,6 +257,7 @@ export class AgentLoop {
       // Prefer the model plan when available. If it repeats an action that
       // already failed, switch to the deterministic planner so recovery can continue.
       let plan = modelPlan ?? this.runtime.plan(task, previousResults);
+      if (plan && !plan.done) transition(plan.tool === "runCommand" || plan.tool === "runSandbox" ? "validate" : plan.tool === "readFile" || plan.tool === "listFiles" || plan.tool === "searchFiles" ? "analyze" : "implement");
       if (modelPlan) {
         const modelActionKey = this.actionFingerprint(modelPlan.tool, modelPlan.input);
         const repeatedFailure = previousResults.some(
@@ -297,6 +305,7 @@ export class AgentLoop {
       if (!plan) {
         emit({ iteration, type: "completed", message: "Дополнительных действий не требуется. Формирую итог." });
         return {
+          phase: "finish",
           success: true,
           iterations: iteration - 1,
           steps,
@@ -306,6 +315,7 @@ export class AgentLoop {
       }
 
       if (plan.done) {
+        transition("verify");
         const buildTask = /создай|сделай|разработай|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(task);
         const scaffoldedProject = previousResults.some((item) => item.tool === "scaffoldProject" && item.result.success);
         const meaningfulImplementationCount = previousResults.filter((item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success).length;
@@ -356,7 +366,7 @@ export class AgentLoop {
               tool: "runCommand",
               message: result.success ? "Production-сборка подтверждена." : `Сборка не прошла: ${result.output.slice(0, 500)}`,
             });
-            if (!result.success) continue;
+            if (!result.success) { transition("repair"); continue; }
           }
         }
 
@@ -403,7 +413,7 @@ export class AgentLoop {
               ? "Статический проект прошёл проверку."
               : `Найдены ошибки: ${validation.output.slice(0, 700)}`,
           });
-          if (!validation.success) continue;
+          if (!validation.success) { transition("repair"); continue; }
         }
 
         const hasProjectChanges = previousResults.some((item) =>
@@ -464,7 +474,7 @@ export class AgentLoop {
           const buildSucceeded = previousResults.some(
             (item) => item.tool === "runCommand" && item.input === "npm run build" && item.result.success,
           );
-          if (!buildSucceeded) continue;
+          if (!buildSucceeded) { transition("repair"); continue; }
         }
 
         const hasSuccessfulProjectTest = previousResults.some(
@@ -491,7 +501,7 @@ export class AgentLoop {
               ? "Автоматические проверки проекта пройдены."
               : `Tester Agent нашёл проблему: ${testResult.output.slice(0, 900)}`,
           });
-          if (!testResult.success) continue;
+          if (!testResult.success) { transition("repair"); continue; }
         }
 
         if (builderTask && productPlan && this.runtime.reviewProduct && productReviewAttempts < MAX_PRODUCT_REVIEW_CALLS) {
@@ -515,6 +525,7 @@ export class AgentLoop {
           emit({ iteration, type: "tool-success", tool: "productReview", message: "Self-review пройден: реализация соответствует плану." });
         }
 
+        transition("finish");
         emit({ iteration, type: "completed", message: "Все запланированные действия выполнены. Self-review и проверки пройдены." });
         return {
           success: true,
