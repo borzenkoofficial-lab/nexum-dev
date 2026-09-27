@@ -1,4 +1,5 @@
 import type { AIGateway } from "../ai/gateway.js";
+import { diagnoseError } from "./errorRecovery.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
 import type {
   AgentModelOptions,
@@ -393,6 +394,15 @@ export class AgentLoop {
         tool: plan.tool,
         message: result.success ? this.describeToolSuccess(plan.tool, result.output) : this.describeToolError(plan.tool, result.output),
       });
+      if (!result.success) {
+        const diagnosis = diagnoseError(result.output);
+        emit({
+          iteration,
+          type: "thinking",
+          tool: "Error Recovery",
+          message: `Ошибка классифицирована как ${diagnosis.category}: ${diagnosis.summary}. ${diagnosis.strategy}`,
+        });
+      }
 
       // A scaffold is only the baseline. Once the agent writes the requested
       // implementation, immediately rebuild so Preview always reflects the
