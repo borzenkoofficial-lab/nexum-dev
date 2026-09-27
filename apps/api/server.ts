@@ -13,6 +13,7 @@ import { readFile, stat, readdir } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
+import { GitTool } from "./agent/tools/git.js";
 
 dotenv.config();
 
@@ -260,6 +261,26 @@ app.put("/api/projects/:id/file", async (req, res) => {
     }
     await (await import("node:fs/promises")).writeFile(filePath, content, "utf8");
     return res.json({ success: true, path: projectRelative });
+  } catch (error) {
+    return sendProjectError(res, error);
+  }
+});
+
+app.get("/api/projects/:id/git/:operation", async (req, res) => {
+  try {
+    const project = await projectManager.getProject(req.params.id);
+    const operation = req.params.operation;
+    if (!["status", "diff", "diff-stat", "log", "branch"].includes(operation)) {
+      return res.status(400).json({ success: false, error: "Unsupported Git operation" });
+    }
+    const result = await new GitTool(resolve(project.path)).execute(operation);
+    return res.status(result.success ? 200 : 422).json({
+      success: result.success,
+      operation: result.operation,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      exitCode: result.exitCode,
+    });
   } catch (error) {
     return sendProjectError(res, error);
   }
