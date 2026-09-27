@@ -2,6 +2,7 @@ import "./App.css";
 import { useEffect, useRef, useState } from "react";
 import { ChatPanel } from "./components/ChatPanel";
 import { CommandPalette } from "./components/CommandPalette";
+import { CodePanel } from "./components/CodePanel";
 import { NewProjectModal } from "./components/NewProjectModal";
 import { QuickActions } from "./components/QuickActions";
 import { RightPanel } from "./components/RightPanel";
@@ -30,6 +31,7 @@ function App() {
   const [aiStatus, setAIStatus] = useState<AIProviderStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"preview" | "files" | "agent">("preview");
+  const [codeMode, setCodeMode] = useState(false);
   const [notice, setNotice] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [previewOnline, setPreviewOnline] = useState(false);
@@ -691,12 +693,12 @@ function App() {
           <div className="project-editor-status"><span className={previewOnline ? "status-dot online" : "status-dot"} />{agentStage && !["completed","error"].includes(agentStage) ? "Агент работает" : previewOnline ? "Preview готов" : "Готов к работе"}</div>
           <div className="project-editor-actions">
             <button type="button" onClick={() => setRightTab("preview")}>Preview</button>
-            <button type="button" onClick={() => setRightTab("files")}>Code</button>
+            <button type="button" className="project-code-button" onClick={() => setCodeMode(true)}>Nexum Code</button>
             <button type="button" onClick={() => setRightTab("agent")}>Agent</button>
             <button className="project-editor-share" type="button" onClick={() => { const url = window.location.origin + "/api/preview/" + activeProjectId + "/index.html"; void navigator.clipboard.writeText(url).then(() => setNotice("Ссылка скопирована")).catch(() => setNotice(url)); }}>Share</button>
           </div>
         </div>
-        <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
+        {codeMode ? <CodePanel projectId={activeProjectId} projectName={activeProject?.name ?? "NEXUM"} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setPreviewKey((key) => key + 1)} onClose={() => setCodeMode(false)} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
             <ChatPanel projectName={activeProject?.name ?? "NEXUM"} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => setRightTab("agent")} />
             <QuickActions onNewProject={() => setModalOpen(true)} onOpenProject={openProjectPicker} onAsk={() => focusTask()} onTask={runTask}
@@ -704,7 +706,7 @@ function App() {
               onDeploy={() => { window.open(`/api/preview/${activeProjectId}/index.html`, "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }} />
           </div>
           <RightPanel tab={rightTab} onTabChange={setRightTab} projectName={activeProject?.name ?? "NEXUM"} projectId={activeProjectId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setPreviewKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} />
-        </div>
+        </div>}}
         </>
         )}
       </main>
