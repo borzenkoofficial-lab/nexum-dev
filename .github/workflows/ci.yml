@@ -21,7 +21,7 @@ jobs:
             apps/api/package-lock.json
             apps/web/package-lock.json
       - name: Install API
-        run: npm ci --prefix apps/api
+        run: npm install --prefix apps/api
       - name: Install Web
         run: npm ci --prefix apps/web
       - name: Typecheck API
