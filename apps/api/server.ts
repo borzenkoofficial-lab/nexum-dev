@@ -75,7 +75,8 @@ async function runChatJob(
     const agent = new NexumAgent(aiGateway, project.path);
     const agentLoop = new AgentLoop(agent, aiGateway, undefined, (step) => {
       job.steps = [...(job.steps ?? []), step];
-      job.updatedAt = Date.now();\n    });
+      job.updatedAt = Date.now();
+    });
     const result = await agentLoop.run(message, {
       ...(provider === undefined ? {} : { provider }),
       ...(model === undefined ? {} : { model }),
