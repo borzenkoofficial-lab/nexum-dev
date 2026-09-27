@@ -120,7 +120,7 @@ export class RunCommandTool implements Tool {
       throw new Error("Only npm run build/test/lint/typecheck are allowed");
     }
 
-    return { executable: "npm", args };
+    return { executable: "npm", args: normalizedArgs };
   }
 
   private validateNpx(args: string[]): { executable: string; args: string[] } {
