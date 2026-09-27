@@ -25,7 +25,7 @@ export function TopBar({
   onModelChange,
   onToggleSidebar,
 }: TopBarProps) {
-  const stageLabel = stage === "thinking" ? "Thinking..." : stage === "running" ? "Running tool..." : stage === "building" ? "Building..." : "Ready";
+  const stageLabel = stage === "thinking" ? "Thinking..." : stage === "analyzing" ? "Analyzing project..." : stage === "planning" ? "Planning..." : stage === "reading" ? "Reading files..." : stage === "editing" ? "Editing files..." : stage === "running" ? "Running agent..." : stage === "building" ? "Building..." : stage === "testing" ? "Testing..." : stage === "completed" ? "Completed" : stage === "error" ? "Needs attention" : "Ready";
 
   return (
     <header className="header">
