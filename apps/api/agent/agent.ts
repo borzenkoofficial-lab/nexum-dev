@@ -22,6 +22,7 @@ import { GitHubTool } from "./tools/github.js";
 import { ProjectWorkspace } from "./tools/workspace.js";
 import { WriteFileTool } from "./tools/writeFile.js";
 import { ScaffoldProjectTool } from "./tools/scaffoldProject.js";
+import { ValidateProjectTool } from "./tools/validateProject.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -40,6 +41,7 @@ export class NexumAgent implements AgentRuntime {
       new ReadFileTool(workspace),
       new WriteFileTool(workspace),
       new ScaffoldProjectTool(workspace),
+      new ValidateProjectTool(workspace),
       new SearchFilesTool(workspace),
       new RunCommandTool(projectRoot),
       new RunSandboxTool(projectRoot),
@@ -183,7 +185,8 @@ ${result.output}`
       "readFile: input is a relative file path string",
       'writeFile: input is JSON object {"path":"relative/path","content":"file contents"}',
       "searchFiles: input is the text to search for",
-      "scaffoldProject: input is the app brief; creates the project starter files",
+      "scaffoldProject: input is the app brief; creates the project starter files only in an empty project",
+      "validateProject: input is ., performs static validation of HTML/CSS/JS/JSON before Preview",
       "runCommand: input is one allowlisted command for the active project, such as npm install, npm run build or npm run test",
       'runSandbox: input is JSON object {"projectPath":".","command":"npm run build"}; projectPath is always forced to the active project',
       "git: input is one of status, diff, diff-stat, log, branch",
