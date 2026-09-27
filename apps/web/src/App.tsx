@@ -340,9 +340,18 @@ function App() {
       const data = (await response.json()) as { project: Project };
       await selectProject(data.project.id);
       setView("project");
-      setMessage(data.description);
+      const buildBrief = [
+        `Создай новый проект типа «${data.project.type ?? data.type}».`,
+        data.description.trim()
+          ? `Задача пользователя: ${data.description.trim()}`
+          : `Начни с полноценной реализации проекта типа «${data.project.type ?? data.type}» и выбери подходящую структуру приложения.`,
+        "Тип проекта — обязательное требование: реализуй именно этот тип продукта, а не обычный лендинг.",
+        "Не ограничивайся созданием названия или стартового шаблона: создай рабочую структуру, интерфейс, страницы, компоненты и необходимые сценарии для выбранного типа.",
+      ].join("\n");
+      setMessage(data.description.trim());
       setNewProjectName("");
       setModalOpen(false);
+      void sendMessage(buildBrief, data.project.id);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Не удалось создать проект");
     } finally {
@@ -350,8 +359,9 @@ function App() {
     }
   }
 
-  async function sendMessage(task = message) {
-    if (!task.trim() || !activeProjectId) return;
+  async function sendMessage(task = message, projectIdOverride?: string) {
+    const targetProjectId = projectIdOverride ?? activeProjectId;
+    if (!task.trim() || !targetProjectId) return;
     setLastMessage(task);
     setBuilderStarted(true);
     setRightTab("agent");
@@ -377,7 +387,7 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: task,
-          projectId: activeProjectId,
+          projectId: targetProjectId,
           provider: aiProvider,
           model: aiModel,
           attachments: serializedAttachments,
