@@ -1,15 +1,15 @@
-import type { AIПровайдерInfo, AIПровайдерStatus, AgentStage } from "./types";
+import type { AIProviderInfo, AIProviderStatus, AgentStage } from "./types";
 
 interface TopBarProps {
   projectName: string;
-  providers: AIПровайдерInfo[];
+  providers: AIProviderInfo[];
   models: string[];
   provider: string;
   model: string;
-  aiStatus: AIПровайдерStatus | null;
+  aiStatus: AIProviderStatus | null;
   stage: AgentStage;
-  onПровайдерChange: (id: string) => void;
-  onМодельChange: (model: string) => void;
+  onProviderChange: (id: string) => void;
+  onModelChange: (model: string) => void;
   onToggleSidebar: () => void;
 }
 
@@ -21,8 +21,8 @@ export function TopBar({
   model,
   aiStatus,
   stage,
-  onПровайдерChange,
-  onМодельChange,
+  onProviderChange,
+  onModelChange,
   onToggleSidebar,
 }: TopBarProps) {
   const stageLabel = stage === "thinking" ? "Думаю…" : stage === "analyzing" ? "Анализирую проект…" : stage === "planning" ? "Планирую…" : stage === "reading" ? "Читаю файлы…" : stage === "editing" ? "Изменяю файлы…" : stage === "running" ? "Агент работает…" : stage === "building" ? "Собираю…" : stage === "testing" ? "Проверяю…" : stage === "completed" ? "Готово" : stage === "error" ? "Требуется внимание" : "Готов";
@@ -36,10 +36,10 @@ export function TopBar({
       </div>
       <div className="header-tools">
         <div className="ai-controls" aria-label="Выбор провайдера и модели ИИ">
-          <label><span>Провайдер</span><select value={provider} aria-label="AI provider" onChange={(event) => onПровайдерChange(event.target.value)}>
+          <label><span>Провайдер</span><select value={provider} aria-label="AI provider" onChange={(event) => onProviderChange(event.target.value)}>
             {providers.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
           </select></label>
-          <label><span>Модель</span><select value={model} aria-label="AI model" onChange={(event) => onМодельChange(event.target.value)}>
+          <label><span>Модель</span><select value={model} aria-label="AI model" onChange={(event) => onModelChange(event.target.value)}>
             {(models.length > 0 ? models : [model]).map((item) => <option value={item} key={item}>{item}</option>)}
           </select></label>
           {aiStatus && (
