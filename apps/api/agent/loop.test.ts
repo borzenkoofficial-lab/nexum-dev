@@ -80,7 +80,7 @@ test("stops repeated identical actions", async () => {
   assert.equal(result.success, false);
   assert.equal(result.iterations, 1);
   assert.equal(result.steps.length, 1);
-  assert.match(result.error ?? "", /repeated action/i);
+  assert.match(result.error ?? "", /repeated.*action/i);
 });
 
 test("automatically installs and builds a generated React/Vite scaffold", async () => {
