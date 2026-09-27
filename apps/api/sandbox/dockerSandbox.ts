@@ -111,7 +111,7 @@ export class DockerSandbox {
     if (normalizedArgs[0] !== "run" || !ALLOWED_NPM_SCRIPTS.has(normalizedArgs[1] ?? "")) {
       throw new Error("Only npm run build/test/lint/typecheck are allowed in Sandbox");
     }
-    return { executable: "npm", args };
+    return { executable: "npm", args: normalizedArgs };
   }
 
   private validateNpx(args: string[]): { executable: string; args: string[] } {
