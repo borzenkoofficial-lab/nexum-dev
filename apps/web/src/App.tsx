@@ -39,6 +39,7 @@ function App() {
   const [chatJobId, setChatJobId] = useState<string | null>(null);
   const [view, setView] = useState<"home" | "project" | "connectors" | "settings">("project");
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
 
   const activeProject = projects.find((project) => project.id === activeProjectId);
   const selectedModels = aiModels[aiProvider] ?? [];
@@ -323,6 +324,17 @@ function App() {
         ) : view === "settings" ? (
           <section className="settings-page"><div className="page-heading"><div><div className="eyebrow">WORKSPACE</div><h1>Settings</h1><p>Workspace configuration and AI defaults.</p></div></div><div className="settings-card"><strong>AI provider</strong><span>{aiProvider} · {aiModel}</span><small>Change the active provider and model from the top bar.</small></div><div className="settings-card"><strong>Projects</strong><span>{projects.filter((project) => project.status === "active").length} active</span><small>Each project has its own workspace and files.</small></div></section>
         ) : (
+        <>
+        <div className="workspace-toolbar">
+          <div className="workspace-breadcrumb"><span>Projects</span><b>/</b><strong>{activeProject?.name ?? "NEXUM"}</strong></div>
+          <div className="workspace-actions">
+            <button type="button" onClick={() => setConnectorModal("Project connector")}>◇ Connect</button>
+            <button type="button" onClick={() => setNotice("Share link generation is next")}>↗ Share</button>
+            <button className="workspace-deploy" type="button" onClick={() => setNotice("Deploy pipeline is ready for the next integration step")}>Deploy</button>
+            <button className="workspace-more" type="button" aria-label="Project menu" onClick={() => setWorkspaceMenuOpen((open) => !open)}>•••</button>
+            {workspaceMenuOpen && <div className="workspace-menu"><button type="button" onClick={() => { setWorkspaceMenuOpen(false); setView("settings"); }}>Project settings</button><button type="button" onClick={() => { setWorkspaceMenuOpen(false); setNotice("Project duplication is next"); }}>Duplicate project</button></div>}
+          </div>
+        </div>
         <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
             <ChatPanel message={message} reply={reply} stage={agentStage} apiError={apiError} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} />
@@ -330,6 +342,7 @@ function App() {
           </div>
           <RightPanel tab={rightTab} onTabChange={setRightTab} onOpenTerminal={() => setBottomPanelOpen(true)} projectName={activeProject?.name ?? "NEXUM"} projectId={activeProjectId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setPreviewKey((key) => key + 1)} />
         </div>
+        </>
         )}
       </main>
       <BottomPanel open={bottomPanelOpen} onClose={() => setBottomPanelOpen(false)} />
