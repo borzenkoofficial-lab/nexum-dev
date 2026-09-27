@@ -87,7 +87,7 @@ export class AIOrchestrator {
   }
 
   private shouldTryNextModel(message: string): boolean {
-    return /(?:429|rate.?limit|too many requests|temporar|timeout|timed out|5\\d{2})/i.test(message);
+    return /(?:429|rate.?limit|too many requests|temporar|timeout|timed out|5\d{2})/i.test(message);
   }
 
   modelFor(role: AIOrchestratorRole): string {
