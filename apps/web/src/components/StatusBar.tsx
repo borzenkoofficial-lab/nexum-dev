@@ -11,13 +11,13 @@ export function StatusBar({ projectName, provider, aiStatus, previewOnline }: St
   return (
     <footer className="status-bar">
       <span className="status-brand">NEXUM.DEV</span>
-      <span>Project: {projectName}</span>
-      <span>Branch: main</span>
-      <span>AI: {aiStatus?.available ? `${provider} · online` : `${provider} · offline`}</span>
-      <span>Preview: {previewOnline ? "LIVE" : "OFFLINE"}</span>
-      <span>Problems: 0</span>
-      <span>Tests: 22 passed</span>
-      <span>Environment: Codespace</span>
+      <span>Проект: {projectName}</span>
+      <span>Ветка: main</span>
+      <span>ИИ: {aiStatus?.available ? `${provider} · онлайн` : `${provider} · офлайн`}</span>
+      <span>Предпросмотр: {previewOnline ? "РАБОТАЕТ" : "ОФЛАЙН"}</span>
+      <span>Проблемы: 0</span>
+      <span>Тесты: 22 пройдено</span>
+      <span>Среда: Codespace</span>
         </footer>
   );
 }
