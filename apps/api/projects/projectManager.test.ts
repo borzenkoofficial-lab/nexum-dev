@@ -27,6 +27,14 @@ test("creates, lists and gets projects", async () => {
   assert.deepEqual(loaded, project);
 });
 
+test("creates safe ids for Cyrillic project names", async () => {
+  const { manager } = await createManager();
+  await manager.initialize();
+  const project = await manager.createProject("Мой проект");
+  assert.equal(project.id, "moy-proekt");
+  assert.equal(project.status, "active");
+});
+
 test("selects a project and archives without deleting files", async () => {
   const { manager } = await createManager();
   await manager.initialize();
