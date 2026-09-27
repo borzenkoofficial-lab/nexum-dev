@@ -125,6 +125,44 @@ export class AgentLoop {
         message: result.success ? this.describeToolSuccess(plan.tool, result.output) : this.describeToolError(plan.tool, result.output),
       });
 
+      // A React/Vite scaffold is not usable in Preview until its production
+      // bundle exists. Build it automatically instead of leaving that step
+      // to the user or the model's next planning iteration.
+      if (result.success && plan.tool === "scaffoldProject" && /React\/Vite scaffold created/i.test(result.output)) {
+        for (const command of ["npm install", "npm run build"]) {
+          if (!availableTools.includes("runCommand")) {
+            const error = "React/Vite project was created, but runCommand is unavailable to install dependencies and build it.";
+            emit({ iteration, type: "failed", tool: "runCommand", message: error });
+            return { success: false, iterations: iteration, steps, error };
+          }
+          const commandKey = `runCommand:${command}`;
+          if (seenActions.has(commandKey)) {
+            const error = `Agent stopped: repeated build command detected (${command})`;
+            emit({ iteration, type: "failed", tool: "runCommand", message: error });
+            return { success: false, iterations: iteration, steps, error };
+          }
+          seenActions.add(commandKey);
+          emit({ iteration, type: "tool-start", tool: "runCommand", message: command === "npm install" ? "Устанавливаю зависимости созданного React-приложения." : "Собираю production-версию для Preview." });
+          const buildResult = await this.runtime.executeTool("runCommand", command);
+          const buildStep: AgentStep = { iteration, tool: "runCommand", input: command, success: buildResult.success };
+          steps.push(buildStep);
+          this.onStep?.(buildStep);
+          previousResults.push({ iteration, tool: "runCommand", input: command, result: buildResult });
+          this.log(iteration, `runCommand ${command}`, buildResult.success ? "success" : "error");
+          emit({
+            iteration,
+            type: buildResult.success ? "tool-success" : "tool-error",
+            tool: "runCommand",
+            message: buildResult.success
+              ? (command === "npm install" ? "Зависимости установлены." : "Production-сборка завершена. Preview готов к открытию.")
+              : `Не удалось выполнить «${command}»: ${buildResult.output.slice(0, 400)}`,
+          });
+          if (!buildResult.success) {
+            return { success: false, iterations: iteration, steps, error: `React/Vite build pipeline failed at ${command}: ${buildResult.output}` };
+          }
+        }
+      }
+
       if (!result.success) {
         // Give the planner a chance to inspect the failure and choose a corrected action.
         // This is important for model-generated paths/commands: one bad tool input must
