@@ -11,6 +11,13 @@ interface RightPanelProps {
   activityEvents: Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>;
   currentActivity: string;
   problems: Array<{ message: string; source?: string }>;
+  productPlan: {
+    goal: string;
+    productType: string;
+    pages: string[];
+    components: string[];
+    acceptanceCriteria: string[];
+  } | null;
   projectName: string;
   projectId: string;
   previewOnline: boolean;
@@ -18,7 +25,7 @@ interface RightPanelProps {
   onRefreshPreview: () => void;
 }
 
-export function RightPanel({ tab, onTabChange, projectName, projectId, previewOnline, previewKey, onRefreshPreview, jobId, stage, activitySteps, activityEvents, currentActivity, problems }: RightPanelProps) {
+export function RightPanel({ tab, onTabChange, projectName, projectId, previewOnline, previewKey, onRefreshPreview, jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan }: RightPanelProps) {
   const previewUrl = projectId ? `/api/preview/${projectId}/index.html` : "";
   const [files, setFiles] = useState<string[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
@@ -115,7 +122,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
       </div>
     );
   } else {
-    panelContent = <AgentActivityPanel jobId={jobId} stage={stage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} />;
+    panelContent = <AgentActivityPanel jobId={jobId} stage={stage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} />;
   }
 
   return (
