@@ -1,6 +1,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AIGateway, GatewayGenerateOptions } from "../ai/gateway.js";
+import { AIOrchestrator } from "../ai/orchestrator.js";
 import type {
   AgentModelOptions,
   AgentRuntime,
@@ -24,11 +25,13 @@ const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../
 
 export class NexumAgent implements AgentRuntime {
   private readonly tools: Map<string, Tool>;
+  private readonly orchestrator: AIOrchestrator;
 
   constructor(
     private readonly gateway: AIGateway,
     public readonly projectRoot = defaultProjectRoot,
   ) {
+    this.orchestrator = new AIOrchestrator(gateway);
     const workspace = new ProjectWorkspace(projectRoot);
     const tools = [
       new ListFilesTool(workspace),
@@ -129,8 +132,14 @@ ${result.output}`
       `Previous tool results:\n${history}`,
     ].join("\n");
 
-    const response = await this.gateway.generate(prompt, options);
-    return this.parseAIPlan(response);
+    const role = /ошибк|error|debug|сборк|build|compile|fix|исправ/i.test(task)
+      ? "debugger"
+      : /создай|разработай|сайт|приложени|dashboard|landing|react|ui|код|code/i.test(task)
+        ? "coder"
+        : "planner";
+    const run = await this.orchestrator.run(role, prompt, options);
+    console.log(JSON.stringify({ type: "ai-role", role: run.role, model: run.model }));
+    return this.parseAIPlan(run.response);
   }
 
   plan(task: string, previousResults: AgentToolResult[]): AgentPlan | null {
