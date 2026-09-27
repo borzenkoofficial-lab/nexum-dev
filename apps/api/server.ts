@@ -206,6 +206,14 @@ async function runChatJob(
     void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
     job.steps = result.steps;
     job.productPlan = result.productPlan;
+    const successfulBuild = result.steps.some((step) =>
+      step.success &&
+      (step.tool === "runCommand" || step.tool === "runSandbox") &&
+      /npm run build/.test(step.input),
+    );
+    if (successfulBuild) {
+      await stateManager.markBuildSucceeded();
+    }
     await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
       try {
         const parsed = JSON.parse(step.input);
