@@ -256,12 +256,20 @@ button { border: 0; border-radius: 12px; padding: 14px 20px; background: #111; c
   }
 
   private createId(name: string): string {
-    const id = name
-      .toLowerCase()
+    const transliteration: Record<string, string> = {
+      а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i",
+      й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t",
+      у: "u", ф: "f", х: "h", ц: "ts", ч: "ch", ш: "sh", щ: "sch", ъ: "", ы: "y", ь: "",
+      э: "e", ю: "yu", я: "ya",
+    };
+    const normalized = [...name.toLowerCase()].map((char) => transliteration[char] ?? char).join("");
+    const id = normalized
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-    this.validateId(id);
-    return id;
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 64);
+    const fallback = id || `project-${Date.now().toString(36)}`;
+    this.validateId(fallback);
+    return fallback;
   }
 
   private validateId(id: string): void {
