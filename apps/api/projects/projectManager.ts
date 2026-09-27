@@ -1,4 +1,4 @@
-import { mkdir, lstat, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, lstat, readFile, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { assertExistingProjectPath, resolveProjectPath } from "../agent/tools/path.js";
 import type { Project, ProjectStatus, ProjectStore } from "./types.js";
@@ -26,7 +26,7 @@ export class ProjectManager {
     this.defaultProject = {
       id: "nexum",
       name: "NEXUM",
-      path: workspaceRoot,
+      path: resolve(this.projectsRoot, "nexum"),
       status: "active",
       createdAt: now,
       updatedAt: now,
@@ -37,13 +37,22 @@ export class ProjectManager {
     if (this.initialized) return;
 
     await mkdir(this.projectsRoot, { recursive: true });
+    await mkdir(this.defaultProject.path, { recursive: true });
     const existing = await this.readStore();
     if (!existing) {
       await this.writeStore({ projects: [this.defaultProject], activeProjectId: this.defaultProject.id });
     } else if (!existing.projects.some((project) => project.id === this.defaultProject.id)) {
       existing.projects.unshift(this.defaultProject);
       await this.writeStore(existing);
+    } else {
+      const storedDefault = existing.projects.find((project) => project.id === this.defaultProject.id);
+      if (storedDefault?.path === this.workspaceRoot) {
+        storedDefault.path = this.defaultProject.path;
+        storedDefault.updatedAt = new Date().toISOString();
+        await this.writeStore(existing);
+      }
     }
+    await this.ensureStarterFiles(this.defaultProject);
     this.initialized = true;
   }
 
@@ -72,6 +81,7 @@ export class ProjectManager {
     };
     store.projects.push(project);
     await this.writeStore(store);
+    await this.ensureStarterFiles(project);
     return project;
   }
 
@@ -155,6 +165,24 @@ export class ProjectManager {
 
   private async writeStore(store: ProjectStore): Promise<void> {
     await writeFile(this.storePath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+  }
+
+  private async ensureStarterFiles(project: Project): Promise<void> {
+    const files = [
+      ["index.html", this.defaultIndexHtml(project.name)],
+      ["style.css", this.defaultStyleCss()],
+      ["app.js", this.defaultAppJs(project.name)],
+    ] as const;
+
+    for (const [name, content] of files) {
+      const filePath = resolve(project.path, name);
+      try {
+        await access(filePath);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+        await writeFile(filePath, content, { encoding: "utf8", flag: "wx" });
+      }
+    }
   }
 
   private defaultIndexHtml(name: string): string {
