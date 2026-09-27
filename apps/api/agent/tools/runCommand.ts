@@ -112,6 +112,13 @@ export class RunCommandTool implements Tool {
       normalizedArgs.splice(prefixIndex, 2);
     }
 
+    if (normalizedArgs[0] === "install") {
+      if (normalizedArgs.slice(1).some((argument) => argument.startsWith("-"))) {
+        throw new Error("npm install flags are not allowed");
+      }
+      return { executable: "npm", args: normalizedArgs };
+    }
+
     if (normalizedArgs[0] === "--version" || normalizedArgs[0] === "-v") {
       return { executable: "npm", args: normalizedArgs };
     }
