@@ -3077,3 +3077,290 @@ body { overflow-x: hidden; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+/* UI stability pass: project chat is a fixed shell. Only history scrolls. */
+.app-project,
+.app-project > .main {
+  min-height: 0;
+}
+.app-project {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.app-project .project-editor-header {
+  position: relative;
+  flex: 0 0 72px;
+  z-index: 12;
+}
+.app-project > .main {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.app-project > .main > .workspace {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.app-project .main-column {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.app-project .main-column > .chat {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  width: auto;
+  max-width: none;
+  padding: 0;
+}
+.app-project .chat-history {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 28px 42px 20px;
+}
+.app-project .chat-history > * {
+  flex-shrink: 0;
+}
+.app-project .chat-history .conversation {
+  overflow: visible;
+}
+.app-project .chat-history .conversation-message {
+  min-width: 0;
+  max-width: min(88%, 680px);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.app-project .chat-history .agent-activity-live {
+  min-width: 0;
+  overflow: visible;
+}
+.app-project .chat-history .agent-activity-live .activity-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.app-project .chat-history .agent-activity-live .activity-copy span {
+  overflow-wrap: anywhere;
+}
+.app-project .message-form {
+  flex: 0 0 auto;
+  width: min(700px, calc(100% - 84px));
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 12px 0 10px;
+  position: relative;
+  z-index: 6;
+}
+.app-project .message-box {
+  min-width: 0;
+  max-width: 100%;
+}
+.app-project .message-box textarea {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.app-project .composer-actions {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.app-project .starter-grid {
+  min-width: 0;
+  max-width: 100%;
+}
+.app-project .starter-grid button {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.app-project .send-button {
+  flex: 0 0 auto;
+}
+.app-project .chat-error-fixed {
+  width: min(700px, calc(100% - 84px));
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+.app-project .chat-error-fixed span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.app-project .chat-footer-fixed {
+  flex: 0 0 auto;
+  width: min(700px, calc(100% - 84px));
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 0 10px;
+  min-width: 0;
+}
+.app-project .chat-footer-fixed .chat-steps {
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.app-project .chat-footer-fixed .quick-git {
+  margin-top: 8px;
+}
+.app-project .main-column > .quick-actions {
+  flex: 0 0 auto;
+  width: min(700px, calc(100% - 84px));
+  max-width: 700px;
+  margin: 0 auto 10px;
+  padding: 0;
+  min-width: 0;
+}
+.app-project .main-column > .quick-actions .quick-action-grid {
+  max-height: none;
+  overflow: visible;
+}
+.app-project .right-panel {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.app-project .right-panel > div:last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.app-project .right-panel > div:last-child > * {
+  min-height: 0;
+}
+.app-project .agent-panel {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 22px;
+  scrollbar-gutter: stable;
+}
+.app-project .agent-panel-header,
+.app-project .agent-current,
+.app-project .agent-timeline,
+.app-project .agent-plan-card,
+.app-project .agent-problems {
+  min-width: 0;
+  max-width: 100%;
+}
+.app-project .agent-panel-header h2,
+.app-project .agent-current p,
+.app-project .agent-event-copy,
+.app-project .agent-event-copy p,
+.app-project .agent-plan-goal,
+.app-project .agent-plan-section span,
+.app-project .agent-problems span {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.app-project .agent-current > div {
+  min-width: 0;
+}
+.app-project .agent-current p {
+  max-height: 5.8em;
+  overflow: auto;
+}
+.app-project .agent-event {
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  min-width: 0;
+}
+.app-project .agent-event-copy {
+  min-width: 0;
+}
+.app-project .agent-event-copy p {
+  max-width: 100%;
+}
+.app-project .agent-event time {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.app-project .agent-plan-section {
+  grid-template-columns: minmax(80px, 100px) minmax(0, 1fr);
+}
+.app-project .preview-frame-wrap,
+.app-project .preview-content,
+.app-project .editor-shell {
+  min-height: 0;
+  height: 100%;
+}
+.app-project .preview-viewport,
+.app-project .editor-body {
+  min-height: 0;
+}
+.app-project .preview-frame {
+  max-width: 100%;
+}
+@media (max-width: 900px) {
+  .app-project .project-editor-header {
+    flex-basis: 64px;
+    height: 64px;
+    min-height: 64px;
+  }
+  .app-project .chat-history {
+    padding: 22px 30px 16px;
+  }
+  .app-project .message-form,
+  .app-project .chat-error-fixed,
+  .app-project .chat-footer-fixed,
+  .app-project .main-column > .quick-actions {
+    width: calc(100% - 60px);
+  }
+  .app-project .right-panel {
+    display: none;
+  }
+}
+@media (max-width: 620px) {
+  .app-project .project-editor-header {
+    flex-basis: 60px;
+    height: 60px;
+    min-height: 60px;
+  }
+  .app-project .chat-history {
+    padding: 18px 18px 12px;
+  }
+  .app-project .message-form,
+  .app-project .chat-error-fixed,
+  .app-project .chat-footer-fixed,
+  .app-project .main-column > .quick-actions {
+    width: calc(100% - 36px);
+  }
+  .app-project .message-form {
+    padding-top: 8px;
+  }
+  .app-project .quick-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .app-project .chat-footer-fixed .chat-steps {
+    display: none;
+  }
+  .app-project .agent-event {
+    grid-template-columns: 22px minmax(0, 1fr);
+  }
+  .app-project .agent-event time {
+    display: none;
+  }
+}
