@@ -200,13 +200,21 @@ const webDist = resolve(workspaceRoot, "apps/web/dist");
 
 app.use(express.static(webDist));
 
-app.use(async (req, res, next) => {
+app.use((req, res, next) => {
   if (req.path.startsWith("/api/")) return next();
-  try {
-    return res.sendFile(resolve(webDist, "index.html"));
-  } catch {
-    return res.status(404).send("NEXUM web app is not built yet.");
-  }
+
+  const indexPath = resolve(webDist, "index.html");
+  return res.sendFile(indexPath, (error) => {
+    if (!error) return;
+
+    // In local development the API and Vite dev server run separately.
+    // Do not let a missing production build turn into an uncaught ENOENT.
+    if (!res.headersSent) {
+      return res.status(404).send(
+        "NEXUM web build is not available here. Open the Vite app on port 5173."
+      );
+    }
+  });
 });
 
 function sendProjectError(res: Response, error: unknown) {
