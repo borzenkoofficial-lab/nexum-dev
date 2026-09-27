@@ -90,11 +90,23 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
 
     const handleError = (event: ErrorEvent) => {
       const message = event.message || "Ошибка выполнения Preview";
-      const compact = message.slice(0, 600);\n      setPreviewError(compact);\n      void fetch("/api/agent/client-error", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: compact, source: "preview", url: frame?.src }) }).catch(() => undefined);
+      const compact = message.slice(0, 600);
+      setPreviewError(compact);
+      void fetch("/api/agent/client-error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: compact, source: "preview", url: frame?.src }),
+      }).catch(() => undefined);
     };
     const handleRejection = (event: PromiseRejectionEvent) => {
       const reason = event.reason instanceof Error ? event.reason.message : String(event.reason ?? "Unhandled promise rejection");
-      const compact = reason.slice(0, 600);\n      setPreviewError(compact);\n      void fetch("/api/agent/client-error", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: compact, source: "preview", url: frame?.src }) }).catch(() => undefined);
+      const compact = reason.slice(0, 600);
+      setPreviewError(compact);
+      void fetch("/api/agent/client-error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: compact, source: "preview", url: frame?.src }),
+      }).catch(() => undefined);
     };
 
     frameWindow.addEventListener("error", handleError);
