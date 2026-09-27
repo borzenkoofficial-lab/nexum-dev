@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { GitTool } from "./agent/tools/git.js";
 import { RunCommandTool } from "./agent/tools/runCommand.js";
+import { assertExistingProjectPath, assertWritableProjectPath, ProjectPathError } from "./agent/tools/path.js";
 
 dotenv.config();
 
@@ -295,10 +296,12 @@ app.get("/api/projects/:id/file", async (req, res) => {
     if (projectRelative.startsWith("..") || projectRelative.includes("../") || projectRelative.includes("..\\") || projectRelative.startsWith(".git/") || projectRelative.includes("node_modules/")) {
       return res.status(403).json({ success: false, error: "Invalid file path" });
     }
+    await assertExistingProjectPath(project.path, requested);
     const details = await stat(filePath);
     if (!details.isFile()) return res.status(404).json({ success: false, error: "File not found" });
     return res.json({ success: true, path: projectRelative, content: await readFile(filePath, "utf8") });
   } catch (error) {
+    if (error instanceof ProjectPathError) return res.status(403).json({ success: false, error: error.message });
     return sendProjectError(res, error);
   }
 });
@@ -313,11 +316,15 @@ app.put("/api/projects/:id/file", async (req, res) => {
     if (projectRelative.startsWith("..") || projectRelative.includes("../") || projectRelative.includes("..\\") || projectRelative.startsWith(".git/") || projectRelative.includes("node_modules/")) {
       return res.status(403).json({ success: false, error: "Invalid file path" });
     }
+    await assertWritableProjectPath(project.path, requested);
     const fs = await import("node:fs/promises");
     await fs.mkdir(dirname(filePath), { recursive: true });
+    // Re-check after creating parent directories to reject symlinked paths.
+    await assertWritableProjectPath(project.path, requested);
     await fs.writeFile(filePath, content, "utf8");
     return res.json({ success: true, path: projectRelative });
   } catch (error) {
+    if (error instanceof ProjectPathError) return res.status(403).json({ success: false, error: error.message });
     return sendProjectError(res, error);
   }
 });
