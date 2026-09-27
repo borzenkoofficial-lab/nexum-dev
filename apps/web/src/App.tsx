@@ -32,7 +32,9 @@ function App() {
   const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"preview" | "terminal">("preview");
   const [notice, setNotice] = useState("");
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);\n  const [previewOnline, setPreviewOnline] = useState(false);\n  const [previewKey, setPreviewKey] = useState(0);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [previewOnline, setPreviewOnline] = useState(false);
+  const [previewKey, setPreviewKey] = useState(0);
 
   const activeProject = projects.find((project) => project.id === activeProjectId);
   const selectedModels = aiModels[aiProvider] ?? [];
@@ -76,7 +78,12 @@ function App() {
         setAIProviders(providers);
         setAIModels(modelsData.models ?? {});
         if (defaultProvider) { setAIProvider(defaultProvider.id); setAIModel(defaultProvider.model); }
-        const ollama = statusData?.status ?? null;\n        setOllamaStatus(ollama);\n        if (ollama?.available) {\n          setAIProvider("ollama");\n          setAIModel(ollama.model);\n        }
+        const ollama = statusData?.status ?? null;
+        setOllamaStatus(ollama);
+        if (ollama?.available) {
+          setAIProvider("ollama");
+          setAIModel(ollama.model);
+        }
       } catch {
         setApiError(true);
       }
