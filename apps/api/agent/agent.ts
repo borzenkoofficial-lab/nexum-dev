@@ -1,5 +1,4 @@
 import { resolve, dirname } from "node:path";
-import { readFile as readTextFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import type { AIGateway, GatewayGenerateOptions } from "../ai/gateway.js";
 import { AIOrchestrator } from "../ai/orchestrator.js";
@@ -211,40 +210,7 @@ ${result.output}`
           .slice(-6)
           .map((item) => `${item.tool}: ${item.result.output.slice(0, 500)}`)
           .join("\n");
-    let projectStateContext = "Project state: unavailable.";\n    let persistentContext = "Persistent project context: unavailable.";\n    try {\n      const context = await buildAgentContext(this.projectRoot, previousResults.map((item) => ({ tool: item.tool, success: item.result.success, output: item.result.output })));\n      persistentContext = formatAgentContext(context);\n    } catch {\n      // Persistent context is advisory; filesystem inspection remains authoritative.\n    }
-    try {
-      const rawState = await readTextFile(resolve(this.projectRoot, ".nexum", "state.json"), "utf8");
-      const state = JSON.parse(rawState) as {
-        projectType?: string;
-        framework?: string | null;
-        entryFiles?: string[];
-        buildCommand?: string | null;
-        previewMode?: string;
-        currentGoal?: string | null;
-        changedFiles?: string[];
-        knownErrors?: string[];
-        lastSuccessfulBuildAt?: string | null;
-        lastFailedTool?: string | null;
-        routes?: string[];
-        designSystem?: string[];
-      };
-      projectStateContext = JSON.stringify({
-        projectType: state.projectType,
-        framework: state.framework,
-        entryFiles: state.entryFiles?.slice(0, 8),
-        buildCommand: state.buildCommand,
-        previewMode: state.previewMode,
-        currentGoal: state.currentGoal,
-        changedFiles: state.changedFiles?.slice(-12),
-        knownErrors: state.knownErrors?.slice(-6),
-        lastSuccessfulBuildAt: state.lastSuccessfulBuildAt,
-        lastFailedTool: state.lastFailedTool,
-        routes: state.routes?.slice(0, 12),
-        designSystem: state.designSystem?.slice(0, 8),
-      });
-    } catch {
-      // The state file is advisory. The filesystem remains the source of truth.
-    }
+    const projectStateContext = "Project state is included in persistent context.";
 
     const prompt = [
       "LANGUAGE PROTOCOL: Russian is the primary language of NEXUM. Understand Russian instructions natively, including colloquial wording and construction/business terminology. Unless the user explicitly asks for another language, every user-facing word in generated websites/apps must be Russian: navigation, buttons, headings, forms, placeholders, errors, empty states, metadata and marketing copy. Do not translate code identifiers, package names, tool names, API fields, file paths or commands. Do not answer a Russian request in English.",
