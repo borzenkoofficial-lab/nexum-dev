@@ -471,11 +471,11 @@ app.use("/api/preview/:id", async (req, res) => {
       // iframe can load JS/CSS/images from the same project preview namespace.
       const previewBase = `/api/preview/${encodeURIComponent(req.params.id)}/`;
       html = html
-        .replace(/(src|href|action)=(["'])\\/(?!\\/)/gi, `$1=$2${previewBase}`)
-        .replace(/url\\((["']?)\\/(?!\\/)/gi, `url($1${previewBase}`);
+        .replace(/(src|href|action)=(["'])\/(?!\/)/gi, `$1=$2${previewBase}`)
+        .replace(/url\((["']?)\/(?!\/)/gi, `url($1${previewBase}`);
 
       const headTag = "<base href=\"" + previewBase + "\">";
-      if (!/<base\\s/i.test(html)) {
+      if (!/<base\s/i.test(html)) {
         const headIndex = html.toLowerCase().indexOf("<head");
         const headClose = html.toLowerCase().indexOf(">", headIndex);
         html = headClose >= 0 ? html.slice(0, headClose + 1) + headTag + html.slice(headClose + 1) : headTag + html;
