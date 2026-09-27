@@ -559,7 +559,10 @@ function App() {
                   setActiveProjectId(data.project.id);
                   setNotice("Project duplicated");
                 } catch (error) { setApiError(error instanceof Error ? error.message : "Duplicate failed"); }
-              }}>Duplicate project</button></div>}
+              }}>Duplicate project</button><button type="button" onClick={() => {
+                setWorkspaceMenuOpen(false);
+                void deleteProject(activeProjectId);
+              }}>Delete project</button></div>}
           </div>
         </div>
         <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
