@@ -92,8 +92,21 @@ async function ensureModel() {
   } catch {}
 
   console.log(`[Ollama] Model missing: ${ollamaModel}`);
-  console.log(`[Ollama] Run once: ollama pull ${ollamaModel}`);
-  return false;
+  console.log(`[Ollama] Downloading ${ollamaModel} automatically...`);
+
+  const result = spawnSync(ollama, ["pull", ollamaModel], {
+    cwd: root,
+    stdio: "inherit",
+    windowsHide: true,
+  });
+
+  if (result.status !== 0) {
+    console.error(`[Ollama] Failed to download ${ollamaModel}.`);
+    return false;
+  }
+
+  console.log(`[Ollama] Model downloaded: ${ollamaModel}`);
+  return true;
 }
 
 async function main() {
@@ -101,8 +114,20 @@ async function main() {
   runInstall("apps/api");
   runInstall("apps/web");
 
-  // API starts first and does not depend on Ollama.
-  // This prevents the UI from reporting an API error just because the local model is offline.
+  // Ollama must be ready before the API starts so the selected model status is accurate.
+  let ollamaProcess = null;
+  if (aiProvider === "ollama") {
+    const ollamaReady = await ensureOllama();
+    if (!ollamaReady) {
+      console.error("[Nexum] Ollama is required for AI_PROVIDER=ollama.");
+      process.exit(1);
+    }
+    if (!(await ensureModel())) {
+      console.error("[Nexum] Ollama model is not available. Startup stopped.");
+      process.exit(1);
+    }
+  }
+
   const apiProcess = spawn(npm, ["--prefix", "apps/api", "run", "start"], {
     cwd: root,
     stdio: "inherit",
@@ -152,14 +177,6 @@ async function main() {
 
   process.on("SIGINT", () => shutdown(0));
   process.on("SIGTERM", () => shutdown(0));
-
-  // Ollama is optional. Do not start it when OpenRouter is the selected provider.
-  if (aiProvider === "ollama") {
-    void (async () => {
-      const ollamaReady = await ensureOllama();
-      if (ollamaReady) await ensureModel();
-    })();
-  }
 
   console.log("");
   console.log("[Nexum] Web: http://localhost:5173");
