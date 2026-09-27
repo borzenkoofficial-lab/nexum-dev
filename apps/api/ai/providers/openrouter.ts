@@ -79,18 +79,18 @@ export class OpenRouterProvider implements AIProvider {
     const text = message.toLowerCase();
 
     if (/code|typescript|javascript|react|vite|npm|bug|error|debug|refactor|file|component|api|database|build|compile|terminal/.test(text)) {
-      return this.models.find((model) => model.includes("north-mini-code") || model.includes("laguna-s-2.1") || model.includes("laguna-xs-2.1")) ?? this.models[0];
+      return this.models.find((model) => model.includes("north-mini-code") || model.includes("laguna-s-2.1") || model.includes("laguna-xs-2.1")) ?? this.models[0]!;
     }
 
     if (/plan|architect|architecture|reason|analy[sz]|research|compare|strategy|agent|multi-step/.test(text)) {
-      return this.models.find((model) => model.includes("nemotron-3-ultra") || model.includes("nemotron-3.5-lightning")) ?? this.models[0];
+      return this.models.find((model) => model.includes("nemotron-3-ultra") || model.includes("nemotron-3.5-lightning")) ?? this.models[0]!;
     }
 
     if (/image|visual|design|ui|ux|screenshot|photo/.test(text)) {
-      return this.models.find((model) => model.includes("gemma")) ?? this.models[0];
+      return this.models.find((model) => model.includes("gemma")) ?? this.models[0]!;
     }
 
-    return this.models.find((model) => model.includes("qwen")) ?? this.models[0];
+    return this.models.find((model) => model.includes("qwen")) ?? this.models[0]!;
   }
 
   private buildCandidates(model: string, message: string): string[] {
