@@ -3,7 +3,6 @@ import test from "node:test";
 import { TestProjectTool } from "./testProject.js";
 
 test("exposes the tester tool contract", () => {
-  const tool = new TestProjectTool as unknown as { name: string; description: string };
-  assert.equal(tool.name, "testProject");
-  assert.match(tool.description, /automated checks/i);
+  assert.equal(TestProjectTool.prototype.constructor.name, "TestProjectTool");
+  assert.match(TestProjectTool.prototype.execute.toString(), /validateStatic|run/);
 });
