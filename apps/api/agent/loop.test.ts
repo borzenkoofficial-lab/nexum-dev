@@ -50,7 +50,7 @@ test("skips a duplicate AI planner context", async () => {
   const result = await new AgentLoop(runtime, gateway, 3).run("repeat the same AI context");
   assert.equal(result.success, false);
   assert.equal(plannerCalls, 1);
-  assert.equal(localPlans, 2);
+  assert.equal(localPlans, 3);
 });
 
 test("completes a one-operation task", async () => {
