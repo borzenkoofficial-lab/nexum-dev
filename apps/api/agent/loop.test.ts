@@ -84,7 +84,7 @@ test("stops repeated identical actions", async () => {
 });
 
 test("scaffold tool refuses non-empty projects", async () => {
-  const { mkdtemp, writeFile } = await import("node:fs/promises");
+  const { mkdtemp, readFile, writeFile } = await import("node:fs/promises");
   const { tmpdir } = await import("node:os");
   const { join } = await import("node:path");
   const { ScaffoldProjectTool } = await import("./tools/scaffoldProject.js");
@@ -97,7 +97,7 @@ test("scaffold tool refuses non-empty projects", async () => {
   const result = await tool.execute("Создай новый сайт");
   assert.equal(result.success, false);
   assert.match(result.output, /Refused to scaffold a non-empty project/i);
-  assert.equal((await import("node:fs/promises")).readFile ? true : true, true);
+  assert.equal(await readFile(join(root, "index.html"), "utf8"), "<h1>existing</h1>");
 });
 
 test("never scaffolds over an existing project during deterministic recovery", () => {
