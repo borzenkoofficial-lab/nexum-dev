@@ -9,7 +9,7 @@ import { OpenRouterProvider } from "./ai/providers/openrouter.js";
 import { NexumAgent } from "./agent/agent.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
 import { ProjectManager, ProjectManagerError } from "./projects/projectManager.js";
-import { readFile, stat, readdir } from "node:fs/promises";
+import { mkdir, readFile, stat, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -65,6 +65,8 @@ interface ChatJob {
   currentMessage?: string;
   commandOutput?: { command: string; stdout: string; stderr: string; exitCode: number | null };
   error?: string;
+  stage?: "queued" | "analyzing" | "planning" | "reading" | "editing" | "building" | "testing" | "completed" | "error";
+  attachments?: string[];
 }
 const chatJobs = new Map<string, ChatJob>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
@@ -84,6 +86,7 @@ async function runChatJob(
   projectId: string | undefined,
   provider: string | undefined,
   model: string | undefined,
+  attachments: Array<{ name: string; type: string; size: number; content?: string; data?: string }>,
 ) {
   const job = chatJobs.get(jobId);
   if (!job) return;
@@ -92,9 +95,30 @@ async function runChatJob(
   job.updatedAt = Date.now();
   void agentHistory.record({ type: "job-start", jobId, projectId, provider, model, message });
   job.currentMessage = "Запускаю AI-агента и начинаю выполнение задачи.";
+  job.stage = "analyzing";
 
   try {
     const project = await projectManager.getActiveProject(projectId);
+    const attachmentDir = resolve(project.path, ".nexum", "attachments", jobId);
+    const attachmentNames: string[] = [];
+    const attachmentContext: string[] = [];
+    if (attachments.length) {
+      await mkdir(attachmentDir, { recursive: true });
+      for (const attachment of attachments.slice(0, 5)) {
+        const safeName = attachment.name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 120) || "attachment";
+        const target = resolve(attachmentDir, safeName);
+        if (attachment.content !== undefined) {
+          await writeFile(target, attachment.content.slice(0, 80_000), "utf8");
+          attachmentContext.push(`Attached text file ${safeName}:\\n${attachment.content.slice(0, 80_000)}`);
+        } else if (attachment.data) {
+          await writeFile(target, Buffer.from(attachment.data, "base64"));
+          attachmentContext.push(`Attached binary file ${safeName} is stored at .nexum/attachments/${jobId}/${safeName}.`);
+        }
+        attachmentNames.push(safeName);
+      }
+    }
+    job.attachments = attachmentNames;
+    const agentMessage = attachmentContext.length ? `${message}\\n\\nATTACHED FILES:\\n${attachmentContext.join("\\n\\n")}` : message;
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const agent = new NexumAgent(aiGateway, project.path);
     const agentLoop = new AgentLoop(
@@ -108,6 +132,13 @@ async function runChatJob(
       (event) => {
         job.events = [...(job.events ?? []), event].slice(-100);
         job.currentMessage = event.message;
+        if (event.type === "thinking") job.stage = event.iteration === 0 ? "analyzing" : "planning";
+        if (event.type === "tool-start") {
+          if (event.tool === "listFiles" || event.tool === "readFile" || event.tool === "searchFiles") job.stage = "reading";
+          else if (event.tool === "writeFile" || event.tool === "scaffoldProject") job.stage = "editing";
+          else if (event.tool === "runSandbox" || event.tool === "runCommand") job.stage = /test/i.test(event.message) ? "testing" : "building";
+        }
+        if (event.type === "tool-error" || event.type === "failed") job.stage = "error";
         job.updatedAt = Date.now();
         void agentHistory.record({ type: "agent-event", jobId, projectId, provider, model, iteration: event.iteration, tool: event.tool, status: event.type, message: event.message });
         if (event.type === "tool-error" || event.type === "failed") {
@@ -118,7 +149,7 @@ async function runChatJob(
         }
       },
     );
-    const result = await agentLoop.run(message, {
+    const result = await agentLoop.run(agentMessage, {
       ...(provider === undefined ? {} : { provider }),
       ...(model === undefined ? {} : { model }),
     });
@@ -126,6 +157,7 @@ async function runChatJob(
     job.updatedAt = Date.now();
     if (!result.success) {
       job.status = "failed";
+      job.stage = "error";
       job.error = result.error ?? "AI agent failed";
       void agentHistory.record({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
@@ -133,12 +165,14 @@ async function runChatJob(
     }
 
     job.status = "completed";
+    job.stage = "completed";
     if (result.finalResponse !== undefined) job.reply = result.finalResponse;
     void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
     job.steps = result.steps;
     console.log("[Nexum] chat job completed", jobId);
   } catch (error) {
     job.status = "failed";
+    job.stage = "error";
     job.updatedAt = Date.now();
     job.error = error instanceof Error ? error.message : "AI provider request failed";
     void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
@@ -150,7 +184,7 @@ async function runChatJob(
 await projectManager.initialize();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 app.get("/api/health", (_req, res) => {
   res.json({
@@ -463,11 +497,12 @@ app.get("/api/projects/:id/preview/status", async (req, res) => {
 });
 
 app.post("/api/chat", async (req, res) => {
-  const { message, projectId, provider, model } = req.body as {
+  const { message, projectId, provider, model, attachments } = req.body as {
     message?: unknown;
     projectId?: unknown;
     provider?: unknown;
     model?: unknown;
+    attachments?: unknown;
   };
 
   if (typeof message !== "string" || !message.trim()) {
@@ -482,6 +517,21 @@ app.post("/api/chat", async (req, res) => {
   if (model !== undefined && typeof model !== "string") {
     return res.status(400).json({ error: "model must be a string" });
   }
+  if (attachments !== undefined && (!Array.isArray(attachments) || attachments.length > 5)) {
+    return res.status(400).json({ error: "attachments must be an array of up to 5 files" });
+  }
+  const normalizedAttachments = Array.isArray(attachments)
+    ? attachments.map((item) => item as { name?: unknown; type?: unknown; size?: unknown; content?: unknown; data?: unknown }).filter((item) =>
+        typeof item.name === "string" && typeof item.size === "number" &&
+        (typeof item.content === "string" || typeof item.data === "string"),
+      ).map((item) => ({
+        name: item.name!.slice(0, 160),
+        type: typeof item.type === "string" ? item.type.slice(0, 120) : "application/octet-stream",
+        size: Math.max(0, Math.min(Number(item.size), 2_000_000)),
+        ...(typeof item.content === "string" ? { content: item.content.slice(0, 80_000) } : {}),
+        ...(typeof item.data === "string" ? { data: item.data.slice(0, 3_000_000) } : {}),
+      }))
+    : [];
 
   try {
     // Validate the project before creating the background job so bad project IDs
@@ -496,6 +546,8 @@ app.post("/api/chat", async (req, res) => {
       status: "queued",
       createdAt: now,
       updatedAt: now,
+      stage: "queued",
+      attachments: normalizedAttachments.map((item) => item.name),
     });
 
     // Do not await the agent. The HTTP request returns immediately, avoiding
@@ -506,6 +558,7 @@ app.post("/api/chat", async (req, res) => {
       projectId,
       provider,
       model,
+      normalizedAttachments,
     );
 
     return res.status(202).json({
@@ -599,6 +652,8 @@ app.get("/api/chat/jobs/:id", (req, res) => {
       problems: job.problems ?? [],
       commandOutput: job.commandOutput ?? null,
       error: job.error ?? null,
+      stage: job.stage ?? null,
+      attachments: job.attachments ?? [],
     },
   });
 });
