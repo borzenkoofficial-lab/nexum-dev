@@ -314,7 +314,11 @@ ${result.output}`
     // model so a temporary OpenRouter limit cannot corrupt the build flow.
     if (this.isRateLimitError(run.response)) {
       console.warn("[agent] AI planner returned a rate-limit response; using deterministic planner");
-      return null;
+      // Surface the rate limit to AgentLoop so it disables remote planner calls
+      // for the remainder of this task. Returning null here was ambiguous:
+      // AgentLoop could not distinguish "rate limited" from "no plan" and could
+      // call OrcaRouter again on the next iteration.
+      throw new Error("OrcaRouter rate limit exceeded (429)");
     }
 
     const repairPrompt = [
