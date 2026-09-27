@@ -100,8 +100,13 @@ export class AIGateway {
       throw new Error(`Unknown AI provider: ${providerId}`);
     }
 
+    const localizedMessage = [
+      "LANGUAGE PROTOCOL: Russian is the default user language. Understand Russian naturally. Reply in Russian unless the user explicitly requests another language. Preserve code, JSON keys, tool names, API identifiers, file paths and commands exactly.",
+      message,
+    ].join("\n");
+
     try {
-      return await provider.generate(message, normalizedOptions.model);
+      return await provider.generate(localizedMessage, normalizedOptions.model);
     } catch (error) {
       const fallbackId = this.fallbackProviderId;
       if (normalizedOptions.fallback === false || !fallbackId || fallbackId === provider.id) {
@@ -122,7 +127,7 @@ export class AIGateway {
       };
       this.onFallback?.(event);
 
-      return fallback.generate(message, fallback.model);
+      return fallback.generate(localizedMessage, fallback.model);
     }
   }
 
