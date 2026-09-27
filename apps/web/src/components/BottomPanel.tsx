@@ -12,7 +12,7 @@ interface BottomPanelProps {
   onRunCommand: (command: string) => Promise<{ success?: boolean; stdout?: string; stderr?: string; error?: string }>;
 }
 
-type Tab = "terminal" | "problems" | "logs" | "git" | "activity";
+type Tab = "terminal" | "problems" | "logs" | "git" | "activity" | "diagnostics";
 
 export function BottomPanel({ open, onClose, projectId, jobId, activitySteps, activityEvents, currentActivity, problems, onRunCommand }: BottomPanelProps) {
   const [tab, setTab] = useState<Tab>("terminal");
@@ -22,6 +22,9 @@ export function BottomPanel({ open, onClose, projectId, jobId, activitySteps, ac
   const [command, setCommand] = useState("npm run build");
   const [terminalOutput, setTerminalOutput] = useState("Ready.");
   const [running, setRunning] = useState(false);
+  const [diagnostics, setDiagnostics] = useState("");
+  const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
+  const [diagnosticsError, setDiagnosticsError] = useState("");
 
   useEffect(() => {
     if (!open || !projectId || tab !== "git") return;
@@ -47,9 +50,25 @@ export function BottomPanel({ open, onClose, projectId, jobId, activitySteps, ac
       .catch(() => setLogs([]));
   }, [open, projectId, tab]);
 
+  useEffect(() => {
+    if (!open || tab !== "diagnostics") return;
+    let cancelled = false;
+    setDiagnosticsLoading(true);
+    setDiagnosticsError("");
+    fetch("/api/agent/diagnostics?limit=100", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || `Diagnostics API: HTTP ${response.status}`);
+        if (!cancelled) setDiagnostics(JSON.stringify(data, null, 2));
+      })
+      .catch((error) => { if (!cancelled) setDiagnosticsError(error instanceof Error ? error.message : "Diagnostics unavailable"); })
+      .finally(() => { if (!cancelled) setDiagnosticsLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, tab, jobId]);
+
   if (!open) return null;
 
-  const tabs: Array<[Tab, string]> = [["terminal", "TERMINAL"], ["problems", "PROBLEMS"], ["logs", "LOGS"], ["git", "GIT"], ["activity", "AI ACTIVITY"]];
+  const tabs: Array<[Tab, string]> = [["terminal", "TERMINAL"], ["problems", "PROBLEMS"], ["logs", "LOGS"], ["git", "GIT"], ["activity", "AI ACTIVITY"], ["diagnostics", "DIAGNOSTICS"]];
 
   return <section className="bottom-panel" aria-label="Project output panel">
     <div className="bottom-panel-header">
@@ -67,6 +86,14 @@ export function BottomPanel({ open, onClose, projectId, jobId, activitySteps, ac
       <div className="activity-live-status"><span className={jobId ? "activity-dot live" : "activity-dot"}></span><strong>{jobId ? "AI WORKING" : "AI IDLE"}</strong><span className="activity-job">{jobId ? jobId.slice(0, 8) : "—"}</span></div>
       {currentActivity && <div className="activity-current">{currentActivity}</div>}
       {activityEvents.length ? [...activityEvents].reverse().map((event) => <div key={event.id} className={`activity-event activity-event-${event.type}`}><span className="activity-event-icon">{event.type === "tool-success" ? "✓" : event.type === "tool-error" || event.type === "failed" ? "×" : event.type === "completed" ? "●" : "→"}</span><div><strong>{event.tool ? `${event.tool} · ` : ""}Шаг ${event.iteration}</strong><p>{event.message}</p></div><time>{new Date(event.timestamp).toLocaleTimeString()}</time></div>) : activitySteps.length ? activitySteps.map((step, i) => <div key={i} className="activity-row"><span>{step.success ? "✓" : "×"}</span><span>#{step.iteration} {step.tool}</span></div>) : <span>Ожидаю первый шаг агента…</span>}
+    </div>}
+    {tab === "diagnostics" && <div className="bottom-output diagnostics-output">
+      <div className="diagnostics-toolbar">
+        <strong>Agent diagnostics</strong>
+        <button type="button" disabled={diagnosticsLoading} onClick={() => setDiagnosticsLoading(true)}>{diagnosticsLoading ? "Loading…" : "Refresh"}</button>
+        {diagnostics && <button type="button" onClick={() => void navigator.clipboard?.writeText(diagnostics)}>Copy JSON</button>}
+      </div>
+      {diagnosticsError ? <span className="error-state-inline">{diagnosticsError}</span> : diagnosticsLoading && !diagnostics ? <span>Collecting diagnostics…</span> : <pre>{diagnostics || "No diagnostics yet."}</pre>}
     </div>}
   </section>;
 }
