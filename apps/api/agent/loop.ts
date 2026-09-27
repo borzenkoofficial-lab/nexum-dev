@@ -156,7 +156,7 @@ export class AgentLoop {
         const implementationWrites = previousResults.filter(
           (item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
         ).length;
-        if (implementationWrites < 2) {
+        if (implementationWrites < 2 && this.runtime.planWithAI) {
           emit({
             iteration,
             type: "thinking",
@@ -166,7 +166,7 @@ export class AgentLoop {
           // Give the same planner a compact, explicit implementation retry. This
           // is intentionally limited by MAX_AI_PLANNER_CALLS so it cannot create
           // an expensive retry loop.
-          if (this.runtime.planWithAI && aiPlannerCalls < MAX_AI_PLANNER_CALLS) {
+          if (aiPlannerCalls < MAX_AI_PLANNER_CALLS) {
             try {
               aiPlannerCalls += 1;
               const retryTask = [
