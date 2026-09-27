@@ -223,6 +223,39 @@ function App() {
     }
   }
 
+  async function deleteProject(projectId: string) {
+    const project = projects.find((item) => item.id === projectId);
+    if (!project) return;
+    const confirmed = window.confirm(`Удалить проект «${project.name}» навсегда? Все файлы проекта будут удалены. Это действие нельзя отменить.`);
+    if (!confirmed) return;
+
+    setProjectActionLoading(true);
+    setApiError("");
+    try {
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, { method: "DELETE" });
+      const data = await response.json().catch(() => ({})) as { project?: Project; error?: string };
+      if (!response.ok) throw new Error(data.error || "Project deletion failed");
+      const fallbackId = projects.find((item) => item.status === "active" && item.id !== projectId)?.id ?? "nexum";
+      await loadProjects(activeProjectId === projectId ? fallbackId : activeProjectId);
+      if (activeProjectId === projectId) {
+        setActiveProjectId(fallbackId);
+        setView("project");
+        setReply("");
+        setConversation([]);
+        setProductPlan(null);
+        setActivitySteps([]);
+        setActivityEvents([]);
+        setProblems([]);
+      }
+      setNotice(`Project «${project.name}» deleted`);
+      window.setTimeout(() => setNotice(""), 3200);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Project deletion failed");
+    } finally {
+      setProjectActionLoading(false);
+    }
+  }
+
   async function createProject(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!newProjectName.trim()) return;
@@ -473,7 +506,7 @@ function App() {
 
   return (
     <div className="app">
-      <Sidebar projects={projects} activeProjectId={activeProjectId} projectsLoading={projectsLoading} projectActionLoading={projectActionLoading} mobileOpen={mobileSidebarOpen} view={view} onViewChange={(next) => { setMobileSidebarOpen(false); setView(next); }} onNewProject={() => { setMobileSidebarOpen(false); setModalOpen(true); }} onSelectProject={(id) => { setMobileSidebarOpen(false); openProject(id); }} />
+      <Sidebar projects={projects} activeProjectId={activeProjectId} projectsLoading={projectsLoading} projectActionLoading={projectActionLoading} mobileOpen={mobileSidebarOpen} view={view} onDeleteProject={(id) => void deleteProject(id)} onViewChange={(next) => { setMobileSidebarOpen(false); setView(next); }} onNewProject={() => { setMobileSidebarOpen(false); setModalOpen(true); }} onSelectProject={(id) => { setMobileSidebarOpen(false); openProject(id); }} />
       <main className="main">
         <TopBar projectName={view === "connectors" ? "Connectors" : view === "settings" ? "Settings" : view === "home" ? "NEXUM.DEV" : activeProject?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />
         {view === "home" ? (
