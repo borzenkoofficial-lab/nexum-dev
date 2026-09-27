@@ -304,15 +304,58 @@ export class AgentLoop {
       }
 
       if (!plan) {
-        emit({ iteration, type: "completed", message: "Дополнительных действий не требуется. Формирую итог." });
-        return {
-          phase: "finish",
-          success: true,
-          iterations: iteration - 1,
-          steps,
-          productPlan: productPlan ?? undefined,
-          finalResponse: await this.finalResponse(task, previousResults, options),
-        };
+        if (builderTask) {
+          const implementationWrites = previousResults.filter(
+            (item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
+          ).length;
+          if (implementationWrites < 2) {
+            const inspection = [...previousResults]
+              .reverse()
+              .find((item) => item.tool === "listFiles" && item.result.success)?.result.output ?? "";
+            const candidates = [
+              "src/App.tsx",
+              "src/App.jsx",
+              "src/main.tsx",
+              "src/main.jsx",
+              "index.html",
+              "package.json",
+              "src/App.css",
+              "src/styles.css",
+              "style.css",
+            ];
+            const nextPath = candidates.find((candidate) =>
+              inspection.includes(candidate) &&
+              !previousResults.some((item) => item.tool === "readFile" && item.input === candidate && item.result.success),
+            );
+            if (nextPath) {
+              plan = { tool: "readFile", input: nextPath };
+              emit({
+                iteration,
+                type: "thinking",
+                message: `Планировщик не выбрал действие. Для Builder-задачи принудительно читаю ${nextPath}, чтобы продолжить реализацию.`,
+              });
+            } else if (availableTools.includes("searchFiles")) {
+              plan = { tool: "searchFiles", input: task };
+              emit({
+                iteration,
+                type: "thinking",
+                message: "Планировщик не выбрал действие. Ищу связанные файлы перед реализацией.",
+              });
+            }
+          }
+        }
+
+        if (!plan) {
+          emit({ iteration, type: "failed", message: "Builder не выполнил реализацию: планировщик не предложил ни одного действия." });
+          return {
+            phase,
+            success: false,
+            iterations: iteration - 1,
+            steps,
+            productPlan: productPlan ?? undefined,
+            error: "Builder stopped before implementation: no actionable plan.",
+          };
+        }
       }
 
       if (plan.done) {
