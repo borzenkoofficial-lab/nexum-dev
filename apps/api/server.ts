@@ -436,7 +436,7 @@ app.get("/api/ai/status", async (req, res) => {
   }
 });
 
-app.get("/api/projects", async (_req, res) => {
+app.get("/api/projects", async (req, res) => {
   try {
     return res.json({ success: true, projects: await getProjectManager(getAuthUser(req).id).listProjects() });
   } catch (error) {
