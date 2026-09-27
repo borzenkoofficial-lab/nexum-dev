@@ -91,7 +91,7 @@ function App() {
     let cancelled = false;
     async function refreshAIStatus() {
       try {
-        const response = await fetch(`/api/ai/status?provider=${encodeURIComponent(aiProvider)}`);
+        const response = await fetch(`/api/ai/status?provider=${encodeURIComponent(aiProvider)}&model=${encodeURIComponent(aiModel)}`);
         const data = response.ok ? (await response.json()) as { status?: AIProviderStatus } : null;
         if (!cancelled) setAIStatus(data?.status ?? { provider: aiProvider, available: false, model: aiModel, latencyMs: null, error: "AI status unavailable" });
       } catch {
