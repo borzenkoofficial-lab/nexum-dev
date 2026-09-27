@@ -70,12 +70,58 @@ export class AgentLoop {
       if (plan.done) {
         const lastFailure = [...previousResults].reverse().find((item) => !item.result.success);
         if (lastFailure) {
-          return {
-            success: false,
-            iterations: iteration - 1,
-            steps,
-            error: `Tool ${lastFailure.tool} failed: ${lastFailure.result.output}`,
-          };
+          emit({ iteration, type: "thinking", message: "Есть ошибка предыдущего действия. Передаю её модели вместо завершения сессии." });
+          continue;
+        }
+
+        // Never finish an app-building session with an unverified package project.
+        // If the agent wrote project files but did not build, perform the final
+        // install/build deterministically and let the model repair any failure.
+        const hasProjectChanges = previousResults.some((item) =>
+          item.tool === "scaffoldProject" ||
+          (item.tool === "writeFile" && /"path"\s*:\s*"(?:(?:src\/)|(?:package\.json$)|(?:vite\.config\.)|(?:index\.html$))/i.test(item.input)),
+        );
+        const hasSuccessfulBuild = previousResults.some(
+          (item) => item.tool === "runCommand" && item.input === "npm run build" && item.result.success,
+        );
+        if (hasProjectChanges && !hasSuccessfulBuild && availableTools.includes("runCommand")) {
+          for (const command of ["npm install", "npm run build"]) {
+            const alreadySuccessful = previousResults.some(
+              (item) => item.tool === "runCommand" && item.input === command && item.result.success,
+            );
+            if (alreadySuccessful) continue;
+            emit({
+              iteration,
+              type: "tool-start",
+              tool: "runCommand",
+              message: command === "npm install"
+                ? "Финализирую приложение: устанавливаю зависимости."
+                : "Финализирую приложение: выполняю production-сборку перед Preview.",
+            });
+            const result = await this.runtime.executeTool("runCommand", command);
+            const step: AgentStep = { iteration, tool: "runCommand", input: command, success: result.success };
+            steps.push(step);
+            this.onStep?.(step);
+            previousResults.push({ iteration, tool: "runCommand", input: command, result });
+            this.log(iteration, `runCommand ${command}`, result.success ? "success" : "error");
+            emit({
+              iteration,
+              type: result.success ? "tool-success" : "tool-error",
+              tool: "runCommand",
+              message: result.success
+                ? (command === "npm install" ? "Зависимости установлены." : "Production-сборка завершена. Preview готов.")
+                : `Не удалось выполнить «${command}»: ${result.output.slice(0, 500)}`,
+            });
+            if (!result.success) {
+              emit({ iteration, type: "thinking", message: "Финальная проверка не прошла. Возвращаю ошибку модели для автоматического исправления." });
+              break;
+            }
+          }
+
+          const buildSucceeded = previousResults.some(
+            (item) => item.tool === "runCommand" && item.input === "npm run build" && item.result.success,
+          );
+          if (!buildSucceeded) continue;
         }
 
         emit({ iteration, type: "completed", message: "Все запланированные действия выполнены. Формирую итог и обновляю результат." });
