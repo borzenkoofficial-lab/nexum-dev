@@ -9,6 +9,7 @@ import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
 import { TopBar } from "./components/TopBar";
 import type { AIProviderInfo, AIProviderStatus, AgentStage, Project } from "./components/types";
+// UI controls persist locally; server-side credentials remain outside the client bundle.
 
 function App() {
   const [projects, setProjects] = useState<Project[]>([]);
