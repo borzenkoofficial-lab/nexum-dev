@@ -91,7 +91,8 @@ test("automatically installs and builds a generated React/Vite scaffold", async 
       if (previousResults.length === 0) {
         return { tool: "scaffoldProject", input: "Создай React приложение" };
       }
-      if (previousResults.some((item) => item.tool === "scaffoldProject")) {
+      if (previousResults.some((item) => item.tool === "scaffoldProject") &&
+          !previousResults.some((item) => item.tool === "writeFile")) {
         return {
           tool: "writeFile",
           input: JSON.stringify({ path: "src/App.jsx", content: "implemented app" }),
