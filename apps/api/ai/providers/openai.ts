@@ -1,4 +1,4 @@
-import type { AIProvider, AIProviderStatus } from "../types.js";
+import type { AIProvider, AIProviderStatus, AIGenerateOptions } from "../types.js";
 
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-5";
@@ -52,12 +52,14 @@ export class OpenAIProvider implements AIProvider {
     return Boolean(this.runtimeApiKey);
   }
 
-  async generate(message: string, model = this.model): Promise<string> {
+  async generate(message: string, model = this.model, options: AIGenerateOptions = {}): Promise<string> {
     const data = await this.request<OpenAIChatResponse>("/chat/completions", {
       method: "POST",
       body: JSON.stringify({
         model: this.validateModel(model),
         messages: [{ role: "user", content: message }],
+        ...(options.maxTokens === undefined ? {} : { max_tokens: options.maxTokens }),
+        ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
       }),
     });
     const content = data.choices?.[0]?.message?.content;
