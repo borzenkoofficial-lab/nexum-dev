@@ -258,7 +258,8 @@ ${result.output}`
       "6) finish with done=true and a short summary.",
       "Available tools and input formats:",
       toolCatalog,
-      `PERSISTENT PROJECT CONTEXT (advisory, current project only): ${persistentContext}`,\n      `PROJECT STATE MEMORY (advisory, current project only): ${projectStateContext}`,
+      `PERSISTENT PROJECT CONTEXT (advisory, current project only): ${persistentContext}`,
+      `PROJECT STATE MEMORY (advisory, current project only): ${projectStateContext}`,
       `User task: ${task}`,
       `Previous tool results:\n${history}`,
     ].join("\n");
