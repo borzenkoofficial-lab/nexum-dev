@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch server.ts",
     "test": "tsx --test ai/providers/ollama.test.ts ai/providers/openrouter.test.ts agent/ai-loop.test.ts agent/tools/github.test.ts agent/tools/path.test.ts agent/loop.test.ts sandbox/dockerSandbox.test.ts projects/projectManager.test.ts",
-    "start": "tsx server.ts"
+    "start": "tsx server.ts",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
