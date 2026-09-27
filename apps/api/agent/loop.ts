@@ -776,6 +776,23 @@ export class AgentLoop {
         });
       }
 
+      // When no remote planner is available, the deterministic planner can
+      // immediately confirm that a simple non-builder task has no next action.
+      if (result.success && !builderTask && !this.runtime.planWithAI) {
+        const followUpPlan = this.runtime.plan(task, previousResults);
+        if (!followUpPlan) {
+          transition("finish");
+          emit({ iteration, type: "completed", message: "Задача завершена после успешного действия." });
+          return {
+            phase: "finish",
+            success: true,
+            iterations: iteration,
+            steps,
+            productPlan: productPlan ?? undefined,
+          };
+        }
+      }
+
       // A scaffold is only the baseline. Once the agent writes the requested
       // implementation, immediately rebuild so Preview always reflects the
       // latest generated files rather than the pre-implementation scaffold.
