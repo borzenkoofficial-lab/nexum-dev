@@ -17,9 +17,14 @@ dotenv.config();
 
 const app = express();
 const configuredProvider = process.env.AI_PROVIDER?.toLowerCase();
+const defaultProvider = configuredProvider === "ollama" || configuredProvider === "openrouter"
+  ? configuredProvider
+  : process.env.OPENROUTER_API_KEY?.trim()
+    ? "openrouter"
+    : "mock";
 const aiGateway = new AIGateway(
   [new MockProvider(), new OllamaProvider(), new OpenRouterProvider()],
-  configuredProvider === "ollama" || configuredProvider === "openrouter" ? configuredProvider : "mock",
+  defaultProvider,
 );
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const projectManager = new ProjectManager(workspaceRoot);
