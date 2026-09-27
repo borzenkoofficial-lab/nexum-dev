@@ -46,6 +46,12 @@ function App() {
 
   const activeProject = projects.find((project) => project.id === activeProjectId);
 
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("nexum:connectors") || "[]");
+      if (Array.isArray(saved)) setConnectedConnectors(saved.filter((item): item is string => typeof item === "string"));
+    } catch {}
+  }, []);
   useEffect(() => { try { localStorage.setItem("nexum:connectors", JSON.stringify(connectedConnectors)); } catch {} }, [connectedConnectors]);
 
   useEffect(() => {
@@ -389,7 +395,7 @@ function App() {
       <StatusBar projectName={activeProject?.name ?? "NEXUM"} provider={aiProvider} aiStatus={aiStatus} previewOnline={previewOnline} onOpenTerminal={() => setBottomPanelOpen(true)} />
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
       <NewProjectModal open={modalOpen} name={newProjectName} loading={projectActionLoading} onNameChange={setNewProjectName} onClose={() => setModalOpen(false)} onSubmit={(event) => void createProject(event)} />
-      {connectorModal && <div className="modal-backdrop connector-backdrop" onMouseDown={() => setConnectorModal(null)}><section className="connector-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><div className="modal-top"><div><span className="eyebrow">CONNECTOR</span><h2>{connectorModal}</h2></div><button type="button" onClick={() => setConnectorModal(null)}>×</button></div><p>{connectedConnectors.includes(connectorModal) ? "This connector is enabled for this workspace UI. Provider OAuth/API credentials are not stored yet." : "Enable this connector for the current workspace. Provider OAuth/API credentials are not stored yet."}</p><div className="connector-modal-actions"><button type="button" onClick={() => setConnectorModal(null)}>Cancel</button><button className="home-primary" type="button" onClick={() => { setConnectorModal(null); setNotice(connectorModal + " connector is ready to configure"); }}>Continue</button></div></section></div>}
+      {connectorModal && <div className="modal-backdrop connector-backdrop" onMouseDown={() => setConnectorModal(null)}><section className="connector-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><div className="modal-top"><div><span className="eyebrow">CONNECTOR</span><h2>{connectorModal}</h2></div><button type="button" onClick={() => setConnectorModal(null)}>×</button></div><p>{connectedConnectors.includes(connectorModal) ? "This connector is enabled for this workspace UI. Provider OAuth/API credentials are not stored yet." : "Enable this connector for the current workspace. Provider OAuth/API credentials are not stored yet."}</p><div className="connector-modal-actions"><button type="button" onClick={() => setConnectorModal(null)}>Cancel</button><button className="home-primary" type="button" onClick={() => { if (!connectedConnectors.includes(connectorModal)) setConnectedConnectors((items) => [...items, connectorModal]); setConnectorModal(null); setNotice(connectorModal + " connector enabled"); }}>Continue</button></div></section></div>}
       {notice && <div className="toast" role="status">{notice}</div>}
     </div>
   );
