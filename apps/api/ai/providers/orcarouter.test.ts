@@ -22,7 +22,7 @@ test("forwards model and generation limits to OrcaRouter", async () => {
     body = String(init?.body);
     return new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), { status: 200 });
   });
-  provider.setRuntimeApiKey("test-only-key");
+  provider.setRuntimeApiKey("test-only-key-1234567890");
   assert.equal(await provider.generate("Привет", undefined, { maxTokens: 321, temperature: 0.2 }), "ok");
   assert.match(body, /"model":"deepseek\/test-free"/);
   assert.match(body, /"max_tokens":321/);
@@ -39,7 +39,7 @@ test("maps OrcaRouter rate-limit and auth errors distinctly", async () => {
     const provider = new OrcaRouterProvider("https://orcarouter.test/v1", "deepseek/test-free", 1000, async () =>
       new Response(JSON.stringify({}), { status }),
     );
-    provider.setRuntimeApiKey("test-only-key");
+    provider.setRuntimeApiKey("test-only-key-1234567890");
     await assert.rejects(() => provider.generate("test"), new RegExp(expected.replace(/[()]/g, "\\$&")));
   }
 });
