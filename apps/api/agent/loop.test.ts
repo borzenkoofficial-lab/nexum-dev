@@ -3,10 +3,23 @@ import { test } from "node:test";
 import { AIGateway } from "../ai/gateway.js";
 import { MockProvider } from "../ai/providers/mock.js";
 import { NexumAgent } from "./agent.js";
-import { AgentLoop } from "./loop.js";
+import { AgentLoop, compactAgentHistory } from "./loop.js";
 import type { AgentRuntime } from "./types.js";
 
 const gateway = new AIGateway([new MockProvider()]);
+
+test("compacts large tool history while preserving actionable failures", () => {
+  const large = "x".repeat(20_000);
+  const history = compactAgentHistory([
+    { iteration: 1, tool: "writeFile", input: JSON.stringify({ path: "src/App.tsx", content: large }), result: { success: true, output: large } },
+    { iteration: 2, tool: "runCommand", input: "npm run build", result: { success: false, output: "TypeScript error: src/App.tsx:42 " + large } },
+    { iteration: 3, tool: "listFiles", input: ".", result: { success: true, output: "src/App.tsx\\npackage.json" } },
+  ]);
+  assert.ok(JSON.stringify(history).length < 5_500);
+  assert.equal(history.some((item) => item.tool === "runCommand" && !item.result.success), true);
+  assert.match(history.find((item) => item.tool === "writeFile")?.input ?? "", /<20000 chars>/);
+  assert.equal(history.find((item) => item.tool === "writeFile")?.result.output.length, 520);
+});
 
 function fakeRuntime(
   plan: AgentRuntime["plan"],
