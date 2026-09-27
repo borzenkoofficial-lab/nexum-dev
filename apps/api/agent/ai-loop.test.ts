@@ -94,8 +94,8 @@ test("deterministic Builder fallback implements a scaffold when no real AI plan 
     result: { success: true, output: "package.json\nsrc/App.jsx\nsrc/styles.css" },
   };
   const appPlan = agent.plan("Создай React dashboard", [inspection, scaffold]);
-  assert.equal(appPlan?.tool, "writeFile");
-  assert.ok(appPlan?.input.includes('"path":"src/App.jsx"'));
+  assert.equal(appPlan?.tool, "readFile");
+  assert.equal(appPlan?.input, "src/App.jsx");
 
   const appWrite = {
     iteration: 3,
