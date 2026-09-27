@@ -12,13 +12,13 @@ import type { AIProviderInfo, AIProviderStatus, AgentStage, Project } from "./co
 // UI controls persist locally; server-side credentials remain outside the client bundle.
 
 function App() {
-  const [projects, setProjectы] = useState<Project[]>([]);
+  const [projects, setПроекты] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState("nexum");
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
   const [lastMessage, setLastMessage] = useState("");
   const [agentStage, setAgentStage] = useState<AgentStage>(null);
-  const [projectsLoading, setProjectыLoading] = useState(true);
+  const [projectsLoading, setПроектыLoading] = useState(true);
   const [projectActionLoading, setProjectActionLoading] = useState(false);
   const [apiError, setApiError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -150,28 +150,28 @@ function App() {
   }, [activeProjectId, previewKey]);
   const selectedModels = aiModels[aiProvider] ?? [];
 
-  async function loadProjectы(preferredId = activeProjectId) {
-    setProjectыLoading(true);
+  async function loadПроекты(preferredId = activeProjectId) {
+    setПроектыLoading(true);
     try {
       const response = await fetch("/api/projects");
-      if (!response.ok) throw new Error(`Projectы API: HTTP ${response.status}`);
+      if (!response.ok) throw new Error(`Проекты API: HTTP ${response.status}`);
       const data = (await response.json()) as { projects?: Project[] };
-      const nextProjectы = data.projects ?? [];
-      const preferred = nextProjectы.find((project) => project.id === preferredId && project.status === "active");
-      const fallback = nextProjectы.find((project) => project.id === "nexum" && project.status === "active")
-        ?? nextProjectы.find((project) => project.status === "active");
-      setProjectы(nextProjectы);
+      const nextПроекты = data.projects ?? [];
+      const preferred = nextПроекты.find((project) => project.id === preferredId && project.status === "active");
+      const fallback = nextПроекты.find((project) => project.id === "nexum" && project.status === "active")
+        ?? nextПроекты.find((project) => project.status === "active");
+      setПроекты(nextПроекты);
       setActiveProjectId(preferred?.id ?? fallback?.id ?? "nexum");
       setApiError("");
     } catch (error) {
       console.error("[Nexum] API projects request failed:", error);
       setApiError(error instanceof Error ? error.message : "Cannot reach API");
     } finally {
-      setProjectыLoading(false);
+      setПроектыLoading(false);
     }
   }
 
-  useEffect(() => { void loadProjectы("nexum"); }, []);
+  useEffect(() => { void loadПроекты("nexum"); }, []);
 
   useEffect(() => {
     async function loadAIConfig() {
@@ -190,7 +190,7 @@ function App() {
         if (defaultProvider) { setAIProvider(defaultProvider.id); setAIModel(defaultProvider.model); }
       } catch (error) {
         console.error("[Nexum] AI config request failed:", error);
-        setApiError(error instanceof Error ? error.message : "AI config unavailable");
+        setApiError(error instanceof Error ? error.message : "Конфигурация ИИ недоступна");
       }
     }
     void loadAIConfig();
@@ -237,10 +237,10 @@ function App() {
     setProjectActionLoading(true);
     try {
       const response = await fetch(`/api/projects/${projectId}/select`, { method: "POST" });
-      if (!response.ok) throw new Error(`Project selection API: HTTP ${response.status}`);
+      if (!response.ok) throw new Error(`API выбора проекта: HTTP ${response.status}`);
       setActiveProjectId(projectId);
       setReply("");
-      await loadProjectы(projectId);
+      await loadПроекты(projectId);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Project selection failed");
     } finally {
@@ -259,9 +259,9 @@ function App() {
     try {
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, { method: "DELETE" });
       const data = await response.json().catch(() => ({})) as { project?: Project; error?: string };
-      if (!response.ok) throw new Error(data.error || "Project deletion failed");
+      if (!response.ok) throw new Error(data.error || "Не удалось удалить проект");
       const fallbackId = projects.find((item) => item.status === "active" && item.id !== projectId)?.id ?? "nexum";
-      await loadProjectы(activeProjectId === projectId ? fallbackId : activeProjectId);
+      await loadПроекты(activeProjectId === projectId ? fallbackId : activeProjectId);
       if (activeProjectId === projectId) {
         setActiveProjectId(fallbackId);
         setView("project");
@@ -275,7 +275,7 @@ function App() {
       setNotice(`Project «${project.name}» удалён`);
       window.setTimeout(() => setNotice(""), 3200);
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : "Project deletion failed");
+      setApiError(error instanceof Error ? error.message : "Не удалось удалить проект");
     } finally {
       setProjectActionLoading(false);
     }
@@ -291,14 +291,14 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newProjectName.trim() }),
       });
-      if (!response.ok) throw new Error(`Project creation API: HTTP ${response.status}`);
+      if (!response.ok) throw new Error(`API создания проекта: HTTP ${response.status}`);
       const data = (await response.json()) as { project: Project };
       await selectProject(data.project.id);
       setView("project");
       setNewProjectName("");
       setModalOpen(false);
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : "Project creation failed");
+      setApiError(error instanceof Error ? error.message : "Не удалось создать проект");
     } finally {
       setProjectActionLoading(false);
     }
@@ -485,7 +485,7 @@ function App() {
       setAiApiKey("");
       setAIProvider(provider);
       setAIModel(data.model || aiModels[provider]?.[0] || (provider === "openai" ? "gpt-5" : provider === "orcarouter" ? "deepseek/deepseek-v4-flash-free" : "openrouter/free"));
-      setNotice(provider === "openai" ? "OpenAI connected — GPT models are ready" : "OpenRouter connected");
+      setNotice(provider === "openai" ? "OpenAI подключён — модели GPT готовы" : "OpenRouter подключён");
       window.setTimeout(() => setNotice(""), 3200);
       const modelsResponse = await fetch("/api/ai/models");
       if (modelsResponse.ok) {
@@ -515,10 +515,10 @@ function App() {
       setLocalИИKey("");
       setAIProvider("openrouter");
       setAIModel("openrouter/free");
-      setNotice("OpenRouter connected for this local test session");
+      setNotice("OpenRouter подключён for this local test session");
       window.setTimeout(() => setNotice(""), 3200);
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : "OpenRouter key setup failed");
+      setApiError(error instanceof Error ? error.message : "Не удалось подключить ключ OpenRouter");
     } finally {
       setLocalИИKeyLoading(false);
     }
@@ -584,15 +584,15 @@ function App() {
               <div className="settings-card"><strong>Плотность интерфейса</strong><span>{uiSettings.compact ? "Компактный" : "Комфортный"}</span><small>Выберите объём информации, отображаемый одновременно.</small><div className="settings-option-row"><div className="settings-option-copy"><b>Компактный mode</b><span>Более плотные панели и элементы управления</span></div><button type="button" aria-label="Toggle compact mode" className={`nexum-toggle ${uiSettings.compact?"on":""}`} onClick={()=>setUiSettings(s=>({...s,compact:!s.compact}))}></button></div></div>
               <div className="settings-card"><strong>Уведомления</strong><span>{uiSettings.sound ? "Звук включён" : "Без звука"}</span><small>Необязательный звук завершения агента при успехе или ошибке.</small><div className="settings-option-row"><div className="settings-option-copy"><b>Звук завершения</b><span>Агент завершил работу / ошибка</span></div><button type="button" aria-label="Toggle completion sound" className={`nexum-toggle ${uiSettings.sound?"on":""}`} onClick={()=>setUiSettings(s=>({...s,sound:!s.sound}))}></button></div></div>
               <div className="settings-card"><strong>Горячие клавиши</strong><span>⌘/Ctrl + K</span><small>Открывайте палитру команд для проектов, проверок, Git и переключения разделов.</small></div>
-              <div className="settings-card"><strong>Project storage</strong><span>{projects.filter((project) => project.status === "active").length} активных проектов</span><small>Каждый проект хранит собственные файлы, предпросмотр и контекст диалога.</small></div>
+              <div className="settings-card"><strong>Хранилище проектов</strong><span>{projects.filter((project) => project.status === "active").length} активных проектов</span><small>Каждый проект хранит собственные файлы, предпросмотр и контекст диалога.</small></div>
             </div>
             <div className="settings-card" style={{marginTop:12}}><strong>ИИ API key</strong><span>Автоматическое определение провайдера</span><small>Paste an OpenAI, OpenRouter, or OrcaRouter key. NEXUM verifies the key and keeps it only in running server memory.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={aiApiKey} onChange={event=>setAiApiKey(event.target.value)} placeholder="Вставьте API-ключ" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={aiApiKeyLoading||!aiApiKey.trim()} onClick={()=>void connectAIKey()}>{aiApiKeyLoading?"Проверяю…":"Подключить ИИ"}</button></div></div>
-            {localAITestEnabled && <div className="settings-card" style={{marginTop:12}}><strong>Тестовая сессия OpenRouter</strong><span>{localAIConfigured?"Подключитьed":"Не подключено"}</span><small>Временный ключ сессии для тестирования моделей без хранения учётных данных в репозитории.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={localAIKey} onChange={event=>setLocalИИKey(event.target.value)} placeholder="sk-or-v1-…" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={localAIKeyLoading||!localAIKey.trim()} onClick={()=>void saveLocalAIKey()}>{localAIKeyLoading?"Проверяю…":"Подключить"}</button></div></div>}
+            {localAITestEnabled && <div className="settings-card" style={{marginTop:12}}><strong>Тестовая сессия OpenRouter</strong><span>{localAIConfigured?"Подключено":"Не подключено"}</span><small>Временный ключ сессии для тестирования моделей без хранения учётных данных в репозитории.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={localAIKey} onChange={event=>setLocalИИKey(event.target.value)} placeholder="sk-or-v1-…" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={localAIKeyLoading||!localAIKey.trim()} onClick={()=>void saveLocalAIKey()}>{localAIKeyLoading?"Проверяю…":"Подключить"}</button></div></div>}
           </section>
         ) : (
         <>
         <div className="workspace-toolbar">
-          <div className="workspace-breadcrumb"><span>Projectы</span><b>/</b><strong>{activeProject?.name ?? "NEXUM"}</strong></div>
+          <div className="workspace-breadcrumb"><span>Проекты</span><b>/</b><strong>{activeProject?.name ?? "NEXUM"}</strong></div>
           <div className="workspace-actions">
             <button type="button" onClick={() => setConnectorModal("Project connector")}>◇ Подключить</button>
             <button type="button" onClick={async () => { const url = `${window.location.origin}/api/preview/${activeProjectId}/index.html`; try { await navigator.clipboard.writeText(url); setNotice("Preview link copied"); } catch { setNotice(url); } }}>↗ Share</button>
@@ -604,7 +604,7 @@ function App() {
                   const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/duplicate`, { method: "POST" });
                   const data = await response.json() as { project?: Project; error?: string };
                   if (!response.ok || !data.project) throw new Error(data.error || "Duplicate failed");
-                  await loadProjectы(data.project.id);
+                  await loadПроекты(data.project.id);
                   setActiveProjectId(data.project.id);
                   setNotice("Project дублирован");
                 } catch (error) { setApiError(error instanceof Error ? error.message : "Duplicate failed"); }
