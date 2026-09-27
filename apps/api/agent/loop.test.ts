@@ -107,17 +107,31 @@ test("automatically installs and builds a generated React/Vite scaffold", async 
   assert.equal(result.steps.every((step) => step.success), true);
 });
 
-test("fails the build pipeline when npm build fails", async () => {
+test("recovers from a failed build after a file fix", async () => {
+  const commands: string[] = [];
   const runtime: AgentRuntime = {
-    getAvailableTools: () => ["scaffoldProject", "runCommand"],
-    plan: () => ({ tool: "scaffoldProject", input: "Создай React приложение" }),
-    executeTool: async (tool, input) => tool === "scaffoldProject"
-      ? { success: true, output: "React/Vite scaffold created for test." }
-      : { success: input === "npm install", output: input === "npm install" ? "installed" : "vite compilation error" },
+    getAvailableTools: () => ["scaffoldProject", "runCommand", "writeFile"],
+    plan: (_task, previousResults) => {
+      if (previousResults.length === 0) return { tool: "scaffoldProject", input: "Создай React приложение" };
+      if (previousResults.some((item) => item.tool === "runCommand" && item.input === "npm run build" && !item.result.success)) {
+        return { tool: "writeFile", input: JSON.stringify({ path: "src/App.jsx", content: "fixed" }) };
+      }
+      return { tool: "", input: "", done: true, finalResponse: "Готово" };
+    },
+    executeTool: async (tool, input) => {
+      if (tool === "scaffoldProject") return { success: true, output: "React/Vite scaffold created for test." };
+      if (tool === "writeFile") return { success: true, output: "fixed App.jsx" };
+      commands.push(input);
+      if (input === "npm install") return { success: true, output: "installed" };
+      return commands.filter((command) => command === "npm run build").length > 1
+        ? { success: true, output: "vite build passed" }
+        : { success: false, output: "vite compilation error" };
+    },
   };
 
   const result = await new AgentLoop(runtime, gateway).run("Создай React приложение");
 
-  assert.equal(result.success, false);
-  assert.match(result.error ?? "", /build pipeline failed at npm run build/);
+  assert.equal(result.success, true);
+  assert.equal(commands.filter((command) => command === "npm run build").length, 2);
+  assert.ok(result.steps.some((step) => step.tool === "writeFile"));
 });
