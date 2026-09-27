@@ -86,3 +86,16 @@ test("runs Sandbox relative to the selected project path", async () => {
 
   assert.equal(sandbox.getWorkspaceRoot(), project.path);
 });
+
+test("scaffolds a runnable web preview inside the active project", async () => {
+  const { manager } = await createManager();
+  await manager.initialize();
+  const project = await manager.createProject("Preview App");
+  const agent = new NexumAgent(new AIGateway([new MockProvider()]), project.path);
+
+  const result = await agent.executeTool("scaffoldProject", "Создай приложение для портфолио строительной компании");
+  assert.equal(result.success, true);
+  assert.equal((await readFile(join(project.path, "index.html"), "utf8")).includes("<!doctype html>"), true);
+  assert.equal((await readFile(join(project.path, "style.css"), "utf8")).length > 100, true);
+  assert.equal((await readFile(join(project.path, "app.js"), "utf8")).length > 20, true);
+});
