@@ -784,3 +784,269 @@ html[data-motion="off"] *,html[data-motion="off"] *:before,html[data-motion="off
 @media (max-width: 700px) {
   .chat-project-context .context-lock { display: none; }
 }
+
+/* Final readability pass — smoked liquid glass */
+:root{
+  --glass-chat:rgba(22,27,25,.90);
+  --glass-chat-2:rgba(27,33,30,.94);
+  --glass-agent:rgba(38,45,41,.90);
+  --glass-agent-2:rgba(45,53,48,.94);
+  --glass-line:rgba(255,255,255,.13);
+  --glass-line-strong:rgba(255,255,255,.19);
+  --glass-text:#f2f6f1;
+  --glass-text-soft:#c4cec5;
+  --glass-muted:#929d94;
+}
+body{
+  background:
+    radial-gradient(circle at 18% 8%,rgba(217,255,74,.055),transparent 25rem),
+    radial-gradient(circle at 84% 20%,rgba(255,255,255,.035),transparent 28rem),
+    #101412 !important;
+  color:var(--glass-text) !important;
+}
+.app{
+  background:linear-gradient(135deg,rgba(18,22,20,.98),rgba(12,15,14,.98)) !important;
+}
+.sidebar,.header{
+  background:rgba(25,30,27,.82) !important;
+  border-color:var(--glass-line) !important;
+  box-shadow:0 12px 50px rgba(0,0,0,.20),inset 0 1px rgba(255,255,255,.035) !important;
+}
+.sidebar{color:var(--glass-text)}
+.section-title,.eyebrow,.subtitle,.ai-controls label{color:#9ba69d !important}
+.project{color:#aeb8af !important}
+.project:hover{background:rgba(255,255,255,.055) !important;color:#f1f5ef !important}
+.project.active{
+  background:rgba(255,255,255,.09) !important;
+  border-color:var(--glass-line-strong) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.055),0 8px 26px rgba(0,0,0,.16) !important;
+}
+.main{background:transparent}
+.chat{
+  color:var(--glass-text) !important;
+}
+.welcome h1{color:#f5f8f4 !important}
+.welcome p{color:#b0bbb2 !important}
+.chat-project-context{
+  background:rgba(35,42,38,.76) !important;
+  border-color:var(--glass-line) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.05),0 10px 35px rgba(0,0,0,.18) !important;
+}
+.chat-project-context small{color:#8f9b92 !important}
+.chat-project-context strong{color:#f0f5ef !important}
+.message-box{
+  background:linear-gradient(145deg,rgba(29,35,32,.94),rgba(20,25,23,.96)) !important;
+  border:1px solid var(--glass-line-strong) !important;
+  box-shadow:0 20px 55px rgba(0,0,0,.25),inset 0 1px rgba(255,255,255,.055) !important;
+  backdrop-filter:blur(28px) saturate(125%) !important;
+  -webkit-backdrop-filter:blur(28px) saturate(125%) !important;
+}
+.message-box:focus-within{
+  border-color:rgba(217,255,74,.34) !important;
+  box-shadow:0 20px 60px rgba(0,0,0,.28),0 0 0 1px rgba(217,255,74,.08),inset 0 1px rgba(255,255,255,.07) !important;
+}
+.message-box textarea{
+  color:#f4f7f3 !important;
+  caret-color:#d9ff4a;
+}
+.message-box textarea::placeholder{color:#8d9890 !important}
+.conversation{
+  background:transparent !important;
+}
+.conversation-message{
+  border:1px solid var(--glass-line) !important;
+  box-shadow:0 12px 35px rgba(0,0,0,.15),inset 0 1px rgba(255,255,255,.035) !important;
+  backdrop-filter:blur(22px) saturate(120%) !important;
+  -webkit-backdrop-filter:blur(22px) saturate(120%) !important;
+}
+.conversation-message.user{
+  background:rgba(42,50,46,.92) !important;
+  color:#f5f8f4 !important;
+  border-color:rgba(217,255,74,.18) !important;
+}
+.conversation-message.assistant{
+  background:rgba(28,34,31,.94) !important;
+  color:#edf3ed !important;
+  border-color:rgba(255,255,255,.12) !important;
+}
+.conversation-meta{color:#8f9b92 !important}
+.conversation-content{color:#edf3ed !important;line-height:1.65 !important}
+.conversation-message.user .conversation-content{color:#f5f8f4 !important}
+.reply{
+  background:rgba(30,37,33,.92) !important;
+  color:#edf3ed !important;
+  border:1px solid var(--glass-line) !important;
+  border-radius:13px !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.04) !important;
+}
+.agent-activity{
+  color:#aeb9b0 !important;
+}
+.agent-activity strong{color:#e7eee8 !important}
+.chat-steps{color:#858f87 !important}
+.quick-action-grid button{
+  background:rgba(31,37,34,.82) !important;
+  border-color:var(--glass-line) !important;
+  color:#aeb8af !important;
+}
+.quick-action-grid button:hover{background:rgba(48,57,51,.9) !important;color:#f2f6ef !important;border-color:var(--glass-line-strong) !important}
+
+/* Right workspace: intentionally one step lighter than the chat */
+.right-panel{
+  background:linear-gradient(160deg,rgba(39,47,43,.94),rgba(29,35,32,.96)) !important;
+  border-left:1px solid var(--glass-line-strong) !important;
+  box-shadow:-20px 0 60px rgba(0,0,0,.18),inset 1px 0 rgba(255,255,255,.035) !important;
+  backdrop-filter:blur(30px) saturate(125%) !important;
+  -webkit-backdrop-filter:blur(30px) saturate(125%) !important;
+}
+.panel-tabs{
+  background:rgba(32,39,35,.76) !important;
+  border-bottom:1px solid var(--glass-line) !important;
+}
+.panel-tabs button{
+  color:#a5b0a7 !important;
+  border-right:1px solid rgba(255,255,255,.035) !important;
+}
+.panel-tabs button:hover{background:rgba(255,255,255,.045) !important;color:#f2f6ef !important}
+.panel-tabs button.active{
+  color:#f4f8f3 !important;
+  background:rgba(255,255,255,.055) !important;
+  border-bottom-color:#d9ff4a !important;
+}
+.preview-frame-wrap{
+  background:rgba(15,19,17,.72) !important;
+  border-color:var(--glass-line) !important;
+}
+.editor-shell,.editor-body,.file-tree,.code-editor{
+  background:rgba(29,35,32,.78) !important;
+  color:#edf3ed !important;
+}
+.editor-filebar{
+  background:rgba(42,50,46,.86) !important;
+  border-color:var(--glass-line) !important;
+  color:#eaf0ea !important;
+}
+.file-row{color:#aeb8af !important;border-color:transparent !important}
+.file-row:hover,.file-row.selected{background:rgba(255,255,255,.075) !important;color:#f2f6ef !important}
+.code-editor textarea{background:rgba(16,20,18,.72) !important;color:#e8eee8 !important}
+.editor-gutter{background:rgba(20,25,22,.8) !important;color:#68736b !important}
+
+/* Agent: readable smoked liquid glass, clear hierarchy */
+.agent-panel{
+  min-height:100%;
+  padding:22px !important;
+  background:
+    radial-gradient(circle at 90% 0%,rgba(217,255,74,.055),transparent 20rem),
+    linear-gradient(145deg,rgba(48,57,52,.97),rgba(34,41,37,.98)) !important;
+  color:#eef4ee !important;
+  border-left:1px solid rgba(255,255,255,.15) !important;
+  box-shadow:-18px 0 70px rgba(0,0,0,.30),inset 1px 0 rgba(255,255,255,.045) !important;
+  backdrop-filter:blur(32px) saturate(130%) !important;
+  -webkit-backdrop-filter:blur(32px) saturate(130%) !important;
+}
+.agent-panel-header{
+  padding-bottom:18px !important;
+  margin-bottom:16px !important;
+  border-bottom:1px solid rgba(255,255,255,.12) !important;
+}
+.agent-panel-header h2{color:#f5f8f4 !important}
+.agent-status-pill{
+  background:rgba(255,255,255,.08) !important;
+  border:1px solid rgba(255,255,255,.13) !important;
+  color:#d6ded7 !important;
+}
+.agent-status-pill.live{
+  background:rgba(217,255,74,.10) !important;
+  border-color:rgba(217,255,74,.25) !important;
+  color:#e5f5b0 !important;
+}
+.agent-status-pill.error{
+  background:rgba(255,110,100,.10) !important;
+  border-color:rgba(255,140,130,.22) !important;
+}
+.agent-current{
+  padding:16px !important;
+  background:rgba(255,255,255,.075) !important;
+  border:1px solid rgba(255,255,255,.13) !important;
+  border-radius:16px !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.045),0 12px 32px rgba(0,0,0,.16) !important;
+}
+.agent-current strong{color:#f4f8f3 !important}
+.agent-current p{color:#b8c2ba !important}
+.agent-stages{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:7px !important;
+  margin:14px 0 !important;
+}
+.agent-stages span{
+  min-height:32px;
+  display:flex !important;
+  align-items:center;
+  gap:7px;
+  padding:0 9px;
+  border:1px solid rgba(255,255,255,.075);
+  border-radius:10px;
+  background:rgba(0,0,0,.13);
+  color:#8f9a91 !important;
+  font-size:10px;
+}
+.agent-stages span.active{
+  background:rgba(217,255,74,.10) !important;
+  border-color:rgba(217,255,74,.25) !important;
+  color:#e6f3c1 !important;
+}
+.agent-stages span.done{color:#bfc9c0 !important}
+.agent-stages i{width:6px;height:6px;border-radius:50%;background:#69756c;box-shadow:none}
+.agent-stages .active i{background:#d9ff4a;box-shadow:0 0 10px rgba(217,255,74,.55)}
+.agent-plan-card,.agent-timeline,.agent-problems>div{
+  background:rgba(255,255,255,.055) !important;
+  border:1px solid rgba(255,255,255,.105) !important;
+  border-radius:15px !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.035) !important;
+}
+.agent-plan-card{padding:16px !important}
+.agent-timeline{padding:16px !important}
+.agent-timeline-title{
+  color:#f0f5f0 !important;
+  border-bottom:1px solid rgba(255,255,255,.09) !important;
+  padding-bottom:11px !important;
+}
+.agent-timeline-title span{color:#929e95 !important}
+.agent-plan-goal{color:#d2dad3 !important}
+.agent-plan-section{
+  padding:10px 0 !important;
+  border-top:1px solid rgba(255,255,255,.07) !important;
+}
+.agent-plan-section strong{color:#aeb9b0 !important}
+.agent-plan-section span{color:#dce4dd !important}
+.agent-event{
+  border-bottom:1px solid rgba(255,255,255,.07) !important;
+  padding:12px 0 !important;
+}
+.agent-event-copy strong{color:#e8eee9 !important}
+.agent-event-copy p{color:#b1bcb3 !important}
+.agent-event time{color:#7f8b82 !important}
+.agent-event-marker{
+  background:rgba(255,255,255,.08) !important;
+  border:1px solid rgba(255,255,255,.11) !important;
+  color:#c8d1ca !important;
+}
+.agent-event-tool-success .agent-event-marker{background:rgba(217,255,74,.11) !important;color:#ddf39c !important;border-color:rgba(217,255,74,.23) !important}
+.agent-event-tool-error .agent-event-marker,.agent-event-failed .agent-event-marker{background:rgba(255,110,100,.10) !important;color:#ffaaa2 !important;border-color:rgba(255,130,120,.23) !important}
+.agent-empty{color:#9aa59c !important}
+.agent-problems{display:grid;gap:8px;margin:12px 0}
+.agent-problems>div{padding:12px !important;background:rgba(255,100,90,.065) !important;border-color:rgba(255,130,120,.20) !important;color:#f0c4bf !important}
+.agent-problems>div strong{color:#ffaaa1 !important}
+
+/* glass controls */
+.preview-refresh,.preview-expand,.editor-save,.retry-button,.cancel-button{
+  background:rgba(255,255,255,.065) !important;
+  border-color:rgba(255,255,255,.13) !important;
+  color:#cdd6cf !important;
+}
+.preview-refresh:hover,.preview-expand:hover,.editor-save:hover,.retry-button:hover,.cancel-button:hover{
+  background:rgba(217,255,74,.10) !important;
+  border-color:rgba(217,255,74,.25) !important;
+  color:#ebf6cf !important;
+}
