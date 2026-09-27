@@ -61,20 +61,33 @@ export class AIOrchestrator {
   ): Promise<AIOrchestratorRun> {
     const candidates = ROLE_MODELS[role];
     const requested = options?.model?.trim();
-    // If the user explicitly selected OpenRouter's free router, preserve it.
-    // The provider is responsible for routing that request to an available free model.
-    // Previously NEXUM replaced openrouter/free with a hard-coded role model, which
-    // made the "free router" setting misleading and could select unavailable models.
-    const model = requested
-      ? requested
-      : (candidates.at(0) ?? "openrouter/free");
+    const models = requested ? [requested] : candidates.length ? candidates : ["openrouter/free"];
+    let lastError: unknown;
 
-    const response = await this.gateway.generate(
-      this.decoratePrompt(role, prompt),
-      { ...options, model },
-    );
+    // If the caller selected a concrete model, make exactly one request. For the
+    // automatic router, fail over across the role's compatible models instead of
+    // repeatedly asking one rate-limited endpoint. A 429 from one model therefore
+    // does not immediately collapse the whole Builder session.
+    for (const model of models) {
+      try {
+        const response = await this.gateway.generate(
+          this.decoratePrompt(role, prompt),
+          { ...options, model },
+        );
+        return { role, model, response };
+      } catch (error) {
+        lastError = error;
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`[agent] ${role} model ${model} failed: ${message}`);
+        if (requested || !this.shouldTryNextModel(message)) break;
+      }
+    }
 
-    return { role, model, response };
+    throw lastError instanceof Error ? lastError : new Error(`No AI model available for role ${role}`);
+  }
+
+  private shouldTryNextModel(message: string): boolean {
+    return /(?:429|rate.?limit|too many requests|temporar|timeout|timed out|5\\d{2})/i.test(message);
   }
 
   modelFor(role: AIOrchestratorRole): string {
