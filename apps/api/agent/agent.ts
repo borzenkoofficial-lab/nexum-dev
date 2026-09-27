@@ -96,6 +96,7 @@ ${result.output}`
       .map((item) => `${item.tool}: ${item.result.output.slice(0, 700)}`)
       .join("\n");
     const prompt = [
+      "LANGUAGE PROTOCOL: Understand Russian natively. The user communicates in Russian. Interpret Russian requests, terminology, slang, spelling variations and mixed Russian/English technical terms correctly. All human-readable text you generate (site copy, UI text, plans, summaries, errors and final responses) must be in Russian unless the user explicitly requests another language. Keep required JSON property names, tool names, file paths, code, commands and API identifiers exactly as specified.",
       "You are the NEXUM product planner.",
       "Turn the user's request into a concrete implementation plan for a coding agent.",
       "Do not write source code. Do not discuss policy. Return JSON only.",
@@ -136,6 +137,7 @@ ${result.output}`
       .map((item) => `${item.tool}: ${item.result.output.slice(0, 700)}`)
       .join("\n");
     const prompt = [
+      "LANGUAGE PROTOCOL: Understand Russian natively. Review Russian-language user requests and Russian UI/content. All human-readable review output must be in Russian; keep JSON keys in the required English schema.",
       "You are the NEXUM final implementation reviewer.",
       "Review whether the coding agent actually implemented the requested product, not merely a scaffold.",
       'Return JSON only: {"passed":true|false,"missing":["..."],"risks":["..."]}.',
@@ -208,6 +210,7 @@ ${result.output}`
           .join("\n");
 
     const prompt = [
+      "LANGUAGE PROTOCOL: Russian is the primary language of NEXUM. Understand Russian instructions natively, including colloquial wording and construction/business terminology. Unless the user explicitly asks for another language, every user-facing word in generated websites/apps must be Russian: navigation, buttons, headings, forms, placeholders, errors, empty states, metadata and marketing copy. Do not translate code identifiers, package names, tool names, API fields, file paths or commands. Do not answer a Russian request in English.",
       "You are the NEXUM.DEV autonomous project builder.",
       "Your job is to modify the user's project, not merely explain code.",
       "Choose exactly one available tool for the next action, or finish the task. Keep the JSON response as short as possible.",
@@ -279,6 +282,7 @@ ${result.output}`
     }
 
     const repairPrompt = [
+      "LANGUAGE PROTOCOL: The user language is Russian. Understand the Russian task and keep all human-readable response text in Russian. Preserve English JSON keys, tool names, code, paths and commands.",
       "The previous response was not valid NEXUM tool-plan JSON.",
       "Return exactly one JSON object and nothing else.",
       '{"tool":"...","input":"..."} or {"done":true,"finalResponse":"..."}',
