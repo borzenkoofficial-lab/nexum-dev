@@ -27,7 +27,7 @@ function App() {
   const [aiModels, setAIModels] = useState<Record<string, string[]>>({});
   const [aiProvider, setAIProvider] = useState("mock");
   const [aiModel, setAIModel] = useState("mock-v1");
-  const [ollamaStatus, setOllamaStatus] = useState<AIProviderStatus | null>(null);
+  const [aiStatus, setAIStatus] = useState<AIProviderStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"preview" | "terminal">("preview");
@@ -68,7 +68,7 @@ function App() {
         const [providersResponse, modelsResponse, statusResponse] = await Promise.all([
           fetch("/api/ai/providers"),
           fetch("/api/ai/models"),
-          fetch("/api/ai/status?provider=ollama"),
+          fetch(`/api/ai/status?provider=${encodeURIComponent(defaultProvider?.id ?? "mock")}`),
         ]);
         if (!providersResponse.ok || !modelsResponse.ok) throw new Error("AI config unavailable");
         const providersData = (await providersResponse.json()) as { providers?: AIProviderInfo[] };
@@ -79,18 +79,32 @@ function App() {
         setAIProviders(providers);
         setAIModels(modelsData.models ?? {});
         if (defaultProvider) { setAIProvider(defaultProvider.id); setAIModel(defaultProvider.model); }
-        const ollama = statusData?.status ?? null;
-        setOllamaStatus(ollama);
-        if (ollama?.available) {
-          setAIProvider("ollama");
-          setAIModel(ollama.model);
-        }
+        const status = statusData?.status ?? null;
+        setAIStatus(status);
+        if (status?.available) setAIModel(status.model);
       } catch {
         setApiError(true);
       }
     }
     void loadAIConfig();
   }, []);
+
+  useEffect(() => {
+    if (!aiProvider) return;
+    let cancelled = false;
+    async function refreshAIStatus() {
+      try {
+        const response = await fetch(`/api/ai/status?provider=${encodeURIComponent(aiProvider)}`);
+        const data = response.ok ? (await response.json()) as { status?: AIProviderStatus } : null;
+        if (!cancelled) setAIStatus(data?.status ?? { provider: aiProvider, available: false, model: aiModel, latencyMs: null, error: "AI status unavailable" });
+      } catch {
+        if (!cancelled) setAIStatus({ provider: aiProvider, available: false, model: aiModel, latencyMs: null, error: "Cannot reach AI status endpoint" });
+      }
+    }
+    void refreshAIStatus();
+    const timer = window.setInterval(refreshAIStatus, 10000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [aiProvider, aiModel]);
 
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
@@ -235,7 +249,7 @@ function App() {
         </div>
       </main>
       <BottomPanel open={bottomPanelOpen} onClose={() => setBottomPanelOpen(false)} />
-      <StatusBar projectName={activeProject?.name ?? "NEXUM"} provider={aiProvider} previewOnline={previewOnline} onOpenTerminal={() => setBottomPanelOpen(true)} />
+      <StatusBar projectName={activeProject?.name ?? "NEXUM"} provider={aiProvider} aiStatus={aiStatus} previewOnline={previewOnline} onOpenTerminal={() => setBottomPanelOpen(true)} />
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
       <NewProjectModal open={modalOpen} name={newProjectName} loading={projectActionLoading} onNameChange={setNewProjectName} onClose={() => setModalOpen(false)} onSubmit={(event) => void createProject(event)} />
       {notice && <div className="toast" role="status">{notice}</div>}
