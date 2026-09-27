@@ -50,7 +50,7 @@ export class CheckpointManager {
   }
 
   async create(projectId: string, projectPath: string, label = "checkpoint"): Promise<ProjectCheckpoint> {
-    const id = ${Date.now().toString(36)}-${randomUUID().slice(0, 8)};
+    const id = Date.now().toString(36) + "-" + randomUUID().slice(0, 8);
     const checkpointRoot = resolve(this.root(projectPath), id);
     await mkdir(checkpointRoot, { recursive: true });
 
