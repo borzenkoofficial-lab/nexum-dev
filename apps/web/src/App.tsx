@@ -78,8 +78,9 @@ function App() {
         setAIProviders(providers);
         setAIModels(modelsData.models ?? {});
         if (defaultProvider) { setAIProvider(defaultProvider.id); setAIModel(defaultProvider.model); }
-      } catch {
-        setApiError(true);
+      } catch (error) {
+        console.error("[Nexum] AI config request failed:", error);
+        setApiError(error instanceof Error ? error.message : "AI config unavailable");
       }
     }
     void loadAIConfig();
@@ -128,8 +129,8 @@ function App() {
       setActiveProjectId(projectId);
       setReply("");
       await loadProjects(projectId);
-    } catch {
-      setApiError(true);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Project selection failed");
     } finally {
       setProjectActionLoading(false);
     }
@@ -150,8 +151,8 @@ function App() {
       await selectProject(data.project.id);
       setNewProjectName("");
       setModalOpen(false);
-    } catch {
-      setApiError(true);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Project creation failed");
     } finally {
       setProjectActionLoading(false);
     }
@@ -165,7 +166,7 @@ function App() {
     setRightTab("preview");
     setAgentStage("thinking");
     setReply("");
-    setApiError(false);
+    setApiError("");
     const runningTimer = window.setTimeout(() => setAgentStage("running"), 450);
     const buildingTimer = window.setTimeout(() => setAgentStage("building"), 1400);
     try {
@@ -183,8 +184,9 @@ function App() {
       if (data.error) throw new Error(data.error);
       setReply(data.reply ?? "");
       setPreviewKey((key) => key + 1);
-    } catch {
-      setApiError(true);
+    } catch (error) {
+      console.error("[Nexum] Chat API request failed:", error);
+      setApiError(error instanceof Error ? error.message : "Chat API request failed");
     } finally {
       window.clearTimeout(runningTimer);
       window.clearTimeout(buildingTimer);
