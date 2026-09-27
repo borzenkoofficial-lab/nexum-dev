@@ -35,7 +35,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", service: "NEXUM.DEV API" });
+  res.json({ status: "ok", service: "NEXUM.DEV API", aiProvider: defaultProvider, openRouterKeyConfigured: Boolean(process.env.OPENROUTER_API_KEY?.trim()) });
 });
 
 app.get("/api/ai/providers", (_req, res) => {
