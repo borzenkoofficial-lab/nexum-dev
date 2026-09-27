@@ -169,42 +169,16 @@ export class AgentLoop {
             message: "Модель попыталась завершить без реализации. Требую фактическое изменение файлов.",
           });
 
-          // Give the same planner a compact, explicit implementation retry. This
-          // is intentionally limited by MAX_AI_PLANNER_CALLS so it cannot create
-          // an expensive retry loop.
-          if (aiPlannerCalls < MAX_AI_PLANNER_CALLS) {
-            try {
-              aiPlannerCalls += 1;
-              const retryTask = [
-                task,
-                "",
-                "IMPLEMENTATION RETRY: previous planner attempted done=true too early.",
-                "Do NOT return done=true.",
-                "Return exactly one concrete filesystem action now.",
-                "If the project already exists, read the relevant current entry file first; after it is read, return writeFile or patchFile with the actual requested product implementation.",
-                "The user needs the project changed, not a textual answer.",
-              ].join("\n");
-              const retryPlan = await this.runtime.planWithAI(
-                retryTask,
-                previousResults,
-                options as AgentModelOptions,
-                productPlan ?? undefined,
-              );
-              if (retryPlan && !retryPlan.done) {
-                plan = retryPlan;
-              } else {
-                plan = this.runtime.plan(task, previousResults);
-              }
-            } catch {
-              plan = this.runtime.plan(task, previousResults);
-            }
-          } else {
-            plan = this.runtime.plan(task, previousResults);
-          }
+          // Do not spend another remote AI call merely because the planner
+          // returned done=true too early. The deterministic planner already has
+          // the full tool/result history and can choose the next concrete action.
+          // This removes a duplicate planner request from the same iteration and
+          // preserves the global AI-call budget for genuinely new project state.
+          plan = this.runtime.plan(task, previousResults);
 
           if (!plan || plan.done) {
-            // Do not fall through to finalResponse. Keep the job alive for the
-            // next planner iteration while there is still no implementation.
+            // Keep the job alive for the next iteration while implementation is
+            // still missing. The next AI planner call, if any, sees new state.
             continue;
           }
         }
