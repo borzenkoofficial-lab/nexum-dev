@@ -23,6 +23,7 @@ import { ProjectWorkspace } from "./tools/workspace.js";
 import { WriteFileTool } from "./tools/writeFile.js";
 import { ScaffoldProjectTool } from "./tools/scaffoldProject.js";
 import { ValidateProjectTool } from "./tools/validateProject.js";
+import { PatchFileTool } from "./tools/patchFile.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -42,6 +43,7 @@ export class NexumAgent implements AgentRuntime {
       new WriteFileTool(workspace),
       new ScaffoldProjectTool(workspace),
       new ValidateProjectTool(workspace),
+      new PatchFileTool(workspace),
       new SearchFilesTool(workspace),
       new RunCommandTool(projectRoot),
       new RunSandboxTool(projectRoot),
@@ -187,6 +189,7 @@ ${result.output}`
       "searchFiles: input is the text to search for",
       "scaffoldProject: input is the app brief; creates the project starter files only in an empty project",
       "validateProject: input is ., performs static validation of HTML/CSS/JS/JSON before Preview",
+      'patchFile: input is JSON object {"path":"existing/file","find":"exact old text","replace":"new text","expectedMatches":1}; use for targeted edits and never for broad rewrites',
       "runCommand: input is one allowlisted command for the active project, such as npm install, npm run build or npm run test",
       'runSandbox: input is JSON object {"projectPath":".","command":"npm run build"}; projectPath is always forced to the active project',
       "git: input is one of status, diff, diff-stat, log, branch",
@@ -205,7 +208,7 @@ ${result.output}`
       "Choose exactly one available tool for the next action, or finish the task. Keep the JSON response as short as possible.",
       "For app-building tasks, NEVER jump straight to scaffoldProject. First inspect the current project with listFiles, then read the relevant entry files. If the project already contains an app, modify that app instead of replacing it. Only scaffold an actually empty/new project.",
       "After listFiles, use the exact filenames returned by the inspection. Do not invent paths unless the file already exists or you have just created it.",
-      "For a change request on an existing app, first read the smallest set of relevant existing files, then make targeted edits. Do not regenerate the whole application for a local change.",
+      "For a change request on an existing app, first read the smallest set of relevant existing files, then make targeted edits. Prefer patchFile for local changes; use writeFile for genuinely new or substantially rewritten files. Do not regenerate the whole application for a local change.",
       "For visual changes, inspect the existing stylesheet/component before editing. Preserve unrelated layout, content, and behavior.",
       "After writeFile, verify the changed file when the next decision depends on its exact contents.",
       "Never answer with a full code listing when a file should be changed: use writeFile.",
