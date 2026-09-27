@@ -24,6 +24,13 @@ export interface GatewayFallbackEvent {
   timestamp: number;
 }
 
+export interface GatewayGenerationResult {
+  response: string;
+  provider: string;
+  model: string;
+  fallback: boolean;
+}
+
 export class AIGateway {
   private readonly providers: Map<string, AIProvider>;
   private readonly defaultProviderId: string;
@@ -101,7 +108,7 @@ export class AIGateway {
     return this.providers.get(providerId)?.model ?? this.providers.get(this.defaultProviderId)!.model;
   }
 
-  async generate(message: string, options: GatewayGenerateOptions | string = {}): Promise<string> {
+  async generateWithMetadata(message: string, options: GatewayGenerateOptions | string = {}): Promise<GatewayGenerationResult> {
     const normalizedOptions = typeof options === "string" ? { provider: options } : options;
     const providerId = normalizedOptions.provider ?? this.defaultProviderId;
     const provider = this.providers.get(providerId);
@@ -116,11 +123,10 @@ export class AIGateway {
     ].join("\n");
 
     try {
-      return await provider.generate(localizedMessage, normalizedOptions.model, {
+      return {\n        response: await provider.generate(localizedMessage, normalizedOptions.model, {
         ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
         ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
-      });
-    } catch (error) {
+      }),\n        provider: provider.id,\n        model: normalizedOptions.model ?? provider.model,\n        fallback: false,\n      };\n    } catch (error) {
       const fallbackId = this.fallbackProviderId;
       const reason = error instanceof Error ? error.message : "AI provider request failed";
       // Fallback is for transient provider failures only. Authentication,
@@ -151,12 +157,15 @@ export class AIGateway {
       };
       this.onFallback?.(event);
 
-      return fallback.generate(localizedMessage, fallback.model, {
+      return {\n        response: await fallback.generate(localizedMessage, fallback.model, {
         ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
         ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
-      });
-    }
+      }),\n        provider: fallback.id,\n        model: fallback.model,\n        fallback: true,\n      };\n    }\n  }
+  async generate(message: string, options: GatewayGenerateOptions | string = {}): Promise<string> {
+    const result = await this.generateWithMetadata(message, options);
+    return result.response;
   }
+
 
   private isTransientProviderError(message: string): boolean {
     return /(?:408|429|rate.?limit|too many requests|timeout|timed out|temporar(?:y|ily)|service unavailable|fetch failed|econnreset|econnrefused|enotfound|\b5\d{2}\b)/i.test(message);
