@@ -153,7 +153,13 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", service: "NEXUM.DEV API", aiProvider: defaultProvider, openRouterKeyConfigured: Boolean(process.env.OPENROUTER_API_KEY?.trim()) });
+  res.json({
+    status: "ok",
+    service: "NEXUM.DEV API",
+    aiProvider: defaultProvider,
+    aiFallbackProvider: fallbackProvider ?? null,
+    openRouterKeyConfigured: Boolean(process.env.OPENROUTER_API_KEY?.trim()),
+  });
 });
 
 app.get("/api/ai/providers", (_req, res) => {
@@ -514,7 +520,8 @@ app.get("/api/agent/diagnostics", async (req, res) => {
   const failures = entries.filter((entry) =>
     (entry.type === "agent-event" && (entry.status === "tool-error" || entry.status === "failed")) ||
     entry.type === "job-failed" ||
-    entry.type === "job-exception"
+    entry.type === "job-exception" ||
+    entry.type === "provider-fallback"
   );
   return res.json({
     success: true,
