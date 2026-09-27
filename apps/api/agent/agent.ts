@@ -7,6 +7,8 @@ import type {
   AgentRuntime,
   AgentToolResult,
   AgentPlan,
+  ProductPlan,
+  ProductReview,
   Tool,
   ToolResult,
 } from "./types.js";
@@ -71,10 +73,80 @@ ${result.output}`
     return [...this.tools.keys()];
   }
 
+  async createProductPlan(
+    task: string,
+    previousResults: AgentToolResult[],
+    options?: AgentModelOptions,
+  ): Promise<ProductPlan> {
+    const inspection = previousResults
+      .filter((item) => item.result.success)
+      .map((item) => `${item.tool}: ${item.result.output.slice(0, 1200)}`)
+      .join("\n");
+    const prompt = [
+      "You are the NEXUM product planner.",
+      "Turn the user's request into a concrete implementation plan for a coding agent.",
+      "Do not write source code. Do not discuss policy. Return JSON only.",
+      "The plan must be specific enough that a different request produces a materially different application.",
+      "Include concrete pages, components, visual system, interactions, data concepts, files to inspect/change, and acceptance criteria.",
+      'JSON shape: {"goal":"...","productType":"...","targetUser":"...","pages":["..."],"components":["..."],"visualSystem":["..."],"interactions":["..."],"dataModel":["..."],"filesToInspect":["..."],"filesToChange":["..."],"acceptanceCriteria":["..."]}',
+      `User request: ${task}`,
+      `Current project inspection:\n${inspection || "No inspection result yet."}`,
+    ].join("\n");
+    try {
+      const run = await this.orchestrator.run("planner", prompt, options);
+      const parsed = this.parseProductPlan(run.response);
+      if (parsed) return parsed;
+    } catch (error) {
+      console.warn("[agent] product planner failed, using deterministic plan", error);
+    }
+    return this.fallbackProductPlan(task, previousResults);
+  }
+
+  async reviewProduct(
+    task: string,
+    previousResults: AgentToolResult[],
+    productPlan: ProductPlan,
+    options?: AgentModelOptions,
+  ): Promise<ProductReview> {
+    const evidence = previousResults
+      .filter((item) => item.result.success)
+      .map((item) => `${item.tool}: ${item.result.output.slice(0, 1800)}`)
+      .join("\n");
+    const prompt = [
+      "You are the NEXUM final implementation reviewer.",
+      "Review whether the coding agent actually implemented the requested product, not merely a scaffold.",
+      "Return JSON only: {"passed":true|false,"missing":["..."],"risks":["..."]}.",
+      "Do not require backend functionality unless the user requested it.",
+      "Treat placeholder/demo copy, generic starter UI, or an unverified build as a failure.",
+      `User request: ${task}`,
+      `Product plan: ${JSON.stringify(productPlan)}`,
+      `Execution evidence:\n${evidence}`,
+    ].join("\n");
+    try {
+      const run = await this.orchestrator.run("debugger", prompt, options);
+      const parsed = this.parseProductReview(run.response);
+      if (parsed) return parsed;
+    } catch (error) {
+      console.warn("[agent] product review failed", error);
+    }
+    const writes = previousResults.filter((item) => item.tool === "writeFile" && item.result.success).length;
+    const built = previousResults.some((item) =>
+      (item.tool === "runCommand" || item.tool === "runSandbox") &&
+      /npm run build/.test(item.input) &&
+      item.result.success,
+    );
+    return {
+      passed: writes >= 2 && built,
+      missing: writes < 2 ? ["Substantive implementation changes are missing."] : built ? [] : ["Production build was not verified."],
+      risks: [],
+    };
+  }
+
   async planWithAI(
     task: string,
     previousResults: AgentToolResult[],
     options?: AgentModelOptions,
+    productPlan?: ProductPlan,
   ): Promise<AgentPlan | null> {
     const toolCatalog = [
       "listFiles: input is a relative directory path string, usually .",
@@ -106,6 +178,8 @@ ${result.output}`
       "Use only paths relative to the active project, such as index.html, src/app.js, style.css.",
       "Do not modify another project or the NEXUM repository root.",
       "Before implementation, extract a concrete product brief from the user request: page type, target user, information architecture, visual direction, sections, interactions, responsive behavior, and key content. Use that brief to drive the files you write. Do not use generic NEXUM copy, demo metrics, placeholder cards, or a reusable starter layout unless the user explicitly asks for them.",
+      "A Product Plan is authoritative implementation context. Do not ignore it, invent a different product, or collapse it into a generic landing page.",
+      productPlan ? `PRODUCT PLAN: ${JSON.stringify(productPlan)}` : "PRODUCT PLAN: unavailable; infer a concrete plan before acting.",
       "Keep existing working code unless the user's task requires replacing it.",
       "When a build/check fails, inspect the exact error, locate the responsible file/line, fix it, and rerun the same check. Never report success when the last build is failing.",
       "Return JSON only, with no markdown and no explanation.",
@@ -229,6 +303,102 @@ ${result.output}`
     const result = await tool.execute(input);
     console.log(`[agent] ${tool.name}: ${result.success ? "success" : "failed"}`);
     return result;
+  }
+
+  private parseProductPlan(response: string): ProductPlan | null {
+    const candidates = [
+      response.trim(),
+      response.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1]?.trim() ?? "",
+      response.match(/\{[\s\S]*\}/)?.[0] ?? "",
+    ].filter(Boolean);
+    for (const candidate of candidates) {
+      try {
+        const value = JSON.parse(candidate) as Record<string, unknown>;
+        const strings = (key: string) => Array.isArray(value[key]) ? value[key].filter((item): item is string => typeof item === "string") : [];
+        if (typeof value.goal === "string" && typeof value.productType === "string") {
+          return {
+            goal: value.goal,
+            productType: value.productType,
+            targetUser: typeof value.targetUser === "string" ? value.targetUser : "End users",
+            pages: strings("pages"),
+            components: strings("components"),
+            visualSystem: strings("visualSystem"),
+            interactions: strings("interactions"),
+            dataModel: strings("dataModel"),
+            filesToInspect: strings("filesToInspect"),
+            filesToChange: strings("filesToChange"),
+            acceptanceCriteria: strings("acceptanceCriteria"),
+          };
+        }
+      } catch {}
+    }
+    return null;
+  }
+
+  private parseProductReview(response: string): ProductReview | null {
+    const candidates = [
+      response.trim(),
+      response.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1]?.trim() ?? "",
+      response.match(/\{[\s\S]*\}/)?.[0] ?? "",
+    ].filter(Boolean);
+    for (const candidate of candidates) {
+      try {
+        const value = JSON.parse(candidate) as Record<string, unknown>;
+        if (typeof value.passed === "boolean") {
+          return {
+            passed: value.passed,
+            missing: Array.isArray(value.missing) ? value.missing.filter((item): item is string => typeof item === "string") : [],
+            risks: Array.isArray(value.risks) ? value.risks.filter((item): item is string => typeof item === "string") : [],
+          };
+        }
+      } catch {}
+    }
+    return null;
+  }
+
+  private fallbackProductPlan(task: string, previousResults: AgentToolResult[]): ProductPlan {
+    const lower = task.toLowerCase();
+    const type = /marketplace|маркетплейс|авито|перепродаж/.test(lower)
+      ? "Marketplace"
+      : /dashboard|crm|панел/.test(lower)
+        ? "Dashboard"
+        : /магазин|shop|store|ecommerce|каталог/.test(lower)
+          ? "Commerce"
+          : /приложени|app|spa/.test(lower)
+            ? "Web application"
+            : "Website";
+    const pages = type === "Marketplace"
+      ? ["Home", "Search/results", "Listing detail", "Create listing", "Profile", "Messages"]
+      : type === "Dashboard"
+        ? ["Overview", "Records", "Details", "Settings"]
+        : ["Home", "About/Benefits", "Services or content", "Contact/CTA"];
+    const components = [
+      "Responsive header",
+      "Primary navigation",
+      "Task-specific content blocks",
+      "Interactive controls",
+      "Responsive mobile layout",
+      "Accessible focus and hover states",
+    ];
+    return {
+      goal: task.trim(),
+      productType: type,
+      targetUser: "The audience implied by the request",
+      pages,
+      components,
+      visualSystem: ["Distinct visual direction derived from the request", "Consistent typography", "Responsive spacing and hierarchy", "High-contrast interactive states"],
+      interactions: ["Primary CTA", "Navigation", "Task-specific controls", "Mobile interaction states"],
+      dataModel: type === "Marketplace" ? ["users", "listings", "categories", "messages", "favorites"] : ["content", "actions"],
+      filesToInspect: previousResults.some((item) => item.tool === "listFiles") ? ["."] : ["."],
+      filesToChange: ["The actual application entry file", "The actual stylesheet", "Supporting interaction/data files as required"],
+      acceptanceCriteria: [
+        "The requested product is visibly implemented, not a generic starter",
+        "The main user flow described by the request is interactive",
+        "The layout is responsive",
+        "The project builds successfully",
+        "No placeholder/demo NEXUM starter content remains",
+      ],
+    };
   }
 
   private parseAIPlan(response: string): AgentPlan | null {
