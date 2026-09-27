@@ -5,7 +5,7 @@ import { ProjectWorkspace } from "./workspace.js";
 
 export class ScaffoldProjectTool implements Tool {
   name = "scaffoldProject";
-  description = "Creates a complete zero-dependency web starter (index.html, style.css, app.js) from the user's brief.";
+  description = "Creates only a minimal runnable project foundation. The AI agent must implement the actual product afterward.";
 
   constructor(private readonly workspace: ProjectWorkspace) {}
 
@@ -20,9 +20,9 @@ export class ScaffoldProjectTool implements Tool {
       const files = isReact
         ? this.reactFiles(title, brief)
         : [
-        ["index.html", this.indexHtml(title, brief)],
-        ["style.css", this.styleCss()],
-        ["app.js", this.appJs()],
+          ["index.html", this.indexHtml(title, brief)],
+          ["style.css", "html,body{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#fff;color:#111}"],
+          ["app.js", 'console.info("NEXUM project foundation ready");'],
         ] as const;
 
       for (const [path, content] of files) {
@@ -45,7 +45,6 @@ export class ScaffoldProjectTool implements Tool {
 
   private reactFiles(title: string, brief: string): readonly [string, string][] {
     const safeTitle = this.escapeHtml(title);
-    const safeBrief = this.escapeHtml(brief || "A new product built with NEXUM.");
     return [
       ["package.json", JSON.stringify({
         name: "nexum-app",
@@ -59,8 +58,8 @@ export class ScaffoldProjectTool implements Tool {
       ["vite.config.js", 'import { defineConfig } from "vite";\nimport react from "@vitejs/plugin-react";\nexport default defineConfig({ plugins: [react()] });\n'],
       ["index.html", '<!doctype html>\n<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>'+safeTitle+'</title></head><body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>'],
       ["src/main.jsx", 'import React from "react";\nimport { createRoot } from "react-dom/client";\nimport "./styles.css";\nimport App from "./App.jsx";\ncreateRoot(document.getElementById("root")).render(<React.StrictMode><App /></React.StrictMode>);\n'],
-      ["src/App.jsx", 'export default function App(){return <main className="app"><span className="eyebrow">BUILT WITH NEXUM.DEV</span><h1>'+safeTitle+'</h1><p>'+safeBrief+'</p><button onClick={()=>alert("NEXUM preview is live")}>Get started</button></main>}\n'],
-      ["src/styles.css", 'body{margin:0;font-family:Inter,system-ui,sans-serif;background:#f5f5f2;color:#111}.app{min-height:100vh;display:grid;place-content:center;max-width:900px;margin:auto;padding:40px}.eyebrow{font-size:12px;letter-spacing:.16em;font-weight:800;color:#777}h1{font-size:clamp(48px,9vw,96px);line-height:.92;letter-spacing:-.06em;margin:18px 0}p{font-size:20px;line-height:1.5;color:#666}button{border:0;border-radius:14px;padding:13px 20px;background:#111;color:white;font-weight:800;cursor:pointer}'],
+      ["src/App.jsx", 'export default function App(){return <main id="nexum-root" aria-label="Application"><h1>Loading product…</h1></main>}\n'],
+      ["src/styles.css", 'html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#fff;color:#111}button,input,textarea,select{font:inherit}'],
     ];
   }
 
@@ -76,42 +75,14 @@ export class ScaffoldProjectTool implements Tool {
 
   private indexHtml(title: string, brief: string): string {
     const safeTitle = this.escapeHtml(title);
-    const safeBrief = this.escapeHtml(brief || "A new product built with NEXUM.");
+    const safeBrief = this.escapeHtml(brief || "NEXUM project");
     return `<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="${safeBrief}">
-  <title>${safeTitle}</title>
-  <link rel="stylesheet" href="./style.css">
-</head>
-<body>
-  <header class="nav">
-    <a class="brand" href="./">NEXUM</a>
-    <button class="nav-button" id="openAction" type="button">Get started</button>
-  </header>
-  <main>
-    <section class="hero">
-      <span class="eyebrow">BUILT WITH NEXUM.DEV</span>
-      <h1>${safeTitle}</h1>
-      <p>${safeBrief}</p>
-      <div class="actions">
-        <button class="primary" id="heroAction" type="button">Start now</button>
-        <a class="secondary" href="#features">Explore</a>
-      </div>
-    </section>
-    <section id="features" class="feature-grid">
-      <article><span>01</span><h2>Fast</h2><p>A clean foundation ready for the next build step.</p></article>
-      <article><span>02</span><h2>Editable</h2><p>Every file lives inside your project workspace.</p></article>
-      <article><span>03</span><h2>Live</h2><p>Changes can be opened immediately in Preview.</p></article>
-    </section>
-  </main>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js"></script>
-</body>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${safeBrief}"><title>${safeTitle}</title></head>
+<body><main id="nexum-root" aria-label="Application"></main><script src="./app.js"></script></body>
 </html>`;
   }
+
 
   private styleCss(): string {
     return `:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;background:#f5f5f2;font-synthesis:none}
