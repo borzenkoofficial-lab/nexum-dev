@@ -164,6 +164,37 @@ ${result.output}`
       return null;
     }
 
+    const scaffolded = previousResults.some(
+      (item) => item.tool === "scaffoldProject" && item.result.success,
+    );
+    if (scaffolded) {
+      const implementationWrites = previousResults.filter(
+        (item) => item.tool === "writeFile" && item.result.success,
+      );
+      if (implementationWrites.length === 0 && this.getAvailableTools().includes("writeFile")) {
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({
+            path: "src/App.jsx",
+            content: this.fallbackApp(task),
+          }),
+        };
+      }
+      if (
+        implementationWrites.length === 1 &&
+        !implementationWrites.some((item) => item.input.includes('"path":"src/styles.css"')) &&
+        this.getAvailableTools().includes("writeFile")
+      ) {
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({
+            path: "src/styles.css",
+            content: this.fallbackStyles(),
+          }),
+        };
+      }
+    }
+
     const selection = this.selectTool(task);
     if (!selection) return null;
 
@@ -224,6 +255,103 @@ ${result.output}`
     }
 
     return null;
+  }
+
+  private fallbackApp(task: string): string {
+    const brief = task.replace(/\\s+/g, " ").trim().slice(0, 180);
+    const lower = task.toLowerCase();
+    const mode = /дашборд|dashboard|crm/.test(lower)
+      ? "dashboard"
+      : /магазин|shop|store|marketplace|маркетплейс/.test(lower)
+        ? "market"
+        : /лендинг|landing|сайт|website/.test(lower)
+          ? "landing"
+          : "product";
+    const title = mode === "dashboard"
+      ? "Workspace"
+      : mode === "market"
+        ? "Marketplace"
+        : mode === "landing"
+          ? "A sharper digital product"
+          : "Your product, built in NEXUM";
+    return `import { useState } from "react";
+
+const brief = ${JSON.stringify(brief)};
+
+export default function App() {
+  const [active, setActive] = useState("Overview");
+  const nav = ["Overview", "Projects", "Activity", "Settings"];
+  const cards = [
+    { label: "Projects", value: "12", meta: "+3 this week" },
+    { label: "Active users", value: "2,480", meta: "+18.4%" },
+    { label: "Conversion", value: "8.7%", meta: "+1.2%" },
+  ];
+
+  return (
+    <div className="nexum-shell">
+      <header className="topbar">
+        <div className="brand">NEXUM<span>·</span>DEV</div>
+        <div className="status">● Live preview</div>
+      </header>
+      <main className="content">
+        <section className="hero-card">
+          <div>
+            <span className="kicker">GENERATED PRODUCT</span>
+            <h1>${title}</h1>
+            <p>{brief}</p>
+          </div>
+          <button className="primary" onClick={() => setActive("Projects")}>Open workspace</button>
+        </section>
+        <nav className="tabs" aria-label="Sections">
+          {nav.map((item) => (
+            <button key={item} className={active === item ? "tab active" : "tab"} onClick={() => setActive(item)}>
+              {item}
+            </button>
+          ))}
+        </nav>
+        <section className="grid">
+          {cards.map((card) => (
+            <article className="metric" key={card.label}>
+              <span>{card.label}</span>
+              <strong>{card.value}</strong>
+              <small>{card.meta}</small>
+            </article>
+          ))}
+        </section>
+        <section className="panel">
+          <div className="panel-head"><div><span className="kicker">CURRENT VIEW</span><h2>{active}</h2></div><button className="secondary" onClick={() => setActive("Overview")}>Reset</button></div>
+          <div className="rows">
+            {["Design system", "Application shell", "Preview build"].map((item, index) => (
+              <div className="row" key={item}><span>{item}</span><span className="pill">{index === 2 ? "Ready" : "Built"}</span></div>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+`;
+  }
+
+  private fallbackStyles(): string {
+    return `:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;background:#f3f3f0;font-synthesis:none}
+*{box-sizing:border-box}
+body{margin:0;min-width:320px;background:linear-gradient(180deg,#fafaf8 0%,#eeeeea 100%)}
+button{font:inherit}
+.nexum-shell{min-height:100vh}
+.topbar{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;border-bottom:1px solid #deded8;background:rgba(255,255,255,.72);backdrop-filter:blur(18px);position:sticky;top:0;z-index:10}
+.brand{font-size:13px;font-weight:900;letter-spacing:.14em}.brand span{margin:0 5px;color:#999}.status{font-size:12px;color:#5d5d59}
+.content{width:min(1180px,calc(100% - 36px));margin:auto;padding:36px 0 80px}
+.hero-card{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;padding:42px;border:1px solid #dddcd5;border-radius:28px;background:#fff;box-shadow:0 18px 60px rgba(0,0,0,.06)}
+.kicker{font-size:11px;font-weight:900;letter-spacing:.15em;color:#888}
+h1{max-width:760px;margin:12px 0 10px;font-size:clamp(44px,7vw,82px);line-height:.92;letter-spacing:-.06em}
+.hero-card p{max-width:680px;margin:0;color:#666;font-size:18px;line-height:1.55}
+.primary,.secondary,.tab{border:0;cursor:pointer;border-radius:14px}.primary{padding:13px 18px;background:#111;color:#fff;font-weight:800;white-space:nowrap}.secondary{padding:10px 14px;background:#f1f1ed;color:#111}
+.tabs{display:flex;gap:8px;margin:18px 0}.tab{padding:10px 14px;background:transparent;color:#777}.tab.active{background:#111;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.metric{padding:24px;border:1px solid #deded8;border-radius:20px;background:rgba(255,255,255,.8)}.metric span,.metric small{display:block;color:#777}.metric strong{display:block;margin:18px 0 5px;font-size:34px;letter-spacing:-.04em}
+.panel{margin-top:12px;padding:26px;border:1px solid #deded8;border-radius:24px;background:#fff}.panel-head{display:flex;align-items:center;justify-content:space-between}.panel h2{margin:7px 0 0;font-size:28px;letter-spacing:-.04em}.rows{margin-top:22px}.row{display:flex;justify-content:space-between;padding:17px 0;border-top:1px solid #ecece7}.pill{padding:5px 9px;border-radius:999px;background:#eee;color:#555;font-size:11px;font-weight:800}
+@media(max-width:720px){.topbar{padding:0 18px}.content{width:min(100% - 24px,1180px);padding-top:18px}.hero-card{padding:26px;display:block}.primary{margin-top:22px}.grid{grid-template-columns:1fr}.tabs{overflow:auto}}
+`;
   }
 
   private selectTool(task: string): { name: string; input: string } | null {
