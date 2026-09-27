@@ -634,32 +634,59 @@ export class AgentLoop {
         (item) => item.tool === plan.tool && item.input === plan.input && item.result.success,
       );
       if (previousSuccess) {
-        // Inspection actions may repeat during recovery, but the agent must not
-        // get stuck on the same successful search/list/read action. For Builder
-        // tasks, give the deterministic planner one chance to move from inspection
-        // to an implementation action before treating the repetition as a loop.
         const inspectionTool = plan.tool === "searchFiles" || plan.tool === "listFiles" || plan.tool === "readFile";
         if (builderTask && inspectionTool) {
-          const recoveryPlan = this.runtime.plan(task, previousResults);
-          const recoveryKey = recoveryPlan && !recoveryPlan.done
-            ? this.actionFingerprint(recoveryPlan.tool, recoveryPlan.input)
-            : "";
-          const currentKey = this.actionFingerprint(plan.tool, plan.input);
-          if (recoveryPlan && !recoveryPlan.done && recoveryKey !== currentKey) {
+          // Never let a Builder die because the model repeated an inspection call.
+          // First exhaust concrete entry files from the latest project listing.
+          const latestListing = [...previousResults]
+            .reverse()
+            .find((item) => item.tool === "listFiles" && item.result.success)?.result.output ?? "";
+          const candidates = [
+            "src/App.tsx",
+            "src/App.jsx",
+            "src/main.tsx",
+            "src/main.jsx",
+            "src/App.css",
+            "src/styles.css",
+            "style.css",
+            "index.html",
+            "package.json",
+          ];
+          const unread = candidates.find((candidate) =>
+            latestListing.includes(candidate) &&
+            !previousResults.some((item) => item.tool === "readFile" && item.input === candidate && item.result.success),
+          );
+          if (unread && availableTools.includes("readFile")) {
+            const currentTool = plan.tool;
+            plan = { tool: "readFile", input: unread };
             emit({
               iteration,
               type: "thinking",
-              message: `Повторный ${plan.tool} обнаружен. Перехожу от анализа к следующему действию Builder: ${recoveryPlan.tool}.`,
+              message: "Повторная инспекция " + currentTool + " обнаружена. Читаю следующий реальный файл: " + unread + ".",
             });
-            plan = recoveryPlan;
           } else {
-            const error = `Agent stopped: repeated successful action detected (${plan.tool})`;
-            this.log(iteration, plan.tool, "error");
-            emit({ iteration, type: "failed", tool: plan.tool, message: error });
-            return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
+            const recoveryPlan = this.runtime.plan(task, previousResults);
+            const recoveryKey = recoveryPlan && !recoveryPlan.done
+              ? this.actionFingerprint(recoveryPlan.tool, recoveryPlan.input)
+              : "";
+            const currentKey = this.actionFingerprint(plan.tool, plan.input);
+            if (recoveryPlan && !recoveryPlan.done && recoveryKey !== currentKey) {
+              const nextTool = recoveryPlan.tool;
+              plan = recoveryPlan;
+              emit({
+                iteration,
+                type: "thinking",
+                message: "Повторная инспекция обнаружена. Перехожу к следующему действию Builder: " + nextTool + ".",
+              });
+            } else {
+              const error = "Agent stopped: repeated successful action detected (" + plan.tool + ")";
+              this.log(iteration, plan.tool, "error");
+              emit({ iteration, type: "failed", tool: plan.tool, message: error });
+              return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
+            }
           }
         } else {
-          const error = `Agent stopped: repeated successful action detected (${plan.tool})`;
+          const error = "Agent stopped: repeated successful action detected (" + plan.tool + ")";
           this.log(iteration, plan.tool, "error");
           emit({ iteration, type: "failed", tool: plan.tool, message: error });
           return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
