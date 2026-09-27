@@ -9,7 +9,7 @@ import { OpenRouterProvider } from "./ai/providers/openrouter.js";
 import { NexumAgent } from "./agent/agent.js";
 import { AgentLoop } from "./agent/loop.js";
 import { ProjectManager, ProjectManagerError } from "./projects/projectManager.js";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, stat, readdir } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -210,6 +210,23 @@ app.use("/api/preview/:id", async (req, res) => {
     if (code === "ENOENT") return res.status(404).send("Preview is not available yet. Ask NEXUM to create the app.");
     if (error instanceof ProjectManagerError) return sendProjectError(res, error);
     return res.status(500).send("Preview failed");
+  }
+});
+
+app.get("/api/projects/:id/files", async (req, res) => {
+  try {
+    const project = await projectManager.getProject(req.params.id);
+    const root = resolve(project.path);
+    const entries = await readdir(root, { withFileTypes: true, recursive: true });
+    const files = entries
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.parentPath ? relative(root, resolve(entry.parentPath, entry.name)) : entry.name)
+      .filter((file) => !file.startsWith(".git/") && !file.includes("node_modules/"))
+      .sort();
+    return res.json({ success: true, files });
+  } catch (error) {
+    const statusCode = error instanceof ProjectManagerError ? error.statusCode : 500;
+    return res.status(statusCode).json({ success: false, error: error instanceof Error ? error.message : "Unable to list project files" });
   }
 });
 
