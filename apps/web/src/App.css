@@ -1118,3 +1118,489 @@ html[data-motion="off"] .cinematic-prompt-text {
 @media (prefers-reduced-motion: reduce) {
   .cinematic-prompt-text { animation: none; opacity: 1; filter: none; transform: none; }
 }
+
+
+/* =========================================================
+   NEXUM UI QUALITY PASS
+   Layout / interaction / depth / responsive polish.
+   Existing color system is intentionally preserved.
+   ========================================================= */
+
+:root {
+  --nexum-ease: cubic-bezier(.22, 1, .36, 1);
+  --nexum-fast: 160ms;
+  --nexum-normal: 260ms;
+  --nexum-slow: 420ms;
+}
+
+* { box-sizing: border-box; }
+button, input, textarea, select { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid rgba(217,255,74,.34);
+  outline-offset: 2px;
+}
+
+.app, .workspace, .main, .content, .right-panel { min-width: 0; }
+
+.workspace {
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.sidebar {
+  z-index: 20;
+  transition: width var(--nexum-normal) var(--nexum-ease),
+              transform var(--nexum-normal) var(--nexum-ease),
+              border-color var(--nexum-normal) ease;
+  will-change: width, transform;
+}
+
+.sidebar-nav, .projects, .sidebar-bottom { scrollbar-width: thin; }
+
+.nav-item, .sidebar-setting, .project, .new-project, .project-delete {
+  transition: background var(--nexum-fast) ease,
+              border-color var(--nexum-fast) ease,
+              color var(--nexum-fast) ease,
+              transform var(--nexum-fast) var(--nexum-ease),
+              opacity var(--nexum-fast) ease;
+}
+
+.nav-item:hover, .sidebar-setting:hover, .project:hover { transform: translateX(2px); }
+.new-project:hover { transform: translateY(-1px); }
+.nav-item:active, .sidebar-setting:active, .project:active, .new-project:active { transform: translateY(0) scale(.985); }
+
+.project-row {
+  position: relative;
+  border-radius: 11px;
+  transition: background var(--nexum-fast) ease;
+}
+.project-row.active { background: rgba(255,255,255,.025); }
+.project-delete {
+  opacity: 0;
+  transform: translateX(4px);
+}
+.project-row:hover .project-delete,
+.project-row:focus-within .project-delete {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.header {
+  min-width: 0;
+  transition: min-height var(--nexum-normal) var(--nexum-ease);
+}
+.header > div:first-child { min-width: 0; }
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.subtitle { opacity: .72; }
+.header-tools {
+  min-width: 0;
+  gap: 12px;
+}
+.ai-controls {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ai-controls label { min-width: 0; }
+.ai-controls select {
+  max-width: 180px;
+  text-overflow: ellipsis;
+  transition: border-color var(--nexum-fast) ease, background var(--nexum-fast) ease;
+}
+.ai-connection {
+  white-space: nowrap;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.status {
+  white-space: nowrap;
+  transition: opacity var(--nexum-fast) ease, transform var(--nexum-normal) var(--nexum-ease);
+}
+.status-working { transform: translateY(-1px); }
+
+.chat {
+  min-width: 0;
+  isolation: isolate;
+}
+.chat-project-context {
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--nexum-normal) ease,
+              background var(--nexum-normal) ease,
+              transform var(--nexum-normal) var(--nexum-ease);
+}
+.chat-project-context::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,.035) 45%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 700ms var(--nexum-ease);
+}
+.chat-project-context:hover::after { transform: translateX(120%); }
+
+.welcome {
+  position: relative;
+  max-width: 760px;
+}
+.welcome h1 {
+  text-wrap: balance;
+  letter-spacing: -.035em;
+}
+.welcome p {
+  max-width: 640px;
+  text-wrap: pretty;
+}
+
+.message-form {
+  position: relative;
+  z-index: 4;
+}
+.message-box {
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--nexum-normal) ease,
+              box-shadow var(--nexum-normal) ease,
+              transform var(--nexum-normal) var(--nexum-ease);
+}
+.message-box:focus-within {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 45px rgba(0,0,0,.14), inset 0 1px rgba(255,255,255,.045);
+}
+.message-box textarea {
+  min-height: 74px;
+  resize: vertical;
+  transition: min-height var(--nexum-normal) var(--nexum-ease);
+}
+.message-box textarea:focus { outline: none; }
+.message-box:focus-within textarea { min-height: 86px; }
+.composer-actions {
+  min-width: 0;
+}
+.composer-actions span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attach-button, .send-button, .quick-git, .agent-activity-live button {
+  transition: transform var(--nexum-fast) var(--nexum-ease),
+              background var(--nexum-fast) ease,
+              border-color var(--nexum-fast) ease,
+              color var(--nexum-fast) ease,
+              opacity var(--nexum-fast) ease;
+}
+.attach-button:hover, .quick-git:hover, .agent-activity-live button:hover { transform: translateY(-1px); }
+.send-button:hover:not(:disabled) { transform: translateY(-1px); }
+.send-button:active:not(:disabled) { transform: scale(.985); }
+.send-button:disabled, .attach-button:disabled { cursor: not-allowed; opacity: .45; }
+
+.attachment-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 76px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.attachment-chip {
+  animation: nexum-chip-in 240ms var(--nexum-ease) both;
+}
+@keyframes nexum-chip-in {
+  from { opacity: 0; transform: translateY(4px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.conversation {
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+.conversation-message {
+  animation: nexum-message-in 320ms var(--nexum-ease) both;
+}
+@keyframes nexum-message-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.conversation-content { overflow-wrap: anywhere; }
+
+.agent-activity-live {
+  transition: opacity var(--nexum-normal) ease,
+              transform var(--nexum-normal) var(--nexum-ease),
+              border-color var(--nexum-normal) ease;
+}
+.agent-activity-live.active { transform: translateY(-1px); }
+.activity-dot.working {
+  animation: nexum-pulse 1.6s ease-in-out infinite;
+}
+@keyframes nexum-pulse {
+  0%,100% { transform: scale(.85); opacity: .65; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+.right-panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.panel-tabs {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 auto;
+}
+.panel-tabs button {
+  position: relative;
+  transition: color var(--nexum-fast) ease,
+              background var(--nexum-fast) ease,
+              border-color var(--nexum-fast) ease,
+              transform var(--nexum-fast) var(--nexum-ease);
+}
+.panel-tabs button:not(.active):hover { transform: translateY(-1px); }
+.panel-tabs button.active::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -1px;
+  height: 1px;
+  border-radius: 99px;
+  background: currentColor;
+  opacity: .72;
+}
+.preview-refresh:active, .preview-expand:active { transform: scale(.94); }
+
+.preview-frame-wrap, .editor-shell, .agent-panel {
+  min-height: 0;
+  animation: nexum-panel-in 280ms var(--nexum-ease) both;
+}
+@keyframes nexum-panel-in {
+  from { opacity: .65; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.preview-frame-wrap {
+  position: relative;
+  overflow: hidden;
+}
+.preview-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: inherit;
+}
+.preview-content {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+  padding: 32px;
+}
+.preview-icon {
+  margin-bottom: 14px;
+  transform: translateZ(0);
+  animation: nexum-float 3.2s ease-in-out infinite;
+}
+@keyframes nexum-float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.preview-expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  padding: 14px;
+  animation: nexum-expand-in 220ms var(--nexum-ease) both;
+}
+@keyframes nexum-expand-in {
+  from { opacity: 0; transform: scale(.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+.preview-expanded .preview-frame-wrap {
+  width: 100%;
+  height: 100%;
+}
+
+.editor-shell { display: flex; flex-direction: column; min-height: 0; }
+.editor-filebar {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.editor-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.editor-file-name span { overflow: hidden; text-overflow: ellipsis; }
+.editor-body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(150px, 28%) minmax(0, 1fr);
+}
+.editor-tree {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.file-row {
+  min-width: 0;
+  transition: background var(--nexum-fast) ease,
+              border-color var(--nexum-fast) ease,
+              transform var(--nexum-fast) var(--nexum-ease);
+}
+.file-row:hover { transform: translateX(2px); }
+.file-row strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.code-editor {
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px minmax(0,1fr);
+  overflow: hidden;
+}
+.editor-gutter {
+  min-height: 100%;
+  overflow: hidden;
+  user-select: none;
+}
+.editor-gutter span { display: block; text-align: right; padding-right: 10px; }
+.code-editor textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  resize: none;
+  border: 0;
+  outline: 0;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.agent-panel {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.agent-panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  backdrop-filter: blur(12px);
+}
+.agent-stages {
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.agent-stages::-webkit-scrollbar { display: none; }
+.agent-event {
+  transition: background var(--nexum-fast) ease, transform var(--nexum-fast) var(--nexum-ease);
+}
+.agent-event:hover {
+  background: rgba(255,255,255,.025);
+  transform: translateX(2px);
+}
+.agent-event-copy { min-width: 0; }
+.agent-event-copy p {
+  overflow-wrap: anywhere;
+}
+.agent-event time { white-space: nowrap; }
+
+.bottom-panel, .chat-steps { transition: opacity var(--nexum-normal) ease; }
+
+.error-state, .preview-runtime-error, .editor-error {
+  animation: nexum-alert-in 220ms var(--nexum-ease) both;
+}
+@keyframes nexum-alert-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.composer-flight {
+  pointer-events: none;
+  animation: nexum-flight 520ms var(--nexum-ease) both;
+}
+@keyframes nexum-flight {
+  0% { opacity: 0; transform: translateY(12px) scale(.98); filter: blur(4px); }
+  22% { opacity: .9; filter: blur(0); }
+  100% { opacity: 0; transform: translateY(-12px) scale(1.01); }
+}
+
+@media (max-width: 1180px) {
+  .ai-controls label span { display: none; }
+  .ai-controls select { max-width: 150px; }
+  .ai-connection { max-width: 150px; }
+}
+
+@media (max-width: 980px) {
+  .header { gap: 12px; }
+  .header-tools { gap: 8px; }
+  .ai-controls { gap: 5px; }
+  .ai-connection { max-width: 120px; }
+  .right-panel { min-width: 0; }
+  .editor-body { grid-template-columns: minmax(125px, 31%) minmax(0,1fr); }
+}
+
+@media (max-width: 760px) {
+  .header {
+    min-height: 58px;
+  }
+  .subtitle { display: none; }
+  .header-tools .status { display: none; }
+  .ai-controls label { display: none; }
+  .ai-controls select { max-width: 132px; }
+  .ai-connection { max-width: 104px; font-size: 10px; }
+  .welcome h1 { font-size: clamp(30px, 8vw, 46px); }
+  .welcome p { font-size: 13px; line-height: 1.55; }
+  .message-box textarea { min-height: 68px; }
+  .message-box:focus-within textarea { min-height: 78px; }
+  .composer-actions { flex-wrap: wrap; }
+  .composer-actions span { max-width: 100%; }
+  .right-panel { border-radius: 0; }
+  .panel-tabs button { min-width: 0; }
+  .editor-body { grid-template-columns: 1fr; grid-template-rows: minmax(90px, 28%) minmax(0,1fr); }
+  .editor-tree { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .preview-expanded { padding: 7px; }
+}
+
+@media (max-width: 520px) {
+  .header-tools { margin-left: auto; }
+  .ai-controls { max-width: 100%; }
+  .ai-controls select { max-width: 110px; }
+  .ai-connection { display: none; }
+  .welcome h1 { letter-spacing: -.04em; }
+  .cinematic-prompt { min-height: 2.9em; }
+  .message-form { gap: 8px; }
+  .send-button { min-height: 42px; }
+  .chat-steps { overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+  .chat-steps::-webkit-scrollbar { display: none; }
+  .agent-panel { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+  .agent-event { grid-template-columns: 26px minmax(0,1fr); }
+  .agent-event time { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
