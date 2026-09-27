@@ -1,5 +1,5 @@
-import { mkdir, readdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import type { Tool, ToolResult } from "../types.js";
 import { ProjectWorkspace } from "./workspace.js";
 
@@ -27,7 +27,22 @@ export class ScaffoldProjectTool implements Tool {
       // the user's existing project.
       const entries = await readdir(dir, { withFileTypes: true });
       const meaningfulEntries = entries.filter((entry) => ![".git", "node_modules", "dist"].includes(entry.name));
-      if (meaningfulEntries.length > 0) {
+      const starterOnly = meaningfulEntries.length > 0 && meaningfulEntries.every((entry) =>
+        ["index.html", "style.css", "app.js"].includes(entry.name),
+      );
+      let canInitializeStarter = false;
+      if (starterOnly) {
+        try {
+          const starterHtml = await readFile(join(dir, "index.html"), "utf8");
+          const starterApp = await readFile(join(dir, "app.js"), "utf8");
+          canInitializeStarter =
+            /Your project is ready\. Ask the Agent to design and build it\./i.test(starterHtml) &&
+            /NEXUM Agent can now replace this starter/i.test(starterApp);
+        } catch {
+          canInitializeStarter = false;
+        }
+      }
+      if (meaningfulEntries.length > 0 && !canInitializeStarter) {
         return {
           success: false,
           output: "Refused to scaffold a non-empty project. Inspect and edit the existing files instead.",
