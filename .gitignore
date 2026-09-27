@@ -6,3 +6,4 @@ apps/api/.env.*
 .env
 .env.*
 !.env.example
+runtime/
