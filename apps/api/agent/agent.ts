@@ -78,16 +78,20 @@ ${result.output}`
       "readFile: input is a relative file path string",
       'writeFile: input is JSON object {"path":"relative/path","content":"file contents"}',
       "searchFiles: input is the text to search for",
-      "scaffoldProject: input is the app brief; creates index.html, style.css and app.js",
+      "scaffoldProject: input is the app brief; creates the project starter files",
       "runCommand: input is one allowlisted command for the active project, such as npm install, npm run build or npm run test",
       'runSandbox: input is JSON object {"projectPath":".","command":"npm run build"}; projectPath is always forced to the active project',
       "git: input is one of status, diff, diff-stat, log, branch",
       "github: input is a read-only operation string",
     ].join("\n");
+
     const history = previousResults.length === 0
       ? "No tools have run yet."
-      : previousResults.map((item) => `${item.tool}: ${item.result.output.slice(0, 4_000)}`).join("\n");
-");
+      : previousResults
+          .map((item) => `${item.tool}: ${item.result.output.slice(0, 4_000)}`)
+          .join("\n");
+
+    const prompt = [
       "You are the NEXUM.DEV autonomous project builder.",
       "Your job is to modify the user's project, not merely explain code.",
       "Choose exactly one available tool for the next action, or finish the task. Keep the JSON response as short as possible.",
@@ -98,7 +102,7 @@ ${result.output}`
       "NEVER prefix paths with projects/, the repository name, apps/, or the workspace root.",
       "Use only paths relative to the active project, such as index.html, src/app.js, style.css.",
       "Do not modify another project or the NEXUM repository root.",
-      "For a new web app, ensure index.html, style.css, and app.js exist and are connected.",
+      "For a new web app, ensure the required entry files exist and are connected.",
       "Keep existing working code unless the user's task requires replacing it.",
       "When a build/check fails, inspect the error and fix the relevant file instead of stopping immediately.",
       "Return JSON only, with no markdown and no explanation.",
@@ -120,10 +124,8 @@ ${result.output}`
       toolCatalog,
       `User task: ${task}`,
       `Previous tool results:\n${history}`,
-${history}`,
     ].join("\n");
 
-");
     const response = await this.gateway.generate(prompt, options);
     return this.parseAIPlan(response);
   }
