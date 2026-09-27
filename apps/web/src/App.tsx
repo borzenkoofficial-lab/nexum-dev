@@ -322,10 +322,21 @@ function App() {
       const serializedAttachments = await serializeAttachments(pendingAttachments.map((item) => item.file));
       setConversation((items) => [...items, { id: `user-${Date.now()}`, role: "user", content: task.trim(), timestamp: Date.now(), attachments: serializedAttachments.map((item) => item.name) }]);
       setPendingAttachments([]);
+      const chatContext = conversation
+        .slice(-8)
+        .map((item) => ({ role: item.role, content: item.content.slice(0, 900) }))
+        .filter((item) => item.content.trim());
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: task, projectId: activeProjectId, provider: aiProvider, model: aiModel, attachments: serializedAttachments }),
+        body: JSON.stringify({
+          message: task,
+          projectId: activeProjectId,
+          provider: aiProvider,
+          model: aiModel,
+          attachments: serializedAttachments,
+          conversation: chatContext,
+        }),
       });
 
       if (!response.ok) {
