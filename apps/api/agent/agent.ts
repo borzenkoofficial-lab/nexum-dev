@@ -217,7 +217,7 @@ export class NexumAgent implements AgentRuntime {
     if (/sandbox|изолирован|docker|проверь сборк|запусти сборк|проверь npm build|проверь.*собирается/.test(normalizedTask)) {
       return {
         name: "runSandbox",
-        input: JSON.stringify({ projectPath: ".", command: "npm --prefix apps/web run build" }),
+        input: JSON.stringify({ projectPath: ".", command: "npm run build" }),
       };
     }
 
