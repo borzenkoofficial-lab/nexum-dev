@@ -469,6 +469,34 @@ app.get("/api/agent/history", async (req, res) => {
   return res.json({ success: true, entries: await agentHistory.recent(Number.isFinite(limit) ? limit : 200) });
 });
 
+app.get("/api/agent/diagnostics", async (req, res) => {
+  const rawLimit = typeof req.query.limit === "string" ? Number(req.query.limit) : 100;
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 500) : 100;
+  const entries = await agentHistory.recent(limit);
+  const failures = entries.filter((entry) =>
+    (entry.type === "agent-event" && (entry.status === "tool-error" || entry.status === "failed")) ||
+    entry.type === "job-failed" ||
+    entry.type === "job-exception"
+  );
+  return res.json({
+    success: true,
+    generatedAt: new Date().toISOString(),
+    service: "NEXUM.DEV API",
+    aiProvider: defaultProvider,
+    failureCount: failures.length,
+    failures,
+    jobs: [...chatJobs.values()].slice(-20).map((job) => ({
+      id: job.id,
+      status: job.status,
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
+      error: job.error,
+      problems: job.problems,
+    })),
+    recent: entries,
+  });
+});
+
 app.get("/api/chat/jobs/:id", (req, res) => {
   cleanupChatJobs();
   const job = chatJobs.get(req.params.id);
