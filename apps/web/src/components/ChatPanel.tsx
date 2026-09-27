@@ -21,6 +21,7 @@ export function ChatPanel({ message, reply, stage, apiError, messages, attachmen
   const inputRef = useRef<HTMLInputElement>(null);
   const stageLabel = stage === "thinking" || stage === "analyzing" ? "Analyzing" : stage === "planning" ? "Planning" : stage === "reading" ? "Reading files" : stage === "editing" ? "Editing project" : stage === "building" ? "Building" : stage === "testing" ? "Testing" : stage === "error" ? "Needs attention" : stage === "completed" ? "Completed" : "Ready";
   const busy = Boolean(stage && !["completed", "error"].includes(stage));
+
   return (
     <div className="chat">
       <div className="welcome"><span className="eyebrow">NEXUM AGENT</span><h1>What do you want to build?</h1><p>Describe the task. NEXUM works in the background, changes the project, builds it and shows the result.</p></div>
