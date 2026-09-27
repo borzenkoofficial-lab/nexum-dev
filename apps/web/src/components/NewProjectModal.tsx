@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { FormEvent } from "react";
 
 interface NewProjectModalProps {
@@ -25,7 +26,7 @@ export function NewProjectModal({ open, name, loading, onNameChange, onClose, on
 }
 
 function ProjectCreationForm({ name, loading, onNameChange, onClose, onSubmit }: Omit<NewProjectModalProps, "open">) {
-  const selectedId = "webapp";
+  const [selectedId, setSelectedId] = useState("webapp");
   const selected = PROJECT_TYPES.find((item) => item.id === selectedId) ?? PROJECT_TYPES[1];
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -34,7 +35,7 @@ function ProjectCreationForm({ name, loading, onNameChange, onClose, onSubmit }:
     onSubmit({
       name: name.trim(),
       description: String(form.get("description") ?? "").trim(),
-      type: String(form.get("type") ?? selected.label),
+      type: selected.label,
     });
   }
 
@@ -61,7 +62,7 @@ function ProjectCreationForm({ name, loading, onNameChange, onClose, onSubmit }:
           <div className="project-type-grid">
             {PROJECT_TYPES.map((item) => (
               <label key={item.id} className="project-type-card">
-                <input type="radio" name="type" value={item.label} defaultChecked={item.id === selectedId} />
+                <input type="radio" name="type" value={item.label} checked={item.id === selectedId} onChange={() => setSelectedId(item.id)} />
                 <span><strong>{item.label}</strong><small>{item.hint}</small></span>
               </label>
             ))}
@@ -69,7 +70,7 @@ function ProjectCreationForm({ name, loading, onNameChange, onClose, onSubmit }:
 
           <div className="modal-summary">
             <span>После создания</span>
-            <strong>Откроется рабочее пространство проекта</strong>
+            <strong>{selected.label} — откроется рабочее пространство проекта</strong>
             <small>Название, тип и описание сохранятся в «Обзоре», а чат будет работать только с этим проектом.</small>
           </div>
 
