@@ -332,6 +332,6 @@ test("does not finish an automotive site when generated content is construction-
   };
 
   const result = await new AgentLoop(runtime, gateway).run("Сделай сайт по ремонту авто");
-  assert.equal(domainValidationSeen, true);
-  assert.equal(result.success, true);
+  assert.equal(domainValidationSeen, true, JSON.stringify(result));
+  assert.equal(result.success, true, JSON.stringify(result));
 });
