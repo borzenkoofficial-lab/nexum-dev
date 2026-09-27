@@ -89,7 +89,10 @@ async function runChatJob(
         job.currentMessage = event.message;
         job.updatedAt = Date.now();
         if (event.type === "tool-error" || event.type === "failed") {
-          job.problems = [...(job.problems ?? []), { message: event.message, source: event.tool }];
+          job.problems = [
+            ...(job.problems ?? []),
+            event.tool ? { message: event.message, source: event.tool } : { message: event.message },
+          ];
         }
       },
     );
