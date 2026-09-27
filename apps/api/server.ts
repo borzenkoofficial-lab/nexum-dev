@@ -194,7 +194,11 @@ app.use("/api/preview/:id", async (req, res) => {
   try {
     const project = await projectManager.getProject(req.params.id);
     const requestedPath = req.path.replace(/^\/+/, "") || "index.html";
-    const filePath = resolve(project.path, requestedPath);
+    const distRoot = resolve(project.path, "dist");
+    const distCandidate = resolve(distRoot, requestedPath);
+    const sourceCandidate = resolve(project.path, requestedPath);
+    const distIndex = resolve(distRoot, "index.html");
+    const filePath = await stat(distIndex).then(() => distCandidate).catch(() => sourceCandidate);
     const projectRelative = relative(project.path, filePath);
 
     if (projectRelative.startsWith("..") || projectRelative.includes(".."+"/") || projectRelative.includes(".."+String.fromCharCode(92))) {
