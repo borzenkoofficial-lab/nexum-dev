@@ -149,14 +149,58 @@ export class AgentLoop {
         }
       }
 
-      // A model is not allowed to declare completion while the deterministic
-      // builder still has required implementation work. This is the hard guard
-      // against "done" responses that only rename the starter template.
+      // A Builder task is never allowed to finish just because the model said
+      // "done". Existing projects need real file changes too; otherwise the chat
+      // can report success while the preview remains the old starter/template.
       if (plan?.done && builderTask) {
-        const deterministicContinuation = this.runtime.plan(task, previousResults);
-        if (deterministicContinuation && !deterministicContinuation.done) {
-          plan = deterministicContinuation;
-          emit({ iteration, type: "thinking", message: "Модель предложила завершить слишком рано. Продолжаю по Builder quality gate." });
+        const implementationWrites = previousResults.filter(
+          (item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
+        ).length;
+        if (implementationWrites < 2) {
+          emit({
+            iteration,
+            type: "thinking",
+            message: "Модель попыталась завершить без реализации. Требую фактическое изменение файлов.",
+          });
+
+          // Give the same planner a compact, explicit implementation retry. This
+          // is intentionally limited by MAX_AI_PLANNER_CALLS so it cannot create
+          // an expensive retry loop.
+          if (this.runtime.planWithAI && aiPlannerCalls < MAX_AI_PLANNER_CALLS) {
+            try {
+              aiPlannerCalls += 1;
+              const retryTask = [
+                task,
+                "",
+                "IMPLEMENTATION RETRY: previous planner attempted done=true too early.",
+                "Do NOT return done=true.",
+                "Return exactly one concrete filesystem action now.",
+                "If the project already exists, read the relevant current entry file first; after it is read, return writeFile or patchFile with the actual requested product implementation.",
+                "The user needs the project changed, not a textual answer.",
+              ].join("\n");
+              const retryPlan = await this.runtime.planWithAI(
+                retryTask,
+                previousResults,
+                options as AgentModelOptions,
+                productPlan ?? undefined,
+              );
+              if (retryPlan && !retryPlan.done) {
+                plan = retryPlan;
+              } else {
+                plan = this.runtime.plan(task, previousResults);
+              }
+            } catch {
+              plan = this.runtime.plan(task, previousResults);
+            }
+          } else {
+            plan = this.runtime.plan(task, previousResults);
+          }
+
+          if (!plan || plan.done) {
+            // Do not fall through to finalResponse. Keep the job alive for the
+            // next planner iteration while there is still no implementation.
+            continue;
+          }
         }
       }
 
@@ -548,7 +592,19 @@ export class AgentLoop {
     if (builderTask) {
       const writes = results.filter((item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success).length;
       const builds = results.filter((item) => (item.tool === "runCommand" || item.tool === "runSandbox") && /npm run build/.test(item.input) && item.result.success).length;
-      return `Готово. NEXUM изменил проект по запросу: ${task.trim().slice(0, 160)}. Выполнено изменений: ${writes}. Production-сборка: ${builds > 0 ? "проверена" : "не запускалась"}. Откройте Preview для результата и AI Activity для деталей.`;
+      const changedFiles = results
+        .filter((item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success)
+        .map((item) => {
+          try {
+            const parsed = JSON.parse(item.input);
+            return typeof parsed.path === "string" ? parsed.path : "";
+          } catch {
+            return "";
+          }
+        })
+        .filter(Boolean)
+        .slice(-6);
+      return `Готово. Проект реально изменён. Файлов изменено: ${writes}.\${changedFiles.length ? ` Изменения: ${changedFiles.join(", ")}.` : ""} Production-сборка: ${builds > 0 ? "проверена" : "не запускалась"}. Откройте Preview и AI Activity.`;
     }
 
     const summary = results
