@@ -52,6 +52,19 @@ export class AIGateway {
     this.onFallback = options.onFallback;
   }
 
+  setRuntimeOpenAIKey(apiKey: string): void {
+    const provider = this.providers.get("openai");
+    if (!provider || typeof (provider as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey !== "function") {
+      throw new Error("OpenAI provider is unavailable");
+    }
+    (provider as unknown as { setRuntimeApiKey: (key: string) => void }).setRuntimeApiKey(apiKey);
+  }
+
+  hasOpenAIKey(): boolean {
+    const provider = this.providers.get("openai");
+    return Boolean(provider && typeof (provider as { hasApiKey?: () => boolean }).hasApiKey === "function" && (provider as unknown as { hasApiKey: () => boolean }).hasApiKey());
+  }
+
   setRuntimeOpenRouterKey(apiKey: string): void {
     const provider = this.providers.get("openrouter");
     if (!provider || typeof (provider as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey !== "function") {
