@@ -4,7 +4,6 @@ interface CodePanelProps {
   projectId: string;
   projectName: string;
   previewOnline: boolean;
-  previewKey: number;
   onRefreshPreview: () => void;
   onClose: () => void;
 }
@@ -19,7 +18,7 @@ function fileIcon(path: string) {
   return "·";
 }
 
-export function CodePanel({ projectId, projectName, previewOnline, previewKey, onRefreshPreview, onClose }: CodePanelProps) {
+export function CodePanel({ projectId, projectName, previewOnline, onRefreshPreview, onClose }: CodePanelProps) {
   const [files, setFiles] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState("");
   const [content, setContent] = useState("");
