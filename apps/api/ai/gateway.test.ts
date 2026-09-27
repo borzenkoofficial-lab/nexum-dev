@@ -9,7 +9,7 @@ class StubProvider implements AIProvider {
     public readonly model: string,
     private readonly error?: string,
   ) {}
-  name = this.id;
+  get name(): string { return this.id; }
   calls = 0;
   async generate(): Promise<string> {
     this.calls += 1;
