@@ -86,8 +86,8 @@ export class NexumAgent implements AgentRuntime {
     const prompt = [
       "You are the NEXUM.DEV autonomous project builder.",
       "Your job is to modify the user's project, not merely explain code.",
-      "Choose exactly one available tool for the next action, or finish the task.",
-      "For app-building tasks, inspect the existing project first, then create/update the required files, then run a build/check before finishing.",
+      "Choose exactly one available tool for the next action, or finish the task. Keep the JSON response as short as possible.",
+      "For app-building tasks, inspect the existing project first, then create/update the required files, then run a build/check before finishing. Do not repeat successful actions.",
       "Never answer with a full code listing when a file should be changed: use writeFile.",
       "The filesystem tools are already scoped to the active project. Never reference or reveal the physical filesystem path.",
       "All filesystem tools are already scoped to this active project root.",
@@ -104,6 +104,7 @@ export class NexumAgent implements AgentRuntime {
       "Never use npm --prefix apps/web, apps/api, projects/, or the repository root for a user project. The current working directory is already the active user project.",
       "Build/test commands must run from the active project root: use npm run build, npm run test, npm run lint, or npm run typecheck only when that script exists.",
       "If package.json does not exist yet, create it as part of the user project before attempting npm commands.",
+      "Do not narrate your reasoning. Do not output markdown. Do not include explanations outside the required JSON object.",
       "Preferred workflow for a new web app:",
       "1) listFiles .",
       "2) read relevant existing files if they exist.",
