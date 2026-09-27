@@ -14,6 +14,7 @@ import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { GitTool } from "./agent/tools/git.js";
+import { RunCommandTool } from "./agent/tools/runCommand.js";
 
 dotenv.config();
 
@@ -39,6 +40,8 @@ interface ChatJob {
   updatedAt: number;
   reply?: string;
   steps?: unknown[];
+  problems?: Array<{ message: string; source?: string }>;
+  commandOutput?: { command: string; stdout: string; stderr: string; exitCode: number | null };
   error?: string;
 }
 const chatJobs = new Map<string, ChatJob>();
@@ -70,7 +73,7 @@ async function runChatJob(
     const project = await projectManager.getActiveProject(projectId);
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const agent = new NexumAgent(aiGateway, project.path);
-    const agentLoop = new AgentLoop(agent, aiGateway);
+    const agentLoop = new AgentLoop(agent, aiGateway, undefined, (step) => {\n      job.steps = [...(job.steps ?? []), step];\n      job.updatedAt = Date.now();\n    });
     const result = await agentLoop.run(message, {
       ...(provider === undefined ? {} : { provider }),
       ...(model === undefined ? {} : { model }),
@@ -152,6 +155,15 @@ app.post("/api/projects", async (req, res) => {
 app.get("/api/projects/:id", async (req, res) => {
   try {
     return res.json({ success: true, project: await projectManager.getProject(req.params.id) });
+  } catch (error) {
+    return sendProjectError(res, error);
+  }
+});
+
+app.post("/api/projects/:id/duplicate", async (req, res) => {
+  try {
+    const project = await projectManager.duplicateProject(req.params.id);
+    return res.status(201).json({ success: true, project });
   } catch (error) {
     return sendProjectError(res, error);
   }
@@ -286,6 +298,30 @@ app.get("/api/projects/:id/git/:operation", async (req, res) => {
   }
 });
 
+app.post("/api/projects/:id/run", async (req, res) => {
+  try {
+    const project = await projectManager.getProject(req.params.id);
+    const command = typeof req.body?.command === "string" ? req.body.command.trim() : "";
+    const allowed = new Set(["npm run build", "npm run test", "npm run lint", "npm run typecheck", "git status", "git diff", "git log"]);
+    if (!allowed.has(command)) return res.status(400).json({ success: false, error: "Command is not allowed" });
+    const result = await new RunCommandTool(resolve(project.path), 120000).execute(command);
+    const problems = result.success ? [] : [{
+      message: result.stderr || result.stdout || "Command failed",
+      source: command,
+    }];
+    return res.status(result.success ? 200 : 422).json({
+      success: result.success,
+      command,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      exitCode: result.exitCode,
+      problems,
+    });
+  } catch (error) {
+    return sendProjectError(res, error);
+  }
+});
+
 app.get("/api/projects/:id/preview/status", async (req, res) => {
   try {
     const project = await projectManager.getProject(req.params.id);
@@ -373,6 +409,8 @@ app.get("/api/chat/jobs/:id", (req, res) => {
       updatedAt: job.updatedAt,
       reply: job.reply ?? null,
       steps: job.steps ?? [],
+      problems: job.problems ?? [],
+      commandOutput: job.commandOutput ?? null,
       error: job.error ?? null,
     },
   });
