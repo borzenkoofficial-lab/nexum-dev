@@ -130,6 +130,7 @@ export function canFinishBuilder(
   _results: AgentToolResult[],
   hasBuildScript: boolean,
   isStaticProject: boolean,
+  hasTestTool = true,
 ): { ok: boolean; reason?: string } {
   if (state.changedFiles.size === 0) return { ok: false, reason: "No project files were changed." };
   if (hasBuildScript && state.verifiedAtChangeVersion.build !== state.changeVersion) {
@@ -138,7 +139,7 @@ export function canFinishBuilder(
   if (isStaticProject && state.verifiedAtChangeVersion.staticValidation !== state.changeVersion) {
     return { ok: false, reason: "Static project validation has not passed after the latest changes." };
   }
-  if (state.verifiedAtChangeVersion.tests !== state.changeVersion) {
+  if (hasTestTool && state.verifiedAtChangeVersion.tests !== state.changeVersion) {
     return { ok: false, reason: "Project smoke tests have not passed after the latest changes." };
   }
   if (!state.verified.domain) {
