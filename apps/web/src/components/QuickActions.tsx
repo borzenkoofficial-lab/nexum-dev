@@ -4,24 +4,24 @@ interface QuickActionsProps {
   onAsk: () => void;
   onTask: (task: string) => void;
   onPreview: () => void;
-  onDeploy: () => void;
+  onОпубликовать: () => void;
 }
 
-export function QuickActions({ onNewProject, onOpenProject, onAsk, onTask, onPreview, onDeploy }: QuickActionsProps) {
+export function QuickActions({ onNewProject, onOpenProject, onAsk, onTask, onPreview, onОпубликовать }: QuickActionsProps) {
   const actions = [
-    { label: "New Project", run: onNewProject },
-    { label: "Open Project", run: onOpenProject },
-    { label: "Ask AI", run: onAsk },
-    { label: "Run Tests", run: () => onTask("Запусти тесты в изолированной среде") },
-    { label: "Start Preview", run: onPreview },
-    { label: "Git Status", run: () => onTask("Покажи статус Git") },
-    { label: "Deploy", run: onDeploy },
+    { label: "Новый проект", run: onNewProject },
+    { label: "Открыть проект", run: onOpenProject },
+    { label: "Спросить ИИ", run: onAsk },
+    { label: "Запустить тесты", run: () => onTask("Запусти тесты в изолированной среде") },
+    { label: "Открыть предпросмотр", run: onPreview },
+    { label: "Статус Git", run: () => onTask("Покажи статус Git") },
+    { label: "Опубликовать", run: onОпубликовать },
     { label: "GitHub", run: () => onTask("Покажи информацию о репозитории GitHub") },
   ];
 
   return (
     <section className="quick-actions" aria-labelledby="quick-actions-title">
-      <div className="section-title" id="quick-actions-title">QUICK ACTIONS</div>
+      <div className="section-title" id="quick-actions-title">БЫСТРЫЕ ДЕЙСТВИЯ</div>
       <div className="quick-action-grid">
         {actions.map((action) => <button key={action.label} type="button" onClick={action.run}>{action.label}</button>)}
       </div>
