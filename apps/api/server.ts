@@ -217,10 +217,23 @@ app.use("/api/preview/:id", async (req, res) => {
     const distCandidate = resolve(distRoot, requestedPath);
     const sourceCandidate = resolve(project.path, requestedPath);
     const distIndex = resolve(distRoot, "index.html");
-    const filePath = await stat(distIndex).then(() => distCandidate).catch(() => sourceCandidate);
-    const projectRelative = relative(project.path, filePath);
+    const hasBuild = await stat(distIndex).then(() => true).catch(() => false);
+    let filePath = hasBuild ? distCandidate : sourceCandidate;
+    const requestedExtension = extname(requestedPath);
 
-    if (projectRelative.startsWith("..") || projectRelative.includes(".."+"/") || projectRelative.includes(".."+String.fromCharCode(92))) {
+    // Support client-side routes in single-page apps: /dashboard, /settings, etc.
+    // If the requested route is not a real asset, serve the app entry document.
+    try {
+      const candidateDetails = await stat(filePath);
+      if (!candidateDetails.isFile()) return res.status(404).send("Preview file not found");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      if (requestedExtension) return res.status(404).send("Preview file not found");
+      filePath = hasBuild ? distIndex : resolve(project.path, "index.html");
+    }
+
+    const projectRelative = relative(project.path, filePath);
+    if (projectRelative.startsWith("..") || projectRelative.includes("../") || projectRelative.includes("..\\") || resolve(project.path, projectRelative) !== resolve(filePath)) {
       return res.status(403).send("Invalid preview path");
     }
 
@@ -239,6 +252,9 @@ app.use("/api/preview/:id", async (req, res) => {
       ".jpeg": "image/jpeg",
       ".webp": "image/webp",
       ".ico": "image/x-icon",
+      ".woff": "font/woff",
+      ".woff2": "font/woff2",
+      ".ttf": "font/ttf",
       ".txt": "text/plain; charset=utf-8",
     };
 
