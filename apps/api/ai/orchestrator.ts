@@ -61,11 +61,13 @@ export class AIOrchestrator {
   ): Promise<AIOrchestratorRun> {
     const requested = options?.model?.trim();
     const explicitProvider = options?.provider?.trim();
-    // When the user explicitly selected a provider, its configured default model
-    // is authoritative unless a model was explicitly selected. This is critical
-    // for OrcaRouter: role-specific OpenRouter model IDs must never silently
-    // replace the user's configured DeepSeek/other OrcaRouter model.
-    const providerDefault = explicitProvider ? this.gateway.getDefaultModel(explicitProvider) : undefined;
+    const activeProvider = explicitProvider || this.gateway.getDefaultProviderId();
+    // For concrete providers, the configured provider model is authoritative
+    // unless the user explicitly selected another model. Role-specific model
+    // catalogs are only used by OpenRouter, whose purpose here is model routing.
+    const providerDefault = activeProvider !== "openrouter" && activeProvider !== "mock"
+      ? this.gateway.getDefaultModel(activeProvider)
+      : undefined;
     const candidates = ROLE_MODELS[role];
     const models = requested
       ? [requested]
