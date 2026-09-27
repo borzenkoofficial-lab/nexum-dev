@@ -154,9 +154,20 @@ ${result.output}`
       /npm run build/.test(item.input) &&
       item.result.success,
     );
+    const inspectedFiles = previousResults
+      .filter((item) => item.result.success)
+      .map((item) => item.result.output)
+      .join("\n");
+    const hasStaticEntry = /(?:^|\n)index\.html(?:\n|$)/.test(inspectedFiles);
+    const hasPackage = /(?:^|\n)package\.json(?:\n|$)/.test(inspectedFiles);
+    const previewReady = built || (hasStaticEntry && !hasPackage);
     return {
-      passed: writes >= 2 && built,
-      missing: writes < 2 ? ["Substantive implementation changes are missing."] : built ? [] : ["Production build was not verified."],
+      passed: writes >= 2 && previewReady,
+      missing: writes < 2
+        ? ["Substantive implementation changes are missing."]
+        : previewReady
+          ? []
+          : ["Production build or static preview readiness was not verified."],
       risks: [],
     };
   }
