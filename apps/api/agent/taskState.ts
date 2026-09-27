@@ -19,6 +19,7 @@ export interface AgentTaskState {
     staticValidation: number;
     domain: number;
     review: number;
+    reviewAttempted: number;
   };
 }
 
@@ -80,6 +81,7 @@ export function syncVerificationState(
   let testsVersion = -1;
   let staticValidationVersion = -1;
   let reviewVersion = -1;
+  let reviewAttemptedVersion = -1;
 
   for (const item of results) {
     if (item.result.success && (item.tool === "writeFile" || item.tool === "patchFile")) {
@@ -92,8 +94,11 @@ export function syncVerificationState(
     }
     if (isVerificationResult(item, "testProject")) testsVersion = version;
     if (isVerificationResult(item, "validateProject")) staticValidationVersion = version;
-    if (isVerificationResult(item, "productReview") && /product review passed|passed\s*[:=]\s*true/i.test(item.result.output)) {
-      reviewVersion = version;
+    if (item.tool === "productReview") {
+      reviewAttemptedVersion = version;
+      if (item.result.success && /product review passed|"passed"\s*[:=]\s*true|passed\s*[:=]\s*true/i.test(item.result.output)) {
+        reviewVersion = version;
+      }
     }
   }
 
@@ -105,6 +110,7 @@ export function syncVerificationState(
   state.verifiedAtChangeVersion.tests = testsVersion;
   state.verifiedAtChangeVersion.staticValidation = staticValidationVersion;
   state.verifiedAtChangeVersion.review = reviewVersion;
+  state.verifiedAtChangeVersion.reviewAttempted = reviewAttemptedVersion;
 
   state.verified.build = buildVersion === state.changeVersion;
   state.verified.tests = testsVersion === state.changeVersion;
@@ -137,7 +143,8 @@ export function canFinishBuilder(
   if (!state.verified.domain) {
     return { ok: false, reason: "Requested product domain has not been verified." };
   }
-  if (state.verified.review === false && state.verifiedAtChangeVersion.review !== -1) {
+  if (state.verifiedAtChangeVersion.reviewAttempted === state.changeVersion &&
+      state.verifiedAtChangeVersion.review !== state.changeVersion) {
     return { ok: false, reason: "Product review has not passed." };
   }
   return { ok: true };
