@@ -61,12 +61,27 @@ export class OllamaProvider implements AIProvider {
     const startedAt = Date.now();
 
     try {
+      const selectedModel = this.validateModel(model);
       const models = await this.listModels();
+      const modelAvailable = models.some(
+        (installedModel) =>
+          installedModel === selectedModel ||
+          installedModel.startsWith(selectedModel + ":"),
+      );
+
+      if (!modelAvailable) {
+        return {
+          available: false,
+          model: selectedModel,
+          latencyMs: Date.now() - startedAt,
+          error: `Ollama is running, but model ${selectedModel} is not installed`,
+        };
+      }
+
       return {
         available: true,
-        model: this.validateModel(model),
+        model: selectedModel,
         latencyMs: Date.now() - startedAt,
-        ...(models.length === 0 ? { error: "Ollama is running but has no models" } : {}),
       };
     } catch (error) {
       return {
