@@ -2,6 +2,13 @@ import type { AIProvider, AIProviderStatus } from "../types.js";
 
 const DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
 const DEFAULT_MODEL = "openrouter/free";
+const DEFAULT_FREE_MODELS = [
+  "cohere/north-mini-code:free",
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "qwen/qwen3.8-27b:free",
+  "google/gemma-4-26b-a4b-it:free",
+  "poolside/laguna-s-2.1:free",
+];
 const DEFAULT_TIMEOUT_MS = 60_000;
 
 interface OpenRouterChatResponse {
@@ -16,6 +23,7 @@ export class OpenRouterProvider implements AIProvider {
   id = "openrouter";
   name = "OpenRouter";
   model: string;
+  private readonly models: string[];
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly fetchImpl: typeof fetch;
@@ -28,21 +36,64 @@ export class OpenRouterProvider implements AIProvider {
   ) {
     this.baseUrl = baseUrl.replace(/\/+$/, "");
     this.model = this.validateModel(model);
+    const configuredModels = (process.env.OPENROUTER_MODELS || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    this.models = [...new Set(
+      (configuredModels.length > 0 ? configuredModels : DEFAULT_FREE_MODELS)
+        .map((value) => this.validateModel(value)),
+    )];
     this.timeoutMs = timeoutMs;
     this.fetchImpl = fetchImpl;
   }
 
-  async generate(message: string, model = this.model): Promise<string> {
-    const data = await this.request<OpenRouterChatResponse>("/chat/completions", {
-      method: "POST",
-      body: JSON.stringify({
-        model: this.validateModel(model),
-        messages: [{ role: "user", content: message }],
-      }),
-    });
-    const content = data.choices?.[0]?.message?.content;
-    if (typeof content !== "string") throw new Error("OpenRouter returned an invalid response");
-    return content;
+  async generate(message: string, model = this.selectModel(message)): Promise<string> {
+    const candidates = this.buildCandidates(model, message);
+    let lastError: unknown;
+
+    for (const candidate of candidates) {
+      try {
+        const data = await this.request<OpenRouterChatResponse>("/chat/completions", {
+          method: "POST",
+          body: JSON.stringify({
+            model: candidate,
+            messages: [{ role: "user", content: message }],
+          }),
+        });
+        const content = data.choices?.[0]?.message?.content;
+        if (typeof content !== "string") throw new Error("OpenRouter returned an invalid response");
+        return content;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error("All OpenRouter models failed");
+  }
+
+  private selectModel(message: string): string {
+    const text = message.toLowerCase();
+
+    if (/code|typescript|javascript|react|vite|npm|bug|error|debug|refactor|file|component|api|database|build|compile|terminal/.test(text)) {
+      return this.models.find((model) => model.includes("north-mini-code") || model.includes("laguna")) ?? this.models[0];
+    }
+
+    if (/plan|architect|architecture|reason|analy[sz]|research|compare|strategy|agent|multi-step/.test(text)) {
+      return this.models.find((model) => model.includes("nemotron")) ?? this.models[0];
+    }
+
+    if (/image|visual|design|ui|ux|screenshot|photo/.test(text)) {
+      return this.models.find((model) => model.includes("gemma")) ?? this.models[0];
+    }
+
+    return this.models.find((model) => model.includes("qwen")) ?? this.models[0];
+  }
+
+  private buildCandidates(model: string, message: string): string[] {
+    const selected = this.validateModel(model);
+    const preferred = selected === this.model ? this.selectModel(message) : selected;
+    return [...new Set([preferred, ...this.models])];
   }
 
   async listModels(): Promise<string[]> {
