@@ -20,6 +20,11 @@ test("rejects traversal and unrelated absolute paths", async () => {
   await mkdir(join(root, "src"));
   assert.throws(() => resolveProjectPath(root, "../escape.txt"), /project directory/);
   assert.throws(() => resolveProjectPath(root, "/tmp/projects/fake/index.html"), /project directory/);
+  const projectRoot = join(root, "projects", "nexum");
+  assert.equal(
+    resolveProjectPath(projectRoot, "/workspaces/nexum-dev/projects/nexum/index.html"),
+    resolve(projectRoot, "index.html"),
+  );
 });
 
 
