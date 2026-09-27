@@ -7,7 +7,8 @@
     "dev": "tsx watch server.ts",
     "test": "tsx --test ai/providers/ollama.test.ts ai/providers/openrouter.test.ts ai/providers/orcarouter.test.ts ai/orchestrator.test.ts ai/gateway.test.ts agent/ai-loop.test.ts agent/tools/github.test.ts agent/tools/path.test.ts agent/loop.test.ts agent/taskState.test.ts sandbox/dockerSandbox.test.ts projects/projectManager.test.ts",
     "start": "tsx server.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "tsx db/migrate.ts"
   },
   "keywords": [],
   "author": "",
