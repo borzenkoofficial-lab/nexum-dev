@@ -113,7 +113,7 @@ export class RunCommandTool implements Tool {
     }
 
     if (normalizedArgs[0] === "--version" || normalizedArgs[0] === "-v") {
-      return { executable: "npm", args };
+      return { executable: "npm", args: normalizedArgs };
     }
 
     if (normalizedArgs[0] !== "run" || !["build", "test", "lint", "typecheck"].includes(normalizedArgs[1] ?? "")) {
