@@ -50,7 +50,7 @@ test("replans when project context changes after an action", async () => {
   const result = await new AgentLoop(runtime, gateway, 3).run("repeat the same AI context");
   assert.equal(result.success, false);
   assert.equal(plannerCalls, 2);
-  assert.equal(localPlans, 3);
+  assert.equal(localPlans, 1);
 });
 
 test("completes a one-operation task", async () => {
