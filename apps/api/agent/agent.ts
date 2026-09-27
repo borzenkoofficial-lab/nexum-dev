@@ -220,6 +220,9 @@ ${result.output}`
       "Use only paths relative to the active project, such as index.html, src/app.js, style.css.",
       "Do not modify another project or the NEXUM repository root.",
       "Before implementation, extract a concrete product brief from the user request: page type, target user, information architecture, visual direction, sections, interactions, responsive behavior, and key content. Use that brief to drive the files you write. Do not use generic NEXUM copy, demo metrics, placeholder cards, or a reusable starter layout unless the user explicitly asks for them.",
+      "INTENT LOCK: The user's nouns, industry, audience, and requested service are hard requirements. Do not substitute a generic digital-product/SaaS/AI-studio concept. If the request is about construction/building/renovation/demolition/contracting, the generated site must visibly be a construction-company site: construction services, projects/objects, materials/work process, trust/experience, geography, request-an-estimate/contact. Never use NEXUM.DEV, Digital products, SaaS, AI studio, software products, or tech-stack marketing copy as the site's primary subject unless the user explicitly asks for that.",
+      "If the requested industry differs from the current starter, change the actual page copy, headings, sections, navigation, cards, and CTA to that industry. A changed sentence or title alone is not sufficient.",
+      "Before returning a writeFile action, mentally check: does the file content clearly describe the exact user's requested business? If not, do not write it; generate a corrected file instead.",
       "A Product Plan is authoritative implementation context. Do not ignore it, invent a different product, or collapse it into a generic landing page.",
       productPlan ? `PRODUCT PLAN: ${JSON.stringify(productPlan)}` : "PRODUCT PLAN: unavailable; infer a concrete plan before acting.",
       "Keep existing working code unless the user's task requires replacing it.",
@@ -256,7 +259,10 @@ ${result.output}`
     const run = await this.orchestrator.run(role, prompt, options);
     console.log(JSON.stringify({ type: "ai-role", role: run.role, model: run.model }));
     const parsed = this.parseAIPlan(run.response);
-    if (parsed) return parsed;
+    if (parsed && this.isPlanAlignedWithTask(task, parsed)) return parsed;
+    if (parsed) {
+      console.warn("[agent] rejected AI plan because it does not match the user's requested domain; using deterministic recovery");
+    }
 
     // Do not spend a second provider request repairing a known 429 response.
     // The deterministic planner is deliberately kept usable without a remote
@@ -525,6 +531,19 @@ ${result.output}`
     };
   }
 
+  private isPlanAlignedWithTask(task: string, plan: AgentPlan): boolean {
+    const lower = task.toLowerCase();
+    const construction = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
+    if (!construction) return true;
+    const input = String(plan.input ?? "").toLowerCase();
+    if (plan.done) return false;
+    if (plan.tool !== "writeFile" && plan.tool !== "patchFile") return true;
+    const content = input;
+    const genericDigital = /nexum\\.dev|digital products|ai studio|saas|software products|web products|digital systems/.test(content);
+    const constructionSignal = /строит|подряд|демонтаж|фасад|объект|бригада|ремонт|стяжк|штукатур|монтаж|кровл/.test(content);
+    return !genericDigital || constructionSignal;
+  }
+
   private parseAIPlan(response: string): AgentPlan | null {
     const candidates = [
       response.trim(),
@@ -567,8 +586,77 @@ ${result.output}`
   }
 
   private fallbackApp(task: string): string {
-    const brief = task.replace(/\\s+/g, " ").trim().slice(0, 260);
+    const brief = task.replace(/\\s+/g, " ").trim().slice(0, 320);
     const lower = task.toLowerCase();
+    const construction = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|бригада|грузчик|отделк|бетон|кровл|инженерн/.test(lower);
+
+    if (construction) {
+      return `import { useState } from "react";
+
+const brief = ${JSON.stringify(brief)};
+const services = ["Демонтаж и подготовка", "Фасадные работы", "Внутренние работы", "Полы и стяжка"];
+const projects = ["Коммерческие объекты", "Жилые объекты", "Реконструкция и ремонт"];
+
+export default function App() {
+  const [active, setActive] = useState("Услуги");
+  const sections = ["Услуги", "Объекты", "О компании", "Контакты"];
+
+  return (
+    <main className="construction-site">
+      <header className="topbar">
+        <div className="brand">СТРОЙ<span>ПРОФИ</span></div>
+        <nav aria-label="Основная навигация">
+          {sections.map((item) => (
+            <button key={item} className={active === item ? "tab active" : "tab"} onClick={() => setActive(item)}>{item}</button>
+          ))}
+        </nav>
+        <button className="primary" onClick={() => setActive("Контакты")}>Рассчитать работу</button>
+      </header>
+
+      <section className="construction-hero">
+        <div>
+          <span className="kicker">СТРОИТЕЛЬНО-ПОДРЯДНАЯ КОМПАНИЯ</span>
+          <h1>Строительные работы<br /><em>под задачу объекта.</em></h1>
+          <p>{brief}</p>
+          <div className="hero-actions">
+            <button className="primary" onClick={() => setActive("Контакты")}>Получить расчёт</button>
+            <button className="secondary" onClick={() => setActive("Объекты")}>Посмотреть объекты</button>
+          </div>
+        </div>
+        <div className="hero-facts">
+          <div><strong>10+</strong><span>лет опыта</span></div>
+          <div><strong>Москва</strong><span>и область</span></div>
+          <div><strong>01</strong><span>ответственный подрядчик</span></div>
+        </div>
+      </section>
+
+      <section className="content-section">
+        <span className="kicker">01 / УСЛУГИ</span>
+        <h2>Работы, которые закрывают задачи объекта.</h2>
+        <div className="cards">{services.map((item, index) => <article key={item}><b>0{index + 1}</b><h3>{item}</h3><p>Организация работ, подготовка основания, контроль качества и сдача результата.</p></article>)}</div>
+      </section>
+
+      <section className="content-section">
+        <span className="kicker">02 / ОБЪЕКТЫ</span>
+        <h2>Опыт на разных типах объектов.</h2>
+        <div className="cards">{projects.map((item, index) => <article key={item}><b>0{index + 1}</b><h3>{item}</h3><p>Состав работ и технология подбираются после осмотра и технического задания.</p></article>)}</div>
+      </section>
+
+      <section className="content-section">
+        <span className="kicker">03 / КОНТАКТЫ</span>
+        <div className="contact-panel">
+          <div><h2>Нужен подрядчик?</h2><p>Оставьте задачу по объекту. Обсудим объём, сроки, состав работ и подготовим расчёт.</p></div>
+          <button className="primary" onClick={() => setActive("Контакты")}>Оставить заявку</button>
+        </div>
+      </section>
+
+      <footer>Строительная компания <span>Москва · Московская область</span></footer>
+    </main>
+  );
+}
+`;
+    }
+
     const mode = /дашборд|dashboard|crm/.test(lower)
       ? "workspace"
       : /магазин|shop|store|marketplace|маркетплейс/.test(lower)
@@ -577,19 +665,8 @@ ${result.output}`
           ? "landing"
           : "product";
 
-    const title = mode === "workspace"
-      ? "Рабочее пространство"
-      : mode === "catalog"
-        ? "Каталог продукта"
-        : mode === "landing"
-          ? "Цифровой продукт"
-          : "Новый продукт";
-
-    const sections = mode === "workspace"
-      ? ["Обзор", "Рабочие данные", "Настройки"]
-      : mode === "catalog"
-        ? ["Каталог", "Описание", "Действие"]
-        : ["Главный экран", "Возможности", "Следующий шаг"];
+    const title = mode === "workspace" ? "Рабочее пространство" : mode === "catalog" ? "Каталог продукта" : mode === "landing" ? "Цифровой продукт" : "Новый продукт";
+    const sections = mode === "workspace" ? ["Обзор", "Рабочие данные", "Настройки"] : mode === "catalog" ? ["Каталог", "Описание", "Действие"] : ["Главный экран", "Возможности", "Следующий шаг"];
 
     return `import { useState } from "react";
 
@@ -598,33 +675,12 @@ const sections = ${JSON.stringify(sections)};
 
 export default function App() {
   const [active, setActive] = useState(sections[0]);
-
   return (
     <main className="nexum-shell">
-      <header className="topbar">
-        <div className="brand">NEXUM.DEV</div>
-        <div className="status">Preview</div>
-      </header>
-      <section className="hero-card">
-        <span className="kicker">GENERATED FROM REQUEST</span>
-        <h1>{${JSON.stringify(title)}}</h1>
-        <p>{brief}</p>
-        <button className="primary" onClick={() => setActive(sections[1] ?? sections[0])}>
-          Продолжить
-        </button>
-      </section>
-      <nav className="tabs" aria-label="Разделы">
-        {sections.map((item) => (
-          <button key={item} className={active === item ? "tab active" : "tab"} onClick={() => setActive(item)}>
-            {item}
-          </button>
-        ))}
-      </nav>
-      <section className="panel">
-        <span className="kicker">CURRENT SECTION</span>
-        <h2>{active}</h2>
-        <p>Секция создана как безопасная основа для дальнейшей реализации исходного запроса.</p>
-      </section>
+      <header className="topbar"><div className="brand">NEXUM.DEV</div><div className="status">Preview</div></header>
+      <section className="hero-card"><span className="kicker">GENERATED FROM REQUEST</span><h1>{${JSON.stringify(title)}}</h1><p>{brief}</p><button className="primary" onClick={() => setActive(sections[1] ?? sections[0])}>Продолжить</button></section>
+      <nav className="tabs" aria-label="Разделы">{sections.map((item) => <button key={item} className={active === item ? "tab active" : "tab"} onClick={() => setActive(item)}>{item}</button>)}</nav>
+      <section className="panel"><span className="kicker">CURRENT SECTION</span><h2>{active}</h2><p>Секция создана как безопасная основа для дальнейшей реализации исходного запроса.</p></section>
     </main>
   );
 }
@@ -632,29 +688,36 @@ export default function App() {
   }
 
   private fallbackStaticIndex(task: string): string {
-    const brief = this.escapeHtml(task.replace(/\s+/g, " ").trim().slice(0, 220));
+    const brief = this.escapeHtml(task.replace(/\\s+/g, " ").trim().slice(0, 260));
+    const construction = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(task.toLowerCase());
+
+    if (construction) {
+      return `<!doctype html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${brief}"><title>Строительная компания — подрядные работы</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header class="site-header"><a class="logo" href="#top">СТРОЙ<span>ПРОФИ</span></a><nav><a href="#services">Услуги</a><a href="#projects">Объекты</a><a href="#process">Процесс</a><a href="#contact">Контакт</a></nav><a class="header-cta" href="#contact">Получить расчёт</a></header>
+<main id="top">
+<section class="hero"><div class="eyebrow">СТРОИТЕЛЬНО-ПОДРЯДНАЯ КОМПАНИЯ / 2026</div><h1>Строительные работы<br><em>под задачу объекта.</em></h1><p>${brief}</p><div class="hero-actions"><a class="btn primary" href="#contact">Получить расчёт</a><a class="btn ghost" href="#projects">Посмотреть объекты</a></div><div class="hero-grid"><div><strong>10+</strong><span>лет опыта</span></div><div><strong>Москва</strong><span>и область</span></div><div><strong>01</strong><span>ответственный подрядчик</span></div></div></section>
+<section id="services" class="section"><div class="section-head"><span>01 / УСЛУГИ</span><h2>Основные виды строительных работ.</h2></div><div class="cards"><article><b>01</b><h3>Демонтаж</h3><p>Демонтаж конструкций, перегородок, полов и подготовка помещений к следующему этапу.</p></article><article><b>02</b><h3>Фасадные работы</h3><p>Фасадные работы и подготовка поверхностей с организацией работ на объекте.</p></article><article><b>03</b><h3>Внутренние работы</h3><p>Полы, стяжка, штукатурка, потолки, перегородки и другие работы по заданию.</p></article></div></section>
+<section id="projects" class="section"><div class="section-head"><span>02 / ОБЪЕКТЫ</span><h2>Работаем с коммерческими и жилыми объектами.</h2></div><div class="cases"><article><div class="case-no">01</div><h3>Коммерческие объекты</h3><p>Работы по подготовке, реконструкции и ремонту помещений.</p></article><article><div class="case-no">02</div><h3>Жилые объекты</h3><p>Демонтаж, подготовка и отделочные работы.</p></article><article><div class="case-no">03</div><h3>Реконструкция</h3><p>Комплекс работ под техническое задание и график объекта.</p></article></div></section>
+<section id="process" class="section"><div class="section-head"><span>03 / ПРОЦЕСС</span><h2>От задачи до сдачи работ.</h2></div><div class="process"><div><b>01</b><h3>Заявка</h3><p>Получаем задачу, площадь и адрес объекта.</p></div><div><b>02</b><h3>Расчёт</h3><p>Определяем объём работ, сроки и состав бригады.</p></div><div><b>03</b><h3>Работы</h3><p>Организуем производство и контроль на объекте.</p></div><div><b>04</b><h3>Сдача</h3><p>Закрываем этап и передаём результат заказчику.</p></div></div></section>
+<section id="contact" class="section contact"><div><span>04 / КОНТАКТ</span><h2>Нужен подрядчик на объект?</h2><p>Опишите объект и необходимый объём работ — подготовим следующий шаг по заявке.</p></div><form id="lead-form"><input name="name" required placeholder="Имя / компания"><input name="contact" required placeholder="Телефон / Telegram / email"><textarea name="task" required placeholder="Объект, площадь и требуемые работы"></textarea><button class="btn primary" type="submit">Получить расчёт</button><p id="form-state" role="status"></p></form></section>
+</main><footer>Строительная компания <span>Москва · Московская область</span></footer><script src="app.js"></script>
+</body></html>`;
+    }
+
     return `<!doctype html>
 <html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="${brief}">
-<title>NEXUM.DEV — Digital studio</title>
-<link rel="stylesheet" href="style.css">
-</head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${brief}"><title>NEXUM.DEV — Digital studio</title><link rel="stylesheet" href="style.css"></head>
 <body>
 <header class="site-header"><a class="logo" href="#top">NEXUM<span>.DEV</span></a><nav><a href="#services">Услуги</a><a href="#cases">Кейсы</a><a href="#process">Процесс</a><a href="#contact">Контакт</a></nav><a class="header-cta" href="#contact">Обсудить проект</a></header>
-<main id="top">
-<section class="hero"><div class="eyebrow">DIGITAL STUDIO / 2026</div><h1>Цифровые продукты,<br><em>которые работают.</em></h1><p>Разработка сайтов, веб-приложений и AI-автоматизации под конкретную задачу бизнеса.</p><div class="hero-actions"><a class="btn primary" href="#cases">Смотреть кейсы</a><a class="btn ghost" href="#contact">Обсудить проект</a></div><div class="hero-grid"><div><strong>01</strong><span>Web products</span></div><div><strong>02</strong><span>AI automation</span></div><div><strong>03</strong><span>Digital systems</span></div></div></section>
-<section id="services" class="section"><div class="section-head"><span>01 / SERVICES</span><h2>От идеи до рабочего продукта.</h2></div><div class="cards"><article><b>01</b><h3>Сайты</h3><p>Лендинги и корпоративные сайты с сильной структурой, адаптивностью и понятной конверсией.</p></article><article><b>02</b><h3>Веб-приложения</h3><p>Кабинеты, CRM, маркетплейсы и внутренние сервисы с реальной логикой продукта.</p></article><article><b>03</b><h3>AI-автоматизация</h3><p>AI-агенты, обработка данных и автоматизация повторяющихся бизнес-процессов.</p></article></div></section>
-<section id="cases" class="section"><div class="section-head"><span>02 / CASES</span><h2>Продукты и интерфейсы.</h2></div><div class="cases"><article><div class="case-no">01</div><h3>NEXUM.DEV</h3><p>AI-платформа для создания и развития цифровых продуктов.</p><a href="#contact">Смотреть кейс →</a></article><article><div class="case-no">02</div><h3>GRUZLI</h3><p>Marketplace для диспетчеров, грузчиков и заказчиков.</p><a href="#contact">Смотреть кейс →</a></article><article><div class="case-no">03</div><h3>AI SYSTEMS</h3><p>Автоматизация сбора, анализа и маршрутизации бизнес-запросов.</p><a href="#contact">Смотреть кейс →</a></article></div></section>
-<section id="process" class="section"><div class="section-head"><span>03 / PROCESS</span><h2>Четыре шага до запуска.</h2></div><div class="process"><div><b>01</b><h3>Бриф</h3><p>Фиксируем задачу и результат.</p></div><div><b>02</b><h3>Архитектура</h3><p>Проектируем структуру и сценарии.</p></div><div><b>03</b><h3>Разработка</h3><p>Собираем интерфейс и бизнес-логику.</p></div><div><b>04</b><h3>Запуск</h3><p>Проверяем, исправляем и передаём продукт.</p></div></div></section>
-<section class="section tech"><div class="section-head"><span>04 / STACK</span><h2>Технологии под задачу.</h2></div><div class="tech-list"><span>React</span><span>TypeScript</span><span>Node.js</span><span>Python</span><span>AI</span></div></section>
-<section id="contact" class="section contact"><div><span>05 / CONTACT</span><h2>Расскажите, что нужно построить.</h2></div><form id="lead-form"><input name="name" required placeholder="Имя"><input name="contact" required placeholder="Telegram / телефон / email"><textarea name="task" required placeholder="Коротко опишите задачу"></textarea><button class="btn primary" type="submit">Отправить заявку</button><p id="form-state" role="status"></p></form></section>
-</main>
-<footer>NEXUM.DEV <span>Digital products & AI</span></footer>
-<script src="app.js"></script>
-</body></html>`;
+<main id="top"><section class="hero"><div class="eyebrow">DIGITAL STUDIO / 2026</div><h1>Цифровые продукты,<br><em>которые работают.</em></h1><p>${brief}</p><div class="hero-actions"><a class="btn primary" href="#cases">Смотреть кейсы</a><a class="btn ghost" href="#contact">Обсудить проект</a></div><div class="hero-grid"><div><strong>01</strong><span>Web products</span></div><div><strong>02</strong><span>AI automation</span></div><div><strong>03</strong><span>Digital systems</span></div></div></section>
+<section id="services" class="section"><div class="section-head"><span>01 / SERVICES</span><h2>От идеи до рабочего продукта.</h2></div><div class="cards"><article><b>01</b><h3>Сайты</h3><p>Лендинги и корпоративные сайты.</p></article><article><b>02</b><h3>Веб-приложения</h3><p>Кабинеты, CRM и внутренние сервисы.</p></article><article><b>03</b><h3>AI-автоматизация</h3><p>AI-агенты и автоматизация процессов.</p></article></div></section>
+<section id="cases" class="section"><div class="section-head"><span>02 / CASES</span><h2>Продукты и интерфейсы.</h2></div><div class="cases"><article><div class="case-no">01</div><h3>NEXUM.DEV</h3><p>AI-платформа для цифровых продуктов.</p></article><article><div class="case-no">02</div><h3>GRUZLI</h3><p>Marketplace для диспетчеров, грузчиков и заказчиков.</p></article><article><div class="case-no">03</div><h3>AI SYSTEMS</h3><p>Автоматизация бизнес-процессов.</p></article></div></section>
+<section id="process" class="section"><div class="section-head"><span>03 / PROCESS</span><h2>Четыре шага до запуска.</h2></div><div class="process"><div><b>01</b><h3>Бриф</h3><p>Фиксируем задачу.</p></div><div><b>02</b><h3>Архитектура</h3><p>Проектируем структуру.</p></div><div><b>03</b><h3>Разработка</h3><p>Собираем продукт.</p></div><div><b>04</b><h3>Запуск</h3><p>Проверяем и передаём.</p></div></div></section>
+<section id="contact" class="section contact"><div><span>04 / CONTACT</span><h2>Расскажите, что нужно построить.</h2></div><form id="lead-form"><input name="name" required placeholder="Имя"><input name="contact" required placeholder="Telegram / телефон / email"><textarea name="task" required placeholder="Коротко опишите задачу"></textarea><button class="btn primary" type="submit">Отправить заявку</button><p id="form-state" role="status"></p></form></section>
+</main><footer>NEXUM.DEV <span>Digital products & AI</span></footer><script src="app.js"></script></body></html>`;
   }
 
   private fallbackStaticStyles(): string {
