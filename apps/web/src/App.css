@@ -1050,3 +1050,33 @@ body{
   border-color:rgba(217,255,74,.25) !important;
   color:#ebf6cf !important;
 }
+
+
+.preview-runtime-error{
+  position:relative;
+  z-index:3;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:8px 8px 0;
+  padding:10px 12px;
+  border:1px solid rgba(255,130,120,.24);
+  border-radius:10px;
+  background:rgba(70,25,23,.82);
+  color:#ffd1cc;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+  font-size:11px;
+}
+.preview-runtime-error strong{color:#ffaaa1}
+.preview-runtime-error span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f2c5c0}
+.preview-runtime-error button{
+  margin-left:auto;
+  flex:0 0 auto;
+  min-height:30px;
+  padding:0 10px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:7px;
+  background:rgba(255,255,255,.06);
+  color:#f1e9e8;
+}
+.preview-runtime-error button:hover{background:rgba(255,130,120,.10);border-color:rgba(255,130,120,.24)}
