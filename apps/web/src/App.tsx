@@ -41,6 +41,8 @@ function App() {
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [connectedConnectors, setConnectedConnectors] = useState<string[]>([]);
+  const [activitySteps, setActivitySteps] = useState<Array<{ iteration: number; tool: string; success: boolean }>>([]);
+  const [problems, setProblems] = useState<Array<{ message: string; source?: string }>>([]);
 
   const activeProject = projects.find((project) => project.id === activeProjectId);
 
@@ -184,6 +186,8 @@ function App() {
     setAgentStage("thinking");
     setReply("");
     setApiError("");
+    setActivitySteps([]);
+    setProblems([]);
 
     try {
       const response = await fetch("/api/chat", {
@@ -233,6 +237,8 @@ function App() {
               job?: {
                 status?: "queued" | "running" | "completed" | "failed";
                 reply?: string | null;
+                steps?: Array<{ iteration: number; tool: string; success: boolean }>;
+                problems?: Array<{ message: string; source?: string }>;
                 error?: string | null;
               };
               error?: string;
@@ -258,6 +264,8 @@ function App() {
           throw new Error(data?.job?.error || "AI agent failed");
         }
 
+        setActivitySteps(data?.job?.steps ?? []);
+        setProblems(data?.job?.problems ?? []);
         setAgentStage(status === "running" ? "running" : "thinking");
         timer = window.setTimeout(pollJob, 900);
       } catch (error) {
@@ -308,11 +316,11 @@ function App() {
     { label: "Run Build", hint: "B", run: () => runTask("Проверь сборку проекта") },
     { label: "Git Status", hint: "G", run: () => runTask("Покажи статус Git") },
     { label: "Git Diff", hint: "D", run: () => runTask("Что изменилось?") },
-    { label: "Start Preview", hint: "P", run: () => showPlaceholder("Start Preview") },
-    { label: "Restart Preview", hint: "R", run: () => showPlaceholder("Restart Preview") },
+    { label: "Start Preview", hint: "P", run: () => { setRightTab("preview"); setPreviewKey((key) => key + 1); setNotice("Preview refreshed"); } },
+    { label: "Restart Preview", hint: "R", run: () => { setRightTab("preview"); setPreviewKey((key) => key + 1); setNotice("Preview restarted"); } },
     { label: "Ask AI", hint: "A", run: () => focusTask() },
     { label: "Switch Model", hint: "M", run: () => document.querySelector<HTMLSelectElement>("select[aria-label='AI model']")?.focus() },
-    { label: "Settings", hint: "", run: () => showPlaceholder("Settings") },
+    { label: "Settings", hint: "", run: () => setView("settings") },
   ];
 
   return (
@@ -342,7 +350,17 @@ function App() {
             <button type="button" onClick={async () => { const url = `${window.location.origin}/api/preview/${activeProjectId}/index.html`; try { await navigator.clipboard.writeText(url); setNotice("Preview link copied"); } catch { setNotice(url); } }}>↗ Share</button>
             <button className="workspace-deploy" type="button" onClick={() => { const url = `/api/preview/${activeProjectId}/index.html`; window.open(url, "_blank", "noopener,noreferrer"); setNotice("Preview opened in a new tab"); }}>Deploy</button>
             <button className="workspace-more" type="button" aria-label="Project menu" onClick={() => setWorkspaceMenuOpen((open) => !open)}>•••</button>
-            {workspaceMenuOpen && <div className="workspace-menu"><button type="button" onClick={() => { setWorkspaceMenuOpen(false); setView("settings"); }}>Project settings</button><button type="button" onClick={() => { setWorkspaceMenuOpen(false); setNotice("Duplicate requires a project-copy API; the current workspace is unchanged"); }}>Duplicate project</button></div>}
+            {workspaceMenuOpen && <div className="workspace-menu"><button type="button" onClick={() => { setWorkspaceMenuOpen(false); setView("settings"); }}>Project settings</button><button type="button" onClick={async () => {
+                setWorkspaceMenuOpen(false);
+                try {
+                  const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/duplicate`, { method: "POST" });
+                  const data = await response.json() as { project?: Project; error?: string };
+                  if (!response.ok || !data.project) throw new Error(data.error || "Duplicate failed");
+                  await loadProjects(data.project.id);
+                  setActiveProjectId(data.project.id);
+                  setNotice("Project duplicated");
+                } catch (error) { setApiError(error instanceof Error ? error.message : "Duplicate failed"); }
+              }}>Duplicate project</button></div>}
           </div>
         </div>
         <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
@@ -355,7 +373,18 @@ function App() {
         </>
         )}
       </main>
-      <BottomPanel open={bottomPanelOpen} onClose={() => setBottomPanelOpen(false)} projectId={activeProjectId} jobId={chatJobId} />
+      <BottomPanel open={bottomPanelOpen} onClose={() => setBottomPanelOpen(false)} projectId={activeProjectId} jobId={chatJobId} activitySteps={activitySteps} problems={problems} onRunCommand={async (command) => {
+        try {
+          const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command }) });
+          const data = await response.json().catch(() => ({})) as { success?: boolean; stdout?: string; stderr?: string; error?: string; problems?: Array<{ message: string; source?: string }> };
+          setProblems(data.problems ?? []);
+          return data;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Command failed";
+          setProblems([{ message, source: command }]);
+          return { success: false, stderr: message, stdout: "", problems: [{ message, source: command }] };
+        }
+      }} />
       <StatusBar projectName={activeProject?.name ?? "NEXUM"} provider={aiProvider} aiStatus={aiStatus} previewOnline={previewOnline} onOpenTerminal={() => setBottomPanelOpen(true)} />
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
       <NewProjectModal open={modalOpen} name={newProjectName} loading={projectActionLoading} onNameChange={setNewProjectName} onClose={() => setModalOpen(false)} onSubmit={(event) => void createProject(event)} />
