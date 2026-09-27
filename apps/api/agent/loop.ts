@@ -40,6 +40,27 @@ export class AgentLoop {
     let productPlan: ProductPlan | null = null;
     let productReviewAttempts = 0;
     const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
+
+    // Build is optional for static projects. Only enforce npm run build when
+    // package.json (or a React/Vite scaffold) actually exposes a build script.
+    const projectHasBuildScript = (results: AgentToolResult[]): boolean => {
+      const packageResult = [...results]
+        .reverse()
+        .find((item) => item.tool === "readFile" && item.result.success && /"scripts"\s*:/i.test(item.result.output));
+      if (packageResult) {
+        try {
+          const parsed = JSON.parse(packageResult.result.output);
+          return typeof parsed?.scripts?.build === "string" && parsed.scripts.build.trim().length > 0;
+        } catch {
+          return /"build"\s*:/i.test(packageResult.result.output);
+        }
+      }
+      return results.some((item) =>
+        item.tool === "scaffoldProject" &&
+        item.result.success &&
+        /React\/Vite scaffold created/i.test(item.result.output)
+      );
+    };
     const emit = (event: Omit<AgentEvent, "id" | "timestamp">) => {
       this.onEvent?.({ ...event, id: ++eventId, timestamp: Date.now() });
     };
@@ -175,7 +196,7 @@ export class AgentLoop {
 
           if (!meaningfulImplementation) continue;
 
-          if (!verifiedBuild && availableTools.includes("runCommand")) {
+          if (!verifiedBuild && projectHasBuildScript(previousResults) && availableTools.includes("runCommand")) {
             const input = "npm run build";
             const result = await this.runtime.executeTool("runCommand", input);
             const step: AgentStep = { iteration, tool: "runCommand", input, success: result.success };
@@ -224,7 +245,7 @@ export class AgentLoop {
           return lastIndex;
         }, -1);
         const hasSuccessfulBuild = lastSuccessfulBuildIndex > lastProjectChangeIndex;
-        if (hasProjectChanges && !hasSuccessfulBuild && availableTools.includes("runCommand")) {
+        if (hasProjectChanges && projectHasBuildScript(previousResults) && !hasSuccessfulBuild && availableTools.includes("runCommand")) {
           for (const command of ["npm install", "npm run build"]) {
             const alreadySuccessful = previousResults.some(
               (item) => item.tool === "runCommand" && item.input === command && item.result.success,
@@ -341,7 +362,9 @@ export class AgentLoop {
         availableTools.includes("runCommand")
       ) {
         const packageChanged = /"path"\s*:\s*"package\.json"/i.test(plan.input);
-        const commands = packageChanged ? ["npm install", "npm run build"] : ["npm run build"];
+        const commands = projectHasBuildScript(previousResults)
+          ? (packageChanged ? ["npm install", "npm run build"] : ["npm run build"])
+          : (packageChanged ? ["npm install"] : []);
         for (const command of commands) {
           const commandResult = await this.runtime.executeTool("runCommand", command);
           const commandStep: AgentStep = { iteration, tool: "runCommand", input: command, success: commandResult.success };
