@@ -1,3 +1,8 @@
+function phaseAfterIteration(current: AgentPhase, hasHistory: boolean): AgentPhase {
+  if (!hasHistory) return "analyze";
+  return current === "repair" ? "repair" : "plan";
+}
+
 import type { AIGateway } from "../ai/gateway.js";
 import { diagnoseError } from "./errorRecovery.js";
 import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVerificationState } from "./taskState.js";
@@ -174,8 +179,7 @@ export class AgentLoop {
 
     for (let iteration = 1; iteration <= this.maxIterations; iteration += 1) {
       const availableTools = this.runtime.getAvailableTools();
-      const currentPhase: AgentPhase = phase;
-      transition(previousResults.length === 0 ? "analyze" : currentPhase === "repair" ? "repair" : "plan");
+      transition(phaseAfterIteration(phase, previousResults.length > 0));
 
       // Builder sessions always inspect the active project before planning or editing.
       // This prevents the model from inventing a new app or answering with source code.
@@ -661,10 +665,10 @@ export class AgentLoop {
 
       const actionKey = `${(plan as AgentPlan).tool}:${(plan as AgentPlan).input}`;
       const previousSuccess = previousResults.some(
-        (item) => item.tool === plan.tool && item.input === plan.input && item.result.success,
+        (item) => item.tool === (plan as AgentPlan).tool && item.input === (plan as AgentPlan).input && item.result.success,
       );
       if (previousSuccess) {
-        const inspectionTool = plan.tool === "searchFiles" || plan.tool === "listFiles" || plan.tool === "readFile";
+        const inspectionTool = (plan as AgentPlan).tool === "searchFiles" || (plan as AgentPlan).tool === "listFiles" || (plan as AgentPlan).tool === "readFile";
         if (builderTask && inspectionTool) {
           // Never let a Builder die because the model repeated an inspection call.
           // First exhaust concrete entry files from the latest project listing.
