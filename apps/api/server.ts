@@ -91,7 +91,7 @@ async function runChatJob(
     }
 
     job.status = "completed";
-    job.reply = result.finalResponse;
+    if (result.finalResponse !== undefined) job.reply = result.finalResponse;
     job.steps = result.steps;
     console.log("[Nexum] chat job completed", jobId);
   } catch (error) {
