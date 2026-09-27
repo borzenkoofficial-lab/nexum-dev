@@ -1,4 +1,4 @@
-import type { AIProvider, AIProviderStatus } from "../types.js";
+import type { AIProvider, AIProviderStatus, AIGenerateOptions } from "../types.js";
 
 const DEFAULT_BASE_URL = "http://localhost:11434";
 const DEFAULT_MODEL = "qwen3:4b";
@@ -33,7 +33,7 @@ export class OllamaProvider implements AIProvider {
     this.fetchImpl = fetchImpl;
   }
 
-  async generate(message: string, model = this.model): Promise<string> {
+  async generate(message: string, model = this.model, options: AIGenerateOptions = {}): Promise<string> {
     const selectedModel = this.validateModel(model);
     const data = await this.request<OllamaChatResponse>("/api/chat", {
       method: "POST",
@@ -46,7 +46,7 @@ export class OllamaProvider implements AIProvider {
         options: {
           num_ctx: Number(process.env.OLLAMA_NUM_CTX || DEFAULT_CONTEXT),
           ...(process.env.OLLAMA_NUM_THREAD?.trim() ? { num_thread: Number(process.env.OLLAMA_NUM_THREAD) } : {}),
-          num_predict: Number(process.env.OLLAMA_NUM_PREDICT || 1400),
+          num_predict: options.maxTokens ?? Number(process.env.OLLAMA_NUM_PREDICT || 1400),
         },
       }),
     });
