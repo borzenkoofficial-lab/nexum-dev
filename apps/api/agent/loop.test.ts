@@ -87,12 +87,24 @@ test("automatically installs and builds a generated React/Vite scaffold", async 
   const commands: string[] = [];
   const runtime: AgentRuntime = {
     getAvailableTools: () => ["scaffoldProject", "runCommand"],
-    plan: (_task, previousResults) => previousResults.length === 0
-      ? { tool: "scaffoldProject", input: "Создай React приложение" }
-      : { tool: "", input: "", done: true, finalResponse: "Готово" },
+    plan: (_task, previousResults) => {
+      if (previousResults.length === 0) {
+        return { tool: "scaffoldProject", input: "Создай React приложение" };
+      }
+      if (previousResults.some((item) => item.tool === "scaffoldProject")) {
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({ path: "src/App.jsx", content: "implemented app" }),
+        };
+      }
+      return { tool: "", input: "", done: true, finalResponse: "Готово" };
+    },
     executeTool: async (tool, input) => {
       if (tool === "scaffoldProject") {
         return { success: true, output: "React/Vite scaffold created for test. Run npm install and npm run build." };
+      }
+      if (tool === "writeFile") {
+        return { success: true, output: "App.jsx implemented" };
       }
       commands.push(input);
       return { success: true, output: input === "npm install" ? "dependencies installed" : "vite build passed" };
