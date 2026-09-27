@@ -21,22 +21,17 @@ export function resolveProjectPath(projectRoot: string, requestedPath: string): 
   // - /.../projects/<active-project>/index.html
   // The final path is always forced back into the active project root.
   const normalizedInput = input.replace(/\\/g, "/");
-  const normalizedRoot = projectRoot.replace(/\\/g, "/").replace(/\/+$/, "");
+  const normalizedRoot = projectRoot.replace(/\\/g, "/").replace(/\\/+$/, "");
   const activeProjectName = basename(normalizedRoot);
-  const projectMarker = "/projects/" + activeProjectName + "/";
+  const projectMarker = "projects/" + activeProjectName + "/";
   const rootMarker = normalizedRoot + "/";
-  const relativeProjectMarker = "projects/" + activeProjectName + "/";
   let candidate = normalizedInput;
 
+  // Accept paths emitted by the model when they refer to this exact active root.
   if (normalizedInput.startsWith(rootMarker)) {
     candidate = normalizedInput.slice(rootMarker.length);
-  }
-
-  const markerIndex = normalizedInput.lastIndexOf(projectMarker);
-  if (markerIndex >= 0 && candidate === normalizedInput) {
-    candidate = normalizedInput.slice(markerIndex + projectMarker.length);
-  } else if (normalizedInput.startsWith(relativeProjectMarker)) {
-    candidate = normalizedInput.slice(relativeProjectMarker.length);
+  } else if (!isAbsolute(normalizedInput) && normalizedInput.startsWith(projectMarker)) {
+    candidate = normalizedInput.slice(projectMarker.length);
   }
 
   if (!isAbsolute(candidate) && candidate.split("/").includes("..")) {
