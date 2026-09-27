@@ -408,6 +408,32 @@ ${result.output}`
       if (existingPath) return { tool: "readFile", input: existingPath };
     }
 
+    // Provider-independent Builder recovery: after inspection, read the real
+    // entry files before falling back to search. This prevents the offline/rate-limit
+    // path from looping forever on searchFiles and gives the local planner source
+    // material to implement against.
+    const entryCandidates = [
+      "src/App.tsx",
+      "src/App.jsx",
+      "src/main.tsx",
+      "src/main.jsx",
+      "src/App.css",
+      "src/styles.css",
+      "style.css",
+      "index.html",
+    ];
+    const inspectedListing = previousResults
+      .filter((item) => item.tool === "listFiles" && item.result.success)
+      .map((item) => item.result.output)
+      .join("\n");
+    if (/создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|website|landing|web app|страниц/i.test(task) && inspectedListing) {
+      const unreadEntry = entryCandidates.find((candidate) =>
+        inspectedListing.includes(candidate) &&
+        !previousResults.some((item) => item.tool === "readFile" && item.input === candidate && item.result.success),
+      );
+      if (unreadEntry) return { tool: "readFile", input: unreadEntry };
+    }
+
     // Provider-independent Builder fallback: if the remote planner is unavailable,
     // keep implementing the requested site instead of returning a false completion.
     const deterministicWrite = this.deterministicBuilderWrite(task, previousResults);
@@ -439,15 +465,15 @@ ${result.output}`
       .map((item) => item.result.output)
       .join("\n");
 
-    const hasReactApp = inspection.includes("src/App.tsx") || inspection.includes("src/App.jsx");
-    const appPath = inspection.includes("src/App.jsx") ? "src/App.jsx" : "src/App.tsx";
-    const hasCss = inspection.includes("src/App.css") || inspection.includes("src/styles.css") || inspection.includes("style.css");
-    const cssPath = inspection.includes("src/App.css")
+    const hasReactApp = /(?:^|[\\/])src[\\/]App\\.(?:tsx|jsx)\\b/.test(inspection);
+    const appPath = /(?:^|[\\/])src[\\/]App\\.jsx\\b/.test(inspection) ? "src/App.jsx" : "src/App.tsx";
+    const hasCss = /(?:^|[\\/])src[\\/](?:App|styles)\\.css\\b|(?:^|[\\/])style\\.css\\b/.test(inspection);
+    const cssPath = /(?:^|[\\/])src[\\/]App\\.css\\b/.test(inspection)
       ? "src/App.css"
-      : inspection.includes("src/styles.css")
+      : /(?:^|[\\/])src[\\/]styles\\.css\\b/.test(inspection)
         ? "src/styles.css"
         : "style.css";
-    const hasStatic = inspection.includes("index.html") && inspection.includes("style.css");
+    const hasStatic = /(?:^|[\\/])index\\.html\\b/.test(inspection) && /(?:^|[\\/])style\\.css\\b/.test(inspection);
 
     if (hasReactApp && hasCss) {
       const appWritten = previousResults.some(
