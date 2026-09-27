@@ -93,6 +93,10 @@ export class AIGateway {
     return Boolean(provider && typeof (provider as { hasApiKey?: () => boolean }).hasApiKey === "function" && (provider as unknown as { hasApiKey: () => boolean }).hasApiKey());
   }
 
+  getDefaultProviderId(): string {
+    return this.defaultProviderId;
+  }
+
   getDefaultModel(providerId = this.defaultProviderId): string {
     return this.providers.get(providerId)?.model ?? this.providers.get(this.defaultProviderId)!.model;
   }
