@@ -731,6 +731,32 @@ export class AgentLoop {
       }
       if (result.success && (plan.tool === "writeFile" || plan.tool === "patchFile")) recordSuccessfulChange(taskState, plan.input);
       syncVerificationState(taskState, previousResults, productPlan);
+
+      // Validate the domain immediately after every implementation write so a
+      // premature done=true cannot bypass the intent lock.
+      if (result.success && builderTask && (plan.tool === "writeFile" || plan.tool === "patchFile")) {
+        const taskLower = task.toLowerCase();
+        const writeLower = plan.input.toLowerCase();
+        const autoRequested = /авто|автомобил|автосервис|ремонт.*авто|ремонт.*машин|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(taskLower);
+        const constructionRequested = /строит|строитель|демонтаж|фасад|подряд|отделк|стяжк|штукатур|монтаж|кровл|бетон/.test(taskLower);
+        const hasAutoSignals = /авто|автомобил|автосервис|диагностик|шиномонтаж|двигател|ходов|тормоз|масл|запчаст|\\bсто\\b/.test(writeLower);
+        const hasConstructionSignals = /строит|строитель|демонтаж|фасад|подряд|отделк|стяжк|штукатур|монтаж|кровл|бетон/.test(writeLower);
+        const wrongDomain = (autoRequested && hasConstructionSignals && !hasAutoSignals)
+          || (constructionRequested && hasAutoSignals && !hasConstructionSignals);
+        if (wrongDomain) {
+          const message = `DOMAIN_MISMATCH: implementation content does not match the requested domain. Expected ${autoRequested ? "auto repair" : "construction"}.`;
+          previousResults.push({
+            iteration,
+            tool: "domainValidation",
+            input: autoRequested ? "auto repair" : "construction",
+            result: { success: false, output: message },
+          });
+          emit({ iteration, type: "tool-error", tool: "Domain Validation", message });
+          transition("repair");
+          continue;
+        }
+      }
+
       this.log(iteration, plan.tool, result.success ? "success" : "error");
       emit({
         iteration,
