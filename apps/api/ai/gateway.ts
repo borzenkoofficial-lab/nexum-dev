@@ -52,6 +52,19 @@ export class AIGateway {
     this.onFallback = options.onFallback;
   }
 
+  setRuntimeOpenRouterKey(apiKey: string): void {
+    const provider = this.providers.get("openrouter");
+    if (!provider || typeof (provider as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey !== "function") {
+      throw new Error("OpenRouter provider is unavailable");
+    }
+    (provider as { setRuntimeApiKey: (key: string) => void }).setRuntimeApiKey(apiKey);
+  }
+
+  hasOpenRouterKey(): boolean {
+    const provider = this.providers.get("openrouter");
+    return Boolean(provider && typeof (provider as { hasApiKey?: () => boolean }).hasApiKey === "function" && (provider as { hasApiKey: () => boolean }).hasApiKey());
+  }
+
   async generate(message: string, options: GatewayGenerateOptions | string = {}): Promise<string> {
     const normalizedOptions = typeof options === "string" ? { provider: options } : options;
     const providerId = normalizedOptions.provider ?? this.defaultProviderId;
