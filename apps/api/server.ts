@@ -469,6 +469,27 @@ app.get("/api/agent/history", async (req, res) => {
   return res.json({ success: true, entries: await agentHistory.recent(Number.isFinite(limit) ? limit : 200) });
 });
 
+app.post("/api/agent/client-error", async (req, res) => {
+  const { message, stack, source, url } = req.body as {
+    message?: unknown;
+    stack?: unknown;
+    source?: unknown;
+    url?: unknown;
+  };
+  const errorMessage = typeof message === "string" ? message.slice(0, 4000) : "Unknown client error";
+  void agentHistory.record({
+    type: "client-error",
+    status: "error",
+    message: errorMessage,
+    output: JSON.stringify({
+      stack: typeof stack === "string" ? stack.slice(0, 8000) : undefined,
+      source: typeof source === "string" ? source.slice(0, 500) : undefined,
+      url: typeof url === "string" ? url.slice(0, 1000) : undefined,
+    }),
+  });
+  return res.status(202).json({ success: true });
+});
+
 app.get("/api/agent/diagnostics", async (req, res) => {
   const rawLimit = typeof req.query.limit === "string" ? Number(req.query.limit) : 100;
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 500) : 100;
