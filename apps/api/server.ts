@@ -2,7 +2,7 @@ import express from "express";
 import type { Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { AIGateway } from "./ai/gateway.js";
+import { AIGateway, type GatewayFallbackEvent } from "./ai/gateway.js";
 import { MockProvider } from "./ai/providers/mock.js";
 import { OllamaProvider } from "./ai/providers/ollama.js";
 import { OpenRouterProvider } from "./ai/providers/openrouter.js";
@@ -27,13 +27,30 @@ const defaultProvider = configuredProvider === "ollama" || configuredProvider ==
   : process.env.OPENROUTER_API_KEY?.trim()
     ? "openrouter"
     : "mock";
-const aiGateway = new AIGateway(
-  [new MockProvider(), new OllamaProvider(), new OpenRouterProvider()],
-  defaultProvider,
-);
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const projectManager = new ProjectManager(workspaceRoot);
 const agentHistory = new AgentHistory(workspaceRoot);
+const fallbackProvider = process.env.AI_FALLBACK_PROVIDER?.toLowerCase() ||
+  (defaultProvider === "ollama" ? "openrouter" : undefined);
+
+const aiGateway = new AIGateway(
+  [new MockProvider(), new OllamaProvider(), new OpenRouterProvider()],
+  defaultProvider,
+  {
+    fallbackProviderId: fallbackProvider,
+    onFallback: (event: GatewayFallbackEvent) => {
+      void agentHistory.record({
+        type: "provider-fallback",
+        provider: event.fromProvider,
+        model: event.fromModel,
+        status: "fallback",
+        message: `AI fallback: ${event.fromProvider}/${event.fromModel} -> ${event.toProvider}/${event.toModel}`,
+        output: event.reason,
+      });
+      console.warn("[Nexum] AI provider fallback", event);
+    },
+  },
+);
 
 type ChatJobStatus = "queued" | "running" | "completed" | "failed";
 interface ChatJob {
