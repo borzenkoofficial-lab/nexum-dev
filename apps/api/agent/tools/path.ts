@@ -23,15 +23,21 @@ export function resolveProjectPath(projectRoot: string, requestedPath: string): 
   const normalizedInput = input.replace(/\\/g, "/");
   const normalizedRoot = projectRoot.replace(/\\/g, "/").replace(/\\/+$/, "");
   const activeProjectName = basename(normalizedRoot);
-  const projectMarker = "projects/" + activeProjectName + "/";
+  const projectPrefix = "projects/" + activeProjectName;
   const rootMarker = normalizedRoot + "/";
   let candidate = normalizedInput;
 
-  // Accept paths emitted by the model when they refer to this exact active root.
+  // Models may emit the exact absolute project path or a workspace-relative
+  // path such as ./projects/nexum/index.html. Normalize both to the active root.
   if (normalizedInput.startsWith(rootMarker)) {
     candidate = normalizedInput.slice(rootMarker.length);
-  } else if (!isAbsolute(normalizedInput) && normalizedInput.startsWith(projectMarker)) {
-    candidate = normalizedInput.slice(projectMarker.length);
+  } else if (!isAbsolute(normalizedInput)) {
+    const relativeInput = normalizedInput.replace(/^\.\//, "");
+    if (relativeInput === projectPrefix) {
+      candidate = ".";
+    } else if (relativeInput.startsWith(projectPrefix + "/")) {
+      candidate = relativeInput.slice(projectPrefix.length + 1);
+    }
   }
 
   if (!isAbsolute(candidate) && candidate.split("/").includes("..")) {
