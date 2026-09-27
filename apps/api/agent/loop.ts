@@ -230,6 +230,42 @@ export class AgentLoop {
         // Never finish an app-building session with an unverified package project.
         // If the agent wrote project files but did not build, perform the final
         // install/build deterministically and let the model repair any failure.
+        const hasSuccessfulStaticValidation = previousResults.some(
+          (item) => item.tool === "validateProject" && item.result.success,
+        );
+        const hasStaticProject = previousResults.some(
+          (item) => item.tool === "listFiles" && item.result.success &&
+            /(?:^|\\n)index\\.html(?:\\n|$)/.test(item.result.output),
+        ) && !projectHasBuildScript(previousResults);
+        if (
+          builderTask &&
+          hasStaticProject &&
+          !hasSuccessfulStaticValidation &&
+          availableTools.includes("validateProject")
+        ) {
+          emit({
+            iteration,
+            type: "tool-start",
+            tool: "validateProject",
+            message: "Проверяю HTML, CSS, JavaScript и JSON перед Preview.",
+          });
+          const validation = await this.runtime.executeTool("validateProject", ".");
+          const step: AgentStep = { iteration, tool: "validateProject", input: ".", success: validation.success };
+          steps.push(step);
+          this.onStep?.(step);
+          previousResults.push({ iteration, tool: "validateProject", input: ".", result: validation });
+          this.log(iteration, "validateProject", validation.success ? "success" : "error");
+          emit({
+            iteration,
+            type: validation.success ? "tool-success" : "tool-error",
+            tool: "validateProject",
+            message: validation.success
+              ? "Статический проект прошёл проверку."
+              : `Найдены ошибки: ${validation.output.slice(0, 700)}`,
+          });
+          if (!validation.success) continue;
+        }
+
         const hasProjectChanges = previousResults.some((item) =>
           item.tool === "scaffoldProject" &&
           /React\/Vite scaffold created/i.test(item.result.output),
