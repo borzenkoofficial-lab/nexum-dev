@@ -9,6 +9,26 @@ export interface Tool {
   execute(input: string): Promise<ToolResult>;
 }
 
+export interface ProductPlan {
+  goal: string;
+  productType: string;
+  targetUser: string;
+  pages: string[];
+  components: string[];
+  visualSystem: string[];
+  interactions: string[];
+  dataModel: string[];
+  filesToInspect: string[];
+  filesToChange: string[];
+  acceptanceCriteria: string[];
+}
+
+export interface ProductReview {
+  passed: boolean;
+  missing: string[];
+  risks: string[];
+}
+
 export interface AgentPlan {
   tool: string;
   input: string;
@@ -31,7 +51,9 @@ export interface AgentToolResult {
 export interface AgentRuntime {
   getAvailableTools(): string[];
   plan(task: string, previousResults: AgentToolResult[]): AgentPlan | null;
-  planWithAI?(task: string, previousResults: AgentToolResult[], options?: AgentModelOptions): Promise<AgentPlan | null>;
+  createProductPlan?(task: string, previousResults: AgentToolResult[], options?: AgentModelOptions): Promise<ProductPlan>;
+  planWithAI?(task: string, previousResults: AgentToolResult[], options?: AgentModelOptions, productPlan?: ProductPlan): Promise<AgentPlan | null>;
+  reviewProduct?(task: string, previousResults: AgentToolResult[], productPlan: ProductPlan, options?: AgentModelOptions): Promise<ProductReview>;
   executeTool(tool: string, input: string): Promise<ToolResult>;
 }
 
