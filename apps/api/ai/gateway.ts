@@ -65,6 +65,19 @@ export class AIGateway {
     return Boolean(provider && typeof (provider as { hasApiKey?: () => boolean }).hasApiKey === "function" && (provider as unknown as { hasApiKey: () => boolean }).hasApiKey());
   }
 
+  setRuntimeOrcaRouterKey(apiKey: string): void {
+    const provider = this.providers.get("orcarouter");
+    if (!provider || typeof (provider as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey !== "function") {
+      throw new Error("OrcaRouter provider is unavailable");
+    }
+    (provider as unknown as { setRuntimeApiKey: (key: string) => void }).setRuntimeApiKey(apiKey);
+  }
+
+  hasOrcaRouterKey(): boolean {
+    const provider = this.providers.get("orcarouter");
+    return Boolean(provider && typeof (provider as { hasApiKey?: () => boolean }).hasApiKey === "function" && (provider as unknown as { hasApiKey: () => boolean }).hasApiKey());
+  }
+
   setRuntimeOpenRouterKey(apiKey: string): void {
     const provider = this.providers.get("openrouter");
     if (!provider || typeof (provider as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey !== "function") {
