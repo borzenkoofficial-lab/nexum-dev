@@ -16,6 +16,8 @@ export interface ProjectCheckpoint {
 }
 
 const EXCLUDED = new Set([".git", "node_modules", "dist", ".nexum"]);
+const MAX_FILES = 5000;
+const MAX_BYTES = 100 * 1024 * 1024;
 
 async function collectFiles(root: string, current = root, output: CheckpointFile[] = []): Promise<CheckpointFile[]> {
   const entries = await readdir(current, { withFileTypes: true });
@@ -48,11 +50,14 @@ export class CheckpointManager {
   }
 
   async create(projectId: string, projectPath: string, label = "checkpoint"): Promise<ProjectCheckpoint> {
-    const id = \${Date.now().toString(36)}-\${randomUUID().slice(0, 8)};
+    const id = ${Date.now().toString(36)}-${randomUUID().slice(0, 8)};
     const checkpointRoot = resolve(this.root(projectPath), id);
     await mkdir(checkpointRoot, { recursive: true });
 
     const files = await collectFiles(projectPath);
+    if (files.length > MAX_FILES) throw new Error("Checkpoint exceeds the 5000 file safety limit");
+    const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+    if (totalBytes > MAX_BYTES) throw new Error("Checkpoint exceeds the 100 MB safety limit");
     for (const file of files) {
       assertSafeRelativePath(file.path);
       const source = resolve(projectPath, file.path);
