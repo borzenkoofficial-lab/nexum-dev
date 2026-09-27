@@ -7,12 +7,18 @@ export class ProjectWorkspace {
   resolve(requestedPath = "."): string {
     const input = requestedPath.trim();
     if (!input) throw new Error("Project path is required");
-    if (isAbsolute(input)) throw new Error("Tool paths must be relative to the active project");
     const normalized = input.replace(/\\/g, "/").replace(/^\.\//, "");
     if (!normalized || normalized === ".") return resolve(this.root);
-    const target = resolve(this.root, normalized);
+
+    // Models sometimes return the already-resolved absolute project path.
+    // Accept it only when it still points inside the active project.
+    const target = isAbsolute(normalized)
+      ? resolve(normalized)
+      : resolve(this.root, normalized);
     const rel = relative(this.root, target);
-    if (rel.startsWith("..") || isAbsolute(rel)) throw new Error("Path must stay inside the active project");
+    if (rel.startsWith("..") || isAbsolute(rel)) {
+      throw new Error("Path must stay inside the active project");
+    }
     return target;
   }
 
