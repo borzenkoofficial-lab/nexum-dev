@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { BottomPanel as AgentActivityPanel } from "./BottomPanel";
 import type { AgentStage } from "./types";
 
@@ -68,7 +68,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
 
   const dirty = content !== savedContent;
 
-  let panelContent: React.ReactNode;
+  let panelContent: ReactNode;
   if (tab === "preview") {
     panelContent = previewOnline ? (
       <div className="preview-frame-wrap">
