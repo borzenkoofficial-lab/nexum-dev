@@ -632,6 +632,7 @@ export class AgentLoop {
             previousResults,
             projectHasBuildScript(previousResults),
             hasStaticProject,
+            availableTools.includes("testProject"),
           );
           if (!finishCheck.ok) {
             emit({
