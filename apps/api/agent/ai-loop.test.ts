@@ -87,7 +87,13 @@ test("deterministic Builder recovery inspects an existing scaffold before editin
     input: ".",
     result: { success: true, output: "package.json\\nsrc/App.jsx\\nsrc/styles.css" },
   };
-  const packageRead = agent.plan("Создай React dashboard", [inspection]);
+  const scaffold = {
+    iteration: 1,
+    tool: "scaffoldProject",
+    input: "Создай React dashboard",
+    result: { success: true, output: "React/Vite scaffold created for test." },
+  };
+  const packageRead = agent.plan("Создай React dashboard", [inspection, scaffold]);
   assert.equal(packageRead?.tool, "readFile");
   assert.equal(packageRead?.input, "package.json");
 
