@@ -99,11 +99,25 @@ function App() {
     };
     const onError = (event: ErrorEvent) => report({ message: event.message || "Browser runtime error", stack: event.error?.stack, source: event.filename });
     const onRejection = (event: PromiseRejectionEvent) => report({ message: event.reason instanceof Error ? event.reason.message : String(event.reason), stack: event.reason instanceof Error ? event.reason.stack : undefined, source: "unhandledrejection" });
+    const onPreviewMessage = (event: MessageEvent) => {
+      const data = event.data as { source?: string; projectId?: string; kind?: string; message?: string; stack?: string };
+      if (data?.source !== "nexum-preview" || data.projectId !== activeProjectId || typeof data.message !== "string") return;
+      setProblems((items) => [...items, { message: `Preview ${data.kind ?? "error"}: ${data.message}`, source: "preview" }].slice(-20));
+      void fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/preview/runtime-error`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: data.kind, message: data.message, stack: data.stack }),
+        keepalive: true,
+      }).catch(() => {});
+    };
+
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);
+    window.addEventListener("message", onPreviewMessage);
     return () => {
       window.removeEventListener("error", onError);
       window.removeEventListener("unhandledrejection", onRejection);
+      window.removeEventListener("message", onPreviewMessage);
     };
   }, []);
 
