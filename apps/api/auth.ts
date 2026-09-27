@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { query } from "./db.js";
 
@@ -135,7 +135,7 @@ export async function createUser(email: string, name: string, password: string):
   const normalizedEmail = validateEmail(email);
   const normalizedName = validateName(name);
   const passwordHash = await hashPassword(password);
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   try {
     const result = await query<{ id: string; email: string; name: string; created_at: string }>(
       "INSERT INTO users (id, email, name, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, email, name, created_at",
