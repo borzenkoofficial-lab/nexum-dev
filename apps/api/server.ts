@@ -53,7 +53,7 @@ function getProjectManager(userId: string): ProjectManager {
   return manager;
 }
 const agentHistory = new AgentHistory(workspaceRoot);
-const checkpointManager = new CheckpointManager(workspaceRoot);
+const checkpointManager = new CheckpointManager();
 const projectStates = new Map<string, ProjectStateManager>();
 const fallbackProvider = process.env.AI_FALLBACK_PROVIDER?.toLowerCase() ||
   (defaultProvider === "ollama" ? "openrouter" : defaultProvider === "orcarouter" ? "openrouter" : undefined);
