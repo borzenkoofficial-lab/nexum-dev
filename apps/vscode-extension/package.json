@@ -1,0 +1,62 @@
+{
+  "name": "nexum-vscode",
+  "displayName": "Nexum AI",
+  "description": "Local AI development bridge for Nexum using Ollama.",
+  "version": "0.1.0",
+  "publisher": "nexum",
+  "license": "MIT",
+  "engines": { "vscode": "^1.95.0" },
+  "categories": ["AI", "Other"],
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      { "command": "nexum.openAgent", "title": "Nexum: Open Agent" },
+      { "command": "nexum.checkLocalAI", "title": "Nexum: Check Local AI" },
+      { "command": "nexum.installModel", "title": "Nexum: Install Local Model" },
+      { "command": "nexum.askLocalAI", "title": "Nexum: Ask Local AI" },
+      { "command": "nexum.openPreview", "title": "Nexum: Open Project Preview" }
+    ],
+    "configuration": {
+      "title": "Nexum",
+      "properties": {
+        "nexum.ollamaUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434",
+          "description": "Local Ollama URL."
+        },
+        "nexum.defaultModel": {
+          "type": "string",
+          "default": "qwen3:4b",
+          "description": "Default local model used by Nexum."
+        },
+        "nexum.runtimeUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:3001",
+          "description": "Optional Nexum local API runtime URL."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "nexum", "title": "Nexum", "icon": "media/nexum.svg" }
+      ]
+    },
+    "views": {
+      "nexum": [
+        { "id": "nexum.agent", "name": "Nexum AI" }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "package": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/vscode": "^1.95.0",
+    "typescript": "^7.0.2"
+  }
+}
