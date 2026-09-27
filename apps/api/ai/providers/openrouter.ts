@@ -108,6 +108,14 @@ export class OpenRouterProvider implements AIProvider {
 
   async getStatus(model = this.model): Promise<AIProviderStatus> {
     const startedAt = Date.now();
+    if (!process.env.OPENROUTER_API_KEY?.trim()) {
+      return {
+        available: false,
+        model: this.validateModel(model),
+        latencyMs: Date.now() - startedAt,
+        error: "OPENROUTER_API_KEY is not configured. Add it to the deployment environment.",
+      };
+    }
     try {
       const models = await this.listModels();
       return {
