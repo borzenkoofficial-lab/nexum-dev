@@ -97,7 +97,8 @@ export interface AgentEvent {
   id: number;
   timestamp: number;
   iteration: number;
-  type: "thinking" | "tool-start" | "tool-success" | "tool-error" | "completed" | "failed";\n  phase: AgentPhase;
+  type: "thinking" | "tool-start" | "tool-success" | "tool-error" | "completed" | "failed";
+  phase: AgentPhase;
   tool?: string;
   message: string;
 }
@@ -539,7 +540,7 @@ export class AgentLoop {
         const error = `Agent stopped: unavailable tool (${plan.tool})`;
         this.log(iteration, plan.tool, "error");
         emit({ iteration, type: "failed", tool: plan.tool, message: error });
-        return { success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
+        return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
       }
 
       const actionKey = `${plan.tool}:${plan.input}`;
@@ -550,7 +551,7 @@ export class AgentLoop {
         const error = `Agent stopped: repeated successful action detected (${plan.tool})`;
         this.log(iteration, plan.tool, "error");
         emit({ iteration, type: "failed", tool: plan.tool, message: error });
-        return { success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
+        return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
       }
       seenActions.add(actionKey);
 
@@ -624,7 +625,7 @@ export class AgentLoop {
           if (!availableTools.includes("runCommand")) {
             const error = "React/Vite project was created, but runCommand is unavailable to install dependencies and build it.";
             emit({ iteration, type: "failed", tool: "runCommand", message: error });
-            return { success: false, iterations: iteration, steps, error };
+            return { phase, success: false, iterations: iteration, steps, error };
           }
           const commandKey = `runCommand:${command}`;
           const previousCommandSuccess = previousResults.some(
@@ -674,7 +675,7 @@ export class AgentLoop {
       : `Agent stopped: maximum iterations reached (${this.maxIterations})`;
     this.log(this.maxIterations, "loop", "error");
     emit({ iteration: this.maxIterations, type: "failed", message: error });
-    return { success: false, iterations: this.maxIterations, steps, productPlan: productPlan ?? undefined, error };
+    return { phase, success: false, iterations: this.maxIterations, steps, productPlan: productPlan ?? undefined, error };
   }
 
   private async finalResponse(
