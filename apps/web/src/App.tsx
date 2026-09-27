@@ -45,6 +45,10 @@ function App() {
   const [activityEvents, setActivityEvents] = useState<Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>>([]);
   const [currentActivity, setCurrentActivity] = useState("");
   const [problems, setProblems] = useState<Array<{ message: string; source?: string }>>([]);
+  const [localAIKey, setLocalAIKey] = useState("");
+  const [localAITestEnabled, setLocalAITestEnabled] = useState(false);
+  const [localAIConfigured, setLocalAIConfigured] = useState(false);
+  const [localAIKeyLoading, setLocalAIKeyLoading] = useState(false);
 
   const activeProject = projects.find((project) => project.id === activeProjectId);
 
@@ -351,6 +355,31 @@ function App() {
     };
   }, [chatJobId]);
 
+  async function saveLocalAIKey() {
+    if (!localAIKey.trim()) return;
+    setLocalAIKeyLoading(true);
+    setApiError("");
+    try {
+      const response = await fetch("/api/ai/local-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: localAIKey.trim() }),
+      });
+      const data = await response.json().catch(() => ({})) as { success?: boolean; error?: string };
+      if (!response.ok || !data.success) throw new Error(data.error || "OpenRouter key verification failed");
+      setLocalAIConfigured(true);
+      setLocalAIKey("");
+      setAIProvider("openrouter");
+      setAIModel("openrouter/free");
+      setNotice("OpenRouter connected for this local test session");
+      window.setTimeout(() => setNotice(""), 3200);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "OpenRouter key setup failed");
+    } finally {
+      setLocalAIKeyLoading(false);
+    }
+  }
+
   function selectAIProvider(providerId: string) {
     const provider = aiProviders.find((item) => item.id === providerId);
     setAIProvider(providerId);
@@ -402,7 +431,25 @@ function App() {
             <div className="connector-grid">{[["GitHub","Repository, branches, commits and issues","Development"],["Supabase","Database, auth and storage","Backend"],["OpenAI","AI models and API access","AI"],["Telegram","Bots, messages and automation","Communication"],["Stripe","Payments and subscriptions","Commerce"],["Notion","Pages, databases and knowledge","Productivity"]].map(([name,description,category]) => <article className="connector-card" key={name}><div className="connector-icon">{name.slice(0,1)}</div><div className="connector-copy"><span>{category}</span><strong>{name}</strong><p>{description}</p></div><button type="button" onClick={() => { setConnectedConnectors((items) => items.includes(name) ? items.filter((item) => item !== name) : [...items, name]); setConnectorModal(name); }}>Connect</button></article>)}</div>
           </section>
         ) : view === "settings" ? (
-          <section className="settings-page"><div className="page-heading"><div><div className="eyebrow">WORKSPACE</div><h1>Settings</h1><p>Workspace configuration and AI defaults.</p></div></div><div className="settings-card"><strong>AI provider</strong><span>{aiProvider} · {aiModel}</span><small>Change the active provider and model from the top bar.</small></div><div className="settings-card"><strong>Projects</strong><span>{projects.filter((project) => project.status === "active").length} active</span><small>Each project has its own workspace and files.</small></div></section>
+          <section className="settings-page"><div className="page-heading"><div><div className="eyebrow">WORKSPACE</div><h1>Settings</h1><p>Workspace configuration and AI defaults.</p></div></div><div className="settings-card"><strong>AI provider</strong><span>{aiProvider} · {aiModel}</span><small>Change the active provider and model from the top bar.</small></div>
+            {localAITestEnabled && <div className="settings-card">
+              <strong>Quick OpenRouter test</strong>
+              <span>{localAIConfigured ? "Connected for this session" : "Not connected"}</span>
+              <small>For local testing only. The key stays in the running NEXUM server memory and is not written to GitHub or project files.</small>
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <input
+                  type="password"
+                  value={localAIKey}
+                  onChange={(event) => setLocalAIKey(event.target.value)}
+                  placeholder="sk-or-v1-…"
+                  autoComplete="off"
+                  style={{ flex: 1, minWidth: 0 }}
+                />
+                <button type="button" className="home-primary" disabled={localAIKeyLoading || !localAIKey.trim()} onClick={() => void saveLocalAIKey()}>
+                  {localAIKeyLoading ? "Checking…" : "Connect"}
+                </button>
+              </div>
+            </div>}<div className="settings-card"><strong>Projects</strong><span>{projects.filter((project) => project.status === "active").length} active</span><small>Each project has its own workspace and files.</small></div></section>
         ) : (
         <>
         <div className="workspace-toolbar">
