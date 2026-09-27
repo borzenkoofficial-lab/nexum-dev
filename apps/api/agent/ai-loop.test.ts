@@ -31,6 +31,7 @@ async function createLoop(responses: string[]) {
 
 test("AI structured plan selects writeFile and executes it", async () => {
   const { projectRoot, loop } = await createLoop([
+    JSON.stringify({ goal: "Build the requested site", productType: "Website", targetUser: "Users", pages: ["Home"], components: ["Header", "Content", "CTA"], visualSystem: ["Distinct typography"], interactions: ["Primary CTA"], dataModel: [], filesToInspect: ["."], filesToChange: ["index.html"], acceptanceCriteria: ["Requested product is implemented", "Build passes"] }),
     JSON.stringify({ tool: "writeFile", input: { path: "index.html", content: "<h1>NEXUM.DEV</h1>" } }),
     JSON.stringify({ tool: "runCommand", input: "node --version" }),
     JSON.stringify({ done: true, finalResponse: "Created index.html and verified the project." }),
@@ -42,7 +43,7 @@ test("AI structured plan selects writeFile and executes it", async () => {
   assert.equal(result.success, true);
   assert.deepEqual(result.steps.map((step) => step.tool), ["writeFile", "runCommand"]);
   assert.equal(content, "<h1>NEXUM.DEV</h1>");
-  assert.match(result.finalResponse ?? "", /Created index\.html/);
+  assert.match(result.finalResponse ?? "", /Готово|NEXUM изменил проект/);
   assert.equal((result.finalResponse ?? "").includes("<h1>NEXUM.DEV</h1>"), false);
 });
 
@@ -51,7 +52,7 @@ test("tool errors stop the Agent Loop with a clear error", async () => {
     JSON.stringify({ tool: "writeFile", input: { path: "../outside.txt", content: "blocked" } }),
   ]);
 
-  const result = await loop.run("Создай простой сайт NEXUM.DEV");
+  const result = await loop.run("Запиши файл ../outside.txt");
 
   assert.equal(result.success, false);
   assert.equal(result.steps[0]?.tool, "writeFile");
@@ -63,12 +64,11 @@ test("invalid model tool calls fall back without executing arbitrary tools", asy
     "Here is code, not a tool call",
   ]);
 
-  const result = await loop.run("Создай простой сайт NEXUM.DEV");
+  const result = await loop.run("Покажи структуру проекта");
 
   assert.equal(result.success, true);
   assert.equal(result.steps.length, 1);
-  assert.equal(result.steps[0]?.tool, "scaffoldProject");
-  assert.match(result.steps[0]?.input ?? "", /Создай простой сайт/);
+  assert.equal(result.steps[0]?.tool, "listFiles");
 });
 
 test("deterministic Builder fallback implements a scaffold when no real AI plan is available", async () => {
