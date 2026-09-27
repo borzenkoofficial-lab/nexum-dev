@@ -1,17 +1,22 @@
 import * as vscode from "vscode";
 import { AgentBridge } from "./agentBridge.js";
-import { diagnosticsText, runProjectCheck } from "./taskRunner.js";
+import { diagnosticsText, detectProject, runProjectCheck } from "./taskRunner.js";
 
 export async function repairLoop(bridge: AgentBridge, task: string, maxIterations = 3): Promise<void> {
   if (!vscode.workspace.isTrusted) throw new Error("Workspace Trust is required for the repair loop.");
+  const profile = await detectProject();
+  const checks = [profile.buildScript ? "build" : "", profile.typecheckScript ? "typecheck" : "", profile.testScript ? "test" : "", profile.lintScript ? "lint" : ""].filter(Boolean).join(", ");
   for (let i = 1; i <= maxIterations; i++) {
-    const check = await runProjectCheck("build");
+    const check = await runProjectCheck(profile.buildScript ? "build" : profile.typecheckScript ? "typecheck" : "build");
     const diagnostics = diagnosticsText();
     if (check.ok && !diagnostics) {
       void vscode.window.showInformationMessage("Nexum Repair Loop: build and diagnostics are clean.");
       return;
     }
     const evidence = [
+      "PROJECT PROFILE:", JSON.stringify(profile),
+      "CHECKS AVAILABLE:", checks,
+      "",
       "ORIGINAL TASK:", task,
       "",
       "BUILD COMMAND:", check.command,
