@@ -82,12 +82,10 @@ export class AgentLoop {
       this.log(iteration, plan.tool, result.success ? "success" : "error");
 
       if (!result.success) {
-        return {
-          success: false,
-          iterations: iteration,
-          steps,
-          error: `Tool ${plan.tool} failed: ${result.output}`,
-        };
+        // Give the planner a chance to inspect the failure and choose a corrected action.
+        // This is important for model-generated paths/commands: one bad tool input must
+        // not terminate the entire build session immediately.
+        continue;
       }
     }
 
