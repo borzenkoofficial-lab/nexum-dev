@@ -8,6 +8,8 @@ interface SidebarProps {
   onNewProject: () => void;
   onSelectProject: (id: string) => void;
   mobileOpen: boolean;
+  view: "home" | "project" | "connectors" | "settings";
+  onViewChange: (view: "home" | "project" | "connectors" | "settings") => void;
 }
 
 export function Sidebar({
@@ -18,10 +20,16 @@ export function Sidebar({
   onNewProject,
   onSelectProject,
   mobileOpen,
+  view,
+  onViewChange,
 }: SidebarProps) {
   return (
     <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
       <div className="logo" aria-label="NEXUM.DEV">NEXUM<span>.DEV</span></div>
+      <nav className="sidebar-nav" aria-label="Workspace">
+        <button className={view === "home" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("home")}><span>⌂</span>Overview</button>
+        <button className={view === "connectors" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("connectors")}><span>◇</span>Connectors</button>
+      </nav>
       <button className="new-project" type="button" aria-label="Create a new project" onClick={onNewProject}>
         + New Project
       </button>
@@ -49,7 +57,7 @@ export function Sidebar({
         )}
       </div>
       <div className="sidebar-bottom">
-        <button type="button" aria-label="Open settings">Settings</button>
+        <button className={view === "settings" ? "sidebar-setting active" : "sidebar-setting"} type="button" aria-label="Open settings" onClick={() => onViewChange("settings")}><span>⚙</span>Settings</button>
       </div>
     </aside>
   );
