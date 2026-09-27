@@ -11,6 +11,7 @@ import type {
   AgentRuntime,
   AgentStep,
   AgentToolResult,
+  AgentPhase,
 } from "./types.js";
 
 const DEFAULT_MAX_ITERATIONS = 12;
@@ -362,6 +363,8 @@ export class AgentLoop {
         }
       }
 
+      if (!plan) continue;
+
       if (plan.done) {
         transition("verify");
         const buildTask = /создай|сделай|разработай|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(task);
@@ -600,7 +603,7 @@ export class AgentLoop {
           productReviewAttempts += 1;
           emit({ iteration, type: "thinking", message: "Запускаю финальный self-review: сверяю реализацию с Product Plan и ищу недостающие функции." });
           const aiOptions = aiOptionsForTask(options);
-            if (!aiOptions) throw new Error("Task AI token budget exhausted");
+        if (!aiOptions) throw new Error("Task AI token budget exhausted");
             const review = await this.runtime.reviewProduct(task, compactAgentHistory(previousResults), productPlan, aiOptions as AgentModelOptions);
           if (!review.passed) {
             const feedback = [
@@ -641,8 +644,10 @@ export class AgentLoop {
         return {
           success: true,
           iterations: iteration - 1,
-          steps,          productPlan: productPlan ?? undefined,
-          finalResponse: plan.finalResponse ?? await this.finalResponse(task, previousResults, options),
+          steps,
+          productPlan: productPlan ?? undefined,
+          phase,
+          finalResponse: plan.finalResponse ?? await this.finalResponse(task, previousResults, aiOptionsForTask(options)),
         };
       }
 
@@ -854,9 +859,8 @@ export class AgentLoop {
   ): Promise<string> {
     if (results.length === 0) {
       try {
-        const aiOptions = aiOptionsForTask(options);
-        if (!aiOptions) return "NEXUM завершил выполнение без дополнительного AI-ответа: лимит токенов задачи исчерпан.";
-        return await this.gateway.generate(task, aiOptions);
+        if (!options) return "NEXUM завершил выполнение без дополнительного AI-ответа: лимит токенов задачи исчерпан.";
+        return await this.gateway.generate(task, options);
       } catch (error) {
         const detail = error instanceof Error ? error.message : "AI response generation failed";
         return `NEXUM завершил выполнение, но финальный ответ AI недоступен: ${detail}. Проверьте Preview и AI Activity.`;
@@ -889,8 +893,7 @@ export class AgentLoop {
       })
       .join("\n");
     try {
-      const aiOptions = aiOptionsForTask(options);
-      if (!aiOptions) return "Задача выполнена. Дополнительный финальный AI-ответ отключён: лимит токенов задачи исчерпан.";
+      if (!options) return "Задача выполнена. Дополнительный финальный AI-ответ отключён: лимит токенов задачи исчерпан.";
       return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, aiOptions);
     } catch (error) {
       const detail = error instanceof Error ? error.message : "AI response generation failed";
