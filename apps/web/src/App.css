@@ -1653,3 +1653,23 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .preview-address{font-size:9px}
 }
 
+
+/* Product-grade first-run and agent workflow */
+.activity-copy{min-width:0;display:grid;gap:2px}
+.activity-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.activity-copy span{color:var(--muted);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.starter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0 4px}
+.starter-grid button{min-width:0;min-height:62px;padding:11px 12px;display:grid;align-content:center;gap:4px;text-align:left;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.025);color:var(--text);transition:transform var(--nexum-fast) var(--nexum-ease),background var(--nexum-fast) ease,border-color var(--nexum-fast) ease}
+.starter-grid button:hover{transform:translateY(-2px);background:rgba(255,255,255,.045);border-color:rgba(215,243,91,.22)}
+.starter-grid button:active{transform:scale(.985)}
+.starter-grid span{color:var(--muted);font-size:10px}
+.agent-pipeline{display:flex;align-items:center;gap:5px;margin:14px 0;padding:9px;border:1px solid rgba(255,255,255,.075);border-radius:12px;background:rgba(0,0,0,.12);overflow-x:auto;scrollbar-width:none}
+.agent-pipeline::-webkit-scrollbar{display:none}
+.pipeline-step{min-width:64px;display:flex;align-items:center;gap:5px;color:#778178;font-size:9px;font-weight:700;letter-spacing:.02em}
+.pipeline-step i{width:20px;height:20px;flex:0 0 20px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.10);border-radius:50%;background:rgba(255,255,255,.025);font-style:normal;font-size:9px}
+.pipeline-step b{margin-left:auto;color:#586158;font-weight:400}
+.pipeline-step.active{color:#e5f2bd}
+.pipeline-step.active i{border-color:rgba(217,255,74,.32);background:rgba(217,255,74,.10);color:#e1f49d;box-shadow:0 0 12px rgba(217,255,74,.10)}
+.pipeline-step.done{color:#aeb9b0}
+.pipeline-step.done i{border-color:rgba(217,255,74,.20);color:#d8ef96}
+@media (max-width:520px){.starter-grid{grid-template-columns:1fr}.starter-grid button{min-height:54px}.agent-pipeline{margin-left:-2px;margin-right:-2px}}
