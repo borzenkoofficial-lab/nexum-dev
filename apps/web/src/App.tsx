@@ -1,5 +1,5 @@
 import "./App.css";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChatPanel } from "./components/ChatPanel";
 import { CommandPalette } from "./components/CommandPalette";
 import { NewProjectModal } from "./components/NewProjectModal";
@@ -58,6 +58,7 @@ function App() {
   const [localAIConfigured, setLocalAIConfigured] = useState(false);
   const [localAIKeyLoading, setLocalAIKeyLoading] = useState(false);
   const [conversation, setConversation] = useState<Array<{ id: string; role: "user" | "assistant"; content: string; timestamp: number; attachments?: string[] }>>([]);
+  const conversationProjectRef = useRef<string | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<Array<{ id: string; name: string; type: string; size: number; file: File }>>([]);
   const [uiSettings, setUiSettings] = useState(() => {
     try {
@@ -71,13 +72,16 @@ function App() {
   const activeProject = projects.find((project) => project.id === activeProjectId);
 
   useEffect(() => {
+    conversationProjectRef.current = null;
     try {
       const saved = JSON.parse(localStorage.getItem(`nexum:conversation:${activeProjectId}`) || "[]");
       setConversation(Array.isArray(saved) ? saved.slice(-100) : []);
     } catch { setConversation([]); }
+    conversationProjectRef.current = activeProjectId;
   }, [activeProjectId]);
 
   useEffect(() => {
+    if (conversationProjectRef.current !== activeProjectId) return;
     try { localStorage.setItem(`nexum:conversation:${activeProjectId}`, JSON.stringify(conversation.slice(-100))); } catch {}
   }, [activeProjectId, conversation]);
 
@@ -238,6 +242,8 @@ function App() {
     try {
       const response = await fetch(`/api/projects/${projectId}/select`, { method: "POST" });
       if (!response.ok) throw new Error(`API выбора проекта: HTTP ${response.status}`);
+      setChatJobId(null);
+      setAgentStage(null);
       setActiveProjectId(projectId);
       setReply("");
       await loadProjects(projectId);
