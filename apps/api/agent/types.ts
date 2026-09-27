@@ -67,6 +67,7 @@ export interface AgentStep {
 export interface AgentLoopResult {
   success: boolean;
   iterations: number;
+  productPlan?: ProductPlan;
   steps: AgentStep[];
   finalResponse?: string;
   error?: string;
