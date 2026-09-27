@@ -6,6 +6,7 @@ import { AIGateway, type GatewayFallbackEvent } from "./ai/gateway.js";
 import { MockProvider } from "./ai/providers/mock.js";
 import { OllamaProvider } from "./ai/providers/ollama.js";
 import { OpenRouterProvider } from "./ai/providers/openrouter.js";
+import { OpenAIProvider } from "./ai/providers/openai.js";
 import { NexumAgent } from "./agent/agent.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
 import type { ProductPlan } from "./agent/types.js";
@@ -24,11 +25,13 @@ dotenv.config();
 
 const app = express();
 const configuredProvider = process.env.AI_PROVIDER?.toLowerCase();
-const defaultProvider = configuredProvider === "ollama" || configuredProvider === "openrouter"
+const defaultProvider = configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai"
   ? configuredProvider
-  : process.env.OPENROUTER_API_KEY?.trim()
-    ? "openrouter"
-    : "mock";
+  : process.env.OPENAI_API_KEY?.trim()
+    ? "openai"
+    : process.env.OPENROUTER_API_KEY?.trim()
+      ? "openrouter"
+      : "mock";
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const projectManager = new ProjectManager(workspaceRoot);
 const agentHistory = new AgentHistory(workspaceRoot);
@@ -37,7 +40,7 @@ const fallbackProvider = process.env.AI_FALLBACK_PROVIDER?.toLowerCase() ||
   (defaultProvider === "ollama" ? "openrouter" : undefined);
 
 const aiGateway = new AIGateway(
-  [new MockProvider(), new OllamaProvider(), new OpenRouterProvider()],
+  [new MockProvider(), new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider()],
   defaultProvider,
   {
     fallbackProviderId: fallbackProvider,
@@ -213,7 +216,8 @@ app.get("/api/health", (_req, res) => {
     service: "NEXUM.DEV API",
     aiProvider: defaultProvider,
     aiFallbackProvider: fallbackProvider ?? null,
-    openRouterKeyConfigured: Boolean(process.env.OPENROUTER_API_KEY?.trim()),
+    openRouterKeyConfigured: aiGateway.hasOpenRouterKey(),
+    openAIKeyConfigured: aiGateway.hasOpenAIKey(),
   });
 });
 
@@ -226,6 +230,43 @@ app.get("/api/ai/models", async (_req, res) => {
 });
 
 const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM_LOCAL_TEST_MODE !== "false";
+
+app.get("/api/ai/key-status", (_req, res) => {
+  return res.json({ success: true, providers: { openai: aiGateway.hasOpenAIKey(), openrouter: aiGateway.hasOpenRouterKey() } });
+});
+
+app.post("/api/ai/connect-key", async (req, res) => {
+  const apiKey = typeof req.body?.apiKey === "string" ? req.body.apiKey.trim() : "";
+  if (!apiKey) return res.status(400).json({ success: false, error: "API key is required" });
+
+  const requestedProvider = typeof req.body?.provider === "string" ? req.body.provider.toLowerCase() : "";
+  const candidates = requestedProvider === "openai" ? ["openai"]
+    : requestedProvider === "openrouter" ? ["openrouter"]
+    : /or-|openrouter/i.test(apiKey) ? ["openrouter", "openai"] : ["openai", "openrouter"];
+
+  const errors: string[] = [];
+  for (const providerId of candidates) {
+    try {
+      if (providerId === "openai") {
+        const provider = new OpenAIProvider();
+        provider.setRuntimeApiKey(apiKey);
+        const status = await provider.getStatus();
+        if (!status.available) throw new Error(status.error ?? "OpenAI key verification failed");
+        aiGateway.setRuntimeOpenAIKey(apiKey);
+        return res.json({ success: true, provider: "openai", model: status.model, status });
+      }
+      const provider = new OpenRouterProvider();
+      provider.setRuntimeApiKey(apiKey);
+      const status = await provider.getStatus();
+      if (!status.available) throw new Error(status.error ?? "OpenRouter key verification failed");
+      aiGateway.setRuntimeOpenRouterKey(apiKey);
+      return res.json({ success: true, provider: "openrouter", model: status.model, status });
+    } catch (error) {
+      errors.push(providerId + ": " + (error instanceof Error ? error.message : "verification failed"));
+    }
+  }
+  return res.status(401).json({ success: false, error: errors.join("; ") || "API key verification failed" });
+});
 
 app.get("/api/ai/local-test", (_req, res) => {
   return res.json({ enabled: localTestMode, configured: aiGateway.hasOpenRouterKey() });
