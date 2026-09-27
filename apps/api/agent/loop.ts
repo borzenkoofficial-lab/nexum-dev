@@ -9,7 +9,7 @@ import type {
   AgentToolResult,
 } from "./types.js";
 
-const DEFAULT_MAX_ITERATIONS = 10;
+const DEFAULT_MAX_ITERATIONS = 20;
 const MAX_RESULT_LENGTH = 8_000;
 
 export interface AgentEvent {
@@ -91,6 +91,60 @@ export class AgentLoop {
       }
 
       if (plan.done) {
+        const buildTask = /создай|сделай|разработай|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(task);
+        const scaffoldedProject = previousResults.some((item) => item.tool === "scaffoldProject" && item.result.success);
+        const meaningfulImplementation = previousResults.some((item) => item.tool === "writeFile" && item.result.success);
+        const inspectedProject = previousResults.some((item) => (item.tool === "listFiles" || item.tool === "readFile" || item.tool === "searchFiles") && item.result.success);
+        const verifiedBuild = previousResults.some((item) => item.tool === "runCommand" && item.input === "npm run build" && item.result.success);
+
+        if (buildTask && scaffoldedProject && (!inspectedProject || !meaningfulImplementation || !verifiedBuild)) {
+          emit({
+            iteration,
+            type: "thinking",
+            message: !inspectedProject
+              ? "Каркас создан. Изучаю его файлы перед реализацией."
+              : !meaningfulImplementation
+                ? "Каркас недостаточен. Реализую интерфейс и логику по исходному запросу."
+                : "Реализация есть. Проверяю production-сборку.",
+          });
+
+          if (!inspectedProject && availableTools.includes("listFiles")) {
+            const input = ".";
+            const result = await this.runtime.executeTool("listFiles", input);
+            const step: AgentStep = { iteration, tool: "listFiles", input, success: result.success };
+            steps.push(step);
+            this.onStep?.(step);
+            previousResults.push({ iteration, tool: "listFiles", input, result });
+            this.log(iteration, "listFiles", result.success ? "success" : "error");
+            emit({
+              iteration,
+              type: result.success ? "tool-success" : "tool-error",
+              tool: "listFiles",
+              message: result.success ? "Структура проекта изучена." : `Не удалось прочитать структуру: ${result.output.slice(0, 400)}`,
+            });
+            continue;
+          }
+
+          if (!meaningfulImplementation) continue;
+
+          if (!verifiedBuild && availableTools.includes("runCommand")) {
+            const input = "npm run build";
+            const result = await this.runtime.executeTool("runCommand", input);
+            const step: AgentStep = { iteration, tool: "runCommand", input, success: result.success };
+            steps.push(step);
+            this.onStep?.(step);
+            previousResults.push({ iteration, tool: "runCommand", input, result });
+            this.log(iteration, input, result.success ? "success" : "error");
+            emit({
+              iteration,
+              type: result.success ? "tool-success" : "tool-error",
+              tool: "runCommand",
+              message: result.success ? "Production-сборка подтверждена." : `Сборка не прошла: ${result.output.slice(0, 500)}`,
+            });
+            if (!result.success) continue;
+          }
+        }
+
         const lastResult = previousResults[previousResults.length - 1];
         const lastFailure = [...previousResults].reverse().find((item) => !item.result.success);
         if (lastFailure && lastResult?.result.success === false) {
