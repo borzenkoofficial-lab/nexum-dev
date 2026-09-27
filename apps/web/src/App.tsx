@@ -165,9 +165,14 @@ function App() {
         body: JSON.stringify({ message: task, projectId: activeProjectId, provider: aiProvider, model: aiModel }),
       });
       if (!response.ok) throw new Error("API request failed");
-      const data = (await response.json()) as { reply?: string; error?: string };
+      const data = (await response.json()) as {
+        reply?: string;
+        error?: string;
+        steps?: Array<{ tool?: string; success?: boolean }>;
+      };
       if (data.error) throw new Error(data.error);
       setReply(data.reply ?? "");
+      setPreviewKey((key) => key + 1);
     } catch {
       setApiError(true);
     } finally {
