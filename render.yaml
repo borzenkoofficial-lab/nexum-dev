@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: nexum-dev
+    runtime: node
+    plan: free
+    buildCommand: npm --prefix apps/web install && npm --prefix apps/web run build && npm --prefix apps/api install
+    startCommand: npm --prefix apps/api start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: AI_PROVIDER
+        value: "mock"
