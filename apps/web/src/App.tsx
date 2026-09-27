@@ -324,7 +324,7 @@ function App() {
 
           setPreviewOnline(previewReady);
           setPreviewKey((key) => key + 1);
-          setAgentStage(null);
+          setAgentStage("completed");
           setChatJobId(null);
           return;
         }
@@ -343,7 +343,7 @@ function App() {
         if (cancelled) return;
         console.error("[Nexum] Chat job polling failed:", error);
         setApiError(error instanceof Error ? error.message : "Chat job polling failed");
-        setAgentStage(null);
+        setAgentStage("error");
         setChatJobId(null);
       }
     }
