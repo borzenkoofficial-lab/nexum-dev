@@ -88,7 +88,7 @@ ${result.output}`
     const history = previousResults.length === 0
       ? "No tools have run yet."
       : previousResults
-          .map((item) => `${item.tool}: ${item.result.output.slice(0, 4_000)}`)
+          .map((item) => `${item.tool}: ${item.result.output.slice(0, 1_800)}`)
           .join("\n");
 
     const prompt = [
