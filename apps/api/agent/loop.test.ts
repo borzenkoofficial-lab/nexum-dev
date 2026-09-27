@@ -86,7 +86,7 @@ test("stops repeated identical actions", async () => {
 test("automatically installs and builds a generated React/Vite scaffold", async () => {
   const commands: string[] = [];
   const runtime: AgentRuntime = {
-    getAvailableTools: () => ["scaffoldProject", "runCommand"],
+    getAvailableTools: () => ["scaffoldProject", "writeFile", "runCommand"],
     plan: (_task, previousResults) => {
       if (previousResults.length === 0) {
         return { tool: "scaffoldProject", input: "Создай React приложение" };
