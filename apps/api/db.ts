@@ -14,7 +14,10 @@ function getPool(): Pool {
       max: Number(process.env.NEXUM_DB_POOL_MAX || 10),
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,
-      ssl: process.env.NEXUM_DB_SSL === "false" ? false : { rejectUnauthorized: true },
+      ssl: process.env.NEXUM_DB_SSL === "false" ? false : {
+        rejectUnauthorized: true,
+        ...(process.env.NEXUM_DB_CA ? { ca: process.env.NEXUM_DB_CA } : {}),
+      },
     });
     pool.on("error", (error) => console.error("[Nexum] PostgreSQL pool error", error));
   }
