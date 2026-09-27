@@ -57,7 +57,8 @@ export class NexumAgent implements AgentRuntime {
 
     return this.gateway.generate(
       result.success
-        ? `Инструмент ${selection.tool} выполнен. Результат:\n${result.output}`
+        ? `Инструмент ${selection.tool} выполнен. Результат:
+${result.output}`
         : `Инструмент ${selection.tool} не выполнен: ${result.output}`,
       options,
     );
@@ -82,10 +83,12 @@ export class NexumAgent implements AgentRuntime {
       'runSandbox: input is JSON object {"projectPath":".","command":"npm run build"}; projectPath is always forced to the active project',
       "git: input is one of status, diff, diff-stat, log, branch",
       "github: input is a read-only operation string",
-    ].join("\n");
+    ].join("
+");
     const history = previousResults.length === 0
       ? "No tools have run yet."
-      : previousResults.map((item) => `${item.tool}: ${item.result.output.slice(0, 4_000)}`).join("\n");
+      : previousResults.map((item) => `${item.tool}: ${item.result.output.slice(0, 4_000)}`).join("
+");
     const prompt = [
       "You are the NEXUM.DEV autonomous project builder.",
       "Your job is to modify the user's project, not merely explain code.",
@@ -118,8 +121,11 @@ export class NexumAgent implements AgentRuntime {
       "Available tools and input formats:",
       toolCatalog,
       `User task: ${task}`,
-      `Previous tool results:\n${history}`,
-    ].join("\n\n");
+      `Previous tool results:
+${history}`,
+    ].join("
+
+");
     const response = await this.gateway.generate(prompt, options);
     return this.parseAIPlan(response);
   }
@@ -258,7 +264,11 @@ export class NexumAgent implements AgentRuntime {
       return { name: "runCommand", input: "git log" };
     }
 
-    if (/создай|сделай|разработай|build|create|make/.test(normalizedTask) && /приложени|сайт|лендинг|web app|website|landing|страниц/.test(normalizedTask)) {\n      return { name: "scaffoldProject", input: task.trim() };\n    }\n\n    if (/структур|список файлов|покажи файлы|list files|project files/.test(normalizedTask)) {
+    if (/создай|сделай|разработай|build|create|make/.test(normalizedTask) && /приложени|сайт|лендинг|web app|website|landing|страниц/.test(normalizedTask)) {
+      return { name: "scaffoldProject", input: task.trim() };
+    }
+
+    if (/структур|список файлов|покажи файлы|list files|project files/.test(normalizedTask)) {
       return { name: "listFiles", input: "." };
     }
 
@@ -313,7 +323,8 @@ export class NexumAgent implements AgentRuntime {
     const candidate = explicitCommand || task.trim();
     const normalizedCandidate = candidate.toLowerCase();
 
-    if (!/[;&|`$()<>\n\r\\]/.test(candidate)) {
+    if (!/[;&|`$()<>
+\r\\]/.test(candidate)) {
       if (/git\s+diff\s+--stat/.test(normalizedCandidate) || /статистик.*изменени/.test(normalizedCandidate)) {
         return "diff-stat";
       }
