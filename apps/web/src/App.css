@@ -2717,3 +2717,64 @@ body { overflow-x: hidden; }
   .project-editor-title strong { max-width: 120px; }
   .app-project .main > .workspace { height: calc(100vh - 60px); padding: 0; }
 }
+
+/* Project creation / overview polish */
+.new-project-modal{width:min(680px,calc(100vw - 32px));padding:30px}
+.modal-intro{max-width:540px;margin:8px 0 0;color:#89919d;font-size:12px;line-height:1.55}
+.new-project-modal form{display:grid;gap:10px}
+.new-project-modal label,.project-type-label{color:#cbd2da;font-size:11px;font-weight:750;letter-spacing:.03em}
+.new-project-modal input,.new-project-modal textarea{width:100%;border:1px solid var(--line);border-radius:11px;background:#0b0f14;color:var(--text);outline:0}
+.new-project-modal input{min-height:46px;padding:0 13px}
+.new-project-modal textarea{padding:12px 13px;resize:vertical;min-height:92px;line-height:1.45}
+.new-project-modal input:focus,.new-project-modal textarea:focus{border-color:rgba(217,255,74,.32);box-shadow:0 0 0 3px rgba(217,255,74,.05)}
+.project-description-label{margin-top:5px}
+.project-type-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.project-type-card{position:relative;display:flex;min-height:72px;padding:11px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.025);color:var(--text);text-align:left;cursor:pointer}
+.project-type-card:hover{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.045)}
+.project-type-card:has(input:checked){border-color:rgba(217,255,74,.35);background:rgba(217,255,74,.055);box-shadow:inset 2px 0 var(--accent)}
+.project-type-card input{position:absolute;opacity:0;pointer-events:none}
+.project-type-card span{display:grid;gap:5px}
+.project-type-card strong{font-size:11px}
+.project-type-card small{color:#747e8a;font-size:9px;line-height:1.35}
+.modal-summary{display:grid;gap:4px;margin-top:7px;padding:12px 13px;border:1px solid rgba(217,255,74,.13);border-radius:11px;background:rgba(217,255,74,.035)}
+.modal-summary span{color:#7e8a76;font-size:9px;text-transform:uppercase;letter-spacing:.1em}
+.modal-summary strong{font-size:11px}
+.modal-summary small{color:#707b86;font-size:9px;line-height:1.4}
+.project-window-head{display:flex;align-items:center;gap:8px;min-width:0}
+.project-window-head strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-type-badge{flex:0 0 auto;padding:4px 7px;border:1px solid rgba(217,255,74,.16);border-radius:999px;color:#a9c84c;background:rgba(217,255,74,.05);font-size:8px;font-weight:750}
+.project-window-description{min-height:38px;margin:9px 0 12px;color:#87909c;font-size:11px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.project-window-meta{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.project-window-meta b{color:#b5c3a0;font-weight:700}
+@media(max-width:760px){.project-type-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.new-project-modal{padding:22px}}
+@media(max-width:460px){.project-type-grid{grid-template-columns:1fr}.new-project-modal{width:calc(100vw - 20px);padding:18px}.new-project-modal .modal-actions{flex-direction:column-reverse}.new-project-modal .modal-actions button{width:100%}}
+
+/* Conversation should behave like a real growing workspace, not a small fixed chat box. */
+.workspace{overflow:auto!important;align-items:stretch}
+.main-column{min-height:100%}
+.chat{min-height:100%;justify-content:flex-start}
+.conversation{max-height:none!important;overflow:visible!important;display:flex;flex-direction:column;gap:10px;margin:28px 0 18px}
+.conversation-message{max-width:min(88%,680px)}
+.conversation-content{overflow-wrap:anywhere}
+.app-project .project-editor-header{position:sticky;top:0;z-index:12}
+@media(max-width:900px){.workspace{overflow:visible!important}.chat{min-height:auto}.conversation{margin-top:22px}}
+@media(max-width:620px){
+  .header{display:flex;align-items:center;gap:10px;min-height:64px!important;padding:8px 12px!important}
+  .header>div:first-child{min-width:0;flex:1}
+  .header-tools{min-width:0;max-width:55%;overflow:hidden}
+  .ai-controls{min-width:0;overflow:hidden}
+  .ai-controls select{max-width:100px!important;min-width:0!important}
+  .title{font-size:14px!important}
+  .status{display:none!important}
+  .workspace{min-height:auto!important}
+  .chat{width:100%!important;padding:30px 14px 50px!important}
+  .welcome h1{font-size:36px!important}
+  .message-box textarea{min-height:120px!important}
+  .conversation-message{max-width:94%}
+  .app-project .project-editor-header{height:auto;min-height:62px;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;padding:8px 10px}
+  .app-project .project-back span{display:none}
+  .app-project .project-editor-status{display:none}
+  .app-project .project-editor-actions{gap:2px;max-width:48vw;overflow:auto}
+  .app-project .project-editor-actions button{padding:7px 8px;font-size:10px}
+  .app-project .project-editor-actions .project-editor-share{display:none}
+}
