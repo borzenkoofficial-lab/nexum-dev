@@ -11,7 +11,7 @@ import { OrcaRouterProvider } from "./ai/providers/orcarouter.js";
 import { NexumAgent } from "./agent/agent.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
 import type { ProductPlan } from "./agent/types.js";
-import { ProjectManager, ProjectManagerError } from "./projects/projectManager.js";
+import { ProjectManager, ProjectManagerError } from "./projects/getProjectManager(getAuthUser(req).id).js";
 import { mkdir, readFile, stat, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +22,8 @@ import { assertExistingProjectPath, assertWritableProjectPath, ProjectPathError 
 import { AgentHistory } from "./agent/history.js";
 import { CheckpointManager } from "./agent/checkpoint.js";
 import { ProjectStateManager } from "./projects/projectState.js";
+import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
+import { pingDatabase } from "./db.js";
 
 dotenv.config();
 
@@ -37,7 +39,16 @@ const defaultProvider = configuredProvider === "ollama" || configuredProvider ==
         ? "openrouter"
         : "mock";
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const projectManager = new ProjectManager(workspaceRoot);
+const projectManagers = new Map<string, ProjectManager>();
+
+function getProjectManager(userId: string): ProjectManager {
+  let manager = projectManagers.get(userId);
+  if (!manager) {
+    manager = new ProjectManager(resolve(workspaceRoot, "runtime", "users", userId));
+    projectManagers.set(userId, manager);
+  }
+  return manager;
+}
 const agentHistory = new AgentHistory(workspaceRoot);
 const checkpointManager = new CheckpointManager(workspaceRoot);
 const projectStates = new Map<string, ProjectStateManager>();
@@ -80,6 +91,7 @@ interface ChatJob {
   attachments?: string[];
   productPlan?: ProductPlan;
   checkpointId?: string;
+  userId?: string;
 }
 const chatJobs = new Map<string, ChatJob>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
@@ -107,12 +119,12 @@ async function runChatJob(
 
   job.status = "running";
   job.updatedAt = Date.now();
-  void agentHistory.record({ type: "job-start", jobId, projectId, provider, model, message });
+  void agentHistory.record({ type: "job-start", jobId, projectId, provider, model, message, output: `user:${userId}` });
   job.currentMessage = "Запускаю AI-агента и начинаю выполнение задачи.";
   job.stage = "analyzing";
 
   try {
-    const project = await projectManager.getActiveProject(projectId);
+    const project = await getProjectManager(userId).getActiveProject(projectId);
     const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.id, stateManager);
     const checkpoint = await checkpointManager.create(project.id, project.path, `before agent job ${jobId}`);
@@ -256,12 +268,12 @@ async function runChatJob(
 }
 
 
-await projectManager.initialize();
+// Project managers are initialized lazily per authenticated user.
 
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", async (_req, res) => {
   res.json({
     status: "ok",
     service: "NEXUM.DEV API",
@@ -273,7 +285,48 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
-app.get("/api/ai/providers", (_req, res) => {
+
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const email = typeof req.body?.email === "string" ? req.body.email : "";
+    const name = typeof req.body?.name === "string" ? req.body.name : "";
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    const user = await createUser(email, name, password);
+    issueSession(res, user);
+    return res.status(201).json({ success: true, user });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Registration failed";
+    return res.status(message.includes("already exists") ? 409 : 400).json({ success: false, error: message });
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const email = typeof req.body?.email === "string" ? req.body.email : "";
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    const user = await authenticateUser(email, password);
+    if (!user) return res.status(401).json({ success: false, error: "Invalid email or password" });
+    issueSession(res, user);
+    return res.json({ success: true, user });
+  } catch (error) {
+    return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Authentication service unavailable" });
+  }
+});
+
+app.get("/api/auth/me", authMiddleware, (req, res) => {
+  return res.json({ success: true, user: getAuthUser(req) });
+});
+
+app.post("/api/auth/logout", (_req, res) => {
+  clearSessionCookie(res);
+  return res.json({ success: true });
+});
+
+app.use("/api/projects", authMiddleware);
+app.use("/api/chat", authMiddleware);
+app.use("/api/agent/history", authMiddleware);
+app.use("/api/agent/diagnostics", authMiddleware);
+\napp.get("/api/ai/providers", (_req, res) => {
   return res.json({ success: true, providers: aiGateway.getProviders() });
 });
 
