@@ -117,9 +117,10 @@ async function main() {
 
   const apiReady = await waitForApi();
   if (!apiReady) {
-    shutdown(1);
-    return;
+    console.error("[Nexum] API startup failed. Stopping local environment.");
+    process.exit(1);
   }
+
 
   const webProcess = spawn(npm, ["--prefix", "apps/web", "run", "dev"], {
     cwd: root,
