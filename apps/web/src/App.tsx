@@ -327,20 +327,20 @@ function App() {
     }
   }
 
-  async function createProject(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!newProjectName.trim()) return;
+  async function createProject(data: { name: string; description: string; type: string }) {
+    if (!data.name.trim()) return;
     setProjectActionLoading(true);
     try {
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newProjectName.trim() }),
+        body: JSON.stringify({ name: data.name.trim(), description: data.description, type: data.type }),
       });
       if (!response.ok) throw new Error(`API создания проекта: HTTP ${response.status}`);
       const data = (await response.json()) as { project: Project };
       await selectProject(data.project.id);
       setView("project");
+      setMessage(data.description);
       setNewProjectName("");
       setModalOpen(false);
     } catch (error) {
@@ -625,7 +625,7 @@ function App() {
           <section className="nexum-home">
             <div className="home-hero"><div><div className="eyebrow">NEXUM.DEV</div><h1>Создавайте, не покидая рабочее пространство.</h1><p>Создайте проект, откройте его как отдельное рабочее пространство, подключите сервисы и поручите агенту разработку.</p></div><button className="home-primary" type="button" onClick={() => setModalOpen(true)}>+ Новый проект</button></div>
             <div className="home-section-title"><span>ВАШИ ПРОЕКТЫ</span><button type="button" onClick={() => setModalOpen(true)}>Новый проект</button></div>
-            <div className="project-grid">{projects.filter((project) => project.status === "active").map((project) => <button key={project.id} className="project-window" type="button" onClick={() => openProject(project.id)}><span className="window-chrome"><i/><i/><i/></span><span className="project-window-mark">{project.name.slice(0, 1)}</span><strong>{project.name}</strong><span className="project-window-meta">Открыть рабочее пространство →</span></button>)}{projects.length === 0 && <div className="empty-card">Создайте свой первый проект.</div>}</div>
+            <div className="project-grid">{projects.filter((project) => project.status === "active").map((project) => <button key={project.id} className="project-window" type="button" onClick={() => openProject(project.id)}><span className="window-chrome"><i/><i/><i/></span><span className="project-window-mark">{project.name.slice(0, 1)}</span><div className="project-window-head"><strong>{project.name}</strong><span className="project-type-badge">{project.type ?? "Проект"}</span></div><p className="project-window-description">{project.description || "Проект готов к разработке. Откройте рабочее пространство и задайте первую задачу агенту."}</p><span className="project-window-meta"><span>Обновлён {new Date(project.updatedAt).toLocaleDateString("ru-RU")}</span><b>Открыть →</b></span></button>)}{projects.length === 0 && <div className="empty-card">Создайте свой первый проект — после создания он появится здесь.</div>}</div>
           </section>
         ) : view === "connectors" ? (
           <section className="connectors-page">
@@ -700,7 +700,7 @@ function App() {
       </main>
       <StatusBar projectName={activeProject?.name ?? "NEXUM"} provider={aiProvider} aiStatus={aiStatus} previewOnline={previewOnline} />
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
-      <NewProjectModal open={modalOpen} name={newProjectName} loading={projectActionLoading} onNameChange={setNewProjectName} onClose={() => setModalOpen(false)} onSubmit={(event) => void createProject(event)} />
+      <NewProjectModal open={modalOpen} name={newProjectName} loading={projectActionLoading} onNameChange={setNewProjectName} onClose={() => setModalOpen(false)} onSubmit={(data) => void createProject(data)} />
       {connectorModal && <div className="modal-backdrop connector-backdrop" onMouseDown={() => setConnectorModal(null)}><section className="connector-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><div className="modal-top"><div><span className="eyebrow">CONNECTOR</span><h2>{connectorModal}</h2></div><button type="button" onClick={() => setConnectorModal(null)}>×</button></div><p>{connectedConnectors.includes(connectorModal) ? "Эта интеграция включена в интерфейсе рабочего пространства. OAuth/API-данные провайдера пока не сохраняются." : "Включить интеграцию для текущего рабочего пространства. OAuth/API-данные провайдера пока не сохраняются."}</p><div className="connector-modal-actions"><button type="button" onClick={() => setConnectorModal(null)}>Отмена</button><button className="home-primary" type="button" onClick={() => { if (!connectedConnectors.includes(connectorModal)) setConnectedConnectors((items) => [...items, connectorModal]); setConnectorModal(null); setNotice(connectorModal + " интеграция подключена"); }}>Продолжить</button></div></section></div>}
       {notice && <div className="toast" role="status">{notice}</div>}
     </div>
