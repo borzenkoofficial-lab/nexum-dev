@@ -22,12 +22,13 @@ const ROLE_MODELS: Record<AIOrchestratorRole, string[]> = {
     "nvidia/nemotron-3-ultra-550b-a55b:free",
     "nvidia/nemotron-3.5-lightning:free",
     "qwen/qwen3.8-27b:free",
+    "dots-studio/dots3-note-preview:free",
   ],
   coder: [
     "cohere/north-mini-code:free",
     "poolside/laguna-s-2.1:free",
     "poolside/laguna-xs-2.1:free",
-    "dots-studio/dots3-note-preview:free",
+    "qwen/qwen3.8-27b:free",
   ],
   reviewer: [
     "qwen/qwen3.8-27b:free",
@@ -37,11 +38,11 @@ const ROLE_MODELS: Record<AIOrchestratorRole, string[]> = {
   debugger: [
     "cohere/north-mini-code:free",
     "poolside/laguna-s-2.1:free",
-    "poolside/laguna-xs-2.1:free",
+    "qwen/qwen3.8-27b:free",
   ],
   tester: [
     "cohere/north-mini-code:free",
-    "nvidia/nemotron-3.5-lightning:free",
+    "qwen/qwen3.8-27b:free",
   ],
   finalizer: [
     "qwen/qwen3.8-27b:free",
@@ -88,7 +89,14 @@ export class AIOrchestrator {
       try {
         const generation = await this.gateway.generateWithMetadata(
           this.decoratePrompt(role, prompt),
-          { ...options, model, maxTokens: this.maxTokensFor(role) },
+          {
+            ...options,
+            model,
+            maxTokens: Math.min(
+              options?.maxTokens && options.maxTokens > 0 ? options.maxTokens : this.maxTokensFor(role),
+              this.maxTokensFor(role),
+            ),
+          },
         );
         return {
           role,
@@ -115,13 +123,14 @@ export class AIOrchestrator {
   private maxTokensFor(role: AIOrchestratorRole): number {
     switch (role) {
       case "planner":
+        return 1_200;
       case "reviewer":
       case "tester":
-        return 700;
+        return 1_200;
       case "debugger":
-        return 900;
+        return 3_000;
       case "coder":
-        return 1600;
+        return 5_000;
       case "finalizer":
       case "general":
       default:
