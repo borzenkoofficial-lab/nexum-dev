@@ -39,6 +39,7 @@ export class AgentLoop {
     let eventId = 0;
     let productPlan: ProductPlan | null = null;
     let productReviewAttempts = 0;
+    let remotePlannerRateLimited = false;
     const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
 
     // Build is optional for static projects. Only enforce npm run build when
@@ -100,11 +101,14 @@ export class AgentLoop {
       }
       emit({ iteration, type: "thinking", message: `Шаг ${iteration}: анализирую состояние проекта и результаты предыдущего действия.` });
       let modelPlan: AgentPlan | null = null;
-      if (this.runtime.planWithAI) {
+      if (this.runtime.planWithAI && !remotePlannerRateLimited) {
         try {
           modelPlan = await this.runtime.planWithAI(task, previousResults, options as AgentModelOptions, productPlan ?? undefined);
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI planning failed";
+          if (/(?:rate limit|rate-limit|too many requests|429)/i.test(message)) {
+            remotePlannerRateLimited = true;
+          }
           this.log(iteration, "AI planner", "error");
           emit({
             iteration,
@@ -114,7 +118,9 @@ export class AgentLoop {
           });
           // A missing/unavailable AI provider must not make basic Builder tasks
           // appear to do nothing. The deterministic planner can still scaffold,
-          // edit, build and verify supported projects.
+          // edit, build and verify supported projects. Once a provider returns
+          // 429, keep it disabled for this job instead of hammering the same
+          // rate-limited endpoint on every iteration.
           modelPlan = null;
         }
       }
