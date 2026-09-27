@@ -88,28 +88,6 @@ export class AgentLoop {
         const hasSuccessfulBuild = previousResults.some(
           (item) => item.tool === "runCommand" && item.input === "npm run build" && item.result.success,
         );
-        const scaffoldedApp = previousResults.some(
-          (item) => item.tool === "scaffoldProject" && item.result.success,
-        );
-        const implementedAfterScaffold = previousResults.some(
-          (item) => item.tool === "writeFile" &&
-            item.result.success &&
-            previousResults.some(
-              (scaffold) =>
-                scaffold.tool === "scaffoldProject" &&
-                scaffold.result.success &&
-                scaffold.iteration <= item.iteration,
-            ),
-        );
-        const isAppBuildTask = /(?:создай|сделай|разработай|build|create|make).*(?:приложени|сайт|лендинг|web app|website|landing|страниц)/i.test(task);
-        if (plan.done && scaffoldedApp && isAppBuildTask && !implementedAfterScaffold) {
-          emit({
-            iteration,
-            type: "thinking",
-            message: "Базовый scaffold готов, но продукт ещё не реализован. Возвращаюсь к планировщику для создания интерфейса и логики.",
-          });
-          continue;
-        }
         if (hasProjectChanges && !hasSuccessfulBuild && availableTools.includes("runCommand")) {
           for (const command of ["npm install", "npm run build"]) {
             const alreadySuccessful = previousResults.some(
