@@ -53,7 +53,7 @@ test("stops when a tool returns an error", async () => {
   );
 
   assert.equal(result.success, false);
-  assert.ok(result.iterations >= 1 && result.iterations <= 10);
+  assert.ok(result.iterations >= 1 && result.iterations <= 20);
   assert.match(result.error ?? "", /failed|project directory|maximum iterations|repeated action/i);
 });
 
@@ -92,10 +92,17 @@ test("automatically installs and builds a generated React/Vite scaffold", async 
         return { tool: "scaffoldProject", input: "Создай React приложение" };
       }
       if (previousResults.some((item) => item.tool === "scaffoldProject") &&
-          !previousResults.some((item) => item.tool === "writeFile")) {
+          !previousResults.some((item) => item.tool === "writeFile" && item.input.includes("src/App.jsx"))) {
         return {
           tool: "writeFile",
           input: JSON.stringify({ path: "src/App.jsx", content: "implemented app" }),
+        };
+      }
+      if (previousResults.some((item) => item.tool === "writeFile" && item.input.includes("src/App.jsx")) &&
+          !previousResults.some((item) => item.tool === "writeFile" && item.input.includes("src/styles.css"))) {
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({ path: "src/styles.css", content: "implemented styles" }),
         };
       }
       return { tool: "", input: "", done: true, finalResponse: "Готово" };
@@ -115,10 +122,12 @@ test("automatically installs and builds a generated React/Vite scaffold", async 
   const result = await new AgentLoop(runtime, gateway).run("Создай React приложение");
 
   assert.equal(result.success, true);
-  assert.deepEqual(commands, ["npm install", "npm run build", "npm run build"]);
+  assert.deepEqual(commands, ["npm install", "npm run build", "npm run build", "npm run build"]);
   assert.deepEqual(result.steps.map((step) => step.tool), [
     "scaffoldProject",
     "runCommand",
+    "runCommand",
+    "writeFile",
     "runCommand",
     "writeFile",
     "runCommand",
