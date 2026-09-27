@@ -200,7 +200,7 @@ const webDist = resolve(workspaceRoot, "apps/web/dist");
 
 app.use(express.static(webDist));
 
-app.get("*", async (req, res, next) => {
+app.use(async (req, res, next) => {
   if (req.path.startsWith("/api/")) return next();
   try {
     return res.sendFile(resolve(webDist, "index.html"));
