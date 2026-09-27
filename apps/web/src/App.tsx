@@ -51,7 +51,7 @@ function App() {
   } | null>(null);
   const [problems, setProblems] = useState<Array<{ message: string; source?: string }>>([]);
   const [localAIKey, setLocalAIKey] = useState("");
-  const [localAITestEnabled, setLocalAITestEnabled] = useState(true);
+  const localAITestEnabled = true;
   const [localAIConfigured, setLocalAIConfigured] = useState(false);
   const [localAIKeyLoading, setLocalAIKeyLoading] = useState(false);
   const [conversation, setConversation] = useState<Array<{ id: string; role: "user" | "assistant"; content: string; timestamp: number; attachments?: string[] }>>([]);
