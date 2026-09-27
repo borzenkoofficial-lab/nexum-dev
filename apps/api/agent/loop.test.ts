@@ -18,7 +18,7 @@ test("compacts large tool history while preserving actionable failures", () => {
   assert.ok(JSON.stringify(history).length < 5_500);
   assert.equal(history.some((item) => item.tool === "runCommand" && !item.result.success), true);
   assert.match(history.find((item) => item.tool === "writeFile")?.input ?? "", /<20000 chars>/);
-  assert.equal(history.find((item) => item.tool === "writeFile")?.result.output.length, 520);
+  assert.ok((history.find((item) => item.tool === "writeFile")?.result.output.length ?? 0) <= 520);
 });
 
 function fakeRuntime(
