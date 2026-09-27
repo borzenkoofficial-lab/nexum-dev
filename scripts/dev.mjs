@@ -10,8 +10,16 @@ if (existsSync(envFile) && typeof process.loadEnvFile === "function") {
 }
 const ollamaBaseUrl = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
 const ollamaModel = process.env.OLLAMA_MODEL ?? "qwen3:4b";
-const aiProvider = process.env.AI_PROVIDER?.toLowerCase()
-  ?? (process.env.OPENROUTER_API_KEY?.trim() ? "openrouter" : "ollama");
+const requestedProvider = process.env.AI_PROVIDER?.toLowerCase();
+const hasOpenRouter = Boolean(process.env.OPENROUTER_API_KEY?.trim());
+const ollamaRequested = requestedProvider === "ollama" || (!requestedProvider && !hasOpenRouter);
+const aiProvider = requestedProvider === "openrouter" || (!requestedProvider && hasOpenRouter)
+  ? "openrouter"
+  : requestedProvider === "mock"
+    ? "mock"
+    : ollamaRequested
+      ? "ollama"
+      : "mock";
 
 function runInstall(dir) {
   const packageJson = `${root}/${dir}/package.json`;
@@ -118,13 +126,13 @@ async function main() {
   let ollamaProcess = null;
   if (aiProvider === "ollama") {
     const ollamaReady = await ensureOllama();
-    if (!ollamaReady) {
-      console.error("[Nexum] Ollama is required for AI_PROVIDER=ollama.");
-      process.exit(1);
-    }
-    if (!(await ensureModel())) {
-      console.error("[Nexum] Ollama model is not available. Startup stopped.");
-      process.exit(1);
+    if (!ollamaReady || !(await ensureModel())) {
+      if (requestedProvider === "ollama") {
+        console.error("[Nexum] AI_PROVIDER=ollama was requested but Ollama/model is unavailable.");
+        process.exit(1);
+      }
+      console.warn("[Nexum] Ollama is unavailable. Starting with the mock AI provider so the UI/API remain usable.");
+      process.env.AI_PROVIDER = "mock";
     }
   }
 
@@ -133,7 +141,7 @@ async function main() {
     stdio: "inherit",
     env: {
       ...process.env,
-      AI_PROVIDER: aiProvider,
+      AI_PROVIDER: process.env.AI_PROVIDER ?? aiProvider,
       OLLAMA_BASE_URL: ollamaBaseUrl,
       OLLAMA_MODEL: ollamaModel,
     },
