@@ -274,6 +274,32 @@ function App() {
           setCurrentActivity(data?.job?.currentMessage ?? "Готово.");
           setProblems(data?.job?.problems ?? []);
           setReply(data?.job?.reply ?? "");
+          setRightTab("preview");
+
+          // The agent can finish immediately after the build while the filesystem
+          // and preview status endpoint are still settling. Wait briefly for the
+          // production bundle, then force a cache-busted iframe reload.
+          let previewReady = false;
+          for (let attempt = 0; attempt < 12; attempt += 1) {
+            try {
+              const previewResponse = await fetch(
+                `/api/projects/${encodeURIComponent(activeProjectId)}/preview/status?ts=${Date.now()}`,
+                { cache: "no-store" },
+              );
+              if (previewResponse.ok) {
+                const previewData = await previewResponse.json() as { online?: boolean };
+                if (previewData.online) {
+                  previewReady = true;
+                  break;
+                }
+              }
+            } catch {
+              // The next attempt can succeed while the build output settles.
+            }
+            await new Promise((resolve) => window.setTimeout(resolve, 500));
+          }
+
+          setPreviewOnline(previewReady);
           setPreviewKey((key) => key + 1);
           setAgentStage(null);
           setChatJobId(null);
