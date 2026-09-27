@@ -73,8 +73,8 @@ export class NexumAgent implements AgentRuntime {
       "readFile: input is a relative file path string",
       'writeFile: input is JSON object {"path":"relative/path","content":"file contents"}',
       "searchFiles: input is the text to search for",
-      "runCommand: input is one allowlisted command string such as npm --prefix apps/web run build",
-      'runSandbox: input is JSON object {"projectPath":".","command":"npm --prefix apps/web run build"}',
+      "runCommand: input is one allowlisted command for the active project, such as npm run build or npm run test",
+      'runSandbox: input is JSON object {"projectPath":".","command":"npm run build"}; projectPath is always forced to the active project',
       "git: input is one of status, diff, diff-stat, log, branch",
       "github: input is a read-only operation string",
     ].join("\n");
@@ -99,6 +99,9 @@ export class NexumAgent implements AgentRuntime {
       'Tool call format: {"tool":"writeFile","input":{"path":"index.html","content":"..."}}.',
       'For string inputs use {"tool":"readFile","input":"path"}.',
       'To finish use {"done":true,"finalResponse":"short summary of files and checks; never include full file contents"}.',
+      "Never use npm --prefix apps/web, apps/api, projects/, or the repository root for a user project. The current working directory is already the active user project.",
+      "Build/test commands must run from the active project root: use npm run build, npm run test, npm run lint, or npm run typecheck only when that script exists.",
+      "If package.json does not exist yet, create it as part of the user project before attempting npm commands.",
       "Preferred workflow for a new web app:",
       "1) listFiles .",
       "2) read relevant existing files if they exist.",
@@ -126,7 +129,7 @@ export class NexumAgent implements AgentRuntime {
       if (!this.hasSuccessfulResult(previousResults, "runSandbox")) {
         return {
           tool: "runSandbox",
-          input: JSON.stringify({ projectPath: ".", command: "npm --prefix apps/web run build" }),
+          input: JSON.stringify({ projectPath: ".", command: "npm run build" }),
         };
       }
 
@@ -207,7 +210,7 @@ export class NexumAgent implements AgentRuntime {
     if (/запусти тесты.*(?:sandbox|изолирован)|тесты в изолирован/.test(normalizedTask)) {
       return {
         name: "runSandbox",
-        input: JSON.stringify({ projectPath: ".", command: "npm --prefix apps/api test" }),
+        input: JSON.stringify({ projectPath: ".", command: "npm run test" }),
       };
     }
 
