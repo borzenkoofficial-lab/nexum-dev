@@ -65,23 +65,18 @@ function App() {
   useEffect(() => {
     async function loadAIConfig() {
       try {
-        const [providersResponse, modelsResponse, statusResponse] = await Promise.all([
+        const [providersResponse, modelsResponse] = await Promise.all([
           fetch("/api/ai/providers"),
           fetch("/api/ai/models"),
-          fetch(`/api/ai/status?provider=${encodeURIComponent(defaultProvider?.id ?? "mock")}`),
         ]);
         if (!providersResponse.ok || !modelsResponse.ok) throw new Error("AI config unavailable");
         const providersData = (await providersResponse.json()) as { providers?: AIProviderInfo[] };
         const modelsData = (await modelsResponse.json()) as { models?: Record<string, string[]> };
-        const statusData = statusResponse.ok ? ((await statusResponse.json()) as { status?: AIProviderStatus }) : null;
         const providers = providersData.providers ?? [];
         const defaultProvider = providers.find((provider) => provider.isDefault) ?? providers[0];
         setAIProviders(providers);
         setAIModels(modelsData.models ?? {});
         if (defaultProvider) { setAIProvider(defaultProvider.id); setAIModel(defaultProvider.model); }
-        const status = statusData?.status ?? null;
-        setAIStatus(status);
-        if (status?.available) setAIModel(status.model);
       } catch {
         setApiError(true);
       }
