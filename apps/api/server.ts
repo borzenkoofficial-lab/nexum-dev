@@ -109,6 +109,7 @@ async function runChatJob(
   jobId: string,
   message: string,
   projectId: string | undefined,
+  userId: string,
   provider: string | undefined,
   model: string | undefined,
   attachments: Array<{ name: string; type: string; size: number; content?: string; data?: string }>,
