@@ -50,8 +50,16 @@ export class AgentLoop {
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI planning failed";
           this.log(iteration, "AI planner", "error");
-          emit({ iteration, type: "failed", tool: "AI planner", message: `Не удалось получить следующий шаг от модели: ${message}` });
-          return { success: false, iterations: iteration - 1, steps, error: message };
+          emit({
+            iteration,
+            type: "tool-error",
+            tool: "AI planner",
+            message: `AI planner недоступен: ${message}. Переключаюсь на встроенный планировщик.`,
+          });
+          // A missing/unavailable AI provider must not make basic Builder tasks
+          // appear to do nothing. The deterministic planner can still scaffold,
+          // edit, build and verify supported projects.
+          modelPlan = null;
         }
       }
       // Prefer the model plan when available; otherwise use the deterministic runtime planner.
