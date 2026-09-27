@@ -2970,3 +2970,110 @@ body { overflow-x: hidden; }
   background: linear-gradient(to bottom, rgba(13,15,13,0), #0d0f0d 18px, #0d0f0d 100%);
   padding-top: 20px;
 }
+
+
+/* Project workspace layout: chat owns a bounded viewport; history scrolls without moving controls. */
+.app-project main.main {
+  min-height: 0;
+  height: calc(100vh - 106px);
+  overflow: hidden;
+}
+.app-project .workspace {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.86fr);
+}
+.app-project .main-column {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.app-project .main-column > .chat {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  width: min(700px, 100%);
+  margin: 0 auto;
+  padding: 28px 42px 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  align-self: stretch;
+}
+.app-project .main-column > .quick-actions {
+  flex: 0 0 auto;
+  width: min(700px, calc(100% - 84px));
+  max-width: 700px;
+  margin: 0 auto 18px;
+  padding: 0;
+}
+.app-project .main-column > .quick-actions .quick-action-grid {
+  max-height: 76px;
+  overflow: hidden;
+}
+.app-project .message-form {
+  position: relative;
+  bottom: auto;
+  z-index: 1;
+  background: transparent;
+  padding-top: 20px;
+}
+.app-project .chat > * {
+  flex-shrink: 0;
+}
+.app-project .conversation {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+.app-project .conversation-message {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.app-project .agent-activity-live {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.app-project .message-box {
+  min-width: 0;
+  max-width: 100%;
+}
+.app-project .message-box textarea {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.app-project .chat-steps,
+.app-project .quick-git {
+  flex: 0 0 auto;
+}
+@media (max-width: 900px) {
+  .app-project main.main { height: calc(100vh - 106px); }
+  .app-project .workspace { grid-template-columns: minmax(0, 1fr); }
+  .app-project .right-panel { display: none; }
+  .app-project .main-column > .chat {
+    padding: 24px 30px 18px;
+  }
+  .app-project .main-column > .quick-actions {
+    width: calc(100% - 60px);
+    margin-bottom: 12px;
+  }
+}
+@media (max-width: 620px) {
+  .app-project main.main { height: calc(100vh - 104px); }
+  .app-project .main-column > .chat {
+    padding: 18px 18px 14px;
+  }
+  .app-project .main-column > .quick-actions {
+    width: calc(100% - 36px);
+  }
+  .app-project .quick-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
