@@ -210,6 +210,16 @@ ${result.output}`
           .slice(-6)
           .map((item) => `${item.tool}: ${item.result.output.slice(0, 500)}`)
           .join("\n");
+    const contextSnapshot = await buildAgentContext(
+      this.projectRoot,
+      previousResults.map((item) => ({
+        tool: item.tool,
+        success: item.result.success,
+        output: item.result.output,
+      })),
+      task,
+    );
+    const persistentContext = formatAgentContext(contextSnapshot);
     const projectStateContext = "Project state is included in persistent context.";
 
     const prompt = [
