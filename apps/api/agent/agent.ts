@@ -558,76 +558,65 @@ ${result.output}`
   }
 
   private fallbackApp(task: string): string {
-    const brief = task.replace(/\s+/g, " ").trim().slice(0, 180);
+    const brief = task.replace(/\\s+/g, " ").trim().slice(0, 260);
     const lower = task.toLowerCase();
     const mode = /дашборд|dashboard|crm/.test(lower)
-      ? "dashboard"
+      ? "workspace"
       : /магазин|shop|store|marketplace|маркетплейс/.test(lower)
-        ? "market"
+        ? "catalog"
         : /лендинг|landing|сайт|website/.test(lower)
           ? "landing"
           : "product";
-    const title = mode === "dashboard"
-      ? "Workspace"
-      : mode === "market"
-        ? "Marketplace"
+
+    const title = mode === "workspace"
+      ? "Рабочее пространство"
+      : mode === "catalog"
+        ? "Каталог продукта"
         : mode === "landing"
-          ? "A sharper digital product"
-          : "Your product, built in NEXUM";
+          ? "Цифровой продукт"
+          : "Новый продукт";
+
+    const sections = mode === "workspace"
+      ? ["Обзор", "Рабочие данные", "Настройки"]
+      : mode === "catalog"
+        ? ["Каталог", "Описание", "Действие"]
+        : ["Главный экран", "Возможности", "Следующий шаг"];
+
     return `import { useState } from "react";
 
 const brief = ${JSON.stringify(brief)};
+const sections = ${JSON.stringify(sections)};
 
 export default function App() {
-  const [active, setActive] = useState("Overview");
-  const nav = ["Overview", "Projects", "Activity", "Settings"];
-  const cards = [
-    { label: "Projects", value: "12", meta: "+3 this week" },
-    { label: "Active users", value: "2,480", meta: "+18.4%" },
-    { label: "Conversion", value: "8.7%", meta: "+1.2%" },
-  ];
+  const [active, setActive] = useState(sections[0]);
 
   return (
-    <div className="nexum-shell">
+    <main className="nexum-shell">
       <header className="topbar">
-        <div className="brand">NEXUM<span>·</span>DEV</div>
-        <div className="status">● Live preview</div>
+        <div className="brand">NEXUM.DEV</div>
+        <div className="status">Preview</div>
       </header>
-      <main className="content">
-        <section className="hero-card">
-          <div>
-            <span className="kicker">GENERATED PRODUCT</span>
-            <h1>${title}</h1>
-            <p>{brief}</p>
-          </div>
-          <button className="primary" onClick={() => setActive("Projects")}>Open workspace</button>
-        </section>
-        <nav className="tabs" aria-label="Sections">
-          {nav.map((item) => (
-            <button key={item} className={active === item ? "tab active" : "tab"} onClick={() => setActive(item)}>
-              {item}
-            </button>
-          ))}
-        </nav>
-        <section className="grid">
-          {cards.map((card) => (
-            <article className="metric" key={card.label}>
-              <span>{card.label}</span>
-              <strong>{card.value}</strong>
-              <small>{card.meta}</small>
-            </article>
-          ))}
-        </section>
-        <section className="panel">
-          <div className="panel-head"><div><span className="kicker">CURRENT VIEW</span><h2>{active}</h2></div><button className="secondary" onClick={() => setActive("Overview")}>Reset</button></div>
-          <div className="rows">
-            {["Design system", "Application shell", "Preview build"].map((item, index) => (
-              <div className="row" key={item}><span>{item}</span><span className="pill">{index === 2 ? "Ready" : "Built"}</span></div>
-            ))}
-          </div>
-        </section>
-      </main>
-    </div>
+      <section className="hero-card">
+        <span className="kicker">GENERATED FROM REQUEST</span>
+        <h1>{${JSON.stringify(title)}}</h1>
+        <p>{brief}</p>
+        <button className="primary" onClick={() => setActive(sections[1] ?? sections[0])}>
+          Продолжить
+        </button>
+      </section>
+      <nav className="tabs" aria-label="Разделы">
+        {sections.map((item) => (
+          <button key={item} className={active === item ? "tab active" : "tab"} onClick={() => setActive(item)}>
+            {item}
+          </button>
+        ))}
+      </nav>
+      <section className="panel">
+        <span className="kicker">CURRENT SECTION</span>
+        <h2>{active}</h2>
+        <p>Секция создана как безопасная основа для дальнейшей реализации исходного запроса.</p>
+      </section>
+    </main>
   );
 }
 `;
