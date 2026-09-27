@@ -5,15 +5,21 @@ interface BottomPanelProps {
   onClose: () => void;
   projectId: string;
   jobId: string | null;
+  activitySteps: Array<{ iteration: number; tool: string; success: boolean }>;
+  problems: Array<{ message: string; source?: string }>;
+  onRunCommand: (command: string) => Promise<{ success?: boolean; stdout?: string; stderr?: string; error?: string }>;
 }
 
 type Tab = "terminal" | "problems" | "logs" | "git" | "activity";
 
-export function BottomPanel({ open, onClose, projectId, jobId }: BottomPanelProps) {
+export function BottomPanel({ open, onClose, projectId, jobId, activitySteps, problems, onRunCommand }: BottomPanelProps) {
   const [tab, setTab] = useState<Tab>("terminal");
   const [gitText, setGitText] = useState("Loading…");
   const [gitError, setGitError] = useState("");
   const [logs, setLogs] = useState<string[]>([]);
+  const [command, setCommand] = useState("npm run build");
+  const [terminalOutput, setTerminalOutput] = useState("Ready.");
+  const [running, setRunning] = useState(false);
 
   useEffect(() => {
     if (!open || !projectId || tab !== "git") return;
@@ -48,10 +54,13 @@ export function BottomPanel({ open, onClose, projectId, jobId }: BottomPanelProp
       <div className="bottom-tabs">{tabs.map(([id, label]) => <button key={id} className={tab === id ? "active" : ""} type="button" onClick={() => setTab(id)}>{label}</button>)}</div>
       <button type="button" aria-label="Close panel" onClick={onClose}>×</button>
     </div>
-    {tab === "terminal" && <div className="terminal-empty"><span className="terminal-prompt">$</span><span>Interactive terminal is not exposed yet. Run build/test commands through the Agent.</span></div>}
-    {tab === "problems" && <div className="terminal-empty"><span>Problems are reported here after Agent build/test checks.</span><span className="coming-soon">No problems reported</span></div>}
+    {tab === "terminal" && <div className="bottom-output">
+      <div className="terminal-command-row"><span className="terminal-prompt">$</span><input value={command} onChange={(event) => setCommand(event.target.value)} aria-label="Project command" /><button type="button" disabled={running} onClick={async () => { setRunning(true); setTerminalOutput("Running…"); const result = await onRunCommand(command); setTerminalOutput(result.stdout || result.stderr || result.error || (result.success ? "Command completed." : "Command failed.")); setRunning(false); }}>Run</button></div>
+      <pre>{terminalOutput}</pre>
+    </div>
+    {tab === "problems" && <div className="bottom-output">{problems.length ? problems.map((problem, i) => <div key={i} className="problem-row"><strong>×</strong><span>{problem.source ? `${problem.source}: ` : ""}{problem.message}</span></div>) : <span>No problems reported.</span>}</div>
     {tab === "logs" && <div className="bottom-output">{logs.length ? logs.map((line, i) => <div key={i}>{line}</div>) : <span>No Git commits yet.</span>}</div>}
     {tab === "git" && <div className="bottom-output">{gitError ? <span className="error-state-inline">{gitError}</span> : <pre>{gitText}</pre>}</div>}
-    {tab === "activity" && <div className="bottom-output"><div>Current job: {jobId ?? "idle"}</div><div>AI Activity is linked to the active chat job.</div></div>}
+    {tab === "activity" && <div className="bottom-output"><div>Current job: {jobId ?? "idle"}</div>{activitySteps.length ? activitySteps.map((step, i) => <div key={i} className="activity-row"><span>{step.success ? "✓" : "×"}</span><span>#{step.iteration} {step.tool}</span></div>) : <span>No agent steps yet.</span>}</div>}
   </section>;
 }
