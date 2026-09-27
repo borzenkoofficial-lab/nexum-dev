@@ -6,7 +6,7 @@ interface TopBarProps {
   models: string[];
   provider: string;
   model: string;
-  ollamaStatus: AIProviderStatus | null;
+  aiStatus: AIProviderStatus | null;
   stage: AgentStage;
   onProviderChange: (id: string) => void;
   onModelChange: (model: string) => void;
@@ -19,7 +19,7 @@ export function TopBar({
   models,
   provider,
   model,
-  ollamaStatus,
+  aiStatus,
   stage,
   onProviderChange,
   onModelChange,
@@ -42,7 +42,7 @@ export function TopBar({
           <label><span>Model</span><select value={model} aria-label="AI model" onChange={(event) => onModelChange(event.target.value)}>
             {(models.length > 0 ? models : [model]).map((item) => <option value={item} key={item}>{item}</option>)}
           </select></label>
-          {provider === "ollama" && ollamaStatus && !ollamaStatus.available && <span className="ai-unavailable" role="status">Ollama unavailable</span>}
+          {aiStatus && <span className={`ai-connection ${aiStatus.available ? "online" : "offline"}`} role="status"><i aria-hidden="true" />{aiStatus.available ? `AI online · ${aiStatus.latencyMs ?? "—"}ms` : "AI offline"}</span>}
         </div>
         <div className={`status ${stage ? "status-working" : ""}`} role="status" aria-live="polite">
           <span className="status-dot" aria-hidden="true">●</span> {stageLabel}
