@@ -2,7 +2,7 @@ import type { AIProvider, AIProviderStatus } from "../types.js";
 
 const DEFAULT_BASE_URL = "http://localhost:11434";
 const DEFAULT_MODEL = "qwen3:4b";
-const DEFAULT_TIMEOUT_MS = 60_000;
+const DEFAULT_TIMEOUT_MS = 180_000;
 
 interface OllamaChatResponse {
   message?: { content?: string };
@@ -40,6 +40,10 @@ export class OllamaProvider implements AIProvider {
         model: selectedModel,
         messages: [{ role: "user", content: message }],
         stream: false,
+        options: {
+          num_ctx: 4096,
+          num_thread: 2,
+        },
       }),
     });
 
