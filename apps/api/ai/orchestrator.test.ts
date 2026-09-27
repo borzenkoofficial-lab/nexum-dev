@@ -28,6 +28,8 @@ test("orchestrator assigns specialized free models by role", async () => {
   assert.match(reviewer.model, /qwen|dots|nemotron/);
   assert.match(debugRun.model, /north-mini-code|laguna/);
   assert.equal(provider.calls.length, 4);
+  assert.equal(planner.provider, "openrouter");
+  assert.equal(planner.fallback, false);
 });
 
 class FailingFirstModelProvider implements AIProvider {
