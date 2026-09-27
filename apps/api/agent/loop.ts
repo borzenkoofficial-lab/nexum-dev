@@ -739,7 +739,7 @@ export class AgentLoop {
         const writeLower = plan.input.toLowerCase();
         const autoRequested = /авто|автомобил|автосервис|ремонт.*авто|ремонт.*машин|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(taskLower);
         const constructionRequested = /строит|строитель|демонтаж|фасад|подряд|отделк|стяжк|штукатур|монтаж|кровл|бетон/.test(taskLower);
-        const hasAutoSignals = /авто|автомобил|автосервис|диагностик|шиномонтаж|двигател|ходов|тормоз|масл|запчаст|\\bсто\\b/.test(writeLower);
+        const hasAutoSignals = /авто|автомобил|автосервис|диагностик|шиномонтаж|двигател|ходов|тормоз|масл|запчаст|\bсто\b/.test(writeLower);
         const hasConstructionSignals = /строит|строитель|демонтаж|фасад|подряд|отделк|стяжк|штукатур|монтаж|кровл|бетон/.test(writeLower);
         const wrongDomain = (autoRequested && hasConstructionSignals && !hasAutoSignals)
           || (constructionRequested && hasAutoSignals && !hasConstructionSignals);
