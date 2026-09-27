@@ -63,7 +63,7 @@ export class AIOrchestrator {
     const requested = options?.model?.trim();
     const model = requested && requested !== "openrouter/free"
       ? requested
-      : candidates[0];
+      : candidates[0]!;
 
     const response = await this.gateway.generate(
       this.decoratePrompt(role, prompt),
@@ -74,7 +74,7 @@ export class AIOrchestrator {
   }
 
   modelFor(role: AIOrchestratorRole): string {
-    return ROLE_MODELS[role][0];
+    return ROLE_MODELS[role][0]!;
   }
 
   getRoleModels(): Record<AIOrchestratorRole, string[]> {
