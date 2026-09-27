@@ -35,10 +35,10 @@ async function collectFiles(root: string, current = root, output: CheckpointFile
 }
 
 function assertSafeRelativePath(path: string): void {
-  if (typeof path !== "string" || !path || path.includes("\\0")) {
+  if (typeof path !== "string" || !path || path.includes("\0")) {
     throw new Error("Invalid checkpoint path");
   }
-  const normalized = path.replaceAll("\\\\", "/");
+  const normalized = path.replaceAll("\\", "/");
   if (
     normalized !== path ||
     normalized.startsWith("/") ||
