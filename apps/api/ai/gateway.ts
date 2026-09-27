@@ -168,7 +168,7 @@ export class AIGateway {
 
 
   private isTransientProviderError(message: string): boolean {
-    return /(?:408|429|rate.?limit|too many requests|timeout|timed out|temporar(?:y|ily)|service unavailable|fetch failed|econnreset|econnrefused|enotfound|\b5\d{2}\b)/i.test(message);
+    return /(?:408|429|rate.?limit|too many requests|timeout|timed out|temporar(?:y|ily)|service unavailable|network error|fetch failed|econnreset|econnrefused|enotfound|\b5\d{2}\b)/i.test(message);
   }
 
   getProviders(): GatewayProviderInfo[] {
