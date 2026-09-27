@@ -39,7 +39,8 @@ function assertSafeRelativePath(path: string): void {
   if (!normalized || normalized.startsWith("/") || normalized.split("/").includes("..")) {
     throw new Error("Invalid checkpoint path");
   }
-  if (EXCLUDED.has(normalized.split("/")[0])) {
+  const firstSegment = normalized.split("/")[0];
+  if (firstSegment && EXCLUDED.has(firstSegment)) {
     throw new Error("Checkpoint cannot access protected project directories");
   }
 }
