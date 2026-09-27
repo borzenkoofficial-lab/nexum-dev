@@ -442,13 +442,13 @@ app.get("/api/projects", async (_req, res) => {
 });
 
 app.post("/api/projects", async (req, res) => {
-  const { name } = req.body as { name?: unknown };
+  const { name, description, type } = req.body as { name?: unknown; description?: unknown; type?: unknown };
   if (typeof name !== "string") {
     return res.status(400).json({ success: false, error: "Project name is required" });
   }
 
   try {
-    const project = await getProjectManager(getAuthUser(req).id).createProject(name);
+    const project = await getProjectManager(getAuthUser(req).id).createProject(name, typeof description === "string" ? description : "", typeof type === "string" ? type : "Веб-приложение");
     return res.status(201).json({ success: true, project });
   } catch (error) {
     return sendProjectError(res, error);
