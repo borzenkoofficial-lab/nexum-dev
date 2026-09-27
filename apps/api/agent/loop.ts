@@ -582,7 +582,7 @@ export class AgentLoop {
           iteration,
           type: "thinking",
           tool: "Error Recovery",
-          message: `Ошибка классифицирована как ${diagnosis.category}: ${diagnosis.summary}. ${diagnosis.strategy}`,
+          message: `Ошибка классифицирована как ${diagnosis.category} (приоритет ${diagnosis.priority}/4): ${diagnosis.summary}. ${diagnosis.strategy}`,
         });
       }
 
