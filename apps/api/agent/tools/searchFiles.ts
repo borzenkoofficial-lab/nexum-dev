@@ -1,54 +1,16 @@
-import { readFile, readdir } from "node:fs/promises";
-import { join, relative } from "node:path";
-import type { Tool, ToolResult } from "../types.js";
-import { resolveProjectPath } from "./path.js";
-
-const IGNORED_DIRECTORIES = new Set([".git", "node_modules", "dist"]);
-
+import { readFile,readdir } from "node:fs/promises";
+import { join } from "node:path";
+import type { Tool,ToolResult } from "../types.js";
+import { ProjectWorkspace } from "./workspace.js";
+const IGNORED_DIRECTORIES=new Set([".git","node_modules","dist"]);
 export class SearchFilesTool implements Tool {
-  name = "searchFiles";
-  description = "Searches text inside project files";
-
-  constructor(private readonly projectRoot: string) {}
-
-  async execute(input: string): Promise<ToolResult> {
-    try {
-      const query = input.trim();
-      if (!query) return { success: false, output: "Search query is required" };
-
-      const matches: string[] = [];
-      await this.searchDirectory(this.projectRoot, query, matches);
-      return {
-        success: true,
-        output: matches.join("\n") || `No matches found for: ${query}`,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        output: error instanceof Error ? error.message : "Unable to search files",
-      };
-    }
-  }
-
-  private async searchDirectory(directory: string, query: string, matches: string[]): Promise<void> {
-    const entries = await readdir(directory, { withFileTypes: true });
-
-    for (const entry of entries) {
-      if (entry.isDirectory() && IGNORED_DIRECTORIES.has(entry.name)) continue;
-
-      const entryPath = join(directory, entry.name);
-      if (entry.isDirectory() && !entry.isSymbolicLink()) {
-        await this.searchDirectory(entryPath, query, matches);
-        continue;
-      }
-
-      if (!entry.isFile()) continue;
-
-      const content = await readFile(entryPath, "utf8").catch(() => null);
-      if (content === null || !content.includes(query)) continue;
-
-      const line = content.split(/\r?\n/).findIndex((value) => value.includes(query)) + 1;
-      matches.push(`${relative(this.projectRoot, entryPath)}:${line}`);
-    }
-  }
+ name="searchFiles"; description="Searches text inside the active project.";
+ constructor(private readonly workspace:ProjectWorkspace){}
+ async execute(input:string):Promise<ToolResult>{
+  try{const q=input.trim();if(!q)return {success:false,output:"Search query is required"};const m:string[]=[];await this.search(this.workspace.root,q,m);return {success:true,output:m.join("\n")||`No matches found for: ${q}`}}
+  catch(error){return {success:false,output:error instanceof Error?error.message:"Unable to search files"}}
+ }
+ private async search(dir:string,q:string,m:string[]):Promise<void>{
+  for(const e of await readdir(dir,{withFileTypes:true})){if(e.isDirectory()&&IGNORED_DIRECTORIES.has(e.name))continue;const p=join(dir,e.name);if(e.isDirectory()&&!e.isSymbolicLink()){await this.search(p,q,m);continue}if(!e.isFile())continue;const c=await readFile(p,"utf8").catch(()=>null);if(c===null||!c.includes(q))continue;const line=c.split(/\r?\n/).findIndex(v=>v.includes(q))+1;m.push(`${this.workspace.relative(p)}:${line}`)}
+ }
 }
