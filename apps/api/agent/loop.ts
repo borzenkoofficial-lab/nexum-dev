@@ -62,8 +62,23 @@ export class AgentLoop {
           modelPlan = null;
         }
       }
-      // Prefer the model plan when available; otherwise use the deterministic runtime planner.
-      const plan = modelPlan ?? this.runtime.plan(task, previousResults);
+      // Prefer the model plan when available. If it repeats an action that
+      // already failed, switch to the deterministic planner so recovery can continue.
+      let plan = modelPlan ?? this.runtime.plan(task, previousResults);
+      if (modelPlan) {
+        const modelActionKey = `${modelPlan.tool}:${modelPlan.input}`;
+        const repeatedFailure = previousResults.some(
+          (item) => item.tool === modelPlan.tool && item.input === modelPlan.input && !item.result.success,
+        );
+        if (repeatedFailure || seenActions.has(modelActionKey)) {
+          emit({
+            iteration,
+            type: "thinking",
+            message: "Модель повторила неудачное действие. Переключаюсь на детерминированный recovery-план.",
+          });
+          plan = this.runtime.plan(task, previousResults);
+        }
+      }
 
       if (!plan) {
         emit({ iteration, type: "completed", message: "Дополнительных действий не требуется. Формирую итог." });
