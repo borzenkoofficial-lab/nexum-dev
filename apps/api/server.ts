@@ -9,7 +9,8 @@ import { OpenRouterProvider } from "./ai/providers/openrouter.js";
 import { NexumAgent } from "./agent/agent.js";
 import { AgentLoop } from "./agent/loop.js";
 import { ProjectManager, ProjectManagerError } from "./projects/projectManager.js";
-import { dirname, resolve } from "node:path";
+import { readFile, stat } from "node:fs/promises";
+import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 dotenv.config();
@@ -29,10 +30,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    service: "NEXUM.DEV API",
-  });
+  res.json({ status: "ok", service: "NEXUM.DEV API" });
 });
 
 app.get("/api/ai/providers", (_req, res) => {
@@ -45,7 +43,6 @@ app.get("/api/ai/models", async (_req, res) => {
 
 app.get("/api/ai/status", async (req, res) => {
   const provider = typeof req.query.provider === "string" ? req.query.provider : undefined;
-
   try {
     return res.json({ success: true, status: await aiGateway.getStatus(provider) });
   } catch (error) {
@@ -102,6 +99,57 @@ app.post("/api/projects/:id/archive", async (req, res) => {
   }
 });
 
+// Static project preview. The agent writes the project files, and the preview
+// renders index.html directly without requiring a separate dev server.
+app.use("/api/preview/:id", async (req, res) => {
+  try {
+    const project = await projectManager.getProject(req.params.id);
+    const requestedPath = req.path.replace(/^\/+/, "") || "index.html";
+    const filePath = resolve(project.path, requestedPath);
+    const projectRelative = relative(project.path, filePath);
+
+    if (projectRelative.startsWith("..") || projectRelative.includes(".."+"/") || projectRelative.includes(".."+String.fromCharCode(92))) {
+      return res.status(403).send("Invalid preview path");
+    }
+
+    const details = await stat(filePath);
+    if (!details.isFile()) return res.status(404).send("Preview file not found");
+
+    const mimeTypes: Record<string, string> = {
+      ".html": "text/html; charset=utf-8",
+      ".css": "text/css; charset=utf-8",
+      ".js": "text/javascript; charset=utf-8",
+      ".mjs": "text/javascript; charset=utf-8",
+      ".json": "application/json; charset=utf-8",
+      ".svg": "image/svg+xml",
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".webp": "image/webp",
+      ".ico": "image/x-icon",
+      ".txt": "text/plain; charset=utf-8",
+    };
+
+    res.type(mimeTypes[extname(filePath).toLowerCase()] ?? "application/octet-stream");
+    return res.send(await readFile(filePath));
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") return res.status(404).send("Preview is not available yet. Ask NEXUM to create the app.");
+    if (error instanceof ProjectManagerError) return sendProjectError(res, error);
+    return res.status(500).send("Preview failed");
+  }
+});
+
+app.get("/api/projects/:id/preview/status", async (req, res) => {
+  try {
+    const project = await projectManager.getProject(req.params.id);
+    await stat(resolve(project.path, "index.html"));
+    return res.json({ online: true, url: `/api/preview/${project.id}/index.html` });
+  } catch {
+    return res.json({ online: false, url: null });
+  }
+});
+
 app.post("/api/chat", async (req, res) => {
   const { message, projectId, provider, model } = req.body as {
     message?: unknown;
@@ -111,19 +159,14 @@ app.post("/api/chat", async (req, res) => {
   };
 
   if (typeof message !== "string" || !message.trim()) {
-    return res.status(400).json({
-      error: "Message is required",
-    });
+    return res.status(400).json({ error: "Message is required" });
   }
-
   if (projectId !== undefined && typeof projectId !== "string") {
     return res.status(400).json({ error: "projectId must be a string" });
   }
-
   if (provider !== undefined && typeof provider !== "string") {
     return res.status(400).json({ error: "provider must be a string" });
   }
-
   if (model !== undefined && typeof model !== "string") {
     return res.status(400).json({ error: "model must be a string" });
   }
@@ -139,6 +182,7 @@ app.post("/api/chat", async (req, res) => {
 
     return res.json({
       reply: result.success ? result.finalResponse : result.error,
+      steps: result.steps,
     });
   } catch (error) {
     return res.status(502).json({
@@ -155,7 +199,6 @@ function sendProjectError(res: Response, error: unknown) {
 }
 
 const PORT = process.env.PORT || 3001;
-
 app.listen(PORT, () => {
   console.log(`NEXUM API running on port ${PORT}`);
 });
