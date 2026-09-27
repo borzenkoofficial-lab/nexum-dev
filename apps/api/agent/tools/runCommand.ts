@@ -11,7 +11,7 @@ export interface RunCommandResult extends ToolResult {
   command: string;
 }
 
-const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_BYTES = 32 * 1024;
 const SHELL_SYNTAX = /[;&|`$()<>\n\r\\]/;
 const BLOCKED_ARGUMENTS = new Set([
