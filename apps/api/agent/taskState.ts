@@ -43,6 +43,7 @@ export function createAgentTaskState(goal: string): AgentTaskState {
       staticValidation: -1,
       domain: -1,
       review: -1,
+      reviewAttempted: -1,
     },
   };
 }
