@@ -11,7 +11,7 @@ import { OrcaRouterProvider } from "./ai/providers/orcarouter.js";
 import { NexumAgent } from "./agent/agent.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
 import type { ProductPlan } from "./agent/types.js";
-import { ProjectManager, ProjectManagerError } from "./projects/getProjectManager(getAuthUser(req).id).js";
+import { ProjectManager, ProjectManagerError } from "./projects/projectManager.js";
 import { mkdir, readFile, stat, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -431,7 +431,7 @@ app.get("/api/ai/status", async (req, res) => {
 
 app.get("/api/projects", async (_req, res) => {
   try {
-    return res.json({ success: true, projects: await projectManager.listProjects() });
+    return res.json({ success: true, projects: await getProjectManager(getAuthUser(req).id).listProjects() });
   } catch (error) {
     return sendProjectError(res, error);
   }
@@ -444,7 +444,7 @@ app.post("/api/projects", async (req, res) => {
   }
 
   try {
-    const project = await projectManager.createProject(name);
+    const project = await getProjectManager(getAuthUser(req).id).createProject(name);
     return res.status(201).json({ success: true, project });
   } catch (error) {
     return sendProjectError(res, error);
@@ -453,7 +453,7 @@ app.post("/api/projects", async (req, res) => {
 
 app.get("/api/projects/:id", async (req, res) => {
   try {
-    return res.json({ success: true, project: await projectManager.getProject(req.params.id) });
+    return res.json({ success: true, project: await getProjectManager(getAuthUser(req).id).getProject(req.params.id) });
   } catch (error) {
     return sendProjectError(res, error);
   }
@@ -461,7 +461,7 @@ app.get("/api/projects/:id", async (req, res) => {
 
 app.post("/api/projects/:id/duplicate", async (req, res) => {
   try {
-    const project = await projectManager.duplicateProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).duplicateProject(req.params.id);
     return res.status(201).json({ success: true, project });
   } catch (error) {
     return sendProjectError(res, error);
@@ -470,7 +470,7 @@ app.post("/api/projects/:id/duplicate", async (req, res) => {
 
 app.post("/api/projects/:id/select", async (req, res) => {
   try {
-    return res.json({ success: true, project: await projectManager.selectProject(req.params.id) });
+    return res.json({ success: true, project: await getProjectManager(getAuthUser(req).id).selectProject(req.params.id) });
   } catch (error) {
     return sendProjectError(res, error);
   }
@@ -478,7 +478,7 @@ app.post("/api/projects/:id/select", async (req, res) => {
 
 app.post("/api/projects/:id/archive", async (req, res) => {
   try {
-    return res.json({ success: true, project: await projectManager.archiveProject(req.params.id) });
+    return res.json({ success: true, project: await getProjectManager(getAuthUser(req).id).archiveProject(req.params.id) });
   } catch (error) {
     return sendProjectError(res, error);
   }
@@ -486,7 +486,7 @@ app.post("/api/projects/:id/archive", async (req, res) => {
 
 app.delete("/api/projects/:id", async (req, res) => {
   try {
-    const project = await projectManager.deleteProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).deleteProject(req.params.id);
     return res.json({ success: true, project });
   } catch (error) {
     return sendProjectError(res, error);
@@ -497,7 +497,7 @@ app.delete("/api/projects/:id", async (req, res) => {
 // renders index.html directly without requiring a separate dev server.
 app.use("/api/preview/:id", async (req, res) => {
   try {
-    const project = await projectManager.getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const requestedPath = req.path.replace(/^\/+/, "") || "index.html";
     const distRoot = resolve(project.path, "dist");
     const distCandidate = resolve(distRoot, requestedPath);
@@ -580,7 +580,7 @@ app.use("/api/preview/:id", async (req, res) => {
 
 app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
   try {
-    const project = await projectManager.getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const message = typeof req.body?.message === "string" ? req.body.message.slice(0, 4000) : "Preview runtime error";
     const stack = typeof req.body?.stack === "string" ? req.body.stack.slice(0, 8000) : undefined;
     const kind = typeof req.body?.kind === "string" ? req.body.kind.slice(0, 80) : "error";
@@ -602,7 +602,7 @@ app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
 
 app.get("/api/projects/:id/files", async (req, res) => {
   try {
-    const project = await projectManager.getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const root = resolve(project.path);
     const entries = await readdir(root, { withFileTypes: true, recursive: true });
     const files = entries
@@ -619,7 +619,7 @@ app.get("/api/projects/:id/files", async (req, res) => {
 
 app.get("/api/projects/:id/file", async (req, res) => {
   try {
-    const project = await projectManager.getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const requested = typeof req.query.path === "string" ? req.query.path : "";
     if (!requested) return res.status(400).json({ success: false, error: "File path is required" });
     const filePath = resolve(project.path, requested);
@@ -639,7 +639,7 @@ app.get("/api/projects/:id/file", async (req, res) => {
 
 app.put("/api/projects/:id/file", async (req, res) => {
   try {
-    const project = await projectManager.getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const { path: requested, content } = req.body as { path?: unknown; content?: unknown };
     if (typeof requested !== "string" || typeof content !== "string") return res.status(400).json({ success: false, error: "path and content are required" });
     const filePath = resolve(project.path, requested);
@@ -662,7 +662,7 @@ app.put("/api/projects/:id/file", async (req, res) => {
 
 app.get("/api/projects/:id/git/:operation", async (req, res) => {
   try {
-    const project = await projectManager.getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const operation = req.params.operation;
     if (!["status", "diff", "diff-stat", "log", "branch"].includes(operation)) {
       return res.status(400).json({ success: false, error: "Unsupported Git operation" });
@@ -682,7 +682,7 @@ app.get("/api/projects/:id/git/:operation", async (req, res) => {
 
 app.post("/api/projects/:id/run", async (req, res) => {
   try {
-    const project = await projectManager.getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const command = typeof req.body?.command === "string" ? req.body.command.trim() : "";
     const allowed = new Set(["npm run build", "npm run test", "npm run lint", "npm run typecheck", "git status", "git diff", "git log"]);
     if (!allowed.has(command)) return res.status(400).json({ success: false, error: "Command is not allowed" });
@@ -706,7 +706,7 @@ app.post("/api/projects/:id/run", async (req, res) => {
 
 app.get("/api/projects/:id/checkpoints", async (req, res) => {
   try {
-    const project = await projectManager.getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const checkpoints = await checkpointManager.list(project.id, project.path);
     return res.json({ success: true, checkpoints });
   } catch (error) {
@@ -716,7 +716,7 @@ app.get("/api/projects/:id/checkpoints", async (req, res) => {
 
 app.post("/api/projects/:id/checkpoints", async (req, res) => {
   try {
-    const project = await projectManager.getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const label = typeof req.body?.label === "string" ? req.body.label : "before agent changes";
     const checkpoint = await checkpointManager.create(project.id, project.path, label);
     void agentHistory.record({
@@ -734,7 +734,7 @@ app.post("/api/projects/:id/checkpoints", async (req, res) => {
 
 app.post("/api/projects/:id/checkpoints/:checkpointId/rollback", async (req, res) => {
   try {
-    const project = await projectManager.getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const checkpoint = await checkpointManager.rollback(project.id, project.path, req.params.checkpointId);
     const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.id, stateManager);
@@ -754,7 +754,7 @@ app.post("/api/projects/:id/checkpoints/:checkpointId/rollback", async (req, res
 
 app.get("/api/projects/:id/state", async (req, res) => {
   try {
-    const project = await projectManager.getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.id, stateManager);
     const state = await stateManager.refresh();
@@ -767,7 +767,7 @@ app.get("/api/projects/:id/state", async (req, res) => {
 
 app.get("/api/projects/:id/preview/status", async (req, res) => {
   try {
-    const project = await projectManager.getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const packagePath = resolve(project.path, "package.json");
     const distIndexPath = resolve(project.path, "dist", "index.html");
     const sourceIndexPath = resolve(project.path, "index.html");
@@ -838,7 +838,7 @@ app.post("/api/chat", async (req, res) => {
   try {
     // Validate the project before creating the background job so bad project IDs
     // still fail immediately instead of creating a job that can never run.
-    await projectManager.getActiveProject(projectId);
+    await getProjectManager(getAuthUser(req).id).getActiveProject(projectId);
 
     cleanupChatJobs();
     const jobId = randomUUID();
@@ -859,6 +859,7 @@ app.post("/api/chat", async (req, res) => {
       jobId,
       message.trim(),
       projectId,
+      getAuthUser(req).id,
       provider,
       model,
       normalizedAttachments,
