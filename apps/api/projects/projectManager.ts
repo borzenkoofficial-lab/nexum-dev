@@ -46,7 +46,7 @@ export class ProjectManager {
       await this.writeStore(existing);
     } else {
       const storedDefault = existing.projects.find((project) => project.id === this.defaultProject.id);
-      if (storedDefault?.path === this.workspaceRoot) {
+      if (storedDefault && resolve(storedDefault.path) !== resolve(this.defaultProject.path)) {
         storedDefault.path = this.defaultProject.path;
         storedDefault.updatedAt = new Date().toISOString();
         await this.writeStore(existing);
@@ -266,7 +266,26 @@ button { border: 0; border-radius: 12px; padding: 14px 20px; background: #111; c
   }
 
   private async assertStoredProject(project: Project): Promise<void> {
-    if (project.id === this.defaultProject.id && project.path === this.workspaceRoot) return;
-    await assertExistingProjectPath(this.projectsRoot, relative(this.projectsRoot, project.path));
+    const expectedDefault = resolve(this.defaultProject.path);
+    const storedPath = resolve(project.path);
+
+    // The default project must always live in projects/nexum.
+    // Older versions could persist the repository root here, which made the
+    // agent workspace point at the whole NEXUM repository and caused path
+    // validation failures when the model used projects/nexum/... paths.
+    if (project.id === this.defaultProject.id && storedPath !== expectedDefault) {
+      const store = await this.requireStore();
+      const stored = store.projects.find((item) => item.id === project.id);
+      if (stored) {
+        stored.path = expectedDefault;
+        stored.updatedAt = new Date().toISOString();
+        await this.writeStore(store);
+      }
+      project.path = expectedDefault;
+      await assertExistingProjectPath(this.projectsRoot, relative(this.projectsRoot, expectedDefault));
+      return;
+    }
+
+    await assertExistingProjectPath(this.projectsRoot, relative(this.projectsRoot, storedPath));
   }
 }
