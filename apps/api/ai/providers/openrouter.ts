@@ -2,7 +2,7 @@ import type { AIProvider, AIProviderStatus } from "../types.js";
 
 const DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
 const DEFAULT_MODEL = "openrouter/free";
-const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_TIMEOUT_MS = 60_000;
 
 interface OpenRouterChatResponse {
   choices?: Array<{ message?: { content?: string } }>;
