@@ -224,7 +224,8 @@ function sendProjectError(res: Response, error: unknown) {
   return res.status(500).json({ success: false, error: "Project manager request failed" });
 }
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`NEXUM API running on port ${PORT}`);
+const PORT = Number(process.env.PORT || 3001);
+const HOST = process.env.HOST || "0.0.0.0";
+app.listen(PORT, HOST, () => {
+  console.log(`NEXUM API running on http://${HOST}:${PORT}`);
 });
