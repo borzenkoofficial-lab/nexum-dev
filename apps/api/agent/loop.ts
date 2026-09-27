@@ -119,6 +119,7 @@ export class AgentLoop {
           success: true,
           iterations: iteration - 1,
           steps,
+          productPlan: productPlan ?? undefined,
           finalResponse: await this.finalResponse(task, previousResults, options),
         };
       }
@@ -274,6 +275,7 @@ export class AgentLoop {
           success: true,
           iterations: iteration - 1,
           steps,
+          productPlan: productPlan ?? undefined,
           finalResponse: plan.finalResponse ?? await this.finalResponse(task, previousResults, options),
         };
       }
@@ -282,7 +284,7 @@ export class AgentLoop {
         const error = `Agent stopped: unavailable tool (${plan.tool})`;
         this.log(iteration, plan.tool, "error");
         emit({ iteration, type: "failed", tool: plan.tool, message: error });
-        return { success: false, iterations: iteration - 1, steps, error };
+        return { success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
       }
 
       const actionKey = `${plan.tool}:${plan.input}`;
@@ -293,7 +295,7 @@ export class AgentLoop {
         const error = `Agent stopped: repeated successful action detected (${plan.tool})`;
         this.log(iteration, plan.tool, "error");
         emit({ iteration, type: "failed", tool: plan.tool, message: error });
-        return { success: false, iterations: iteration - 1, steps, error };
+        return { success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
       }
       seenActions.add(actionKey);
 
