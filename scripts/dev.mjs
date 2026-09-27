@@ -95,31 +95,32 @@ async function main() {
   runInstall("apps/api");
   runInstall("apps/web");
 
-  const ollamaReady = await ensureOllama();
-  if (ollamaReady) await ensureModel();
+  // API starts first and does not depend on Ollama.
+  // This prevents the UI from reporting an API error just because the local model is offline.
+  const apiProcess = spawn(npm, ["--prefix", "apps/api", "run", "start"], {
+    cwd: root,
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      AI_PROVIDER: process.env.AI_PROVIDER ?? "ollama",
+      OLLAMA_BASE_URL: ollamaBaseUrl,
+      OLLAMA_MODEL: ollamaModel,
+    },
+  });
 
-  // Start the API independently of Ollama. The UI must remain usable even
-  // when the local model is unavailable.
-  const apiProcess = spawn(npm, ["--prefix", "apps/api", "run", "dev"], {
-      cwd: root,
-      stdio: "inherit",
-      env: {
-        ...process.env,
-        AI_PROVIDER: process.env.AI_PROVIDER ?? "ollama",
-        OLLAMA_BASE_URL: ollamaBaseUrl,
-        OLLAMA_MODEL: ollamaModel,
-      },
-    });
+  const children = [apiProcess];
 
-  const children = [
-    apiProcess,
-    spawn(npm, ["--prefix", "apps/web", "run", "dev"], {
-      cwd: root,
-      stdio: "inherit",
-    }),
-  ];
+  const apiReady = await waitForApi();
+  if (!apiReady) {
+    shutdown(1);
+    return;
+  }
 
-  await waitForApi();
+  const webProcess = spawn(npm, ["--prefix", "apps/web", "run", "dev"], {
+    cwd: root,
+    stdio: "inherit",
+  });
+  children.push(webProcess);
 
   let shuttingDown = false;
 
@@ -145,10 +146,16 @@ async function main() {
   process.on("SIGINT", () => shutdown(0));
   process.on("SIGTERM", () => shutdown(0));
 
+  // Ollama is optional. Check/start it after the API and web are already usable.
+  void (async () => {
+    const ollamaReady = await ensureOllama();
+    if (ollamaReady) await ensureModel();
+  })();
+
   console.log("");
   console.log("[Nexum] Web: http://localhost:5173");
   console.log("[Nexum] API: http://localhost:3001");
-  console.log(`[Nexum] AI: Ollama / ${ollamaModel}`);
+  console.log(`[Nexum] AI: Ollama / ${ollamaModel} (optional)`);
   console.log("[Nexum] Press Ctrl+C to stop both.");
 }
 
@@ -158,12 +165,13 @@ async function waitForApi() {
       const response = await fetch("http://127.0.0.1:3001/api/health");
       if (response.ok) {
         console.log("[Nexum] API health: OK");
-        return;
+        return true;
       }
     } catch {}
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   console.error("[Nexum] API did not become ready on port 3001. Check the API process output above.");
+  return false;
 }
 
 main().catch((error) => {
