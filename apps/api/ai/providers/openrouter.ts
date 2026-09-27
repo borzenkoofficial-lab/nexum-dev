@@ -108,6 +108,14 @@ export class OpenRouterProvider implements AIProvider {
 
   private buildCandidates(model: string, message: string): string[] {
     const selected = this.validateModel(model);
+
+    // openrouter/free is a real router endpoint. Do not replace it with a
+    // hard-coded model: the router must be allowed to choose an available free
+    // model for the request. Hard-coded candidates remain the fallback only.
+    if (selected === "openrouter/free") {
+      return [selected];
+    }
+
     const preferred = selected === this.model ? this.selectModel(message) : selected;
     return [...new Set([preferred, ...this.models])];
   }
