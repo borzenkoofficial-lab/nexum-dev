@@ -21,7 +21,7 @@ export function resolveProjectPath(projectRoot: string, requestedPath: string): 
   // - /.../projects/<active-project>/index.html
   // The final path is always forced back into the active project root.
   const normalizedInput = input.replace(/\\/g, "/");
-  const normalizedRoot = projectRoot.replace(/\\/g, "/").replace(/\\/+$/, "");
+  const normalizedRoot = projectRoot.replace(/\\/g, "/").replace(/\/+$/, "");
   const activeProjectName = basename(normalizedRoot);
   const projectPrefix = "projects/" + activeProjectName;
   const rootMarker = normalizedRoot + "/";
