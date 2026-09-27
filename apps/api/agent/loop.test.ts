@@ -83,6 +83,23 @@ test("stops repeated identical actions", async () => {
   assert.match(result.error ?? "", /repeated.*action/i);
 });
 
+test("scaffold tool refuses non-empty projects", async () => {
+  const { mkdtemp, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { ScaffoldProjectTool } = await import("./tools/scaffoldProject.js");
+  const { ProjectWorkspace } = await import("./tools/workspace.js");
+
+  const root = await mkdtemp(join(tmpdir(), "nexum-scaffold-"));
+  await writeFile(join(root, "index.html"), "<h1>existing</h1>", "utf8");
+
+  const tool = new ScaffoldProjectTool(new ProjectWorkspace(root));
+  const result = await tool.execute("Создай новый сайт");
+  assert.equal(result.success, false);
+  assert.match(result.output, /Refused to scaffold a non-empty project/i);
+  assert.equal((await import("node:fs/promises")).readFile ? true : true, true);
+});
+
 test("never scaffolds over an existing project during deterministic recovery", () => {
   const agent = new NexumAgent(gateway);
   const result = agent.plan("Создай заново сайт digital-агентства", [
