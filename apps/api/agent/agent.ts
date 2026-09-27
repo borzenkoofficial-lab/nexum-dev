@@ -182,6 +182,12 @@ ${result.output}`
     options?: AgentModelOptions,
     productPlan?: ProductPlan,
   ): Promise<AgentPlan | null> {
+    // Construction requests use the deterministic domain-locked builder.
+    // This avoids repeated remote planning calls and prevents generic SaaS
+    // templates from overriding the requested construction domain.
+    if (/строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(task.toLowerCase())) {
+      return null;
+    }
     const toolCatalog = [
       "listFiles: input is a relative directory path string, usually .",
       "readFile: input is a relative file path string",
@@ -562,7 +568,7 @@ ${result.output}`
     if (plan.done) return false;
     if (plan.tool !== "writeFile" && plan.tool !== "patchFile") return true;
     const content = input;
-    const genericDigital = /nexum\\.dev|digital products|ai studio|saas|software products|web products|digital systems/.test(content);
+    const genericDigital = /nexum\.dev|digital products|ai studio|saas|software products|web products|digital systems/.test(content);
     const constructionSignal = /строит|подряд|демонтаж|фасад|объект|бригада|ремонт|стяжк|штукатур|монтаж|кровл/.test(content);
     return !genericDigital || constructionSignal;
   }
