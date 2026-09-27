@@ -46,7 +46,7 @@ export function BottomPanel({ jobId, stage, activitySteps, activityEvents, curre
       <div className="agent-plan-section"><strong>Критерии приёмки</strong><span>{productPlan.acceptanceCriteria.slice(0, 5).join(" · ") || "—"}</span></div>
     </div>}
     <div className="agent-timeline"><div className="agent-timeline-title"><strong>Работа в реальном времени</strong><span>{activitySteps.length} действий</span></div>
-      {activityEvents.length ? [...activityEvents].reverse().map((event) => <div className={`agent-event agent-event-${event.type}`} key={event.id}><div className="agent-event-marker">{event.type === "tool-error" || event.type === "failed" ? "!" : event.type === "tool-success" || event.type === "completed" ? "✓" : "•"}</div><div className="agent-event-copy"><strong>{event.tool ?? "Agent"} · step {event.iteration}</strong><p>{event.message}</p></div><time>{new Date(event.timestamp).toLocaleTimeString()}</time></div>) : <div className="agent-empty">No действий yet. The agent will show every important step here.</div>}
+      {activityEvents.length ? [...activityEvents].reverse().map((event) => <div className={`agent-event agent-event-${event.type}`} key={event.id}><div className="agent-event-marker">{event.type === "tool-error" || event.type === "failed" ? "!" : event.type === "tool-success" || event.type === "completed" ? "✓" : "•"}</div><div className="agent-event-copy"><strong>{event.tool ?? "Агент"} · шаг {event.iteration}</strong><p>{event.message}</p></div><time>{new Date(event.timestamp).toLocaleTimeString()}</time></div>) : <div className="agent-empty">Действий пока нет. Здесь появится каждый важный шаг агента.</div>}
     </div>
   </div>;
 }
