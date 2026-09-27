@@ -21,3 +21,19 @@ test("rejects traversal and unrelated absolute paths", async () => {
   assert.throws(() => resolveProjectPath(root, "../escape.txt"), /project directory/);
   assert.throws(() => resolveProjectPath(root, "/tmp/projects/fake/index.html"), /project directory/);
 });
+
+
+test("normalizes workspace-relative project paths emitted by the model", async () => {
+  const root = await mkdtemp(join(tmpdir(), "nexum-path-"));
+  const projectName = root.split("/").pop() ?? "nexum";
+  const projectRoot = join(root, "projects", projectName);
+  await mkdir(projectRoot, { recursive: true });
+  assert.equal(
+    resolveProjectPath(projectRoot, "projects/" + projectName + "/index.html"),
+    resolve(projectRoot, "index.html"),
+  );
+  assert.equal(
+    resolveProjectPath(projectRoot, "./projects/" + projectName + "/index.html"),
+    resolve(projectRoot, "index.html"),
+  );
+});
