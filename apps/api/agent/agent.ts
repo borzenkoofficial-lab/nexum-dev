@@ -26,6 +26,7 @@ import { ScaffoldProjectTool } from "./tools/scaffoldProject.js";
 import { ValidateProjectTool } from "./tools/validateProject.js";
 import { PatchFileTool } from "./tools/patchFile.js";
 import { TestProjectTool } from "./tools/testProject.js";
+import { buildAgentContext, formatAgentContext } from "./context.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -210,7 +211,7 @@ ${result.output}`
           .slice(-6)
           .map((item) => `${item.tool}: ${item.result.output.slice(0, 500)}`)
           .join("\n");
-    let projectStateContext = "Project state: unavailable.";
+    let projectStateContext = "Project state: unavailable.";\n    let persistentContext = "Persistent project context: unavailable.";\n    try {\n      const context = await buildAgentContext(this.projectRoot, previousResults.map((item) => ({ tool: item.tool, success: item.result.success, output: item.result.output })));\n      persistentContext = formatAgentContext(context);\n    } catch {\n      // Persistent context is advisory; filesystem inspection remains authoritative.\n    }
     try {
       const rawState = await readTextFile(resolve(this.projectRoot, ".nexum", "state.json"), "utf8");
       const state = JSON.parse(rawState) as {
@@ -291,7 +292,7 @@ ${result.output}`
       "6) finish with done=true and a short summary.",
       "Available tools and input formats:",
       toolCatalog,
-      `PROJECT STATE MEMORY (advisory, current project only): ${projectStateContext}`,
+      `PERSISTENT PROJECT CONTEXT (advisory, current project only): ${persistentContext}`,\n      `PROJECT STATE MEMORY (advisory, current project only): ${projectStateContext}`,
       `User task: ${task}`,
       `Previous tool results:\n${history}`,
     ].join("\n");
