@@ -122,6 +122,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
     panelContent = previewOnline ? (
       <div className="preview-frame-wrap">
         <iframe ref={previewFrameRef} key={previewKey} className="preview-frame" title={projectName + " live preview"} src={previewUrl} onLoad={handlePreviewLoad} sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" />
+        {previewError && <div className="preview-runtime-error" role="alert">{previewError}</div>}
       </div>
     ) : (
       <div className="preview-content">
