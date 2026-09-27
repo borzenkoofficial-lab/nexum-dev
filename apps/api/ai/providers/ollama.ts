@@ -109,7 +109,17 @@ export class OllamaProvider implements AIProvider {
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama request failed (${response.status})`);
+        const body = await response.text().catch(() => "");
+        let detail = "";
+        if (body) {
+          try {
+            const parsed = JSON.parse(body) as { error?: unknown };
+            if (typeof parsed.error === "string" && parsed.error.trim()) detail = `: ${parsed.error.trim()}`;
+          } catch {
+            // Keep the transport error generic if Ollama returned non-JSON content.
+          }
+        }
+        throw new Error(`Ollama request failed (${response.status})${detail}`);
       }
       return (await response.json()) as T;
     } catch (error) {
