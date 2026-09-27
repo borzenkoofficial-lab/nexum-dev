@@ -670,7 +670,7 @@ app.post("/api/projects/:id/checkpoints", async (req, res) => {
       type: "checkpoint-created",
       projectId: project.id,
       status: "success",
-      message: \`Checkpoint \${checkpoint.id} created\`,
+      message: `Checkpoint ${checkpoint.id} created`,
       output: JSON.stringify({ label: checkpoint.label, files: checkpoint.files.length }),
     });
     return res.status(201).json({ success: true, checkpoint });
@@ -685,12 +685,12 @@ app.post("/api/projects/:id/checkpoints/:checkpointId/rollback", async (req, res
     const checkpoint = await checkpointManager.rollback(project.id, project.path, req.params.checkpointId);
     const stateManager = projectStates.get(project.id) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.id, stateManager);
-    await stateManager.refresh(undefined, undefined, [], [\`rollback:\${checkpoint.id}\`]);
+    await stateManager.refresh(undefined, undefined, [], [`rollback:${checkpoint.id}`]);
     void agentHistory.record({
       type: "checkpoint-rollback",
       projectId: project.id,
       status: "success",
-      message: \`Rolled back to checkpoint \${checkpoint.id}\`,
+      message: `Rolled back to checkpoint ${checkpoint.id}`,
       output: JSON.stringify({ label: checkpoint.label, files: checkpoint.files.length }),
     });
     return res.json({ success: true, checkpoint });
