@@ -30,6 +30,7 @@ export class OpenRouterProvider implements AIProvider {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly fetchImpl: typeof fetch;
+  private runtimeApiKey = process.env.OPENROUTER_API_KEY?.trim() || "";
 
   constructor(
     baseUrl = process.env.OPENROUTER_BASE_URL || DEFAULT_BASE_URL,
@@ -49,6 +50,18 @@ export class OpenRouterProvider implements AIProvider {
     )];
     this.timeoutMs = timeoutMs;
     this.fetchImpl = fetchImpl;
+  }
+
+  setRuntimeApiKey(apiKey: string): void {
+    const value = apiKey.trim();
+    if (!value || value.length < 10 || value.length > 500) {
+      throw new Error("OpenRouter API key is invalid");
+    }
+    this.runtimeApiKey = value;
+  }
+
+  hasApiKey(): boolean {
+    return Boolean(this.runtimeApiKey);
   }
 
   async generate(message: string, model = this.selectModel(message)): Promise<string> {
@@ -108,7 +121,7 @@ export class OpenRouterProvider implements AIProvider {
 
   async getStatus(model = this.model): Promise<AIProviderStatus> {
     const startedAt = Date.now();
-    if (!process.env.OPENROUTER_API_KEY?.trim()) {
+    if (!this.runtimeApiKey) {
       return {
         available: false,
         model: this.validateModel(model),
@@ -135,7 +148,7 @@ export class OpenRouterProvider implements AIProvider {
   }
 
   private async request<T>(path: string, init: RequestInit): Promise<T> {
-    const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+    const apiKey = this.runtimeApiKey;
     if (!apiKey) throw new Error("OPENROUTER_API_KEY is not configured");
 
     const controller = new AbortController();
