@@ -356,7 +356,11 @@ ${result.output}`
     if (scaffolded && !previousResults.some((item) =>
       (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success
     )) {
-      const existingPath = this.firstRelevantExistingPath(previousResults);
+      const existingPath = this.existingPathsFromResults(previousResults).find(
+        (candidate) => !previousResults.some(
+          (item) => item.tool === "readFile" && item.input === candidate && item.result.success,
+        ),
+      );
       if (existingPath) return { tool: "readFile", input: existingPath };
     }
 
