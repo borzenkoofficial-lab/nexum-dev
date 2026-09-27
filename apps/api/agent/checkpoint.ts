@@ -43,8 +43,6 @@ function assertSafeRelativePath(path: string): void {
 }
 
 export class CheckpointManager {
-  constructor(private readonly workspaceRoot: string) {}
-
   private root(projectPath: string): string {
     return resolve(projectPath, ".nexum", "checkpoints");
   }
@@ -91,6 +89,7 @@ export class CheckpointManager {
   }
 
   async rollback(projectId: string, projectPath: string, checkpointId: string): Promise<ProjectCheckpoint> {
+    if (!/^[a-z0-9-]+$/i.test(checkpointId)) throw new Error("Invalid checkpoint id");
     const checkpointRoot = resolve(this.root(projectPath), checkpointId);
     const manifestPath = resolve(checkpointRoot, "manifest.json");
     const checkpoint = JSON.parse(await readFile(manifestPath, "utf8")) as ProjectCheckpoint;
