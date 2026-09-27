@@ -29,3 +29,26 @@ test("orchestrator assigns specialized free models by role", async () => {
   assert.match(debugRun.model, /north-mini-code|laguna/);
   assert.equal(provider.calls.length, 4);
 });
+
+class FailingFirstModelProvider implements AIProvider {
+  id = "openrouter";
+  name = "Failing first model";
+  model = "openrouter/free";
+  calls: string[] = [];
+  async generate(_message: string, model?: string): Promise<string> {
+    const selected = model ?? "";
+    this.calls.push(selected);
+    if (this.calls.length === 1) throw new Error("429 rate limit");
+    return JSON.stringify({ done: true, finalResponse: "recovered" });
+  }
+}
+
+test("orchestrator fails over to the next compatible model after a rate limit", async () => {
+  const provider = new FailingFirstModelProvider();
+  const gateway = new AIGateway([provider], "openrouter");
+  const orchestrator = new AIOrchestrator(gateway);
+  const result = await orchestrator.run("planner", "plan a build");
+  assert.equal(result.finalResponse, "recovered");
+  assert.equal(provider.calls.length, 2);
+  assert.notEqual(provider.calls[0], provider.calls[1]);
+});
