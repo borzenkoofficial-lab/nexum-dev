@@ -1,4 +1,4 @@
-import { access, mkdir, lstat, readFile, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, lstat, readFile, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { assertExistingProjectPath, resolveProjectPath } from "../agent/tools/path.js";
 import type { Project, ProjectStatus, ProjectStore } from "./types.js";
@@ -82,6 +82,26 @@ export class ProjectManager {
     store.projects.push(project);
     await this.writeStore(store);
     await this.ensureStarterFiles(project);
+    return project;
+  }
+
+  async duplicateProject(id: string): Promise<Project> {
+    const source = await this.getProject(id);
+    const store = await this.requireStore();
+    const baseName = `${source.name} Copy`;
+    let name = baseName;
+    let suffix = 2;
+    while (store.projects.some((project) => project.name.toLowerCase() === name.toLowerCase())) {
+      name = `${baseName} ${suffix++}`;
+    }
+    const newId = this.createId(name);
+    const projectPath = resolveProjectPath(this.projectsRoot, newId);
+    await this.assertProjectPath(projectPath);
+    await cp(source.path, projectPath, { recursive: true, force: false });
+    const now = new Date().toISOString();
+    const project: Project = { id: newId, name, path: projectPath, status: "active", createdAt: now, updatedAt: now };
+    store.projects.push(project);
+    await this.writeStore(store);
     return project;
   }
 
