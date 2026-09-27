@@ -174,7 +174,8 @@ export class AgentLoop {
 
     for (let iteration = 1; iteration <= this.maxIterations; iteration += 1) {
       const availableTools = this.runtime.getAvailableTools();
-      transition(previousResults.length === 0 ? "analyze" : phase === "repair" ? "repair" : "plan");
+      const currentPhase: AgentPhase = phase;
+      transition(previousResults.length === 0 ? "analyze" : currentPhase === "repair" ? "repair" : "plan");
 
       // Builder sessions always inspect the active project before planning or editing.
       // This prevents the model from inventing a new app or answering with source code.
@@ -651,14 +652,14 @@ export class AgentLoop {
         };
       }
 
-      if (!availableTools.includes(plan.tool)) {
-        const error = `Agent stopped: unavailable tool (${plan.tool})`;
-        this.log(iteration, plan.tool, "error");
-        emit({ iteration, type: "failed", tool: plan.tool, message: error });
+      if (!availableTools.includes((plan as AgentPlan).tool)) {
+        const error = `Agent stopped: unavailable tool (${(plan as AgentPlan).tool})`;
+        this.log(iteration, (plan as AgentPlan).tool, "error");
+        emit({ iteration, type: "failed", tool: (plan as AgentPlan).tool, message: error });
         return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
       }
 
-      const actionKey = `${plan.tool}:${plan.input}`;
+      const actionKey = `${(plan as AgentPlan).tool}:${(plan as AgentPlan).input}`;
       const previousSuccess = previousResults.some(
         (item) => item.tool === plan.tool && item.input === plan.input && item.result.success,
       );
@@ -894,7 +895,7 @@ export class AgentLoop {
       .join("\n");
     try {
       if (!options) return "Задача выполнена. Дополнительный финальный AI-ответ отключён: лимит токенов задачи исчерпан.";
-      return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, aiOptions);
+      return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, options);
     } catch (error) {
       const detail = error instanceof Error ? error.message : "AI response generation failed";
       return `Задача выполнена, но финальный ответ AI недоступен: ${detail}. Откройте Preview и вкладку AI Activity для проверки результата.`;
