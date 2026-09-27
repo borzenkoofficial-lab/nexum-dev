@@ -109,23 +109,27 @@ test("automatically installs and builds a generated React/Vite scaffold", async 
 
 test("recovers from a failed build after a file fix", async () => {
   const commands: string[] = [];
+  let buildAttempts = 0;
   const runtime: AgentRuntime = {
-    getAvailableTools: () => ["scaffoldProject", "runCommand", "writeFile"],
+    getAvailableTools: () => ["writeFile", "runCommand"],
     plan: (_task, previousResults) => {
-      if (previousResults.length === 0) return { tool: "scaffoldProject", input: "Создай React приложение" };
-      if (previousResults.some((item) => item.tool === "runCommand" && item.input === "npm run build" && !item.result.success)) {
+      if (previousResults.length === 0) {
+        return { tool: "writeFile", input: JSON.stringify({ path: "src/App.jsx", content: "broken" }) };
+      }
+      if (previousResults.some((item) => item.tool === "runCommand" && item.input === "npm run build" && !item.result.success) &&
+          !previousResults.some((item) => item.tool === "writeFile" && item.input.includes('"content":"fixed"'))) {
         return { tool: "writeFile", input: JSON.stringify({ path: "src/App.jsx", content: "fixed" }) };
       }
       return { tool: "", input: "", done: true, finalResponse: "Готово" };
     },
     executeTool: async (tool, input) => {
-      if (tool === "scaffoldProject") return { success: true, output: "React/Vite scaffold created for test." };
-      if (tool === "writeFile") return { success: true, output: "fixed App.jsx" };
+      if (tool === "writeFile") return { success: true, output: input.includes('"content":"fixed"') ? "fixed App.jsx" : "initial App.jsx" };
       commands.push(input);
       if (input === "npm install") return { success: true, output: "installed" };
-      return commands.filter((command) => command === "npm run build").length > 1
-        ? { success: true, output: "vite build passed" }
-        : { success: false, output: "vite compilation error" };
+      buildAttempts += 1;
+      return buildAttempts === 1
+        ? { success: false, output: "vite compilation error" }
+        : { success: true, output: "vite build passed" };
     },
   };
 
@@ -133,5 +137,5 @@ test("recovers from a failed build after a file fix", async () => {
 
   assert.equal(result.success, true);
   assert.equal(commands.filter((command) => command === "npm run build").length, 2);
-  assert.ok(result.steps.some((step) => step.tool === "writeFile"));
+  assert.ok(result.steps.some((step) => step.tool === "writeFile" && step.input.includes('"content":"fixed"')));
 });
