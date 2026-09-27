@@ -97,6 +97,7 @@ async function runChatJob(
   provider: string | undefined,
   model: string | undefined,
   attachments: Array<{ name: string; type: string; size: number; content?: string; data?: string }>,
+  conversation: Array<{ role: "user" | "assistant"; content: string }>,
 ) {
   const job = chatJobs.get(jobId);
   if (!job) return;
@@ -642,12 +643,13 @@ app.get("/api/projects/:id/preview/status", async (req, res) => {
 });
 
 app.post("/api/chat", async (req, res) => {
-  const { message, projectId, provider, model, attachments } = req.body as {
+  const { message, projectId, provider, model, attachments, conversation } = req.body as {
     message?: unknown;
     projectId?: unknown;
     provider?: unknown;
     model?: unknown;
     attachments?: unknown;
+    conversation?: unknown;
   };
 
   if (typeof message !== "string" || !message.trim()) {
@@ -677,6 +679,13 @@ app.post("/api/chat", async (req, res) => {
         ...(typeof item.data === "string" ? { data: item.data.slice(0, 3_000_000) } : {}),
       }))
     : [];
+  const normalizedConversation = Array.isArray(conversation)
+    ? conversation
+      .map((item) => item as { role?: unknown; content?: unknown })
+      .filter((item) => (item.role === "user" || item.role === "assistant") && typeof item.content === "string")
+      .slice(-8)
+      .map((item) => ({ role: item.role as "user" | "assistant", content: String(item.content).slice(0, 900) }))
+    : [];
 
   try {
     // Validate the project before creating the background job so bad project IDs
@@ -705,6 +714,7 @@ app.post("/api/chat", async (req, res) => {
       provider,
       model,
       normalizedAttachments,
+      normalizedConversation,
     );
 
     return res.status(202).json({
