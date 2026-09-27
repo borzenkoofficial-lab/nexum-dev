@@ -1,0 +1,25 @@
+name: Nexum VS Code Extension
+
+on:
+  push:
+    paths:
+      - "apps/vscode-extension/**"
+  pull_request:
+    paths:
+      - "apps/vscode-extension/**"
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/vscode-extension
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/vscode-extension/package.json
+      - run: npm install
+      - run: npm run compile
