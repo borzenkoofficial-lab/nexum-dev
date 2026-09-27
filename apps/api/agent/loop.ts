@@ -14,6 +14,10 @@ import type {
 const DEFAULT_MAX_ITERATIONS = 8;
 const MAX_AI_PLANNER_CALLS = 3;
 const MAX_PRODUCT_REVIEW_CALLS = 1;
+// One bounded token budget is shared by every remote AI call in a single task.
+// The budget is based on requested max tokens, so a long agent run cannot
+// silently accumulate several independent per-call limits.
+const DEFAULT_TASK_TOKEN_BUDGET = 7_000;
 const MAX_RESULT_LENGTH = 8_000;
 const MAX_CONTEXT_RESULTS = 6;
 const MAX_ACTION_FINGERPRINT_LENGTH = 1800;
@@ -48,6 +52,15 @@ export class AgentLoop {
     let remotePlannerRateLimited = false;
     let aiPlannerCalls = 0;
     let productPlannerCreated = false;
+    let remainingTaskTokens = DEFAULT_TASK_TOKEN_BUDGET;
+    const aiOptionsForTask = (base?: GatewayGenerateOptions): GatewayGenerateOptions | undefined => {
+      if (remainingTaskTokens <= 0) return undefined;
+      const requested = typeof base?.maxTokens === "number" && base.maxTokens > 0 ? base.maxTokens : 1_600;
+      const maxTokens = Math.min(requested, remainingTaskTokens);
+      if (maxTokens <= 0) return undefined;
+      remainingTaskTokens -= maxTokens;
+      return { ...(base ?? {}), maxTokens };
+    };
     const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
 
     // Build is optional for static projects. Only enforce npm run build when
@@ -103,7 +116,9 @@ export class AgentLoop {
         emit({ iteration, type: "thinking", message: "Формирую Product Plan: страницы, компоненты, визуальную систему и критерии готовности." });
         try {
           productPlannerCreated = true;
-          productPlan = await this.runtime.createProductPlan(task, previousResults, options as AgentModelOptions);
+          const aiOptions = aiOptionsForTask(options);
+          if (!aiOptions) throw new Error("Task AI token budget exhausted");
+          productPlan = await this.runtime.createProductPlan(task, previousResults, aiOptions as AgentModelOptions);
           this.onPlan?.(productPlan);
           emit({ iteration, type: "thinking", message: `План готов: ${productPlan.productType}; ${productPlan.pages.length} экранов; ${productPlan.acceptanceCriteria.length} критериев проверки.` });
         } catch (error) {
@@ -115,7 +130,9 @@ export class AgentLoop {
       if (this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < MAX_AI_PLANNER_CALLS) {
         try {
           aiPlannerCalls += 1;
-          modelPlan = await this.runtime.planWithAI(task, previousResults, options as AgentModelOptions, productPlan ?? undefined);
+          const aiOptions = aiOptionsForTask(options);
+          if (!aiOptions) throw new Error("Task AI token budget exhausted");
+          modelPlan = await this.runtime.planWithAI(task, previousResults, aiOptions as AgentModelOptions, productPlan ?? undefined);
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI planning failed";
           if (/(?:rate limit|rate-limit|too many requests|429)/i.test(message)) {
@@ -388,7 +405,9 @@ export class AgentLoop {
         if (builderTask && productPlan && this.runtime.reviewProduct && productReviewAttempts < MAX_PRODUCT_REVIEW_CALLS) {
           productReviewAttempts += 1;
           emit({ iteration, type: "thinking", message: "Запускаю финальный self-review: сверяю реализацию с Product Plan и ищу недостающие функции." });
-          const review = await this.runtime.reviewProduct(task, previousResults, productPlan, options as AgentModelOptions);
+          const aiOptions = aiOptionsForTask(options);
+            if (!aiOptions) throw new Error("Task AI token budget exhausted");
+            const review = await this.runtime.reviewProduct(task, previousResults, productPlan, aiOptions as AgentModelOptions);
           if (!review.passed) {
             const feedback = [
               "Final self-review failed.",
@@ -564,7 +583,9 @@ export class AgentLoop {
   ): Promise<string> {
     if (results.length === 0) {
       try {
-        return await this.gateway.generate(task, options);
+        const aiOptions = aiOptionsForTask(options);
+        if (!aiOptions) return "NEXUM завершил выполнение без дополнительного AI-ответа: лимит токенов задачи исчерпан.";
+        return await this.gateway.generate(task, aiOptions);
       } catch (error) {
         const detail = error instanceof Error ? error.message : "AI response generation failed";
         return `NEXUM завершил выполнение, но финальный ответ AI недоступен: ${detail}. Проверьте Preview и AI Activity.`;
@@ -597,7 +618,9 @@ export class AgentLoop {
       })
       .join("\n");
     try {
-      return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, options);
+      const aiOptions = aiOptionsForTask(options);
+      if (!aiOptions) return "Задача выполнена. Дополнительный финальный AI-ответ отключён: лимит токенов задачи исчерпан.";
+      return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, aiOptions);
     } catch (error) {
       const detail = error instanceof Error ? error.message : "AI response generation failed";
       return `Задача выполнена, но финальный ответ AI недоступен: ${detail}. Откройте Preview и вкладку AI Activity для проверки результата.`;
