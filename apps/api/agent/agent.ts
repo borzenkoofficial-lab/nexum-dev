@@ -800,6 +800,15 @@ h1{max-width:760px;margin:12px 0 10px;font-size:clamp(44px,7vw,82px);line-height
       .filter((path) => inspection.includes(path));
   }
 
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   private extractPath(task: string): string {
     const match = task.match(
       /(?:прочитай|read|show)\s+(?:файл|file)\s+[`"']?([^\s`"']+)|(?:файл|file)\s+[`"']?([^\s`"']+)/i,
