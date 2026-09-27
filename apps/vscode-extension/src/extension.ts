@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import { OllamaClient } from "./ollamaClient.js";
 import { AgentBridge } from "./agentBridge.js";
+import { diagnosticsText, runProjectCheck } from "./taskRunner.js";
+import { repairLoop } from "./repairLoop.js";
 
 function config() {
   const c = vscode.workspace.getConfiguration("nexum");
@@ -58,12 +60,39 @@ async function agent() {
     } catch (e) { void vscode.window.showErrorMessage(e instanceof Error ? e.message : "Nexum Agent failed."); }
   });
 }
+async function checkProject(kind: "build" | "test") {
+  try {
+    const result = await runProjectCheck(kind);
+    const diagnostics = diagnosticsText();
+    const detail = (result.output + (diagnostics ? "\n\nDiagnostics:\n" + diagnostics : "")).slice(-12000);
+    if (result.ok && !diagnostics) void vscode.window.showInformationMessage("Nexum " + kind + ": clean.");
+    else void vscode.window.showErrorMessage("Nexum " + kind + ": errors detected.", { modal: true, detail });
+  } catch (e) {
+    void vscode.window.showErrorMessage(e instanceof Error ? e.message : "Project check failed.");
+  }
+}
+
+async function repair() {
+  const task = await vscode.window.showInputBox({ title: "Nexum Repair Loop", prompt: "What should be working after repair?", value: "Fix the project until the build and diagnostics are clean." });
+  if (!task) return;
+  try {
+    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Nexum: repair loop" }, async () => {
+      await repairLoop(new AgentBridge(client(), config().model), task, 3);
+    });
+  } catch (e) {
+    void vscode.window.showErrorMessage(e instanceof Error ? e.message : "Nexum repair loop failed.");
+  }
+}
+
 export function activate(ctx: vscode.ExtensionContext) {
   ctx.subscriptions.push(
     vscode.commands.registerCommand("nexum.checkLocalAI", check),
     vscode.commands.registerCommand("nexum.installModel", install),
     vscode.commands.registerCommand("nexum.askLocalAI", ask),
-    vscode.commands.registerCommand("nexum.openAgent", agent)
+    vscode.commands.registerCommand("nexum.openAgent", agent),
+    vscode.commands.registerCommand("nexum.buildProject", () => checkProject("build")),
+    vscode.commands.registerCommand("nexum.testProject", () => checkProject("test")),
+    vscode.commands.registerCommand("nexum.repairProject", repair)
   );
 }
 export function deactivate() {}
