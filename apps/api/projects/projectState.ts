@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import type { ProductPlan } from "../agent/types.js";
 
 export interface ProjectState {
-  version: 2;
+  version: 1 | 2;
   projectId: string;
   projectType: "static" | "node" | "react" | "unknown";
   framework: string | null;
