@@ -8,6 +8,7 @@ import { diagnoseError } from "./errorRecovery.js";
 import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVerificationState } from "./taskState.js";
 import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
+import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 import type {
   AgentModelOptions,
   AgentPlan,
@@ -135,14 +136,10 @@ export class AgentLoop {
     let remotePlannerRateLimited = false;
     let aiPlannerCalls = 0;
     let productPlannerCreated = false;
-    let remainingTaskTokens = DEFAULT_TASK_TOKEN_BUDGET;
-    const aiOptionsForTask = (base?: GatewayGenerateOptions): GatewayGenerateOptions | undefined => {
-      if (remainingTaskTokens <= 0) return undefined;
-      const requested = typeof base?.maxTokens === "number" && base.maxTokens > 0 ? base.maxTokens : 1_600;
-      const maxTokens = Math.min(requested, remainingTaskTokens);
-      if (maxTokens <= 0) return undefined;
-      remainingTaskTokens -= maxTokens;
-      return { ...(base ?? {}), maxTokens };
+    const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
+    const aiOptionsForTask = (base?: GatewayGenerateOptions, role: "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" = "general"): GatewayGenerateOptions | undefined => {
+      const maxTokens = adaptiveBudget.reserve(role, typeof base?.maxTokens === "number" && base.maxTokens > 0 ? base.maxTokens : undefined);
+      return maxTokens > 0 ? { ...(base ?? {}), maxTokens } : undefined;
     };
     const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
 
@@ -206,7 +203,7 @@ export class AgentLoop {
         emit({ iteration, type: "thinking", message: "Формирую Product Plan: страницы, компоненты, визуальную систему и критерии готовности." });
         try {
           productPlannerCreated = true;
-          const aiOptions = aiOptionsForTask(options);
+          const aiOptions = aiOptionsForTask(options, "planner");
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           productPlan = await this.runtime.createProductPlan(task, compactAgentHistory(previousResults), aiOptions as AgentModelOptions);
           this.onPlan?.(productPlan);
@@ -236,7 +233,7 @@ export class AgentLoop {
         try {
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
-          const aiOptions = aiOptionsForTask(options);
+          const aiOptions = aiOptionsForTask(options, "finalizer");
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           modelPlan = await this.runtime.planWithAI(task, compactHistory, aiOptions as AgentModelOptions, productPlan ?? undefined);
         } catch (error) {
