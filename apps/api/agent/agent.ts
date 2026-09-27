@@ -84,9 +84,16 @@ ${result.output}`
     previousResults: AgentToolResult[],
     options?: AgentModelOptions,
   ): Promise<ProductPlan> {
+    const lowerTask = task.toLowerCase();
+    const isConstructionTask = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lowerTask);
+    if (isConstructionTask) {
+      return this.fallbackProductPlan(task, previousResults);
+    }
+
     const inspection = previousResults
       .filter((item) => item.result.success)
-      .map((item) => `${item.tool}: ${item.result.output.slice(0, 1200)}`)
+      .slice(-4)
+      .map((item) => `${item.tool}: ${item.result.output.slice(0, 700)}`)
       .join("\n");
     const prompt = [
       "You are the NEXUM product planner.",
@@ -111,16 +118,6 @@ ${result.output}`
         return this.fallbackProductPlan(task, previousResults);
       }
 
-      const repair = await this.orchestrator.run("planner", [
-        "Repair the previous planner output.",
-        "Return ONLY one valid JSON object matching the exact Product Plan schema.",
-        "No markdown, no code fences, no commentary.",
-        "Preserve the user intent and make pages, components, interactions and acceptance criteria concrete.",
-        `User request: ${task}`,
-        `Previous planner output: ${run.response.slice(0, 6000)}`,
-      ].join("\n"), options);
-      const repaired = this.parseProductPlan(repair.response);
-      if (repaired) return repaired;
     } catch (error) {
       console.warn("[agent] product planner failed, using deterministic plan", error);
     }
@@ -135,7 +132,8 @@ ${result.output}`
   ): Promise<ProductReview> {
     const evidence = previousResults
       .filter((item) => item.result.success)
-      .map((item) => `${item.tool}: ${item.result.output.slice(0, 1800)}`)
+      .slice(-8)
+      .map((item) => `${item.tool}: ${item.result.output.slice(0, 700)}`)
       .join("\n");
     const prompt = [
       "You are the NEXUM final implementation reviewer.",
@@ -201,7 +199,8 @@ ${result.output}`
     const history = previousResults.length === 0
       ? "No tools have run yet."
       : previousResults
-          .map((item) => `${item.tool}: ${item.result.output.slice(0, 1_800)}`)
+          .slice(-8)
+          .map((item) => `${item.tool}: ${item.result.output.slice(0, 700)}`)
           .join("\n");
 
     const prompt = [
@@ -488,6 +487,30 @@ ${result.output}`
 
   private fallbackProductPlan(task: string, previousResults: AgentToolResult[]): ProductPlan {
     const lower = task.toLowerCase();
+    const construction = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
+    if (construction) {
+      return {
+        goal: task.trim(),
+        productType: "Construction company website",
+        targetUser: "Property owners, general contractors and commercial customers",
+        pages: ["Home", "Services", "Projects", "Process", "About", "Contacts"],
+        components: ["Construction header", "Hero with estimate CTA", "Services grid", "Project cases", "Work process", "Trust/experience block", "Contact form"],
+        visualSystem: ["Serious construction aesthetic", "Graphite/white with restrained yellow accent", "Strong typography", "Large project imagery", "Responsive mobile layout"],
+        interactions: ["Navigation anchors", "Estimate CTA", "Project browsing", "Lead form", "Mobile navigation"],
+        dataModel: ["services", "projects", "leads", "contacts"],
+        filesToInspect: ["."],
+        filesToChange: ["Application entry", "Styles", "Interaction files"],
+        acceptanceCriteria: [
+          "The site is unmistakably about the requested construction business",
+          "Services, projects, process, trust and contacts are visible",
+          "No NEXUM, SaaS, AI studio or digital-product copy remains in the site",
+          "Primary CTA requests an estimate/contact",
+          "Responsive layout works on mobile",
+          "Production build succeeds"
+        ],
+      };
+    }
+
     const type = /marketplace|маркетплейс|авито|перепродаж/.test(lower)
       ? "Marketplace"
       : /dashboard|crm|панел/.test(lower)
