@@ -3,6 +3,7 @@ import type { AIProvider, AIProviderStatus } from "./types.js";
 export interface GatewayGenerateOptions {
   provider?: string;
   model?: string;
+  fallback?: boolean;
 }
 
 export interface GatewayProviderInfo {
@@ -12,11 +13,29 @@ export interface GatewayProviderInfo {
   isDefault: boolean;
 }
 
+export interface GatewayFallbackEvent {
+  fromProvider: string;
+  fromModel: string;
+  toProvider: string;
+  toModel: string;
+  reason: string;
+  timestamp: number;
+}
+
 export class AIGateway {
   private readonly providers: Map<string, AIProvider>;
   private readonly defaultProviderId: string;
+  private readonly fallbackProviderId?: string;
+  private readonly onFallback?: (event: GatewayFallbackEvent) => void;
 
-  constructor(providers: AIProvider[], defaultProviderId = providers[0]?.id) {
+  constructor(
+    providers: AIProvider[],
+    defaultProviderId = providers[0]?.id,
+    options: {
+      fallbackProviderId?: string;
+      onFallback?: (event: GatewayFallbackEvent) => void;
+    } = {},
+  ) {
     if (providers.length === 0) {
       throw new Error("AI Gateway requires at least one provider");
     }
@@ -27,6 +46,10 @@ export class AIGateway {
 
     this.providers = new Map(providers.map((provider) => [provider.id, provider]));
     this.defaultProviderId = defaultProviderId;
+    this.fallbackProviderId = options.fallbackProviderId && this.providers.has(options.fallbackProviderId)
+      ? options.fallbackProviderId
+      : undefined;
+    this.onFallback = options.onFallback;
   }
 
   async generate(message: string, options: GatewayGenerateOptions | string = {}): Promise<string> {
@@ -38,7 +61,30 @@ export class AIGateway {
       throw new Error(`Unknown AI provider: ${providerId}`);
     }
 
-    return provider.generate(message, normalizedOptions.model);
+    try {
+      return await provider.generate(message, normalizedOptions.model);
+    } catch (error) {
+      const fallbackId = this.fallbackProviderId;
+      if (normalizedOptions.fallback === false || !fallbackId || fallbackId === provider.id) {
+        throw error;
+      }
+
+      const fallback = this.providers.get(fallbackId);
+      if (!fallback) throw error;
+
+      const reason = error instanceof Error ? error.message : "AI provider request failed";
+      const event: GatewayFallbackEvent = {
+        fromProvider: provider.id,
+        fromModel: normalizedOptions.model ?? provider.model,
+        toProvider: fallback.id,
+        toModel: fallback.model,
+        reason,
+        timestamp: Date.now(),
+      };
+      this.onFallback?.(event);
+
+      return fallback.generate(message, fallback.model);
+    }
   }
 
   getProviders(): GatewayProviderInfo[] {
