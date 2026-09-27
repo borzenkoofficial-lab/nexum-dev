@@ -35,7 +35,7 @@ test("creates safe ids for Cyrillic project names", async () => {
   assert.equal(project.status, "active");
 });
 
-test("selects a project and archives without deleting files", async () => {
+test("selects and permanently deletes a project and its files", async () => {
   const { manager } = await createManager();
   await manager.initialize();
   const project = await manager.createProject("Gruzli");
@@ -43,9 +43,11 @@ test("selects a project and archives without deleting files", async () => {
   assert.equal((await manager.getActiveProject()).id, project.id);
 
   await writeFile(join(project.path, "keep.txt"), "keep", "utf8");
-  const archived = await manager.deleteProject(project.id);
-  assert.equal(archived.status, "archived");
-  assert.equal(await readFile(join(project.path, "keep.txt"), "utf8"), "keep");
+  const deleted = await manager.deleteProject(project.id);
+  assert.equal(deleted.id, project.id);
+  await assert.rejects(() => readFile(join(project.path, "keep.txt"), "utf8"));
+  assert.equal((await manager.listProjects()).some((item) => item.id === project.id), false);
+  assert.equal((await manager.getActiveProject()).id, "nexum");
 });
 
 test("rejects traversal, absolute names and symlink project paths", async () => {
@@ -112,4 +114,11 @@ test("creates a React/Vite scaffold for SPA requests", async () => {
   assert.equal(packageJson.scripts?.build, "vite build");
   assert.match(await readFile(join(project.path, "src/App.jsx"), "utf8"), /nexum-root/);
   assert.equal((await readFile(join(project.path, "vite.config.js"), "utf8")).includes("@vitejs/plugin-react"), true);
+});
+
+
+test("protects the default NEXUM project from permanent deletion", async () => {
+  const { manager } = await createManager();
+  await manager.initialize();
+  await assert.rejects(() => manager.deleteProject("nexum"), /cannot be deleted/);
 });
