@@ -525,7 +525,7 @@ app.post("/api/chat", async (req, res) => {
         typeof item.name === "string" && typeof item.size === "number" &&
         (typeof item.content === "string" || typeof item.data === "string"),
       ).map((item) => ({
-        name: item.name!.slice(0, 160),
+        name: String(item.name).slice(0, 160),
         type: typeof item.type === "string" ? item.type.slice(0, 120) : "application/octet-stream",
         size: Math.max(0, Math.min(Number(item.size), 2_000_000)),
         ...(typeof item.content === "string" ? { content: item.content.slice(0, 80_000) } : {}),
