@@ -191,6 +191,19 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+const webDist = resolve(workspaceRoot, "apps/web/dist");
+
+app.use(express.static(webDist));
+
+app.get("*", async (req, res, next) => {
+  if (req.path.startsWith("/api/")) return next();
+  try {
+    return res.sendFile(resolve(webDist, "index.html"));
+  } catch {
+    return res.status(404).send("NEXUM web app is not built yet.");
+  }
+});
+
 function sendProjectError(res: Response, error: unknown) {
   if (error instanceof ProjectManagerError) {
     return res.status(error.statusCode).json({ success: false, error: error.message });
