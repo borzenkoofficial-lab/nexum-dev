@@ -12,13 +12,13 @@ import type { AIProviderInfo, AIProviderStatus, AgentStage, Project } from "./co
 // UI controls persist locally; server-side credentials remain outside the client bundle.
 
 function App() {
-  const [projects, setПроекты] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState("nexum");
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
   const [lastMessage, setLastMessage] = useState("");
   const [agentStage, setAgentStage] = useState<AgentStage>(null);
-  const [projectsLoading, setПроектыLoading] = useState(true);
+  const [projectsLoading, setProjectsLoading] = useState(true);
   const [projectActionLoading, setProjectActionLoading] = useState(false);
   const [apiError, setApiError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -150,28 +150,28 @@ function App() {
   }, [activeProjectId, previewKey]);
   const selectedModels = aiModels[aiProvider] ?? [];
 
-  async function loadПроекты(preferredId = activeProjectId) {
-    setПроектыLoading(true);
+  async function loadProjects(preferredId = activeProjectId) {
+    setProjectsLoading(true);
     try {
       const response = await fetch("/api/projects");
       if (!response.ok) throw new Error(`Проекты API: HTTP ${response.status}`);
       const data = (await response.json()) as { projects?: Project[] };
-      const nextПроекты = data.projects ?? [];
-      const preferred = nextПроекты.find((project) => project.id === preferredId && project.status === "active");
-      const fallback = nextПроекты.find((project) => project.id === "nexum" && project.status === "active")
-        ?? nextПроекты.find((project) => project.status === "active");
-      setПроекты(nextПроекты);
+      const nextProjects = data.projects ?? [];
+      const preferred = nextProjects.find((project) => project.id === preferredId && project.status === "active");
+      const fallback = nextProjects.find((project) => project.id === "nexum" && project.status === "active")
+        ?? nextProjects.find((project) => project.status === "active");
+      setProjects(nextProjects);
       setActiveProjectId(preferred?.id ?? fallback?.id ?? "nexum");
       setApiError("");
     } catch (error) {
       console.error("[Nexum] API projects request failed:", error);
       setApiError(error instanceof Error ? error.message : "Cannot reach API");
     } finally {
-      setПроектыLoading(false);
+      setProjectsLoading(false);
     }
   }
 
-  useEffect(() => { void loadПроекты("nexum"); }, []);
+  useEffect(() => { void loadProjects("nexum"); }, []);
 
   useEffect(() => {
     async function loadAIConfig() {
@@ -240,7 +240,7 @@ function App() {
       if (!response.ok) throw new Error(`API выбора проекта: HTTP ${response.status}`);
       setActiveProjectId(projectId);
       setReply("");
-      await loadПроекты(projectId);
+      await loadProjects(projectId);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Project selection failed");
     } finally {
@@ -261,7 +261,7 @@ function App() {
       const data = await response.json().catch(() => ({})) as { project?: Project; error?: string };
       if (!response.ok) throw new Error(data.error || "Не удалось удалить проект");
       const fallbackId = projects.find((item) => item.status === "active" && item.id !== projectId)?.id ?? "nexum";
-      await loadПроекты(activeProjectId === projectId ? fallbackId : activeProjectId);
+      await loadProjects(activeProjectId === projectId ? fallbackId : activeProjectId);
       if (activeProjectId === projectId) {
         setActiveProjectId(fallbackId);
         setView("project");
@@ -604,7 +604,7 @@ function App() {
                   const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/duplicate`, { method: "POST" });
                   const data = await response.json() as { project?: Project; error?: string };
                   if (!response.ok || !data.project) throw new Error(data.error || "Duplicate failed");
-                  await loadПроекты(data.project.id);
+                  await loadProjects(data.project.id);
                   setActiveProjectId(data.project.id);
                   setNotice("Project дублирован");
                 } catch (error) { setApiError(error instanceof Error ? error.message : "Duplicate failed"); }
