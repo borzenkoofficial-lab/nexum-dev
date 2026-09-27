@@ -128,7 +128,7 @@ export class AIGateway {
       // the caller instead of silently switching providers and hiding the cause.
       // An explicitly selected provider is also treated as authoritative unless
       // the caller explicitly opts into fallback.
-      const explicitProvider = typeof options === "object" && options.provider !== undefined;
+      const explicitProvider = typeof options === "string" || normalizedOptions.provider !== undefined;
       if (
         normalizedOptions.fallback === false ||
         (!normalizedOptions.fallback && explicitProvider) ||
@@ -159,7 +159,7 @@ export class AIGateway {
   }
 
   private isTransientProviderError(message: string): boolean {
-    return /(?:429|rate.?limit|too many requests|timeout|timed out|temporar(?:y|ily)|service unavailable|\b5\d{2}\b)/i.test(message);
+    return /(?:408|429|rate.?limit|too many requests|timeout|timed out|temporar(?:y|ily)|service unavailable|fetch failed|econnreset|econnrefused|enotfound|\b5\d{2}\b)/i.test(message);
   }
 
   getProviders(): GatewayProviderInfo[] {
