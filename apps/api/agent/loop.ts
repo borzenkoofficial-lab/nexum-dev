@@ -29,6 +29,7 @@ export class AgentLoop {
     private readonly maxIterations = DEFAULT_MAX_ITERATIONS,
     private readonly onStep?: (step: AgentStep) => void,
     private readonly onEvent?: (event: AgentEvent) => void,
+    private readonly onPlan?: (plan: ProductPlan) => void,
   ) {}
 
   async run(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
@@ -70,6 +71,7 @@ export class AgentLoop {
         emit({ iteration, type: "thinking", message: "Формирую Product Plan: страницы, компоненты, визуальную систему и критерии готовности." });
         try {
           productPlan = await this.runtime.createProductPlan(task, previousResults, options as AgentModelOptions);
+          this.onPlan?.(productPlan);
           emit({ iteration, type: "thinking", message: `План готов: ${productPlan.productType}; ${productPlan.pages.length} экранов; ${productPlan.acceptanceCriteria.length} критериев проверки.` });
         } catch (error) {
           emit({ iteration, type: "tool-error", tool: "Product Planner", message: error instanceof Error ? error.message : "Product planning failed" });
