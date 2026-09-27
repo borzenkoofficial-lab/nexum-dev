@@ -281,7 +281,6 @@ function App() {
 
   async function sendMessage(task = message) {
     if (!task.trim() || !activeProjectId) return;
-    setMessage(task);
     setLastMessage(task);
     setBuilderStarted(true);
     setRightTab("agent");
