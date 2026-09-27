@@ -1,5 +1,6 @@
 import type { AIGateway } from "../ai/gateway.js";
 import { diagnoseError } from "./errorRecovery.js";
+import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVerificationState } from "./taskState.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
 import type {
   AgentModelOptions,
@@ -121,6 +122,7 @@ export class AgentLoop {
     const seenPlannerContexts = new Set<string>();
     let eventId = 0;
     let phase: AgentPhase = "analyze";
+    const taskState = createAgentTaskState(task);
     let productPlan: ProductPlan | null = null;
     let productReviewAttempts = 0;
     let remotePlannerRateLimited = false;
@@ -160,6 +162,7 @@ export class AgentLoop {
     const transition = (next: AgentPhase) => {
       if (phase === next) return;
       phase = next;
+      taskState.phase = next;
       emit({ iteration: 0, type: "thinking", phase, message: `Стадия агента: ${phase}.` });
     };
     const emit = (event: Omit<AgentEvent, "id" | "timestamp" | "phase"> & { phase?: AgentPhase }) => {
@@ -612,8 +615,27 @@ export class AgentLoop {
           emit({ iteration, type: "tool-success", tool: "productReview", message: "Self-review пройден: реализация соответствует плану." });
         }
 
+        syncVerificationState(taskState, previousResults, productPlan);
+        if (builderTask) {
+          const finishCheck = canFinishBuilder(
+            taskState,
+            previousResults,
+            projectHasBuildScript(previousResults),
+            hasStaticProject,
+          );
+          if (!finishCheck.ok) {
+            emit({
+              iteration,
+              type: "thinking",
+              message: "Финальный gate не разрешил завершение: " + finishCheck.reason + " Возвращаю задачу в исполнение.",
+            });
+            transition(/build|сборк/i.test(finishCheck.reason ?? "") ? "validate" : "repair");
+            continue;
+          }
+        }
+
         transition("finish");
-        emit({ iteration, type: "completed", message: "Все запланированные действия выполнены. Self-review и проверки пройдены." });
+        emit({ iteration, type: "completed", message: "Финальный completion gate пройден. Проект действительно реализован и проверен." });
         return {
           success: true,
           iterations: iteration - 1,
@@ -708,6 +730,8 @@ export class AgentLoop {
       steps.push(step);
       this.onStep?.(step);
       previousResults.push({ iteration, tool: plan.tool, input: plan.input, result });
+      if (result.success && (plan.tool === "writeFile" || plan.tool === "patchFile")) recordSuccessfulChange(taskState, plan.input);
+      syncVerificationState(taskState, previousResults, productPlan);
       this.log(iteration, plan.tool, result.success ? "success" : "error");
       emit({
         iteration,
