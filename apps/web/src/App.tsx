@@ -42,6 +42,8 @@ function App() {
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [connectedConnectors, setConnectedConnectors] = useState<string[]>([]);
   const [activitySteps, setActivitySteps] = useState<Array<{ iteration: number; tool: string; success: boolean }>>([]);
+  const [activityEvents, setActivityEvents] = useState<Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>>([]);
+  const [currentActivity, setCurrentActivity] = useState("");
   const [problems, setProblems] = useState<Array<{ message: string; source?: string }>>([]);
 
   const activeProject = projects.find((project) => project.id === activeProjectId);
@@ -195,7 +197,10 @@ function App() {
     setReply("");
     setApiError("");
     setActivitySteps([]);
+    setActivityEvents([]);
+    setCurrentActivity("Отправляю задачу AI-агенту…");
     setProblems([]);
+    setBottomPanelOpen(true);
 
     try {
       const response = await fetch("/api/chat", {
@@ -247,6 +252,8 @@ function App() {
                 status?: "queued" | "running" | "completed" | "failed";
                 reply?: string | null;
                 steps?: Array<{ iteration: number; tool: string; success: boolean }>;
+                events?: Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>;
+                currentMessage?: string | null;
                 problems?: Array<{ message: string; source?: string }>;
                 error?: string | null;
               };
@@ -263,6 +270,8 @@ function App() {
         const status = data?.job?.status;
         if (status === "completed") {
           setActivitySteps(data?.job?.steps ?? []);
+          setActivityEvents(data?.job?.events ?? []);
+          setCurrentActivity(data?.job?.currentMessage ?? "Готово.");
           setProblems(data?.job?.problems ?? []);
           setReply(data?.job?.reply ?? "");
           setPreviewKey((key) => key + 1);
@@ -276,6 +285,8 @@ function App() {
         }
 
         setActivitySteps(data?.job?.steps ?? []);
+        setActivityEvents(data?.job?.events ?? []);
+        setCurrentActivity(data?.job?.currentMessage ?? "AI выполняет задачу…");
         setProblems(data?.job?.problems ?? []);
         setAgentStage(status === "running" ? "running" : "thinking");
         timer = window.setTimeout(pollJob, 900);
@@ -381,7 +392,7 @@ function App() {
         </>
         )}
       </main>
-      <BottomPanel open={bottomPanelOpen} onClose={() => setBottomPanelOpen(false)} projectId={activeProjectId} jobId={chatJobId} activitySteps={activitySteps} problems={problems} onRunCommand={async (command) => {
+      <BottomPanel open={bottomPanelOpen} onClose={() => setBottomPanelOpen(false)} projectId={activeProjectId} jobId={chatJobId} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} onRunCommand={async (command) => {
         try {
           const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command }) });
           const data = await response.json().catch(() => ({})) as { success?: boolean; stdout?: string; stderr?: string; error?: string; problems?: Array<{ message: string; source?: string }> };
