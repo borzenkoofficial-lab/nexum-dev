@@ -36,6 +36,7 @@ function App() {
   const [previewOnline, setPreviewOnline] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [builderStarted, setBuilderStarted] = useState(false);
+  const [chatJobId, setChatJobId] = useState<string | null>(null);
 
   const activeProject = projects.find((project) => project.id === activeProjectId);
   const selectedModels = aiModels[aiProvider] ?? [];
@@ -167,32 +168,97 @@ function App() {
     setAgentStage("thinking");
     setReply("");
     setApiError("");
-    const runningTimer = window.setTimeout(() => setAgentStage("running"), 450);
-    const buildingTimer = window.setTimeout(() => setAgentStage("building"), 1400);
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: task, projectId: activeProjectId, provider: aiProvider, model: aiModel }),
+        body: JSON.stringify({
+          message: task,
+          projectId: activeProjectId,
+          provider: aiProvider,
+          model: aiModel,
+        }),
       });
-      if (!response.ok) { const body = await response.json().catch(() => null) as { error?: string } | null; throw new Error(body?.error || `Chat API: HTTP ${response.status}`); }
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(body?.error || `Chat API: HTTP ${response.status}`);
+      }
+
       const data = (await response.json()) as {
-        reply?: string;
+        success?: boolean;
+        jobId?: string;
+        status?: string;
         error?: string;
-        steps?: Array<{ tool?: string; success?: boolean }>;
       };
-      if (data.error) throw new Error(data.error);
-      setReply(data.reply ?? "");
-      setPreviewKey((key) => key + 1);
+      if (!data.jobId) throw new Error(data.error || "Chat API did not return a job ID");
+
+      setChatJobId(data.jobId);
     } catch (error) {
-      console.error("[Nexum] Chat API request failed:", error);
+      console.error("[Nexum] Chat job creation failed:", error);
       setApiError(error instanceof Error ? error.message : "Chat API request failed");
-    } finally {
-      window.clearTimeout(runningTimer);
-      window.clearTimeout(buildingTimer);
       setAgentStage(null);
     }
   }
+
+  useEffect(() => {
+    if (!chatJobId) return;
+
+    let cancelled = false;
+    let timer: number | undefined;
+
+    async function pollJob() {
+      try {
+        const response = await fetch(`/api/chat/jobs/${encodeURIComponent(chatJobId)}`);
+        const data = response.ok
+          ? await response.json() as {
+              success?: boolean;
+              job?: {
+                status?: "queued" | "running" | "completed" | "failed";
+                reply?: string | null;
+                error?: string | null;
+              };
+              error?: string;
+            }
+          : null;
+
+        if (cancelled) return;
+
+        if (!response.ok) {
+          throw new Error(data?.error || `Chat job API: HTTP ${response.status}`);
+        }
+
+        const status = data?.job?.status;
+        if (status === "completed") {
+          setReply(data.job?.reply ?? "");
+          setPreviewKey((key) => key + 1);
+          setAgentStage(null);
+          setChatJobId(null);
+          return;
+        }
+
+        if (status === "failed") {
+          throw new Error(data?.job?.error || "AI agent failed");
+        }
+
+        setAgentStage(status === "running" ? "running" : "thinking");
+        timer = window.setTimeout(pollJob, 900);
+      } catch (error) {
+        if (cancelled) return;
+        console.error("[Nexum] Chat job polling failed:", error);
+        setApiError(error instanceof Error ? error.message : "Chat job polling failed");
+        setAgentStage(null);
+        setChatJobId(null);
+      }
+    }
+
+    void pollJob();
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [chatJobId]);
 
   function selectAIProvider(providerId: string) {
     const provider = aiProviders.find((item) => item.id === providerId);
