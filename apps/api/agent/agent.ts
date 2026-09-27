@@ -182,12 +182,10 @@ ${result.output}`
     options?: AgentModelOptions,
     productPlan?: ProductPlan,
   ): Promise<AgentPlan | null> {
-    // Construction requests use the deterministic domain-locked builder.
-    // This avoids repeated remote planning calls and prevents generic SaaS
-    // templates from overriding the requested construction domain.
-    if (/строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(task.toLowerCase())) {
-      return null;
-    }
+    // Construction requests still go through the AI implementation planner.
+    // The deterministic fallback remains only as recovery. Otherwise every
+    // construction request would reuse the same hard-coded template and merely
+    // replace its text, which defeats the purpose of a generative builder.
     const toolCatalog = [
       "listFiles: input is a relative directory path string, usually .",
       "readFile: input is a relative file path string",
