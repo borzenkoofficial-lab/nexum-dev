@@ -85,9 +85,20 @@ export class AgentLoop {
           item.tool === "writeFile" &&
           /"path"\s*:\s*"(?:(?:src\/)|(?:package\.json$)|(?:vite\.config\.)|(?:index\.html$))/i.test(item.input),
         );
-        const hasSuccessfulBuild = previousResults.some(
-          (item) => item.tool === "runCommand" && item.input === "npm run build" && item.result.success,
-        );
+        const lastProjectChangeIndex = previousResults.reduce((lastIndex, item, index) => {
+          if (
+            item.tool === "scaffoldProject" ||
+            item.tool === "writeFile"
+          ) return index;
+          return lastIndex;
+        }, -1);
+        const lastSuccessfulBuildIndex = previousResults.reduce((lastIndex, item, index) => {
+          if (item.tool === "runCommand" && item.input === "npm run build" && item.result.success) {
+            return index;
+          }
+          return lastIndex;
+        }, -1);
+        const hasSuccessfulBuild = lastSuccessfulBuildIndex > lastProjectChangeIndex;
         if (hasProjectChanges && !hasSuccessfulBuild && availableTools.includes("runCommand")) {
           for (const command of ["npm install", "npm run build"]) {
             const alreadySuccessful = previousResults.some(
