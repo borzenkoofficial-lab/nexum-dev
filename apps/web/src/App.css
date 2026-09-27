@@ -1673,3 +1673,44 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .pipeline-step.done{color:#aeb9b0}
 .pipeline-step.done i{border-color:rgba(217,255,74,.20);color:#d8ef96}
 @media (max-width:520px){.starter-grid{grid-template-columns:1fr}.starter-grid button{min-height:54px}.agent-pipeline{margin-left:-2px;margin-right:-2px}}
+
+
+/* Compact quick actions: keep them close to the composer utility row */
+.starter-grid{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:6px;
+  margin:8px 0 2px;
+}
+.starter-grid button{
+  min-width:auto;
+  min-height:30px;
+  height:30px;
+  padding:0 10px;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  text-align:left;
+  border:1px solid var(--line);
+  border-radius:7px;
+  background:rgba(255,255,255,.02);
+  color:var(--muted);
+  font-size:10px;
+  font-weight:600;
+  white-space:nowrap;
+  transition:transform var(--nexum-fast) var(--nexum-ease),background var(--nexum-fast) ease,border-color var(--nexum-fast) ease,color var(--nexum-fast) ease;
+}
+.starter-grid button:hover{
+  transform:translateY(-1px);
+  background:rgba(255,255,255,.045);
+  border-color:rgba(215,243,91,.22);
+  color:var(--text);
+}
+.starter-grid button:active{transform:scale(.985)}
+.starter-grid span{color:#6f786f;font-size:9px;font-weight:500}
+@media (max-width:520px){
+  .starter-grid{gap:5px;margin-top:7px}
+  .starter-grid button{height:28px;min-height:28px;padding:0 8px;font-size:9px}
+  .starter-grid span{display:none}
+}
