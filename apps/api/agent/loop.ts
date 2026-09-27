@@ -49,6 +49,16 @@ export class AgentLoop {
       }
 
       if (plan.done) {
+        const lastFailure = [...previousResults].reverse().find((item) => !item.result.success);
+        if (lastFailure) {
+          return {
+            success: false,
+            iterations: iteration - 1,
+            steps,
+            error: `Tool ${lastFailure.tool} failed: ${lastFailure.result.output}`,
+          };
+        }
+
         return {
           success: true,
           iterations: iteration - 1,
