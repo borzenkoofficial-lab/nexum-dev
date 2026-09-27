@@ -12,21 +12,37 @@ import type {
 const DEFAULT_MAX_ITERATIONS = 10;
 const MAX_RESULT_LENGTH = 8_000;
 
+export interface AgentEvent {
+  id: number;
+  timestamp: number;
+  iteration: number;
+  type: "thinking" | "tool-start" | "tool-success" | "tool-error" | "completed" | "failed";
+  tool?: string;
+  message: string;
+}
+
 export class AgentLoop {
   constructor(
     private readonly runtime: AgentRuntime,
     private readonly gateway: AIGateway,
     private readonly maxIterations = DEFAULT_MAX_ITERATIONS,
     private readonly onStep?: (step: AgentStep) => void,
+    private readonly onEvent?: (event: AgentEvent) => void,
   ) {}
 
   async run(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
     const steps: AgentStep[] = [];
     const previousResults: AgentToolResult[] = [];
     const seenActions = new Set<string>();
+    let eventId = 0;
+    const emit = (event: Omit<AgentEvent, "id" | "timestamp">) => {
+      this.onEvent?.({ ...event, id: ++eventId, timestamp: Date.now() });
+    };
+    emit({ iteration: 0, type: "thinking", message: "Принял запрос. Анализирую проект и выбираю следующий шаг." });
 
     for (let iteration = 1; iteration <= this.maxIterations; iteration += 1) {
       const availableTools = this.runtime.getAvailableTools();
+      emit({ iteration, type: "thinking", message: `Шаг ${iteration}: анализирую состояние проекта и результаты предыдущего действия.` });
       let modelPlan: AgentPlan | null = null;
       if (this.runtime.planWithAI) {
         try {
@@ -40,6 +56,7 @@ export class AgentLoop {
       // Prefer the model plan when available; otherwise use the deterministic runtime planner.\n      const plan = modelPlan ?? this.runtime.plan(task, previousResults);
 
       if (!plan) {
+        emit({ iteration, type: "completed", message: "Дополнительных действий не требуется. Формирую итог." });
         return {
           success: true,
           iterations: iteration - 1,
@@ -59,6 +76,7 @@ export class AgentLoop {
           };
         }
 
+        emit({ iteration, type: "completed", message: "Все запланированные действия выполнены. Формирую итог и обновляю результат." });
         return {
           success: true,
           iterations: iteration - 1,
@@ -70,6 +88,7 @@ export class AgentLoop {
       if (!availableTools.includes(plan.tool)) {
         const error = `Agent stopped: unavailable tool (${plan.tool})`;
         this.log(iteration, plan.tool, "error");
+        emit({ iteration, type: "failed", tool: plan.tool, message: error });
         return { success: false, iterations: iteration - 1, steps, error };
       }
 
@@ -84,6 +103,7 @@ export class AgentLoop {
       }
       seenActions.add(actionKey);
 
+      emit({ iteration, type: "tool-start", tool: plan.tool, message: this.describeToolStart(plan.tool, plan.input) });
       const result = await this.runtime.executeTool(plan.tool, plan.input);
       const step: AgentStep = {
         iteration,
@@ -95,6 +115,12 @@ export class AgentLoop {
       this.onStep?.(step);
       previousResults.push({ iteration, tool: plan.tool, input: plan.input, result });
       this.log(iteration, plan.tool, result.success ? "success" : "error");
+      emit({
+        iteration,
+        type: result.success ? "tool-success" : "tool-error",
+        tool: plan.tool,
+        message: result.success ? this.describeToolSuccess(plan.tool, result.output) : this.describeToolError(plan.tool, result.output),
+      });
 
       if (!result.success) {
         // Give the planner a chance to inspect the failure and choose a corrected action.
@@ -109,6 +135,7 @@ export class AgentLoop {
       ? `Tool ${lastFailure.tool} failed after recovery attempts: ${lastFailure.result.output}`
       : `Agent stopped: maximum iterations reached (${this.maxIterations})`;
     this.log(this.maxIterations, "loop", "error");
+    emit({ iteration: this.maxIterations, type: "failed", message: error });
     return { success: false, iterations: this.maxIterations, steps, error };
   }
 
@@ -128,6 +155,43 @@ export class AgentLoop {
       })
       .join("\n");
     return this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, options);
+  }
+
+  private describeToolStart(tool: string, input: string): string {
+    const labels: Record<string, string> = {
+      listFiles: "Смотрю структуру проекта.",
+      readFile: "Читаю нужный файл и проверяю текущую реализацию.",
+      writeFile: "Изменяю файл по задаче.",
+      scaffoldProject: "Создаю базовую структуру приложения.",
+      searchFiles: "Ищу связанные файлы и места использования.",
+      runCommand: "Запускаю проверочную команду.",
+      runSandbox: "Запускаю сборку или тест в изолированной среде.",
+      git: "Проверяю состояние Git.",
+      github: "Получаю данные из GitHub.",
+    };
+    const detail = input.length < 120 ? ` (${input})` : "";
+    return (labels[tool] ?? `Выполняю действие: ${tool}.`) + detail;
+  }
+
+  private describeToolSuccess(tool: string, output: string): string {
+    const tail = output.replace(/\s+/g, " ").trim().slice(0, 180);
+    const labels: Record<string, string> = {
+      listFiles: "Структура проекта получена.",
+      readFile: "Файл прочитан.",
+      writeFile: "Файл изменён.",
+      scaffoldProject: "Структура приложения создана.",
+      searchFiles: "Поиск завершён.",
+      runCommand: "Команда завершилась успешно.",
+      runSandbox: "Проверка завершилась успешно.",
+      git: "Состояние Git получено.",
+      github: "Данные GitHub получены.",
+    };
+    return tail ? `${labels[tool] ?? "Действие завершено."} ${tail}` : (labels[tool] ?? "Действие завершено.");
+  }
+
+  private describeToolError(tool: string, output: string): string {
+    const detail = output.replace(/\s+/g, " ").trim().slice(0, 260);
+    return `${tool} завершился с ошибкой. Анализирую проблему и попробую исправить её. ${detail}`.trim();
   }
 
   private log(iteration: number, tool: string, status: "success" | "error"): void {
