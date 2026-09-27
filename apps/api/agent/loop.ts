@@ -118,7 +118,7 @@ export class AgentLoop {
       // A model is not allowed to declare completion while the deterministic
       // builder still has required implementation work. This is the hard guard
       // against "done" responses that only rename the starter template.
-      if (modelPlan?.done && builderTask) {
+      if (plan?.done && builderTask) {
         const deterministicContinuation = this.runtime.plan(task, previousResults);
         if (deterministicContinuation && !deterministicContinuation.done) {
           plan = deterministicContinuation;
