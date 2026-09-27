@@ -2,7 +2,8 @@ import type { AIProvider, AIProviderStatus } from "../types.js";
 
 const DEFAULT_BASE_URL = "http://localhost:11434";
 const DEFAULT_MODEL = "qwen3:4b";
-const DEFAULT_TIMEOUT_MS = 300_000;
+const DEFAULT_TIMEOUT_MS = 900_000;
+const DEFAULT_CONTEXT = 4096;
 
 interface OllamaChatResponse {
   message?: { content?: string };
@@ -23,7 +24,7 @@ export class OllamaProvider implements AIProvider {
   constructor(
     baseUrl = process.env.OLLAMA_BASE_URL || DEFAULT_BASE_URL,
     model = process.env.OLLAMA_MODEL || DEFAULT_MODEL,
-    timeoutMs = DEFAULT_TIMEOUT_MS,
+    timeoutMs = Number(process.env.OLLAMA_TIMEOUT_MS || DEFAULT_TIMEOUT_MS),
     fetchImpl: typeof fetch = fetch,
   ) {
     this.baseUrl = baseUrl.replace(/\/+$/, "");
@@ -43,8 +44,9 @@ export class OllamaProvider implements AIProvider {
         keep_alive: "10m",
         think: false,
         options: {
-          num_ctx: 3072,
-          num_thread: 2,
+          num_ctx: Number(process.env.OLLAMA_NUM_CTX || DEFAULT_CONTEXT),
+          ...(process.env.OLLAMA_NUM_THREAD?.trim() ? { num_thread: Number(process.env.OLLAMA_NUM_THREAD) } : {}),
+          num_predict: Number(process.env.OLLAMA_NUM_PREDICT || 1400),
         },
       }),
     });
