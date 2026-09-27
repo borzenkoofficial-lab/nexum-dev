@@ -25,6 +25,7 @@ export function BottomPanel({ open, onClose, projectId, jobId, activitySteps, ac
   const [diagnostics, setDiagnostics] = useState("");
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [diagnosticsError, setDiagnosticsError] = useState("");
+  const [diagnosticsRefresh, setDiagnosticsRefresh] = useState(0);
 
   useEffect(() => {
     if (!open || !projectId || tab !== "git") return;
@@ -64,7 +65,7 @@ export function BottomPanel({ open, onClose, projectId, jobId, activitySteps, ac
       .catch((error) => { if (!cancelled) setDiagnosticsError(error instanceof Error ? error.message : "Diagnostics unavailable"); })
       .finally(() => { if (!cancelled) setDiagnosticsLoading(false); });
     return () => { cancelled = true; };
-  }, [open, tab, jobId]);
+  }, [open, tab, jobId, diagnosticsRefresh]);
 
   if (!open) return null;
 
@@ -90,7 +91,7 @@ export function BottomPanel({ open, onClose, projectId, jobId, activitySteps, ac
     {tab === "diagnostics" && <div className="bottom-output diagnostics-output">
       <div className="diagnostics-toolbar">
         <strong>Agent diagnostics</strong>
-        <button type="button" disabled={diagnosticsLoading} onClick={() => setDiagnosticsLoading(true)}>{diagnosticsLoading ? "Loading…" : "Refresh"}</button>
+        <button type="button" disabled={diagnosticsLoading} onClick={() => setDiagnosticsRefresh((value) => value + 1)}>{diagnosticsLoading ? "Loading…" : "Refresh"}</button>
         {diagnostics && <button type="button" onClick={() => void navigator.clipboard?.writeText(diagnostics)}>Copy JSON</button>}
       </div>
       {diagnosticsError ? <span className="error-state-inline">{diagnosticsError}</span> : diagnosticsLoading && !diagnostics ? <span>Collecting diagnostics…</span> : <pre>{diagnostics || "No diagnostics yet."}</pre>}
