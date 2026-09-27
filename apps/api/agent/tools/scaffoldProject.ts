@@ -27,6 +27,7 @@ export class ScaffoldProjectTool implements Tool {
 
       for (const [path, content] of files) {
         const target = await this.workspace.writable(path);
+        await mkdir(dirname(target), { recursive: true });
         await writeFile(target, content, "utf8");
       }
 
