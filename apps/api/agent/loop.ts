@@ -68,9 +68,10 @@ export class AgentLoop {
       }
 
       if (plan.done) {
+        const lastResult = previousResults[previousResults.length - 1];
         const lastFailure = [...previousResults].reverse().find((item) => !item.result.success);
-        if (lastFailure) {
-          emit({ iteration, type: "thinking", message: "Есть ошибка предыдущего действия. Передаю её модели вместо завершения сессии." });
+        if (lastFailure && lastResult?.result.success === false) {
+          emit({ iteration, type: "thinking", message: "Последнее действие завершилось ошибкой. Передаю её модели вместо завершения сессии." });
           continue;
         }
 
