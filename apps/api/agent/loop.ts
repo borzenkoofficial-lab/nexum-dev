@@ -117,6 +117,7 @@ export class AgentLoop {
     const previousResults: AgentToolResult[] = [];
     const seenActions = new Set<string>();
     const actionAttempts = new Map<string, number>();
+    const seenPlannerContexts = new Set<string>();
     let eventId = 0;
     let productPlan: ProductPlan | null = null;
     let productReviewAttempts = 0;
@@ -198,12 +199,28 @@ export class AgentLoop {
       }
       emit({ iteration, type: "thinking", message: `Шаг ${iteration}: анализирую состояние проекта и результаты предыдущего действия.` });
       let modelPlan: AgentPlan | null = null;
-      if (this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < MAX_AI_PLANNER_CALLS) {
+      const compactHistory = compactAgentHistory(previousResults);
+      const plannerContextFingerprint = JSON.stringify({
+        task,
+        provider: options?.provider ?? null,
+        model: options?.model ?? null,
+        productPlan: productPlan ?? null,
+        history: compactHistory.map((item) => ({
+          iteration: item.iteration,
+          tool: item.tool,
+          input: item.input,
+          success: item.result.success,
+          output: item.result.output,
+        })),
+      });
+      const plannerContextSeen = seenPlannerContexts.has(plannerContextFingerprint);
+      if (this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < MAX_AI_PLANNER_CALLS && !plannerContextSeen) {
         try {
+          seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
           const aiOptions = aiOptionsForTask(options);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
-          modelPlan = await this.runtime.planWithAI(task, compactAgentHistory(previousResults), aiOptions as AgentModelOptions, productPlan ?? undefined);
+          modelPlan = await this.runtime.planWithAI(task, compactHistory, aiOptions as AgentModelOptions, productPlan ?? undefined);
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI planning failed";
           if (/(?:rate limit|rate-limit|too many requests|429)/i.test(message)) {
@@ -223,6 +240,12 @@ export class AgentLoop {
           // rate-limited endpoint on every iteration.
           modelPlan = null;
         }
+      } else if (this.runtime.planWithAI && plannerContextSeen) {
+        emit({
+          iteration,
+          type: "thinking",
+          message: "Контекст задачи не изменился. Повторный AI planner-запрос пропущен.",
+        });
       }
       // Prefer the model plan when available. If it repeats an action that
       // already failed, switch to the deterministic planner so recovery can continue.
@@ -247,8 +270,7 @@ export class AgentLoop {
       // "done". Existing projects need real file changes too; otherwise the chat
       // can report success while the preview remains the old starter/template.
       if (plan?.done && builderTask) {
-        const implementationWrites = previousResults.filter(
-          (item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
+        const implementationWrites = previousResults.filter(          (item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
         ).length;
         if (implementationWrites < 2 && this.runtime.planWithAI) {
           emit({
@@ -497,8 +519,7 @@ export class AgentLoop {
         return {
           success: true,
           iterations: iteration - 1,
-          steps,
-          productPlan: productPlan ?? undefined,
+          steps,          productPlan: productPlan ?? undefined,
           finalResponse: plan.finalResponse ?? await this.finalResponse(task, previousResults, options),
         };
       }
