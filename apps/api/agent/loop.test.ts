@@ -115,15 +115,8 @@ test("automatically installs and builds a generated React/Vite scaffold", async 
   const result = await new AgentLoop(runtime, gateway).run("Создай React приложение");
 
   assert.equal(result.success, true);
-  assert.deepEqual(commands, ["npm install", "npm run build", "npm install", "npm run build"]);
-  assert.deepEqual(result.steps.map((step) => step.tool), [
-    "scaffoldProject",
-    "runCommand",
-    "runCommand",
-    "writeFile",
-    "runCommand",
-    "runCommand",
-  ]);
+  assert.deepEqual(commands, ["npm install", "npm run build"]);
+  assert.deepEqual(result.steps.map((step) => step.tool), ["scaffoldProject", "runCommand", "runCommand"]);
   assert.equal(result.steps.every((step) => step.success), true);
 });
 
