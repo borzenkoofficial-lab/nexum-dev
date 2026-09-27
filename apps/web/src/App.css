@@ -1080,3 +1080,55 @@ body{
   color:#f1e9e8;
 }
 .preview-runtime-error button:hover{background:rgba(255,130,120,.10);border-color:rgba(255,130,120,.24)}
+
+
+/* Cinematic rotating creation prompt */
+.cinematic-prompt {
+  position: relative;
+  min-height: 1.92em;
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+  isolation: isolate;
+}
+.cinematic-prompt-text {
+  display: block;
+  max-width: 100%;
+  transform-origin: 50% 55%;
+  will-change: opacity, filter, transform;
+  animation: cinematic-prompt-cycle 5.2s cubic-bezier(.22,.61,.36,1) both;
+}
+@keyframes cinematic-prompt-cycle {
+  0% {
+    opacity: 0;
+    filter: blur(16px);
+    transform: translateY(10px) scale(.985);
+  }
+  16% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+  76% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(16px);
+    transform: translateY(-8px) scale(.985);
+  }
+}
+@media (max-width: 620px) {
+  .cinematic-prompt { min-height: 2.7em; }
+}
+html[data-motion="off"] .cinematic-prompt-text {
+  animation: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  transform: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cinematic-prompt-text { animation: none; opacity: 1; filter: none; transform: none; }
+}
