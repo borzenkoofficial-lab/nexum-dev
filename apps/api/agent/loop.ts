@@ -285,34 +285,6 @@ export class AgentLoop {
         }
       }
 
-      // A Builder task is never allowed to finish just because the model said
-      // "done". Existing projects need real file changes too; otherwise the chat
-      // can report success while the preview remains the old starter/template.
-      if (plan?.done && builderTask) {
-        const implementationWrites = previousResults.filter(          (item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
-        ).length;
-        if (implementationWrites < 2 && this.runtime.planWithAI) {
-          emit({
-            iteration,
-            type: "thinking",
-            message: "Модель попыталась завершить без реализации. Требую фактическое изменение файлов.",
-          });
-
-          // Do not spend another remote AI call merely because the planner
-          // returned done=true too early. The deterministic planner already has
-          // the full tool/result history and can choose the next concrete action.
-          // This removes a duplicate planner request from the same iteration and
-          // preserves the global AI-call budget for genuinely new project state.
-          plan = this.runtime.plan(task, previousResults);
-
-          if (!plan || plan.done) {
-            // Keep the job alive for the next iteration while implementation is
-            // still missing. The next AI planner call, if any, sees new state.
-            continue;
-          }
-        }
-      }
-
       if (!plan) {
         if (builderTask) {
           const implementationWrites = previousResults.filter(
