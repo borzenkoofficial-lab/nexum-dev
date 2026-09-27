@@ -188,7 +188,7 @@ async function runChatJob(
         const parsed = JSON.parse(step.input);
         return typeof parsed.path === "string" ? parsed.path : "";
       } catch { return ""; }
-    }).filter(Boolean), [], result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
+    }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
     await stateManager.markCompleted(message.slice(0, 240));
     console.log("[Nexum] chat job completed", jobId);
   } catch (error) {
