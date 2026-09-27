@@ -178,6 +178,7 @@ app.post("/api/chat", async (req, res) => {
 
   try {
     const project = await projectManager.getActiveProject(projectId);
+    console.log("[Nexum] chat project", project.id, project.path);
     const agent = new NexumAgent(aiGateway, project.path);
     const agentLoop = new AgentLoop(agent, aiGateway);
     const result = await agentLoop.run(message, {
