@@ -31,6 +31,18 @@
       {
         "command": "nexum.askLocalAI",
         "title": "Nexum: Ask Local AI"
+      },
+      {
+        "command": "nexum.buildProject",
+        "title": "Nexum: Build Project"
+      },
+      {
+        "command": "nexum.testProject",
+        "title": "Nexum: Test Project"
+      },
+      {
+        "command": "nexum.repairProject",
+        "title": "Nexum: Repair Project"
       }
     ],
     "configuration": {
