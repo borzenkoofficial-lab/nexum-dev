@@ -6,6 +6,7 @@ const ollama = process.platform === "win32" ? "ollama.exe" : "ollama";
 const root = process.cwd();
 const ollamaBaseUrl = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
 const ollamaModel = process.env.OLLAMA_MODEL ?? "qwen3:4b";
+const aiProvider = process.env.AI_PROVIDER?.toLowerCase() ?? "ollama";
 
 function runInstall(dir) {
   const packageJson = `${root}/${dir}/package.json`;
@@ -146,16 +147,20 @@ async function main() {
   process.on("SIGINT", () => shutdown(0));
   process.on("SIGTERM", () => shutdown(0));
 
-  // Ollama is optional. Check/start it after the API and web are already usable.
-  void (async () => {
-    const ollamaReady = await ensureOllama();
-    if (ollamaReady) await ensureModel();
-  })();
+  // Ollama is optional. Do not start it when OpenRouter is the selected provider.
+  if (aiProvider === "ollama") {
+    void (async () => {
+      const ollamaReady = await ensureOllama();
+      if (ollamaReady) await ensureModel();
+    })();
+  }
 
   console.log("");
   console.log("[Nexum] Web: http://localhost:5173");
   console.log("[Nexum] API: http://localhost:3001");
-  console.log(`[Nexum] AI: Ollama / ${ollamaModel} (optional)`);
+  console.log(aiProvider === "openrouter"
+    ? `[Nexum] AI: OpenRouter / ${process.env.OPENROUTER_MODEL ?? "openrouter/free"}`
+    : `[Nexum] AI: Ollama / ${ollamaModel} (optional)`);
   console.log("[Nexum] Press Ctrl+C to stop both.");
 }
 
