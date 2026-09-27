@@ -28,6 +28,7 @@ interface RightPanelProps {
 export function RightPanel({ tab, onTabChange, projectName, projectId, previewOnline, previewKey, onRefreshPreview, jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan }: RightPanelProps) {
   const previewUrl = projectId ? `/api/preview/${projectId}/index.html` : "";
   const [files, setFiles] = useState<string[]>([]);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
   const [filesLoading, setFilesLoading] = useState(false);
   const [fileError, setFileError] = useState("");
   const [selectedFile, setSelectedFile] = useState("");
@@ -79,7 +80,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   if (tab === "preview") {
     panelContent = previewOnline ? (
       <div className="preview-frame-wrap">
-        <iframe key={previewKey} className="preview-frame" title={projectName + " live preview"} src={previewUrl} sandbox="allow-scripts allow-forms allow-modals" />
+        <iframe key={previewKey} className="preview-frame" title={projectName + " live preview"} src={previewUrl} sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" />
       </div>
     ) : (
       <div className="preview-content">
@@ -131,9 +132,14 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
         <button className={tab === "preview" ? "active" : ""} type="button" onClick={() => onTabChange("preview")}>Предпросмотр</button>
         <button className={tab === "files" ? "active" : ""} type="button" onClick={() => onTabChange("files")}>Файлы</button>
         <button className={tab === "agent" ? "active" : ""} type="button" onClick={() => onTabChange("agent")}>Агент</button>
-        {tab === "preview" && previewOnline && <button className="preview-refresh" type="button" onClick={onRefreshPreview} aria-label="Обновить предпросмотр">↻</button>}
+        {tab === "preview" && previewOnline && <>
+          <button className="preview-refresh" type="button" onClick={onRefreshPreview} aria-label="Обновить предпросмотр">↻</button>
+          <button className="preview-expand" type="button" onClick={() => setPreviewExpanded((open) => !open)} aria-label={previewExpanded ? "Свернуть предпросмотр" : "Развернуть предпросмотр"}>{previewExpanded ? "↙" : "↗"}</button>
+        </>}
       </div>
-      {panelContent}
+      <div className={previewExpanded ? "preview-expanded" : ""}>
+        {panelContent}
+      </div>
     </aside>
   );
 }
