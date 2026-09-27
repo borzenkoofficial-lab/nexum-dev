@@ -732,7 +732,10 @@ export class AgentLoop {
       steps.push(step);
       this.onStep?.(step);
       previousResults.push({ iteration, tool: plan.tool, input: plan.input, result });
-      const runtimeRoot = this.runtime instanceof Object && "projectRoot" in this.runtime ? (this.runtime as { projectRoot?: string }).projectRoot : undefined;\n      if (runtimeRoot) {\n        void recordAction(runtimeRoot, { timestamp: new Date().toISOString(), iteration, tool: plan.tool, input: plan.input, success: result.success, output: result.output }).catch(() => undefined);\n      }
+      const runtimeRoot = this.runtime instanceof Object && "projectRoot" in this.runtime ? (this.runtime as { projectRoot?: string }).projectRoot : undefined;
+      if (runtimeRoot) {
+        void recordAction(runtimeRoot, { timestamp: new Date().toISOString(), iteration, tool: plan.tool, input: plan.input, success: result.success, output: result.output }).catch(() => undefined);
+      }
       if (result.success && (plan.tool === "writeFile" || plan.tool === "patchFile")) recordSuccessfulChange(taskState, plan.input);
       syncVerificationState(taskState, previousResults, productPlan);
       this.log(iteration, plan.tool, result.success ? "success" : "error");
