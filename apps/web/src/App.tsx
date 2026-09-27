@@ -53,7 +53,8 @@ function App() {
       setProjects(nextProjects);
       setActiveProjectId(preferred?.id ?? fallback?.id ?? "nexum");
       setApiError(false);
-    } catch {
+    } catch (error) {
+      console.error("[Nexum] API projects request failed:", error);
       setApiError(true);
     } finally {
       setProjectsLoading(false);
