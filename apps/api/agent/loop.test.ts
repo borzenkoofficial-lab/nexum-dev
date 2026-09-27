@@ -82,3 +82,42 @@ test("stops repeated identical actions", async () => {
   assert.equal(result.steps.length, 1);
   assert.match(result.error ?? "", /repeated action/i);
 });
+
+test("automatically installs and builds a generated React/Vite scaffold", async () => {
+  const commands: string[] = [];
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["scaffoldProject", "runCommand"],
+    plan: (_task, previousResults) => previousResults.length === 0
+      ? { tool: "scaffoldProject", input: "Создай React приложение" }
+      : { done: true, finalResponse: "Готово" },
+    executeTool: async (tool, input) => {
+      if (tool === "scaffoldProject") {
+        return { success: true, output: "React/Vite scaffold created for test. Run npm install and npm run build." };
+      }
+      commands.push(input);
+      return { success: true, output: input === "npm install" ? "dependencies installed" : "vite build passed" };
+    },
+  };
+
+  const result = await new AgentLoop(runtime, gateway).run("Создай React приложение");
+
+  assert.equal(result.success, true);
+  assert.deepEqual(commands, ["npm install", "npm run build"]);
+  assert.deepEqual(result.steps.map((step) => step.tool), ["scaffoldProject", "runCommand", "runCommand"]);
+  assert.equal(result.steps.every((step) => step.success), true);
+});
+
+test("fails the build pipeline when npm build fails", async () => {
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["scaffoldProject", "runCommand"],
+    plan: () => ({ tool: "scaffoldProject", input: "Создай React приложение" }),
+    executeTool: async (tool, input) => tool === "scaffoldProject"
+      ? { success: true, output: "React/Vite scaffold created for test." }
+      : { success: input === "npm install", output: input === "npm install" ? "installed" : "vite compilation error" },
+  };
+
+  const result = await new AgentLoop(runtime, gateway).run("Создай React приложение");
+
+  assert.equal(result.success, false);
+  assert.match(result.error ?? "", /build pipeline failed at npm run build/);
+});
