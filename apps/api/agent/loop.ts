@@ -37,7 +37,7 @@ export class AgentLoop {
           return { success: false, iterations: iteration - 1, steps, error: message };
         }
       }
-      // When an AI planner is available, an invalid/unparseable model response must not\n      // fall through to the deterministic heuristic planner: that could execute a tool\n      // the model never requested. Deterministic planning remains available for runtimes\n      // that do not implement planWithAI.\n      const plan = modelPlan ?? (this.runtime.planWithAI ? null : this.runtime.plan(task, previousResults));
+      // Prefer the model plan when available; otherwise use the deterministic runtime planner.\n      const plan = modelPlan ?? this.runtime.plan(task, previousResults);
 
       if (!plan) {
         return {
