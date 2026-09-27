@@ -36,7 +36,20 @@ export function BottomPanel({ jobId, stage, activitySteps, activityEvents, curre
       <span className={`agent-status-pill ${live ? "live" : stage === "error" ? "error" : "done"}`}><i />{labels[stage ?? ""] ?? "Готов"}</span>
     </div>
     <div className="agent-current"><span className={live ? "activity-dot working" : "activity-dot"} /><div><strong>{labels[stage ?? ""] ?? "Готов"}</strong><p>{currentActivity || "Отправьте задачу — NEXUM выполнит её здесь, без терминала."}</p></div></div>
-    <div className="agent-stages">{(["analyzing","planning","reading","editing","building","testing","completed"] as const).map((item) => <span key={item} className={stage === item ? "active" : stage === "completed" ? "done" : ""}><i />{labels[item]}</span>)}</div>
+    <div className="agent-pipeline" aria-label="Этапы работы агента">
+      {([
+        ["analyzing", "Анализ"],
+        ["planning", "План"],
+        ["editing", "Код"],
+        ["testing", "Проверка"],
+        ["completed", "Готово"],
+      ] as const).map(([item, title], index) => {
+        const order = ["analyzing", "planning", "editing", "testing", "completed"];
+        const current = order.indexOf(stage ?? "");
+        const done = stage === "completed" || (current >= 0 && index < current);
+        return <div key={item} className={`pipeline-step ${stage === item ? "active" : ""} ${done ? "done" : ""}`}><i>{done ? "✓" : index + 1}</i><span>{title}</span>{index < 4 && <b aria-hidden="true">→</b>}</div>;
+      })}
+    </div>
     {problems.length > 0 && <div className="agent-problems">{problems.map((problem, index) => <div key={index}><strong>!</strong><span>{problem.source ? `${problem.source}: ` : ""}{problem.message}</span></div>)}</div>}
     {productPlan && <div className="agent-plan-card">
       <div className="agent-timeline-title"><strong>План продукта</strong><span>{productPlan.productType}</span></div>
