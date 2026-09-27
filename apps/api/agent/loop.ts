@@ -17,6 +17,7 @@ export class AgentLoop {
     private readonly runtime: AgentRuntime,
     private readonly gateway: AIGateway,
     private readonly maxIterations = DEFAULT_MAX_ITERATIONS,
+    private readonly onStep?: (step: AgentStep) => void,
   ) {}
 
   async run(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
@@ -81,6 +82,7 @@ export class AgentLoop {
         success: result.success,
       };
       steps.push(step);
+      this.onStep?.(step);
       previousResults.push({ iteration, tool: plan.tool, input: plan.input, result });
       this.log(iteration, plan.tool, result.success ? "success" : "error");
 
