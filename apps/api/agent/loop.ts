@@ -12,6 +12,7 @@ import { executionBudget, routeTask } from "../ai/taskRouter.js";
 import { extractIntent } from "../ai/intentEngine.js";
 import { createBuilderExecutionState, builderExecutionPrompt, nextBuilderStep, recordBuilderNodeResult, rewindBuilderTo, type BuilderExecutionState } from "../ai/autonomousBuilder.js";
 import { routeWithStructuredContext } from "../ai/router2.js";
+import { NexumDirector } from "../ai/director.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 import type {
   AgentModelOptions,
@@ -135,6 +136,7 @@ export class AgentLoop {
     let eventId = 0;
     let phase: AgentPhase = "analyze";
     const taskState = createAgentTaskState(task);
+    const director = new NexumDirector();
     let productPlan: ProductPlan | null = null;
     let productReviewAttempts = 0;
     let remotePlannerRateLimited = false;
@@ -261,12 +263,14 @@ export class AgentLoop {
                 requestedModel: options?.model,
               })
             : null;
+          const directorDecisions = director.decide(task, "auto", undefined, this.gateway.getReadyProviderIds());
+          const directorRole = directorDecisions[Math.min(Math.max(aiPlannerCalls - 1, 0), directorDecisions.length - 1)]?.role;
           const selectedRole = recoveryDiagnosis
             ? "debugger"
-            : graphStep?.node.role ?? structuredRouting?.role ?? routeTask(task).role;
-          const planningRole = (selectedRole === "debugger" || selectedRole === "coder" || selectedRole === "planner" || selectedRole === "reviewer" || selectedRole === "tester"
+            : graphStep?.node.role ?? directorRole ?? structuredRouting?.role ?? routeTask(task).role;
+          const planningRole = (selectedRole === "director" || selectedRole === "debugger" || selectedRole === "coder" || selectedRole === "planner" || selectedRole === "reviewer" || selectedRole === "tester"
             ? selectedRole
-            : "planner") as "planner" | "coder" | "reviewer" | "debugger" | "tester";
+            : "planner") as "director" | "planner" | "coder" | "reviewer" | "debugger" | "tester";
           const aiOptions = aiOptionsForTask(options, planningRole);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           const executionContext = [
