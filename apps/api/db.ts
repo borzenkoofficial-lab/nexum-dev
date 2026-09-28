@@ -19,7 +19,7 @@ function getPool(): Pool {
         ...(process.env.NEXUM_DB_CA ? { ca: process.env.NEXUM_DB_CA } : {}),
       },
     });
-    pool.on("error", (error) => console.error("[Nexum] PostgreSQL pool error", error));
+    pool.on("error", (error: unknown) => console.error("[Nexum] PostgreSQL pool error", error));
   }
   return pool;
 }

@@ -35,13 +35,53 @@ async function collectFiles(root: string, current = root, output: CheckpointFile
 }
 
 function assertSafeRelativePath(path: string): void {
-  const normalized = path.replaceAll("\\\\", "/");
-  if (!normalized || normalized.startsWith("/") || normalized.split("/").includes("..")) {
+  if (typeof path !== "string" || !path || path.includes("\0")) {
     throw new Error("Invalid checkpoint path");
   }
-  if (EXCLUDED.has(normalized.split("/")[0])) {
+  const normalized = path.replaceAll("\\", "/");
+  if (
+    normalized !== path ||
+    normalized.startsWith("/") ||
+    /^[a-zA-Z]:/.test(normalized) ||
+    normalized.split("/").some((segment) => !segment || segment === "." || segment === "..")
+  ) {
+    throw new Error("Invalid checkpoint path");
+  }
+  const firstSegment = normalized.split("/")[0];
+  if (firstSegment && EXCLUDED.has(firstSegment)) {
     throw new Error("Checkpoint cannot access protected project directories");
   }
+}
+
+function validateCheckpointManifest(value: unknown, projectId: string, checkpointId: string): ProjectCheckpoint {
+  if (!value || typeof value !== "object") throw new Error("Invalid checkpoint manifest");
+  const manifest = value as Partial<ProjectCheckpoint>;
+  if (
+    manifest.id !== checkpointId ||
+    manifest.projectId !== projectId ||
+    typeof manifest.createdAt !== "string" ||
+    typeof manifest.label !== "string" ||
+    !Array.isArray(manifest.files) ||
+    manifest.files.length > MAX_FILES
+  ) {
+    throw new Error("Invalid checkpoint manifest");
+  }
+
+  const seen = new Set<string>();
+  let totalBytes = 0;
+  for (const file of manifest.files) {
+    if (!file || typeof file.path !== "string" || !Number.isSafeInteger(file.size) || file.size < 0) {
+      throw new Error("Invalid checkpoint manifest file entry");
+    }
+    assertSafeRelativePath(file.path);
+    if (seen.has(file.path)) throw new Error("Checkpoint manifest contains duplicate paths");
+    seen.add(file.path);
+    totalBytes += file.size;
+    if (!Number.isSafeInteger(totalBytes) || totalBytes > MAX_BYTES) {
+      throw new Error("Checkpoint exceeds the 100 MB safety limit");
+    }
+  }
+  return manifest as ProjectCheckpoint;
 }
 
 export class CheckpointManager {
@@ -97,8 +137,22 @@ export class CheckpointManager {
     if (!/^[a-z0-9-]+$/i.test(checkpointId)) throw new Error("Invalid checkpoint id");
     const checkpointRoot = resolve(this.root(projectPath), checkpointId);
     const manifestPath = resolve(checkpointRoot, "manifest.json");
-    const checkpoint = JSON.parse(await readFile(manifestPath, "utf8")) as ProjectCheckpoint;
-    if (checkpoint.projectId !== projectId) throw new Error("Checkpoint does not belong to this project");
+    const rawManifest: unknown = JSON.parse(await readFile(manifestPath, "utf8"));
+    const checkpoint = validateCheckpointManifest(rawManifest, projectId, checkpointId);
+
+    // Validate every snapshot source before changing the live project. A damaged
+    // manifest must never cause a partial destructive rollback.
+    for (const file of checkpoint.files) {
+      const source = resolve(checkpointRoot, file.path);
+      const relativeSource = relative(checkpointRoot, source);
+      if (relativeSource.startsWith("..") || relativeSource === "" || relativeSource.startsWith(sep)) {
+        throw new Error("Checkpoint file escapes its snapshot directory");
+      }
+      const details = await stat(source);
+      if (!details.isFile() || details.size !== file.size) {
+        throw new Error(`Checkpoint file is missing or has changed: ${file.path}`);
+      }
+    }
 
     const currentFiles = await collectFiles(projectPath);
     const snapshotFiles = new Set(checkpoint.files.map((file) => file.path));

@@ -353,7 +353,7 @@ function App() {
       setMessage(data.description.trim());
       setNewProjectName("");
       setModalOpen(false);
-      void sendMessage(buildBrief, data.project.id);
+      void sendMessage(buildBrief, responseData.project.id);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Не удалось создать проект");
     } finally {
@@ -698,7 +698,7 @@ function App() {
             <button className="project-editor-share" type="button" onClick={() => { const url = window.location.origin + "/api/preview/" + activeProjectId + "/index.html"; void navigator.clipboard.writeText(url).then(() => setNotice("Ссылка скопирована")).catch(() => setNotice(url)); }}>Share</button>
           </div>
         </div>
-        {codeMode ? <CodePanel projectId={activeProjectId} projectName={activeProject?.name ?? "NEXUM"} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setPreviewKey((key) => key + 1)} onClose={() => setCodeMode(false)} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
+        {codeMode ? <CodePanel projectId={activeProjectId} projectName={activeProject?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setPreviewKey((key) => key + 1)} onClose={() => setCodeMode(false)} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
             <ChatPanel projectName={activeProject?.name ?? "NEXUM"} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => setRightTab("agent")} />
             <QuickActions onNewProject={() => setModalOpen(true)} onOpenProject={openProjectPicker} onAsk={() => focusTask()} onTask={runTask}
