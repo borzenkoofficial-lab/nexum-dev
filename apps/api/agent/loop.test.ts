@@ -117,6 +117,35 @@ test("stops repeated identical actions", async () => {
   assert.match(result.error ?? "", /repeated.*action/i);
 });
 
+test("modifies the current project without scaffolding over it", async () => {
+  let writes = 0;
+  let scaffolded = false;
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["listFiles", "readFile", "writeFile", "testProject"],
+    plan: (_task, previousResults) => {
+      if (previousResults.length === 0) return { tool: "listFiles", input: "." };
+      if (!previousResults.some((item) => item.tool === "readFile")) return { tool: "readFile", input: "src/App.jsx" };
+      if (!previousResults.some((item) => item.tool === "writeFile")) {
+        return { tool: "writeFile", input: JSON.stringify({ path: "src/App.jsx", content: "existing construction site + new services" }) };
+      }
+      return { tool: "", input: "", done: true, finalResponse: "Изменения внесены в текущий проект." };
+    },
+    executeTool: async (tool, input) => {
+      if (tool === "listFiles") return { success: true, output: "src/App.jsx\npackage.json" };
+      if (tool === "readFile") return { success: true, output: "existing construction site" };
+      if (tool === "writeFile") { writes += 1; return { success: true, output: "updated current file" }; }
+      return { success: true, output: "tests passed" };
+    },
+  };
+
+  const result = await new AgentLoop(runtime, gateway).run("Измени текущий сайт строительной компании: добавь услуги");
+  scaffolded = result.steps.some((step) => step.tool === "scaffoldProject");
+  assert.equal(result.success, true);
+  assert.equal(scaffolded, false);
+  assert.equal(writes, 1);
+  assert.deepEqual(result.steps.map((step) => step.tool), ["listFiles", "readFile", "writeFile", "testProject"]);
+});
+
 test("scaffold tool refuses non-empty projects", async () => {
   const { mkdtemp, readFile, writeFile } = await import("node:fs/promises");
   const { tmpdir } = await import("node:os");
