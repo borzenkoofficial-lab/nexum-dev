@@ -11,6 +11,7 @@ export interface AgentContextSnapshot {
     project: string;
     architecture: string;
     rules: string;
+    design: string;
     role: string;
   };
   state: Record<string, unknown>;
@@ -69,12 +70,13 @@ export async function buildAgentContext(
   task = "",
   role = "general",
 ): Promise<AgentContextSnapshot> {
-  const [knowledge, operating, project, architecture, rules, roleInstructions, stateRaw, journalRaw] = await Promise.all([
+  const [knowledge, operating, project, architecture, rules, design, roleInstructions, stateRaw, journalRaw] = await Promise.all([
     optionalFile(root, ".nexum/knowledge.md"),
     optionalFile(root, ".nexum/AI.md"),
     optionalFile(root, ".nexum/PROJECT.md"),
     optionalFile(root, ".nexum/ARCHITECTURE.md"),
     optionalFile(root, ".nexum/RULES.md"),
+    optionalFile(root, ".nexum/DESIGN.md"),
     optionalFile(root, `.nexum/agents/${role}.md`),
     optionalFile(root, ".nexum/state.json"),
     optionalFile(root, ".nexum/action-journal.jsonl"),
@@ -97,6 +99,7 @@ export async function buildAgentContext(
       project: project.slice(0, 3500),
       architecture: architecture.slice(0, 3500),
       rules: rules.slice(0, 3500),
+      design: design.slice(0, 3500),
       role: roleInstructions.slice(0, 2500),
     },
     state,
@@ -114,6 +117,7 @@ export function formatAgentContext(context: AgentContextSnapshot): string {
     projectContract: context.contracts.project || "No persistent project identity found.",
     architectureContract: context.contracts.architecture || "No persistent architecture contract found.",
     rulesContract: context.contracts.rules || "No persistent project rules found.",
+    designContract: context.contracts.design || "No persistent design contract found.",
     roleInstructions: context.contracts.role || "No role-specific instructions found.",
     projectUnderstanding: (() => { try { return JSON.parse(formatProjectUnderstanding(understandProject(state as unknown as ProjectState))); } catch { return { health: "unknown", risks: ["project understanding unavailable"] }; } })(),
     projectState: {
