@@ -449,6 +449,7 @@ app.get("/api/ai/key-status", async (req, res) => {
 });
 
 app.post("/api/ai/connect-key", async (req, res) => {
+  const userId = getAuthUser(req).id;
   const apiKey = typeof req.body?.apiKey === "string" ? req.body.apiKey.trim() : "";
   if (!apiKey) return res.status(400).json({ success: false, error: "API key is required" });
 
@@ -468,7 +469,6 @@ app.post("/api/ai/connect-key", async (req, res) => {
         provider.setRuntimeApiKey(apiKey);
         const status = await provider.getStatus();
         if (!status.available) throw new Error(status.error ?? "OpenAI key verification failed");
-        const userId = getAuthUser(req).id;
         const keys = runtimeAIKeysByUser.get(userId) ?? {};
         runtimeAIKeysByUser.set(userId, { ...keys, openai: apiKey });
         await saveRuntimeKey(userId, "openai", apiKey);
@@ -507,6 +507,7 @@ app.get("/api/ai/local-test", (_req, res) => {
 });
 
 app.post("/api/ai/local-test", async (req, res) => {
+  const userId = getAuthUser(req).id;
   if (!localTestMode) {
     return res.status(403).json({ success: false, error: "Local AI key setup is disabled in production." });
   }
@@ -523,7 +524,6 @@ app.post("/api/ai/local-test", async (req, res) => {
     if (!status.available) {
       return res.status(401).json({ success: false, error: status.error ?? "OpenRouter key could not be verified." });
     }
-    const userId = getAuthUser(req).id;
     const keys = runtimeAIKeysByUser.get(userId) ?? {};
     runtimeAIKeysByUser.set(userId, { ...keys, openrouter: apiKey });
     await saveRuntimeKey(userId, "openrouter", apiKey);
