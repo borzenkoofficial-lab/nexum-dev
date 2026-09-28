@@ -479,7 +479,6 @@ app.post("/api/ai/connect-key", async (req, res) => {
         provider.setRuntimeApiKey(apiKey);
         const status = await provider.getStatus();
         if (!status.available) throw new Error(status.error ?? "OrcaRouter key verification failed");
-        const userId = getAuthUser(req).id;
         const keys = runtimeAIKeysByUser.get(userId) ?? {};
         runtimeAIKeysByUser.set(userId, { ...keys, orcarouter: apiKey });
         await saveRuntimeKey(userId, "orcarouter", apiKey);
@@ -490,7 +489,6 @@ app.post("/api/ai/connect-key", async (req, res) => {
       provider.setRuntimeApiKey(apiKey);
       const status = await provider.getStatus();
       if (!status.available) throw new Error(status.error ?? "OpenRouter key verification failed");
-      const userId = getAuthUser(req).id;
       const keys = runtimeAIKeysByUser.get(userId) ?? {};
       runtimeAIKeysByUser.set(userId, { ...keys, openrouter: apiKey });
       await saveRuntimeKey(userId, "openrouter", apiKey);
