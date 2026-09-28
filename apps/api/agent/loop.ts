@@ -455,7 +455,23 @@ export class AgentLoop {
               tool: "runCommand",
               message: result.success ? "Production-сборка подтверждена." : `Сборка не прошла: ${result.output.slice(0, 500)}`,
             });
-            if (!result.success) { transition("repair"); continue; }
+            if (!result.success) {
+              recoveryCycles += 1;
+              recoveryDiagnosis = diagnoseError(result.output);
+              transition("repair");
+              if (builderState) {
+                const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+                  ? "diagnose"
+                  : builderState.graph.nodes.some((node) => node.id === "implement") ? "implement" : null;
+                if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+              }
+              if (recoveryCycles >= MAX_RECOVERY_CYCLES) {
+                const error = `Production build failed after ${MAX_RECOVERY_CYCLES} bounded recovery cycles.`;
+                emit({ iteration, type: "failed", tool: "Debugger", message: error });
+                return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+              }
+              continue;
+            }
           }
         }
 
@@ -959,11 +975,26 @@ export class AgentLoop {
               : `Не удалось выполнить «${command}»: ${buildResult.output.slice(0, 400)}`,
           });
           if (!buildResult.success) {
+            recoveryCycles += 1;
+            recoveryDiagnosis = diagnoseError(buildResult.output);
+            transition("repair");
+            if (builderState) {
+              const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+                ? "diagnose"
+                : builderState.graph.nodes.some((node) => node.id === "implement") ? "implement" : null;
+              if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+            }
             emit({
               iteration,
               type: "thinking",
-              message: `Сборка не прошла на шаге «${command}». Передаю ошибку планировщику для исправления.`,
+              tool: "Debugger",
+              message: `Production build failed. Recovery cycle ${recoveryCycles}/${MAX_RECOVERY_CYCLES}; category=${recoveryDiagnosis.category}.`,
             });
+            if (recoveryCycles >= MAX_RECOVERY_CYCLES) {
+              const error = `Production build failed after ${MAX_RECOVERY_CYCLES} bounded recovery cycles.`;
+              emit({ iteration, type: "failed", tool: "Debugger", message: error });
+              return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+            }
             break;
           }
         }
