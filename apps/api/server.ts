@@ -44,6 +44,23 @@ const defaultProvider = configuredProvider === "ollama" || configuredProvider ==
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const projectManagers = new Map<string, ProjectManager>();
 
+type RuntimeAIKeys = Partial<Record<"openai" | "openrouter" | "orcarouter", string>>;
+const runtimeAIKeysByUser = new Map<string, RuntimeAIKeys>();
+
+function getUserAIGateway(userId: string): AIGateway {
+  const keys = runtimeAIKeysByUser.get(userId) ?? {};
+  const gateway = new AIGateway(
+    [new MockProvider(), new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider()],
+    defaultProvider,
+    { fallbackProviderId: fallbackProvider },
+  );
+  for (const providerId of ["openai", "openrouter", "orcarouter"] as const) {
+    const key = keys[providerId];
+    if (key) gateway.setRuntimeProviderKey(providerId, key);
+  }
+  return gateway;
+}
+
 function getProjectManager(userId: string): ProjectManager {
   let manager = projectManagers.get(userId);
   if (!manager) {
@@ -179,7 +196,8 @@ async function runChatJob(
       attachmentContext.length ? `ATTACHED FILES:\n${attachmentContext.join("\n\n")}` : "",
     ].filter(Boolean).join("\n\n");
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
-    const agent = new NexumAgent(aiGateway, project.path);
+    const userGateway = getUserAIGateway(userId);
+    const agent = new NexumAgent(userGateway, project.path);
     const agentLoop = new AgentLoop(
       agent,
       aiGateway,
@@ -345,7 +363,8 @@ app.get("/api/ai/models", async (_req, res) => {
 const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM_LOCAL_TEST_MODE !== "false";
 
 app.get("/api/ai/key-status", (_req, res) => {
-  return res.json({ success: true, providers: { openai: aiGateway.hasOpenAIKey(), openrouter: aiGateway.hasOpenRouterKey(), orcarouter: aiGateway.hasOrcaRouterKey() } });
+  const userGateway = getUserAIGateway(getAuthUser(req).id);
+  return res.json({ success: true, providers: { openai: userGateway.hasOpenAIKey(), openrouter: userGateway.hasOpenRouterKey(), orcarouter: userGateway.hasOrcaRouterKey() } });
 });
 
 app.post("/api/ai/connect-key", async (req, res) => {
@@ -368,7 +387,9 @@ app.post("/api/ai/connect-key", async (req, res) => {
         provider.setRuntimeApiKey(apiKey);
         const status = await provider.getStatus();
         if (!status.available) throw new Error(status.error ?? "OpenAI key verification failed");
-        aiGateway.setRuntimeOpenAIKey(apiKey);
+        const userId = getAuthUser(req).id;
+        const keys = runtimeAIKeysByUser.get(userId) ?? {};
+        runtimeAIKeysByUser.set(userId, { ...keys, openai: apiKey });
         return res.json({ success: true, provider: "openai", model: status.model, status });
       }
       if (providerId === "orcarouter") {
@@ -376,7 +397,9 @@ app.post("/api/ai/connect-key", async (req, res) => {
         provider.setRuntimeApiKey(apiKey);
         const status = await provider.getStatus();
         if (!status.available) throw new Error(status.error ?? "OrcaRouter key verification failed");
-        aiGateway.setRuntimeOrcaRouterKey(apiKey);
+        const userId = getAuthUser(req).id;
+        const keys = runtimeAIKeysByUser.get(userId) ?? {};
+        runtimeAIKeysByUser.set(userId, { ...keys, orcarouter: apiKey });
         return res.json({ success: true, provider: "orcarouter", model: status.model, status });
       }
 
@@ -384,7 +407,9 @@ app.post("/api/ai/connect-key", async (req, res) => {
       provider.setRuntimeApiKey(apiKey);
       const status = await provider.getStatus();
       if (!status.available) throw new Error(status.error ?? "OpenRouter key verification failed");
-      aiGateway.setRuntimeOpenRouterKey(apiKey);
+      const userId = getAuthUser(req).id;
+      const keys = runtimeAIKeysByUser.get(userId) ?? {};
+      runtimeAIKeysByUser.set(userId, { ...keys, openrouter: apiKey });
       return res.json({ success: true, provider: "openrouter", model: status.model, status });
     } catch (error) {
       errors.push(providerId + ": " + (error instanceof Error ? error.message : "verification failed"));
@@ -414,7 +439,9 @@ app.post("/api/ai/local-test", async (req, res) => {
     if (!status.available) {
       return res.status(401).json({ success: false, error: status.error ?? "OpenRouter key could not be verified." });
     }
-    aiGateway.setRuntimeOpenRouterKey(apiKey);
+    const userId = getAuthUser(req).id;
+    const keys = runtimeAIKeysByUser.get(userId) ?? {};
+    runtimeAIKeysByUser.set(userId, { ...keys, openrouter: apiKey });
     return res.json({ success: true, configured: true, status });
   } catch (error) {
     return res.status(401).json({
@@ -428,7 +455,7 @@ app.get("/api/ai/status", async (req, res) => {
   const provider = typeof req.query.provider === "string" ? req.query.provider : undefined;
   const model = typeof req.query.model === "string" ? req.query.model : undefined;
   try {
-    return res.json({ success: true, status: await aiGateway.getStatus(provider, model) });
+    return res.json({ success: true, status: await getUserAIGateway(getAuthUser(req).id).getStatus(provider, model) });
   } catch (error) {
     return res.status(400).json({
       success: false,
