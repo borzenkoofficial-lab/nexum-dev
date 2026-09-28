@@ -9,7 +9,7 @@ interface SidebarProps {
   onSelectProject: (id: string) => void;
   onDeleteProject: (id: string) => void;
   mobileOpen: boolean;
-  view: "home" | "project" | "connectors" | "settings" | "news";
+  view: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics";
   onViewChange: (view: "home" | "project" | "connectors" | "settings" | "news") => void;
 }
 
@@ -24,6 +24,7 @@ export function Sidebar({
         <button className={view === "home" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("home")}><span>⌂</span>Обзор</button>
         <button className={view === "news" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("news")}><span>✦</span>Новости</button>
         <button className={view === "connectors" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("connectors")}><span>◇</span>Интеграции</button>
+        <button className={view === "diagnostics" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("diagnostics")}><span>⌁</span>Диагностика</button>
       </nav>
       <button className="new-project" type="button" aria-label="Создать новый проект" onClick={onNewProject}>+ Новый проект</button>
       <div className="section-title">ПРОЕКТЫ</div>
