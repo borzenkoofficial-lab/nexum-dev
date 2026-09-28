@@ -29,7 +29,7 @@ import { clearRuntimeMemory, loadRuntimeKeys, saveRuntimeKey } from "./ai/runtim
 import { readDesignSpec, writeDesignSpec, deriveDesignSpec } from "./design/designSpec.js";
 import { interactionScript } from "./design/interactionContract.js";
 import { verifyDesign } from "./design/visualVerification.js";
-import { prepareAutonomousDesignPipeline, getPipelineSnapshot } from "./design/autonomousPipeline.js";
+import { prepareAutonomousDesignPipeline, finalizeAutonomousDesignPipeline, getPipelineSnapshot } from "./design/autonomousPipeline.js";
 import { componentContracts } from "./design/componentIntelligence.js";
 import { allowedInteraction, createInteractionRecord, resolveInteraction } from "./design/interactionEngine.js";
 import { inspectLiveUpdate } from "./design/liveUpdate.js";
@@ -284,15 +284,45 @@ ${attachment.content.slice(0, 80_000)}`);
     job.steps = result.steps;
     job.productPlan = result.productPlan;
     const intent = extractIntent(message);
-    await prepareAutonomousDesignPipeline(project.path, intent);
     const successfulBuild = result.steps.some((step) =>
       step.success &&
       (step.tool === "runCommand" || step.tool === "runSandbox") &&
       /npm run build/.test(step.input),
     );
+    const pipeline = await prepareAutonomousDesignPipeline(project.path, intent);
+    const finalizedPipeline = await finalizeAutonomousDesignPipeline(project.path, project.id, successfulBuild);
     if (successfulBuild) {
       await stateManager.markBuildSucceeded();
     }
+    if (!finalizedPipeline.completed) {
+      job.problems = [
+        ...(job.problems ?? []),
+        {
+          message: finalizedPipeline.readyForLive
+            ? "Autonomous pipeline is live-ready but build verification evidence is incomplete."
+            : `Autonomous pipeline stopped at stage: ${finalizedPipeline.stage}.`,
+          source: "autonomous-pipeline",
+        },
+      ];
+    }
+    job.currentMessage = finalizedPipeline.completed
+      ? "Autonomous pipeline completed: build, design verification and live preview are ready."
+      : `Autonomous pipeline completed with gate status: ${finalizedPipeline.stage}.`;
+    void agentHistory.record({
+      type: "autonomous-pipeline",
+      jobId,
+      projectId: project.id,
+      userId,
+      status: finalizedPipeline.completed ? "completed" : "error",
+      message: job.currentMessage,
+      output: JSON.stringify({
+        preparedStage: pipeline.stage,
+        finalStage: finalizedPipeline.stage,
+        buildVerified: finalizedPipeline.buildVerified,
+        readyForLive: finalizedPipeline.readyForLive,
+        verificationScore: finalizedPipeline.verification?.score ?? 0,
+      }),
+    });
     await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
       try {
         const parsed = JSON.parse(step.input);
