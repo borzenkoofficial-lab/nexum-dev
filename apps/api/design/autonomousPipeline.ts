@@ -3,6 +3,7 @@ import { deriveInteractionContract } from "./interactionEngine.js";
 import { componentContracts } from "./componentIntelligence.js";
 import { verifyDesign, type VisualVerification } from "./visualVerification.js";
 import { inspectLiveUpdate, type LiveUpdateManifest } from "./liveUpdate.js";
+import { deriveStateSpec, readStateSpec, writeStateSpec, type StateSpec } from "./stateEngine.js";
 import type { NexumIntent } from "../ai/intentEngine.js";
 
 export type PipelineStage = "intent" | "design" | "components" | "interactions" | "build" | "verify" | "live" | "done" | "failed";
@@ -31,6 +32,7 @@ export interface PipelineSnapshot {
   interactionCount: number;
   verification?: VisualVerification;
   live?: LiveUpdateManifest;
+  state?: StateSpec;
   buildVerified: boolean;
   readyForLive: boolean;
   completed: boolean;
@@ -50,6 +52,7 @@ export async function prepareAutonomousDesignPipeline(
   const design = await writeDesignSpec(projectRoot, { ...patch, interactions: [] });
   const interactions = deriveInteractionContract(design);
   const finalDesign = await writeDesignSpec(projectRoot, { interactions });
+  const state = await writeStateSpec(projectRoot, deriveStateSpec(finalDesign.components, finalDesign.interactions.map((item) => ({ event: item.event, action: item.action }))));
   const verification = await verifyDesign(projectRoot);
   const live = await inspectLiveUpdate(projectRoot, "pending");
 
@@ -57,6 +60,7 @@ export async function prepareAutonomousDesignPipeline(
     design: finalDesign,
     componentCount: componentContracts(finalDesign).length,
     interactionCount: finalDesign.interactions.length,
+    state,
     verification,
     live,
     buildVerified: live.buildReady && live.mode === "built-app",
@@ -77,11 +81,12 @@ export async function finalizeAutonomousDesignPipeline(
   buildVerified: boolean,
 ): Promise<PipelineSnapshot> {
   const design = await readDesignSpec(projectRoot);
+  const state = await readStateSpec(projectRoot);
   const verification = await verifyDesign(projectRoot);
   const live = await inspectLiveUpdate(projectRoot, projectId);
   const buildReady = buildVerified && (live.mode === "built-app" || live.mode === "static");
 
-  const base = {design,componentCount:componentContracts(design).length,interactionCount:design.interactions.length,verification,live,buildVerified};
+  const base = {design,componentCount:componentContracts(design).length,interactionCount:design.interactions.length,state,verification,live,buildVerified};
   const gates=evaluatePipelineGates(base);
   const allGates=gates.every((gate)=>gate.passed);
   return {
