@@ -326,7 +326,7 @@ export class AgentLoop {
           (item) => item.tool === modelPlan.tool && item.input === modelPlan.input && !item.result.success,
         );
         const attempts = actionAttempts.get(modelActionKey) ?? 0;
-        if (repeatedFailure || seenActions.has(modelActionKey) || attempts >= 2) {
+        if (!recoveryDiagnosis && (repeatedFailure || seenActions.has(modelActionKey) || attempts >= 2)) {
           emit({
             iteration,
             type: "thinking",
