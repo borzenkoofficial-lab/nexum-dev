@@ -276,7 +276,7 @@ ${result.output}`
     ].join("\n");
 
     const routing = routeTask(task);
-    const role = routing.role;
+    const role = options?.role ?? routing.role;
     const run = await this.orchestrator.run(role, prompt, options);
     console.log(JSON.stringify({ type: "ai-role", role: run.role, provider: run.provider, model: run.model, fallback: run.fallback }));
     const parsed = this.parseAIPlan(run.response);
