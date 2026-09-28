@@ -343,11 +343,11 @@ app.get("/api/ai/models", async (_req, res) => {
 
 const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM_LOCAL_TEST_MODE !== "false";
 
-app.get("/api/ai/key-status", (_req, res) => {
+app.get("/api/ai/key-status", authMiddleware, (_req, res) => {
   return res.json({ success: true, providers: { openai: aiGateway.hasOpenAIKey(), openrouter: aiGateway.hasOpenRouterKey(), orcarouter: aiGateway.hasOrcaRouterKey() } });
 });
 
-app.post("/api/ai/connect-key", async (req, res) => {
+app.post("/api/ai/connect-key", authMiddleware, async (req, res) => {
   const apiKey = typeof req.body?.apiKey === "string" ? req.body.apiKey.trim() : "";
   if (!apiKey) return res.status(400).json({ success: false, error: "API key is required" });
 
@@ -392,11 +392,11 @@ app.post("/api/ai/connect-key", async (req, res) => {
   return res.status(401).json({ success: false, error: errors.join("; ") || "API key verification failed" });
 });
 
-app.get("/api/ai/local-test", (_req, res) => {
+app.get("/api/ai/local-test", authMiddleware, (_req, res) => {
   return res.json({ enabled: localTestMode, configured: aiGateway.hasOpenRouterKey() });
 });
 
-app.post("/api/ai/local-test", async (req, res) => {
+app.post("/api/ai/local-test", authMiddleware, async (req, res) => {
   if (!localTestMode) {
     return res.status(403).json({ success: false, error: "Local AI key setup is disabled in production." });
   }
