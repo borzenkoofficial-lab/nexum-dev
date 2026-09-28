@@ -23,7 +23,6 @@ interface RightPanelProps {
   previewOnline: boolean;
   previewKey: number;
   onRefreshPreview: () => void;
-  onPreviewError?: (message: string) => void;
   onRepair?: () => void;
 }
 
