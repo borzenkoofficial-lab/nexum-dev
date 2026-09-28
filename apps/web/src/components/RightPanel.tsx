@@ -91,58 +91,6 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
     );
   }, [stage, projectId, previewOnline, previewKey]);
 
-  useEffect(() => {
-    if (!projectId) return;
-
-    const handlePreviewMessage = (event: MessageEvent) => {
-      const data = event.data as {
-        source?: string;
-        projectId?: string;
-        kind?: string;
-        eventType?: string;
-        target?: string;
-        action?: string;
-        message?: string;
-        stack?: string;
-      } | null;
-
-      if (!data || data.source !== "nexum-preview" || data.projectId !== projectId) return;
-
-      if (data.kind === "interaction" && data.eventType) {
-        void fetch(`/api/projects/${encodeURIComponent(projectId)}/preview/interaction`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            projectId,
-            eventType: data.eventType,
-            target: data.target,
-            action: data.action,
-          }),
-        }).catch(() => undefined);
-        return;
-      }
-
-      if ((data.kind === "error" || data.kind === "unhandledrejection") && data.message) {
-        const compact = data.message.slice(0, 600);
-        setPreviewError(compact);
-        void fetch("/api/agent/client-error", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            projectId,
-            message: compact,
-            stack: data.stack,
-            source: "preview-bridge",
-            url: previewUrl,
-          }),
-        }).catch(() => undefined);
-      }
-    };
-
-    window.addEventListener("message", handlePreviewMessage);
-    return () => window.removeEventListener("message", handlePreviewMessage);
-  }, [projectId, previewUrl]);
-
   function handlePreviewLoad() {
     setPreviewError("");
     const frame = previewFrameRef.current;
