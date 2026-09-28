@@ -100,7 +100,16 @@ ${result.output}`
       .map((item) => `${item.tool}: ${item.result.output.slice(0, 700)}`)
       .join("\n");
     const intent = extractIntent(task);
+    const plannerContextSnapshot = await buildAgentContext(
+      this.projectRoot,
+      previousResults.map((item) => ({ tool: item.tool, success: item.result.success, output: item.result.output })),
+      task,
+      options?.role ?? "planner",
+    );
+    const persistentContractContext = formatAgentContext(plannerContextSnapshot);
     const prompt = [
+      "PERSISTENT NEXUM CONTRACT CONTEXT:",
+      persistentContractContext,
       `STRUCTURED INTENT: ${intentSummary(intent)}`,
       `INTENT JSON: ${JSON.stringify(intent)}`,
       "LANGUAGE PROTOCOL: Understand Russian natively. The user communicates in Russian. Interpret Russian requests, terminology, slang, spelling variations and mixed Russian/English technical terms correctly. All human-readable text you generate (site copy, UI text, plans, summaries, errors and final responses) must be in Russian unless the user explicitly requests another language. Keep required JSON property names, tool names, file paths, code, commands and API identifiers exactly as specified.",
@@ -143,7 +152,16 @@ ${result.output}`
       .slice(-8)
       .map((item) => `${item.tool}: ${item.result.output.slice(0, 700)}`)
       .join("\n");
+    const reviewContextSnapshot = await buildAgentContext(
+      this.projectRoot,
+      previousResults.map((item) => ({ tool: item.tool, success: item.result.success, output: item.result.output })),
+      task,
+      options?.role ?? "reviewer",
+    );
+    const reviewPersistentContext = formatAgentContext(reviewContextSnapshot);
     const prompt = [
+      "PERSISTENT NEXUM CONTRACT CONTEXT:",
+      reviewPersistentContext,
       "LANGUAGE PROTOCOL: Understand Russian natively. Review Russian-language user requests and Russian UI/content. All human-readable review output must be in Russian; keep JSON keys in the required English schema.",
       "You are the NEXUM final implementation reviewer.",
       "Review whether the coding agent actually implemented the requested product, not merely a scaffold.",
