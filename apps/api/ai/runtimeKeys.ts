@@ -84,13 +84,17 @@ export async function saveRuntimeKey(userId: string, provider: RuntimeProvider, 
   memoryKeys.set(userId, { ...cached, [provider]: apiKey });
   const encrypted = encrypt(apiKey);
   if (!encrypted || !await ensureTable()) return;
-  await query(
+  try {
+    await query(
     `INSERT INTO user_ai_keys (user_id, provider, ciphertext, iv, auth_tag, updated_at)
      VALUES ($1, $2, $3, $4, $5, NOW())
      ON CONFLICT (user_id, provider)
      DO UPDATE SET ciphertext = EXCLUDED.ciphertext, iv = EXCLUDED.iv, auth_tag = EXCLUDED.auth_tag, updated_at = NOW()`,
     [userId, provider, encrypted.ciphertext, encrypted.iv, encrypted.tag],
-  );
+    );
+  } catch (error) {
+    console.warn("[Nexum] Failed to persist AI key:", error instanceof Error ? error.message : error);
+  }
 }
 
 export function clearRuntimeMemory(userId: string): void {
