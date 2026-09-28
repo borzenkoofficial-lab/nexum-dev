@@ -26,6 +26,9 @@ import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
 import { pingDatabase } from "./db.js";
 import { clearRuntimeMemory, loadRuntimeKeys, saveRuntimeKey } from "./ai/runtimeKeys.js";
+import { readDesignSpec, writeDesignSpec, deriveDesignSpec } from "./design/designSpec.js";
+import { interactionScript } from "./design/interactionContract.js";
+import { verifyDesign } from "./design/visualVerification.js";
 
 dotenv.config();
 
@@ -628,7 +631,7 @@ app.use("/api/preview/:id", authMiddleware, async (req, res) => {
         html = headClose >= 0 ? html.slice(0, headClose + 1) + headTag + html.slice(headClose + 1) : headTag + html;
       }
 
-      const runtimeBridge = "<script>(() => { const projectId = " + JSON.stringify(String(req.params.id)) + "; const report = (kind, message, stack) => { try { parent.postMessage({ source: \"nexum-preview\", projectId, kind, message: String(message || \"Preview runtime error\").slice(0, 4000), stack: stack ? String(stack).slice(0, 8000) : undefined }, \"*\"); } catch {} }; window.addEventListener(\"error\", (event) => report(\"error\", event.message, event.error && event.error.stack)); window.addEventListener(\"unhandledrejection\", (event) => report(\"unhandledrejection\", event.reason instanceof Error ? event.reason.message : String(event.reason), event.reason instanceof Error ? event.reason.stack : undefined)); })();</script>";
+      const runtimeBridge = "<script>(() => { const projectId = " + JSON.stringify(String(req.params.id)) + "; const report = (kind, message, stack) => { try { parent.postMessage({ source: \"nexum-preview\", projectId, kind, message: String(message || \"Preview runtime error\").slice(0, 4000), stack: stack ? String(stack).slice(0, 8000) : undefined }, \"*\"); } catch {} }; window.addEventListener(\"error\", (event) => report(\"error\", event.message, event.error && event.error.stack)); window.addEventListener(\"unhandledrejection\", (event) => report(\"unhandledrejection\", event.reason instanceof Error ? event.reason.message : String(event.reason), event.reason instanceof Error ? event.reason.stack : undefined)); " + "(()=> { const projectId="+JSON.stringify(String(req.params.id))+"; const send=(payload)=>{try{parent.postMessage({source:\"nexum-preview\",projectId,...payload},\"*\")}catch{}}; const describe=(el)=>{if(!(el instanceof Element))return\"unknown\";return el.getAttribute(\"data-nexum-id\")||el.id||el.getAttribute(\"name\")||el.getAttribute(\"aria-label\")||el.textContent?.trim().slice(0,80)||el.tagName.toLowerCase()}; document.addEventListener(\"click\",e=>{const el=e.target?.closest?.(\"[data-nexum-action],button,a,[role=button]\");if(!el)return;send({kind:\"interaction\",eventType:\"click\",target:describe(el),action:el.getAttribute(\"data-nexum-action\")||undefined})},true); document.addEventListener(\"submit\",e=>{const el=e.target;send({kind:\"interaction\",eventType:\"submit\",target:describe(el),action:el.getAttribute(\"data-nexum-action\")||undefined})},true); document.addEventListener(\"change\",e=>{const el=e.target;if(!(el instanceof Element))return;send({kind:\"interaction\",eventType:\"change\",target:describe(el)})},true); window.addEventListener(\"popstate\",()=>send({kind:\"interaction\",eventType:\"navigate\",target:location.pathname})); window.addEventListener(\"hashchange\",()=>send({kind:\"interaction\",eventType:\"navigate\",target:location.hash})); send({kind:\"preview-ready\",eventType:\"ready\",target:location.pathname}); window.addEventListener(\"message\",e=>{if(e.data?.source!==\"nexum-host\"||e.data.projectId!==projectId)return;if(e.data.type===\"refresh\")location.reload();if(e.data.type===\"navigate\"&&typeof e.data.url===\"string\")location.href=e.data.url}) })()" + "; })();</script>"; const report = (kind, message, stack) => { try { parent.postMessage({ source: \"nexum-preview\", projectId, kind, message: String(message || \"Preview runtime error\").slice(0, 4000), stack: stack ? String(stack).slice(0, 8000) : undefined }, \"*\"); } catch {} }; window.addEventListener(\"error\", (event) => report(\"error\", event.message, event.error && event.error.stack)); window.addEventListener(\"unhandledrejection\", (event) => report(\"unhandledrejection\", event.reason instanceof Error ? event.reason.message : String(event.reason), event.reason instanceof Error ? event.reason.stack : undefined)); })();</script>";
       const bodyIndex = html.toLowerCase().lastIndexOf("</body>");
       return res.send(bodyIndex >= 0 ? html.slice(0, bodyIndex) + runtimeBridge + html.slice(bodyIndex) : html + runtimeBridge);
     }
@@ -639,6 +642,47 @@ app.use("/api/preview/:id", authMiddleware, async (req, res) => {
     if (error instanceof ProjectManagerError) return sendProjectError(res, error);
     return res.status(500).send("Preview failed");
   }
+});
+
+app.get("/api/projects/:id/design", async (req, res) => {
+  try { const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id)); return res.json({success:true,design:await readDesignSpec(project.path)}); }
+  catch(error){ return sendProjectError(res,error); }
+});
+app.put("/api/projects/:id/design", async (req, res) => {
+  try { const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id)); return res.json({success:true,design:await writeDesignSpec(project.path,req.body&&typeof req.body==="object"?req.body:{})}); }
+  catch(error){ return sendProjectError(res,error); }
+});
+app.post("/api/projects/:id/design/derive", async (req, res) => {
+  try {
+    const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
+    const design=await writeDesignSpec(project.path,deriveDesignSpec({
+      domain:typeof req.body?.domain==="string"?req.body.domain:undefined,
+      productType:typeof req.body?.productType==="string"?req.body.productType:undefined,
+      visualDirection:typeof req.body?.visualDirection==="string"?req.body.visualDirection:undefined,
+      audience:typeof req.body?.audience==="string"?req.body.audience:undefined,
+      features:Array.isArray(req.body?.features)?req.body.features.filter((x:unknown):x is string=>typeof x==="string"):[],
+    }));
+    return res.json({success:true,design});
+  } catch(error){ return sendProjectError(res,error); }
+});
+app.get("/api/projects/:id/design/verify", async (req,res)=>{
+  try { const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id)); return res.json({success:true,verification:await verifyDesign(project.path)}); }
+  catch(error){ return sendProjectError(res,error); }
+});
+app.post("/api/projects/:id/preview/interaction", async (req,res)=>{
+  try {
+    const userId=getAuthUser(req).id; const project=await getProjectManager(userId).getProject(String(req.params.id));
+    const projectId=typeof req.body?.projectId==="string"?req.body.projectId:"";
+    if(projectId && projectId!==String(project.id)) return res.status(400).json({success:false,error:"Preview project mismatch"});
+    const type=typeof req.body?.eventType==="string"?req.body.eventType.slice(0,40):"unknown";
+    const target=typeof req.body?.target==="string"?req.body.target.slice(0,200):"unknown";
+    void agentHistory.record({type:"preview-interaction",projectId:project.id,userId,status:"success",message:`${type}: ${target}`,output:JSON.stringify({action:req.body?.action,value:req.body?.value})});
+    return res.json({success:true,accepted:true});
+  } catch(error){ return sendProjectError(res,error); }
+});
+app.get("/api/projects/:id/preview/bridge", async (req,res)=>{
+  try { const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id)); res.type("text/javascript; charset=utf-8"); return res.send(interactionScript(String(project.id))); }
+  catch(error){ return sendProjectError(res,error); }
 });
 
 app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
