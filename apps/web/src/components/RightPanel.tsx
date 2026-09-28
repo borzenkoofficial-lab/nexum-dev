@@ -80,7 +80,9 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
 
   useEffect(() => {
     setPreviewError("");
-  }, [projectId, previewKey, previewOnline]);\n\n  useEffect(() => {
+  }, [projectId, previewKey, previewOnline]);
+
+  useEffect(() => {
     if (!previewOnline || !previewFrameRef.current?.contentWindow) return;
     if (stage !== "completed") return;
     previewFrameRef.current.contentWindow.postMessage(
