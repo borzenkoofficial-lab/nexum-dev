@@ -24,9 +24,10 @@ interface RightPanelProps {
   previewKey: number;
   onRefreshPreview: () => void;
   onPreviewError?: (message: string) => void;
+  onRepair?: () => void;
 }
 
-export function RightPanel({ tab, onTabChange, projectName, projectId, previewOnline, previewKey, onRefreshPreview, onPreviewError, jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan }: RightPanelProps) {
+export function RightPanel({ tab, onTabChange, projectName, projectId, previewOnline, previewKey, onRefreshPreview, onPreviewError, onRepair, jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan }: RightPanelProps) {
   const previewUrl = projectId ? `/api/preview/${projectId}/index.html?v=${previewKey}` : "";
   const [files, setFiles] = useState<string[]>([]);
   const [previewExpanded, setPreviewExpanded] = useState(false);
@@ -173,7 +174,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
       </div>
     );
   } else {
-    panelContent = <AgentActivityPanel jobId={jobId} stage={stage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onOpenPreview={() => onTabChange("preview")} onBackToChat={() => onTabChange("preview")} onRepair={() => onPreviewError?.("Запрос на автоматическое исправление последней задачи")} />;
+    panelContent = <AgentActivityPanel jobId={jobId} stage={stage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onOpenPreview={() => onTabChange("preview")} onBackToChat={() => onTabChange("preview")} onRepair={() => onRepair?.()} />;
   }
 
   return (
