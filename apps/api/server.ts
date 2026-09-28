@@ -381,7 +381,7 @@ app.get("/api/ai/models", async (_req, res) => {
 
 const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM_LOCAL_TEST_MODE !== "false";
 
-app.get("/api/ai/key-status", (req, res) => {
+app.get("/api/ai/key-status", async (req, res) => {
   const userGateway = await getUserAIGateway(getAuthUser(req).id);
   return res.json({ success: true, providers: { openai: userGateway.hasOpenAIKey(), openrouter: userGateway.hasOpenRouterKey(), orcarouter: userGateway.hasOrcaRouterKey() } });
 });
@@ -464,6 +464,7 @@ app.post("/api/ai/local-test", async (req, res) => {
     const userId = getAuthUser(req).id;
     const keys = runtimeAIKeysByUser.get(userId) ?? {};
     runtimeAIKeysByUser.set(userId, { ...keys, openrouter: apiKey });
+    await saveRuntimeKey(userId, "openrouter", apiKey);
     return res.json({ success: true, configured: true, status });
   } catch (error) {
     return res.status(401).json({
