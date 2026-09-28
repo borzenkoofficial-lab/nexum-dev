@@ -3,7 +3,8 @@ import { existsSync } from "node:fs";
 
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 const ollama = process.platform === "win32" ? "ollama.exe" : "ollama";
-const root = process.cwd();
+const scriptDir = new URL(".", import.meta.url);
+const root = new URL("../", scriptDir).pathname.replace(/\/$/, "");
 const envFile = `${root}/.env`;
 if (existsSync(envFile) && typeof process.loadEnvFile === "function") {
   process.loadEnvFile(envFile);
@@ -159,8 +160,16 @@ async function main() {
   const webProcess = spawn(npm, ["--prefix", "apps/web", "run", "dev"], {
     cwd: root,
     stdio: "inherit",
+    env: { ...process.env, BROWSER: "none" },
   });
   children.push(webProcess);
+
+  const webReady = await waitForWeb();
+  if (!webReady) {
+    console.error("[Nexum] Web startup failed. Stopping local environment.");
+    shutdown(1);
+    return;
+  }
 
   let shuttingDown = false;
 
@@ -187,12 +196,31 @@ async function main() {
   process.on("SIGTERM", () => shutdown(0));
 
   console.log("");
-  console.log("[Nexum] Web: http://localhost:5173");
+  const codespacesDomain = process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN;
+  const forwardedWebUrl = codespacesDomain
+    ? `https://5173-${process.env.CODESPACE_NAME}.${codespacesDomain}`
+    : "http://localhost:5173";
+  console.log(`[Nexum] Web: ${forwardedWebUrl}`);
   console.log("[Nexum] API: http://localhost:3001");
   console.log(aiProvider === "openrouter"
     ? `[Nexum] AI: OpenRouter / ${process.env.OPENROUTER_MODEL ?? "openrouter/free"}`
     : `[Nexum] AI: Ollama / ${ollamaModel} (optional)`);
   console.log("[Nexum] Press Ctrl+C to stop both.");
+}
+
+async function waitForWeb() {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    try {
+      const response = await fetch("http://127.0.0.1:5173/");
+      if (response.ok) {
+        console.log("[Nexum] Web health: OK");
+        return true;
+      }
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  console.error("[Nexum] Web did not become ready on port 5173. Check the Vite output above.");
+  return false;
 }
 
 async function waitForApi() {
