@@ -79,7 +79,7 @@ class ScriptedAgent extends NexumAgent {
         input: JSON.stringify({
           path: "index.html",
           content: this.malformed
-            ? "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p>"
+            ? "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p><script>window.nexumBroken = true"
             : "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p></main></body></html>",
         }),
       };
