@@ -248,3 +248,25 @@ button:disabled{cursor:default;opacity:.55}
  .nexum-overview-live .overview-command-strip{margin-top:-8px}
  .nexum-overview-live .overview-workflow-preview{margin-top:48px}
 }
+
+/* Live project preview surfaces */
+.nexum-overview-live .live-project-card{padding:164px 24px 20px}
+.nexum-overview-live .live-project-card:before,.nexum-overview-live .live-project-card:after{display:none}
+.nexum-overview-live .project-live-preview{position:absolute;z-index:1;left:0;right:0;top:0;height:148px;overflow:hidden;background:#f4f4f6;border-bottom:1px solid var(--line)}
+.nexum-overview-live .project-live-preview iframe{display:block;width:100%;height:100%;border:0;background:#fff;pointer-events:none;transform:scale(1.01);transform-origin:center top}
+.nexum-overview-live .project-live-preview:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.08))}
+.nexum-overview-live .preview-overlay{position:absolute;left:12px;right:12px;bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 9px;border:1px solid rgba(255,255,255,.65);border-radius:8px;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);opacity:0;transform:translateY(4px);transition:opacity .18s ease,transform .18s ease}
+.nexum-overview-live .preview-overlay b{font-size:8px;letter-spacing:.08em}
+.nexum-overview-live .preview-overlay small{font-size:8px;color:var(--text-2)}
+.nexum-overview-live .live-project-card:hover .preview-overlay{opacity:1;transform:none}
+.nexum-overview-live .live-project-card .project-card-body{position:relative;z-index:3;display:block}
+.nexum-overview-live .live-project-card .project-window-mark{display:inline-grid;margin-right:9px;vertical-align:middle}
+.nexum-overview-live .live-project-card .project-window-head{display:inline-flex;vertical-align:middle}
+.nexum-overview-live .live-project-card .project-health{position:relative;z-index:3;display:flex;justify-content:space-between;gap:10px;margin-top:6px;padding:8px 0;border-top:1px solid var(--line);font-size:9px;color:var(--text-3)}
+.nexum-overview-live .project-health i{display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:#45a978}
+.nexum-overview-live .project-health span:first-child{color:#3b7f61}
+@media(max-width:560px){
+ .nexum-overview-live .project-live-preview{height:138px}
+ .nexum-overview-live .live-project-card{padding-top:154px}
+ .nexum-overview-live .preview-overlay{opacity:1;transform:none}
+}
