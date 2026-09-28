@@ -150,9 +150,15 @@ function App() {
     const onError = (event: ErrorEvent) => report({ message: event.message || "Browser runtime error", stack: event.error?.stack, source: event.filename });
     const onRejection = (event: PromiseRejectionEvent) => report({ message: event.reason instanceof Error ? event.reason.message : String(event.reason), stack: event.reason instanceof Error ? event.reason.stack : undefined, source: "unhandledrejection" });
     const onPreviewMessage = (event: MessageEvent) => {
-      const data = event.data as { source?: string; projectId?: string; kind?: string; message?: string; stack?: string };
+      const data = event.data as { source?: string; projectId?: string; kind?: string; message?: string; stack?: string; eventType?: string; target?: string; action?: string };
       if (event.origin !== window.location.origin) return;
-      if (data?.source !== "nexum-preview" || data.projectId !== activeProjectId || typeof data.message !== "string") return;
+      if (data?.source !== "nexum-preview" || data.projectId !== activeProjectId) return;
+      if (data.kind === "interaction") {
+        void fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/preview/interaction`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ projectId: activeProjectId, eventType: data.eventType, target: data.target, action: data.action }), keepalive: true }).catch(() => {});
+        return;
+      }
+      if (data.kind === "preview-ready") { setPreviewOnline(true); return; }
+      if (typeof data.message !== "string") return;
       setProblems((items) => [...items, { message: `Preview ${data.kind ?? "error"}: ${data.message}`, source: "preview" }].slice(-20));
       void fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/preview/runtime-error`, {
         method: "POST",
