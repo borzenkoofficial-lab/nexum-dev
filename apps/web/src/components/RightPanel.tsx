@@ -26,7 +26,7 @@ interface RightPanelProps {
   onRepair?: () => void;
 }
 
-export function RightPanel({ tab, onTabChange, projectName, projectId, previewOnline, previewKey, onRefreshPreview, onPreviewError, onRepair, jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan }: RightPanelProps) {
+export function RightPanel({ tab, onTabChange, projectName, projectId, previewOnline, previewKey, onRefreshPreview, onRepair, jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan }: RightPanelProps) {
   const previewUrl = projectId ? `/api/preview/${projectId}/index.html?v=${previewKey}` : "";
   const [files, setFiles] = useState<string[]>([]);
   const [previewExpanded, setPreviewExpanded] = useState(false);
