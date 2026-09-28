@@ -126,7 +126,7 @@ export class AIGateway {
       .filter((provider) => {
         const keyAware = provider as { hasApiKey?: () => boolean };
         if (typeof keyAware.hasApiKey === "function") return keyAware.hasApiKey();
-        return provider.id === "mock" || provider.id === "ollama";
+        return true;
       })
       .map((provider) => provider.id);
   }
