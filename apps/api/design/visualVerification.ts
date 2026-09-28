@@ -26,6 +26,15 @@ export async function verifyDesign(projectRoot:string):Promise<VisualVerificatio
       checks.push({name:"design-spec",passed:spec.version===1&&spec.components.length>0&&spec.tokens.colors.background.length>0,message:"NEXUM DesignSpec is present"});
       checks.push({name:"interaction-contract",passed:spec.interactions.length>0,message:"Interaction Contract contains executable intents"});
       const domain = String(spec.domain ?? "").toLowerCase();
+      const sourceCandidates = [
+        "src/App.tsx","src/App.jsx","src/App.js","src/App.ts",
+        "src/main.tsx","src/main.jsx","src/main.js","src/main.ts",
+        "src/index.tsx","src/index.jsx","src/index.js",
+      ];
+      const sourceParts = await Promise.all(sourceCandidates.map(async (candidate) => {
+        try { return await readFile(resolve(projectRoot,candidate),"utf8"); } catch { return ""; }
+      }));
+      const searchableContent = [html,...sourceParts].join("\n");
       const domainSignals:Record<string,RegExp> = {
         construction:/строит|строитель|демонтаж|фасад|подряд|объект|бетон|стяжк|монтаж|кровл|construction|contractor/i,
         automotive:/авто|автомобил|автосервис|диагностик|шиномонтаж|кузов|двигател|тормоз|масл|automotive|auto repair/i,
@@ -37,7 +46,7 @@ export async function verifyDesign(projectRoot:string):Promise<VisualVerificatio
       if(requiredSignal){
         checks.push({
           name:"domain-fidelity",
-          passed:requiredSignal.test(html),
+          passed:requiredSignal.test(searchableContent),
           message:"Generated UI contains domain-specific content matching the requested product",
         });
       }
