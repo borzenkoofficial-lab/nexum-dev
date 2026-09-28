@@ -756,7 +756,7 @@ export class AgentLoop {
           (graphStep.node.id === "understand" && ["listFiles", "readFile", "searchFiles"].includes(plan.tool)) ||
           (graphStep.node.id === "scaffold" && ["scaffoldProject", "writeFile", "patchFile"].includes(plan.tool)) ||
           (graphStep.node.id === "implement" && ["writeFile", "patchFile"].includes(plan.tool)) ||
-          (graphStep.node.id === "verify" && ["runCommand", "runSandbox"].includes(plan.tool)) ||
+          (graphStep.node.id === "verify" && (plan.tool === "testProject" || (plan.tool === "runCommand" && /npm run (?:build|test|typecheck|lint)/.test(plan.input)))) ||
           (graphStep.node.id === "diagnose" && ["readFile", "searchFiles", "runCommand", "runSandbox"].includes(plan.tool)) ||
           (graphStep.node.id === "fix" && ["writeFile", "patchFile"].includes(plan.tool)) ||
           (graphStep.node.id === "inspect" && ["listFiles", "readFile", "searchFiles"].includes(plan.tool)) ||
