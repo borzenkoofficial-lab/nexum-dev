@@ -5,6 +5,7 @@ import { CommandPalette } from "./components/CommandPalette";
 import { CodePanel } from "./components/CodePanel";
 import { NewProjectModal } from "./components/NewProjectModal";
 import { NewsPage } from "./components/NewsPage";
+import { IntegrationPage } from "./components/IntegrationPage";
 import { RightPanel } from "./components/RightPanel";
 import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
@@ -694,10 +695,13 @@ function App() {
         ) : view === "news" ? (
           <NewsPage />
         ) : view === "connectors" ? (
-          <section className="connectors-page">
-            <div className="page-heading"><div><div className="eyebrow">ИНТЕГРАЦИИ</div><h1>Интеграции</h1><p>Подключите сервисы, которые используют ваши проекты.</p></div><button className="home-primary" type="button" onClick={() => setConnectorModal("Пользовательская интеграция")}>+ Добавить интеграцию</button></div>
-            <div className="connector-grid">{[["GitHub","Репозиторий, ветки, коммиты и задачи","Разработка"],["Supabase","База данных, авторизация и хранилище","Бэкенд"],["OpenAI","Модели ИИ и доступ к API","ИИ"],["Telegram","Боты, сообщения и автоматизация","Коммуникации"],["Stripe","Платежи и подписки","Платежи"],["Notion","Страницы, базы данных и база знаний","Продуктивность"]].map(([name,description,category]) => <article className="connector-card" key={name}><div className="connector-icon">{name.slice(0,1)}</div><div className="connector-copy"><span>{category}</span><strong>{name}</strong><p>{description}</p></div><button type="button" onClick={() => { setConnectedConnectors((items) => items.includes(name) ? items.filter((item) => item !== name) : [...items, name]); setConnectorModal(name); }}>Подключить</button></article>)}</div>
-          </section>
+          <IntegrationPage
+            connectedConnectors={connectedConnectors}
+            onToggleConnector={(name) => {
+              setConnectedConnectors((items) => items.includes(name) ? items.filter((item) => item !== name) : [...items, name]);
+              setConnectorModal(name);
+            }}
+          />
         ) : view === "settings" ? (
           <section className="settings-page">
             <div className="page-heading"><div><div className="eyebrow">УПРАВЛЕНИЕ РАБОЧИМ ПРОСТРАНСТВОМ</div><h1>Настройки</h1><p>ИИ, поведение рабочего пространства и параметры интерфейса.</p></div></div>
