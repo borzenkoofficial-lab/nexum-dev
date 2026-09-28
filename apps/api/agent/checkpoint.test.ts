@@ -9,7 +9,7 @@ test("creates a snapshot and restores modified, added, and deleted files", async
   const root = await mkdtemp(join(tmpdir(), "nexum-checkpoint-"));
   await mkdir(join(root, "src"), { recursive: true });
   await writeFile(join(root, "src", "app.ts"), "original", "utf8");
-  const manager = new CheckpointManager(root);
+  const manager = new CheckpointManager();
 
   const checkpoint = await manager.create("p1", root, "before agent");
   await writeFile(join(root, "src", "app.ts"), "changed", "utf8");
