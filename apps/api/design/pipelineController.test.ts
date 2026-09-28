@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { createPipelineController, decidePipelineRecovery, recoveryPromptFor } from "./pipelineController.js";
 import type { PipelineGate } from "./autonomousPipeline.js";
 
@@ -22,25 +23,25 @@ describe("pipelineController", () => {
   it("finishes when every gate passes", () => {
     const state = createPipelineController();
     const decision = decidePipelineRecovery(snapshot, gates(), state);
-    expect(decision.passed).toBe(true);
-    expect(decision.action).toBe("finish");
-    expect(decision.attempts).toBe(0);
+    assert.equal(decision.passed, true);
+    assert.equal(decision.action, "finish");
+    assert.equal(decision.attempts, 0);
   });
 
   it("maps failed gates to bounded recovery actions", () => {
     const state = createPipelineController(2);
     const decision = decidePipelineRecovery(snapshot, gates("build"), state);
-    expect(decision.passed).toBe(false);
-    expect(decision.action).toBe("rebuild");
-    expect(decision.attempts).toBe(1);
-    expect(decision.exhausted).toBe(false);
+    assert.equal(decision.passed, false);
+    assert.equal(decision.action, "rebuild");
+    assert.equal(decision.attempts, 1);
+    assert.equal(decision.exhausted, false);
   });
 
   it("stops after the configured recovery bound", () => {
     const state = createPipelineController(1);
     decidePipelineRecovery(snapshot, gates("verification"), state);
     const decision = decidePipelineRecovery(snapshot, gates("verification"), state);
-    expect(decision.exhausted).toBe(true);
-    expect(recoveryPromptFor(decision)).toContain("AUTONOMOUS PIPELINE RECOVERY");
+    assert.equal(decision.exhausted, true);
+    assert.match(recoveryPromptFor(decision), /AUTONOMOUS PIPELINE RECOVERY/);
   });
 });
