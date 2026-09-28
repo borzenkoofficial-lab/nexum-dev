@@ -1,14 +1,18 @@
 {
   "name": "NEXUM.DEV",
-  "forwardPorts": [5173, 3001],
+  "forwardPorts": [
+    5173,
+    3001
+  ],
   "portsAttributes": {
-    "5173": {
-      "label": "NEXUM Web",
-      "onAutoForward": "openPreview"
-    },
     "3001": {
       "label": "NEXUM API",
       "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "NEXUM Web",
+      "onAutoForward": "openPreview"
     }
-  }
+  },
+  "postCreateCommand": "npm install --prefix apps/api && npm ci --prefix apps/web"
 }

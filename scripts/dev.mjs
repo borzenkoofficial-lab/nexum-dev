@@ -24,13 +24,14 @@ const aiProvider = requestedProvider === "openrouter" || (!requestedProvider && 
 function runInstall(dir) {
   const packageJson = `${root}/${dir}/package.json`;
   const nodeModules = `${root}/${dir}/node_modules`;
+  const requiredPackage = dir === "apps/api" ? `${nodeModules}/pg/package.json` : `${nodeModules}/vite/package.json`;
 
   if (!existsSync(packageJson)) {
     console.error(`[Nexum] Missing ${dir}/package.json`);
     process.exit(1);
   }
 
-  if (!existsSync(nodeModules)) {
+  if (!existsSync(nodeModules) || !existsSync(requiredPackage)) {
     console.log(`[Nexum] Installing dependencies for ${dir}...`);
     const result = spawnSync(npm, ["install"], {
       cwd: `${root}/${dir}`,
