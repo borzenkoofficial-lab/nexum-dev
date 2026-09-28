@@ -49,6 +49,44 @@ class E2EProvider implements AIProvider {
   }
 }
 
+
+class ScriptedAgent extends NexumAgent {
+  constructor(gateway: AIGateway, projectRoot: string, private readonly malformed = false) {
+    super(gateway, projectRoot);
+  }
+
+  override async planWithAI(
+    _task: string,
+    previousResults: Array<{ tool: string; result: { success: boolean }; input: string }>,
+    options?: { role?: string },
+  ): Promise<any> {
+    if (options?.role === "debugger") {
+      return {
+        tool: "writeFile",
+        input: JSON.stringify({
+          path: "index.html",
+          content: "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p></main></body></html>",
+        }),
+      };
+    }
+    if (!previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
+      return { tool: "listFiles", input: "." };
+    }
+    if (!previousResults.some((item) => item.tool === "writeFile" && item.result.success)) {
+      return {
+        tool: "writeFile",
+        input: JSON.stringify({
+          path: "index.html",
+          content: this.malformed
+            ? "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p>"
+            : "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p></main></body></html>",
+        }),
+      };
+    }
+    return { done: true, finalResponse: "Готово: реализация выполнена и проверена." };
+  }
+}
+
 test("AI E2E keeps construction intent and executes a real AI plan", async () => {
   const root = await mkdtemp(join(tmpdir(), "nexum-ai-e2e-"));
   await writeFile(join(root, "index.html"), "<!doctype html><html lang=\"ru\"><body><h1>Старый проект</h1></body></html>", "utf8");
