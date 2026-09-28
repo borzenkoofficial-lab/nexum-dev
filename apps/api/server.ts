@@ -291,6 +291,10 @@ ${attachment.content.slice(0, 80_000)}`);
         job.updatedAt = Date.now();
       },
     );
+    // Establish the executable DesignSpec before the first AI implementation pass.
+    // This makes design a build-time contract, not a post-build decoration.
+    await prepareAutonomousDesignPipeline(project.path, extractIntent(message));
+
     const result = await agentLoop.run(agentMessage, {
       ...(provider === undefined ? {} : { provider }),
       ...(model === undefined ? {} : { model }),
