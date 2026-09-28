@@ -18,7 +18,10 @@ test("routes final test failures through bounded Debugger recovery", async () =>
           }),
         };
       }
-      if (testAttempts === 0 && hasWrites >= 2) {\n        return { tool: "testProject", input: "." };\n      }\n      if (hasWrites < 2) {
+      if (testAttempts === 0 && hasWrites >= 2) {
+        return { tool: "testProject", input: "." };
+      }
+      if (hasWrites < 2) {
         return {
           tool: "writeFile",
           input: JSON.stringify({
@@ -32,7 +35,8 @@ test("routes final test failures through bounded Debugger recovery", async () =>
       return { tool: "", input: "", done: true, finalResponse: "Готово" };
     },
     executeTool: async (tool) => {
-      if (tool === "listFiles") return { success: true, output: "src/App.tsx\nsrc/App.css" };
+      if (tool === "listFiles") return { success: true, output: "src/App.tsx
+src/App.css" };
       if (tool === "writeFile") return { success: true, output: "written" };
       testAttempts += 1;
       return testAttempts === 1
