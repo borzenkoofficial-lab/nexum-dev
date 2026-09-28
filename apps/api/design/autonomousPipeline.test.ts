@@ -9,16 +9,16 @@ import { evaluatePipelineGates, finalizeAutonomousDesignPipeline, getPipelineSna
 test("autonomous pipeline derives design, interactions and verification", async () => {
   const root = await mkdtemp(resolve(tmpdir(), "nexum-pipeline-"));
   try {
-    await writeFile(resolve(root, "index.html"), `<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:system-ui}</style></head><body><button type="button">Создать</button></body></html>`, "utf8");
+    await writeFile(resolve(root, "index.html"), `<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:system-ui}</style></head><body><button type="button">Оформить доставку</button><p>Доставка по городу и отслеживание заказа</p></body></html>`, "utf8");
     const intent = extractIntent("создай приложение доставки с формой заказа и картой");
     const prepared = await prepareAutonomousDesignPipeline(root, intent);
     assert.equal(prepared.interactionCount > 0, true);
     assert.equal(prepared.componentCount > 0, true);
     assert.equal(prepared.verification?.passed, true);
-    assert.equal(prepared.readyForLive, true);
+    assert.equal(prepared.readyForLive, false);
 
     const snapshot = await getPipelineSnapshot(root);
-    assert.equal(snapshot.readyForLive, true);
+    assert.equal(snapshot.readyForLive, false);
     assert.equal(snapshot.completed, false);
 
     await mkdir(resolve(root, "dist"), { recursive: true });
