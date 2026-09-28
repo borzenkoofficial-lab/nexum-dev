@@ -133,12 +133,12 @@ export function getAuthUser(request: Request): AuthUser {
 
 export function validateEmail(email: string): string {
   const normalized = email.trim().toLowerCase();
-  if (normalized.length > 254 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalized)) throw new Error("Enter a valid email address.");
+  if (normalized.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) throw new Error("Enter a valid email address.");
   return normalized;
 }
 
 export function validateName(name: string): string {
-  const normalized = name.trim().replace(/\\s+/g, " ");
+  const normalized = name.trim().replace(/\s+/g, " ");
   if (!normalized || normalized.length > 80) throw new Error("Name must contain 1-80 characters.");
   return normalized;
 }
