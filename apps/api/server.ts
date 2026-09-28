@@ -944,6 +944,7 @@ app.post("/api/chat", async (req, res) => {
       createdAt: now,
       updatedAt: now,
       stage: "queued",
+      userId: getAuthUser(req).id,
       attachments: normalizedAttachments.map((item) => item.name),
       productPlan: undefined,
     });
