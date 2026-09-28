@@ -858,6 +858,7 @@ app.post("/api/chat", async (req, res) => {
       stage: "queued",
       attachments: normalizedAttachments.map((item) => item.name),
       productPlan: undefined,
+      userId: getAuthUser(req).id,
     });
 
     // Do not await the agent. The HTTP request returns immediately, avoiding
@@ -944,6 +945,14 @@ app.get("/api/chat/jobs/:id", (req, res) => {
   cleanupChatJobs();
   const job = chatJobs.get(req.params.id);
   if (!job) {
+    return res.status(404).json({
+      success: false,
+      error: "Chat job not found or expired",
+    });
+  }
+
+  const userId = getAuthUser(req).id;
+  if (!job.userId || job.userId !== userId) {
     return res.status(404).json({
       success: false,
       error: "Chat job not found or expired",
