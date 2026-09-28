@@ -245,6 +245,11 @@ export class AgentLoop {
           aiPlannerCalls += 1;
           const directorDecision = director.decide(task, "auto", undefined, this.gateway.getReadyProviderIds())[0];
           const graphStep = builderState ? nextBuilderStep(builderState) : null;
+          if (graphStep?.exhausted) {
+            const error = "Builder node \"" + graphStep.node.id + "\" exhausted its bounded attempts.";
+            emit({ iteration, type: "failed", tool: "AI planner", message: error });
+            return { phase, success: false, iterations: iteration, steps, error };
+          }
           const selectedRole = graphStep?.node.role ?? directorDecision?.role;
           const planningRole = (selectedRole === "debugger" || selectedRole === "coder" || selectedRole === "planner" || selectedRole === "reviewer" || selectedRole === "tester"
             ? selectedRole
