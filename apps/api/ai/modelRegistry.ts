@@ -15,10 +15,12 @@ export interface ModelRoute {
   label: string;
   provider: string;
   model: string;
+  aliases?: string[];
   roles: AIOrchestratorRole[];
   capabilities: ModelCapability[];
   priority: number;
   maxTokens: number;
+  minTokens?: number;
   enabled: boolean;
   fallbackIds?: string[];
 }
@@ -133,6 +135,15 @@ export function routesForRole(role: AIOrchestratorRole, availableProviders: Set<
   return getModelRegistry()
     .filter((route) => route.enabled && route.roles.includes(role) && availableProviders.has(route.provider))
     .sort((a, b) => b.priority - a.priority);
+}
+
+export function resolveRouteModel(model: string | undefined, availableProviders: Set<string>): ModelRoute | undefined {
+  if (!model) return undefined;
+  return getModelRegistry().find((route) =>
+    route.enabled &&
+    availableProviders.has(route.provider) &&
+    (route.model === model || route.aliases?.includes(model)),
+  );
 }
 
 export function routeById(id: string, availableProviders: Set<string>): ModelRoute | undefined {
