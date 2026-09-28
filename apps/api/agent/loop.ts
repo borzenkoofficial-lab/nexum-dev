@@ -271,7 +271,7 @@ export class AgentLoop {
           const planningRole = (selectedRole === "director" || selectedRole === "debugger" || selectedRole === "coder" || selectedRole === "planner" || selectedRole === "reviewer" || selectedRole === "tester"
             ? selectedRole
             : "planner") as "director" | "planner" | "coder" | "reviewer" | "debugger" | "tester";
-          const aiOptions = aiOptionsForTask(options, planningRole);
+          const aiOptions = aiOptionsForTask(options, planningRole === "director" ? "planner" : planningRole);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           const executionContext = [
             builderState ? builderExecutionPrompt(builderState, task) : "",
