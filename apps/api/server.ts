@@ -286,7 +286,7 @@ ${attachment.content.slice(0, 80_000)}`);
     const successfulBuild = result.steps.some((step) =>
       step.success &&
       (step.tool === "runCommand" || step.tool === "runSandbox") &&
-      /npm run build/.test(step.input),
+      /(?:npm run build|pnpm (?:run )?build|yarn build|bun run build)/i.test(step.input),
     );
     const pipeline = await prepareAutonomousDesignPipeline(project.path, intent);
     const finalizedPipeline = await finalizeAutonomousDesignPipeline(project.path, project.id, successfulBuild);
