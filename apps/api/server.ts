@@ -1122,25 +1122,70 @@ app.get("/api/agent/history", async (req, res) => {
 });
 
 app.post("/api/agent/client-error", authMiddleware, async (req, res) => {
-  const { message, stack, source, url } = req.body as {
+  const { message, stack, source, url, projectId: rawProjectId } = req.body as {
     message?: unknown;
     stack?: unknown;
     source?: unknown;
     url?: unknown;
+    projectId?: unknown;
   };
+  const userId = getAuthUser(req).id;
+  const projectId = typeof rawProjectId === "string" ? rawProjectId.slice(0, 160) : "";
   const errorMessage = typeof message === "string" ? message.slice(0, 4000) : "Unknown client error";
-  void agentHistory.record({
+  if (!projectId) return res.status(400).json({ success: false, error: "projectId is required" });
+
+  // Resolve through the authenticated user's project manager; never trust a
+  // client-supplied filesystem path or project owned by another account.
+  let project;
+  try {
+    project = await getProjectManager(userId).getActiveProject(projectId);
+  } catch {
+    return res.status(404).json({ success: false, error: "Project not found" });
+  }
+  const projectLockKey = userId + ":" + project.id;
+  const now = Date.now();
+  const previousStart = runtimeRecoveryLastStartedAt.get(projectLockKey) ?? 0;
+  const duplicateRecovery = runtimeRecoveryInFlight.has(projectLockKey) ||
+    projectJobsInFlight.has(projectLockKey) ||
+    now - previousStart < RUNTIME_RECOVERY_COOLDOWN_MS;
+
+  await agentHistory.record({
     type: "client-error",
-    userId: getAuthUser(req).id,
+    projectId: project.id,
+    userId,
     status: "error",
     message: errorMessage,
     output: JSON.stringify({
       stack: typeof stack === "string" ? stack.slice(0, 8000) : undefined,
       source: typeof source === "string" ? source.slice(0, 500) : undefined,
       url: typeof url === "string" ? url.slice(0, 1000) : undefined,
+      recovery: duplicateRecovery ? "suppressed" : "queued",
     }),
   });
-  return res.status(202).json({ success: true });
+
+  if (!duplicateRecovery) {
+    runtimeRecoveryInFlight.add(projectLockKey);
+    runtimeRecoveryLastStartedAt.set(projectLockKey, now);
+    const jobId = randomUUID();
+    const recoveryMessage = [
+      "AUTOMATIC PREVIEW RUNTIME RECOVERY",
+      "The user's existing project has a runtime error in its live preview. Do not scaffold a new app or change its product domain.",
+      "Inspect the current source and fix only the demonstrated runtime failure. Preserve existing design, routes, data, and working interactions.",
+      "Rebuild or run the relevant checks after the patch. If the issue cannot be reproduced or safely fixed, report the evidence instead of making speculative changes.",
+      "Runtime error: " + errorMessage,
+      typeof stack === "string" ? "Stack: " + stack.slice(0, 3500) : "",
+      typeof source === "string" ? "Source: " + source.slice(0, 300) : "",
+    ].filter(Boolean).join("\n");
+    const job: ChatJob = {
+      id: jobId, status: "queued", createdAt: now, updatedAt: now,
+      currentMessage: "Получена ошибка предпросмотра. Запускаю ограниченное автоматическое исправление.",
+      stage: "queued", userId,
+    };
+    chatJobs.set(jobId, job);
+    void runChatJob(jobId, recoveryMessage, project.id, userId, undefined, undefined, [], [])
+      .finally(() => runtimeRecoveryInFlight.delete(projectLockKey));
+  }
+  return res.status(202).json({ success: true, recoveryQueued: !duplicateRecovery });
 });
 
 app.get("/api/agent/diagnostics", async (req, res) => {
