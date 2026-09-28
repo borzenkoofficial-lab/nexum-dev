@@ -104,6 +104,7 @@ function App() {
         setViewState("project");
       } else if (path === "/connectors") setViewState("connectors");
       else if (path === "/settings") setViewState("settings");
+      else if (path === "/news") setViewState("news");
       else setViewState("home");
     };
     window.addEventListener("popstate", onPopState);
