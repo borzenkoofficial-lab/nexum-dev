@@ -28,3 +28,14 @@ export function routeTask(task: string): TaskRoutingDecision {
   if (building) return { role: "coder", mode: "build", requiresBuilder: true, requiresDebugger: false, requiresVerification: true, complexity: complex ? "high" : "medium" };
   return { role: "planner", mode: "simple", requiresBuilder: false, requiresDebugger: false, requiresVerification: false, complexity: complex ? "medium" : "low" };
 }
+
+export function executionBudget(decision: TaskRoutingDecision): {
+  maxAiCalls: number;
+  maxOutputTokens: number;
+} {
+  if (decision.mode === "simple") return { maxAiCalls: 1, maxOutputTokens: 1200 };
+  if (decision.mode === "review") return { maxAiCalls: 1, maxOutputTokens: 1800 };
+  if (decision.mode === "debug") return { maxAiCalls: 3, maxOutputTokens: 6500 };
+  if (decision.complexity === "high") return { maxAiCalls: 4, maxOutputTokens: 8500 };
+  return { maxAiCalls: 3, maxOutputTokens: 6500 };
+}
