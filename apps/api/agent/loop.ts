@@ -14,6 +14,8 @@ import { createBuilderExecutionState, builderExecutionPrompt, nextBuilderStep, r
 import { routeWithStructuredContext } from "../ai/router2.js";
 import { NexumDirector } from "../ai/director.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
+import { evaluatePipelineGates, getPipelineSnapshot } from "../design/autonomousPipeline.js";
+import { createPipelineController, decidePipelineRecovery, recoveryPromptFor } from "../design/pipelineController.js";
 import type {
   AgentModelOptions,
   AgentPlan,
@@ -145,6 +147,7 @@ export class AgentLoop {
     let recoveryDiagnosis: ReturnType<typeof diagnoseError> | null = null;
     let recoveryCycles = 0;
     const MAX_RECOVERY_CYCLES = 3;
+    const pipelineController = createPipelineController(3);
     const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
     const intent = extractIntent(task);
     const routing = routeTask(task);
@@ -905,6 +908,70 @@ export class AgentLoop {
       }
       if (result.success && (plan.tool === "writeFile" || plan.tool === "patchFile")) recordSuccessfulChange(taskState, plan.input);
       syncVerificationState(taskState, previousResults, productPlan);
+
+      // The pipeline is a closed-loop controller, not a post-hoc report. Once a
+      // build/test command succeeds, re-evaluate every autonomous gate. A failed
+      // gate becomes a concrete recovery instruction and the AgentLoop continues
+      // with a bounded attempt instead of returning a false "done".
+      if (
+        builderTask &&
+        result.success &&
+        (plan.tool === "testProject" ||
+          ((plan.tool === "runCommand" || plan.tool === "runSandbox") &&
+            /npm run (?:build|test|typecheck|lint)/i.test(plan.input)))
+      ) {
+        try {
+          const runtimeRoot = this.runtime instanceof Object && "projectRoot" in this.runtime
+            ? (this.runtime as { projectRoot?: string }).projectRoot
+            : undefined;
+          if (runtimeRoot) {
+            const pipelineSnapshot = await getPipelineSnapshot(runtimeRoot);
+            const gates = evaluatePipelineGates(pipelineSnapshot);
+            const decision = decidePipelineRecovery(pipelineSnapshot, gates, pipelineController);
+            if (!decision.passed) {
+              const prompt = recoveryPromptFor(decision);
+              emit({
+                iteration,
+                type: "thinking",
+                tool: "Autonomous Pipeline",
+                message: `${prompt} Gate: ${decision.gate?.name ?? "unknown"}.`,
+              });
+              if (decision.exhausted) {
+                const error = `Autonomous pipeline gate "${decision.gate?.name ?? "unknown"}" failed after bounded recovery attempts.`;
+                emit({ iteration, type: "failed", tool: "Autonomous Pipeline", message: error });
+                return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+              }
+              recoveryCycles += 1;
+              recoveryDiagnosis = diagnoseError(
+                `AUTONOMOUS_GATE_FAILURE: ${decision.gate?.name ?? "unknown"} — ${decision.reason}. ${prompt}`,
+              );
+              transition("repair");
+              if (builderState) {
+                const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+                  ? "diagnose"
+                  : builderState.graph.nodes.some((node) => node.id === "implement")
+                    ? "implement"
+                    : null;
+                if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+              }
+              continue;
+            }
+            emit({
+              iteration,
+              type: "thinking",
+              tool: "Autonomous Pipeline",
+              message: "Все автономные контрольные ворота прошли проверку.",
+            });
+          }
+        } catch (error) {
+          emit({
+            iteration,
+            type: "tool-error",
+            tool: "Autonomous Pipeline",
+            message: `Не удалось проверить pipeline gates: ${error instanceof Error ? error.message : "unknown error"}`,
+          });
+        }
+      }
 
       // Validate the domain immediately after every implementation write so a
       // premature done=true cannot bypass the intent lock.
