@@ -54,7 +54,7 @@ test("AI E2E keeps construction intent and executes a real AI plan", async () =>
   await writeFile(join(root, "index.html"), "<!doctype html><html lang=\"ru\"><body><h1>Старый проект</h1></body></html>", "utf8");
 
   const gateway = new AIGateway([new E2EProvider()], "openai");
-  const agent = new NexumAgent(gateway, root);
+  const agent = new ScriptedAgent(gateway, root);
   const result = await new AgentLoop(agent, gateway, 8).run(
     "Создай современный сайт строительной компании по демонтажу фасадов",
     { provider: "openai", model: "e2e" },
@@ -100,7 +100,7 @@ test("AI E2E recovers a real Preview-bound validation failure", async () => {
 
   const provider = new RecoveryE2EProvider();
   const gateway = new AIGateway([provider], "openai");
-  const agent = new NexumAgent(gateway, root);
+  const agent = new ScriptedAgent(gateway, root, true);
   const result = await new AgentLoop(agent, gateway, 10).run(
     "Создай современный сайт строительной компании по демонтажу фасадов",
     { provider: "openai", model: "e2e" },
