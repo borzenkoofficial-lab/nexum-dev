@@ -50,3 +50,23 @@ test("pipeline gates require build, verification and live readiness", () => {
   assert.equal(gates.find((gate)=>gate.name==="build")?.passed,false);
   assert.equal(gates.every((gate)=>gate.passed),false);
 });
+
+
+test("prepared pipeline cannot report completion without a verified production build", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "nexum-pipeline-static-"));
+  try {
+    await writeFile(
+      resolve(root, "index.html"),
+      `<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:system-ui}</style></head><body><button type="button">Открыть заказ</button><p>Доставка по городу</p></body></html>`,
+      "utf8",
+    );
+    const intent = extractIntent("создай приложение доставки");
+    const prepared = await prepareAutonomousDesignPipeline(root, intent);
+    assert.equal(prepared.buildVerified, false);
+    assert.equal(prepared.completed, false);
+    assert.equal(prepared.readyForLive, false);
+    assert.equal(prepared.stage, "build");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
