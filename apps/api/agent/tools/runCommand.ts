@@ -152,7 +152,7 @@ export class RunCommandTool implements Tool {
       throw new Error("npx package installation and shell options are not allowed");
     }
 
-    const safeArgs = args.includes("--no-install") ? args : [args[0], "--no-install", ...args.slice(1)];
+    const command = args[0];\n    if (!command) throw new Error("npx command is required");\n    const safeArgs = args.includes("--no-install") ? args : [command, "--no-install", ...args.slice(1)];
     return { executable: "npx", args: safeArgs };
   }
 
