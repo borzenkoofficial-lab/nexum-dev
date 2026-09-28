@@ -98,7 +98,7 @@ export class ScaffoldProjectTool implements Tool {
         devDependencies: { vite: "^7.1.7", "@vitejs/plugin-react": "^5.0.4" }
       }, null, 2)],
       ["vite.config.js", 'import { defineConfig } from "vite";\nimport react from "@vitejs/plugin-react";\nexport default defineConfig({ plugins: [react()] });\n'],
-      ["index.html", '<!doctype html>\n<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>'+safeTitle+'</title></head><body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>'],
+      ["index.html", '<!doctype html>\n<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>'+safeTitle+'</title></head><body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>'],
       ["src/main.jsx", 'import React from "react";\nimport { createRoot } from "react-dom/client";\nimport "./styles.css";\nimport App from "./App.jsx";\ncreateRoot(document.getElementById("root")).render(<React.StrictMode><App /></React.StrictMode>);\n'],
       ["src/App.jsx", 'export default function App(){return <main id="nexum-root" aria-label="Application"><h1>Loading product…</h1></main>}\n'],
       ["src/styles.css", 'html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#fff;color:#111}button,input,textarea,select{font:inherit}'],
@@ -149,7 +149,7 @@ app.listen(3000, () => console.log("API listening on http://localhost:3000"));
     const safeTitle = this.escapeHtml(title);
     const safeBrief = this.escapeHtml(brief || "NEXUM project");
     return `<!doctype html>
-<html lang="en">
+<html lang="ru">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${safeBrief}"><title>${safeTitle}</title></head>
 <body><main id="nexum-root" aria-label="Application"></main><script src="./app.js"></script></body>
 </html>`;
