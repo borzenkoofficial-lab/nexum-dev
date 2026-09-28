@@ -100,7 +100,7 @@ export function extractIntent(task: string): NexumIntent {
     [/быстр|производитель/i, "производительность"],
   ]);
 
-  const signalCount = [domainRule, goals.length, features.length, visualDirection.length].reduce((sum, value) => sum + (typeof value === "number" ? value : value ? 1 : 0), 0);
+  const signalCount = (domainRule ? 1 : 0) + goals.length + features.length + visualDirection.length;
   const confidence = Math.min(1, 0.35 + signalCount * 0.1 + (domainRule ? 0.2 : 0));
 
   return {
