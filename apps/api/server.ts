@@ -676,11 +676,8 @@ ${stack}` : ""}`;
         "После исправления обязательно выполни доступную проверку/сборку. Заверши только после успешной проверки.",
         `Проект: ${project.name} (${project.id})`,
         `Ошибка: ${message}`,
-        stack ? `Stack:
-${stack}` : "",
-      ].filter(Boolean).join("
-
-");
+        stack ? `Stack:\n${stack}` : "",
+      ].filter(Boolean).join("\n\n");
       void runChatJob(jobId, recoveryMessage, project.id, userId, undefined, undefined, [], [])
         .catch((error) => {
           console.error("[Nexum] preview recovery failed", jobId, error);
