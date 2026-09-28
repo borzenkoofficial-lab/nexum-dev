@@ -25,6 +25,7 @@ import { CheckpointManager } from "./agent/checkpoint.js";
 import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
 import { pingDatabase } from "./db.js";
+import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 
 dotenv.config();
 
@@ -276,6 +277,31 @@ async function runChatJob(
 
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
+
+app.post("/api/diagnostics/events", (req, res) => {
+  const body = req.body ?? {};
+  const sessionId = typeof body.sessionId === "string" && body.sessionId.length < 120 ? body.sessionId : createDiagnosticsSession();
+  const event = recordDiagnosticsEvent({
+    sessionId,
+    type: typeof body.type === "string" ? body.type.slice(0, 120) : "unknown",
+    level: body.level === "error" || body.level === "warn" ? body.level : "info",
+    message: typeof body.message === "string" ? body.message.slice(0, 4000) : "Unknown diagnostics event",
+    route: typeof body.route === "string" ? body.route.slice(0, 500) : undefined,
+    projectId: typeof body.projectId === "string" ? body.projectId.slice(0, 200) : undefined,
+    jobId: typeof body.jobId === "string" ? body.jobId.slice(0, 200) : undefined,
+    metadata: body.metadata && typeof body.metadata === "object" ? body.metadata as Record<string, unknown> : undefined,
+  });
+  return res.status(202).json({ success: true, sessionId: event.sessionId, eventId: event.id });
+});
+
+app.get("/api/diagnostics/session/:sessionId", (req, res) => {
+  return res.json({ success: true, ...getDiagnosticsSession(req.params.sessionId) });
+});
+
+app.get("/api/diagnostics/latest", (req, res) => {
+  const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : 100;
+  return res.json({ success: true, generatedAt: new Date().toISOString(), events: getLatestDiagnostics(Number.isFinite(limit) ? limit : 100) });
+});
 
 app.get("/api/health", async (_req, res) => {
   const database = await pingDatabase();
