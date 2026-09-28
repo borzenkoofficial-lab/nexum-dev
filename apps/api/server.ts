@@ -538,7 +538,7 @@ app.use("/api/preview/:id", authMiddleware, async (req, res) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
-    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
     const requestedPath = req.path.replace(/^\/+/, "") || "index.html";
     const distRoot = resolve(project.path, "dist");
     const distCandidate = resolve(distRoot, requestedPath);
@@ -599,7 +599,7 @@ app.use("/api/preview/:id", authMiddleware, async (req, res) => {
       // Preview is mounted below /api/preview/:id, while Vite production builds
       // usually emit root-relative /assets/... URLs. Rewrite those URLs so the
       // iframe can load JS/CSS/images from the same project preview namespace.
-      const previewBase = `/api/preview/${encodeURIComponent(req.params.id)}/`;
+      const previewBase = `/api/preview/${encodeURIComponent(String(req.params.id))}/`;
       html = html
         .replace(/(src|href|action)=(["'])\/(?!\/)/gi, `$1=$2${previewBase}`)
         .replace(/url\((["']?)\/(?!\/)/gi, `url($1${previewBase}`);
@@ -611,7 +611,7 @@ app.use("/api/preview/:id", authMiddleware, async (req, res) => {
         html = headClose >= 0 ? html.slice(0, headClose + 1) + headTag + html.slice(headClose + 1) : headTag + html;
       }
 
-      const runtimeBridge = "<script>(() => { const projectId = " + JSON.stringify(req.params.id) + "; const report = (kind, message, stack) => { try { parent.postMessage({ source: \"nexum-preview\", projectId, kind, message: String(message || \"Preview runtime error\").slice(0, 4000), stack: stack ? String(stack).slice(0, 8000) : undefined }, \"*\"); } catch {} }; window.addEventListener(\"error\", (event) => report(\"error\", event.message, event.error && event.error.stack)); window.addEventListener(\"unhandledrejection\", (event) => report(\"unhandledrejection\", event.reason instanceof Error ? event.reason.message : String(event.reason), event.reason instanceof Error ? event.reason.stack : undefined)); })();</script>";
+      const runtimeBridge = "<script>(() => { const projectId = " + JSON.stringify(String(req.params.id)) + "; const report = (kind, message, stack) => { try { parent.postMessage({ source: \"nexum-preview\", projectId, kind, message: String(message || \"Preview runtime error\").slice(0, 4000), stack: stack ? String(stack).slice(0, 8000) : undefined }, \"*\"); } catch {} }; window.addEventListener(\"error\", (event) => report(\"error\", event.message, event.error && event.error.stack)); window.addEventListener(\"unhandledrejection\", (event) => report(\"unhandledrejection\", event.reason instanceof Error ? event.reason.message : String(event.reason), event.reason instanceof Error ? event.reason.stack : undefined)); })();</script>";
       const bodyIndex = html.toLowerCase().lastIndexOf("</body>");
       return res.send(bodyIndex >= 0 ? html.slice(0, bodyIndex) + runtimeBridge + html.slice(bodyIndex) : html + runtimeBridge);
     }
@@ -692,7 +692,7 @@ app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
 
 app.get("/api/projects/:id/files", async (req, res) => {
   try {
-    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
     const root = resolve(project.path);
     const entries = await readdir(root, { withFileTypes: true, recursive: true });
     const files = entries
@@ -709,7 +709,7 @@ app.get("/api/projects/:id/files", async (req, res) => {
 
 app.get("/api/projects/:id/file", async (req, res) => {
   try {
-    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
     const requested = typeof req.query.path === "string" ? req.query.path : "";
     if (!requested) return res.status(400).json({ success: false, error: "File path is required" });
     const filePath = resolve(project.path, requested);
@@ -729,7 +729,7 @@ app.get("/api/projects/:id/file", async (req, res) => {
 
 app.put("/api/projects/:id/file", async (req, res) => {
   try {
-    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
     const { path: requested, content } = req.body as { path?: unknown; content?: unknown };
     if (typeof requested !== "string" || typeof content !== "string") return res.status(400).json({ success: false, error: "path and content are required" });
     const filePath = resolve(project.path, requested);
@@ -752,7 +752,7 @@ app.put("/api/projects/:id/file", async (req, res) => {
 
 app.get("/api/projects/:id/git/:operation", async (req, res) => {
   try {
-    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
     const operation = req.params.operation;
     if (!["status", "diff", "diff-stat", "log", "branch"].includes(operation)) {
       return res.status(400).json({ success: false, error: "Unsupported Git operation" });
@@ -772,7 +772,7 @@ app.get("/api/projects/:id/git/:operation", async (req, res) => {
 
 app.post("/api/projects/:id/run", async (req, res) => {
   try {
-    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
     const command = typeof req.body?.command === "string" ? req.body.command.trim() : "";
     const allowed = new Set(["npm run build", "npm run test", "npm run lint", "npm run typecheck", "git status", "git diff", "git log"]);
     if (!allowed.has(command)) return res.status(400).json({ success: false, error: "Command is not allowed" });
@@ -796,7 +796,7 @@ app.post("/api/projects/:id/run", async (req, res) => {
 
 app.get("/api/projects/:id/checkpoints", async (req, res) => {
   try {
-    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
     const checkpoints = await checkpointManager.list(project.id, project.path);
     return res.json({ success: true, checkpoints });
   } catch (error) {
@@ -806,7 +806,7 @@ app.get("/api/projects/:id/checkpoints", async (req, res) => {
 
 app.post("/api/projects/:id/checkpoints", async (req, res) => {
   try {
-    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
     const label = typeof req.body?.label === "string" ? req.body.label : "before agent changes";
     const checkpoint = await checkpointManager.create(project.id, project.path, label);
     void agentHistory.record({
@@ -824,7 +824,7 @@ app.post("/api/projects/:id/checkpoints", async (req, res) => {
 
 app.post("/api/projects/:id/checkpoints/:checkpointId/rollback", async (req, res) => {
   try {
-    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
     const checkpoint = await checkpointManager.rollback(project.id, project.path, req.params.checkpointId);
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
@@ -844,7 +844,7 @@ app.post("/api/projects/:id/checkpoints/:checkpointId/rollback", async (req, res
 
 app.get("/api/projects/:id/state", async (req, res) => {
   try {
-    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     const state = await stateManager.refresh();
@@ -857,7 +857,7 @@ app.get("/api/projects/:id/state", async (req, res) => {
 
 app.get("/api/projects/:id/preview/status", async (req, res) => {
   try {
-    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
     const packagePath = resolve(project.path, "package.json");
     const distIndexPath = resolve(project.path, "dist", "index.html");
     const sourceIndexPath = resolve(project.path, "index.html");
