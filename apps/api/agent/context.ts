@@ -1,5 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { formatProjectUnderstanding, understandProject } from "../projects/projectUnderstanding.js";
+import type { ProjectState } from "../projects/projectState.js";
 
 export interface AgentContextSnapshot {
   task: string;
@@ -88,6 +90,7 @@ export function formatAgentContext(context: AgentContextSnapshot): string {
   return JSON.stringify({
     task: context.task || "Current task unavailable.",
     projectKnowledge: context.knowledge || "No persistent project knowledge.",
+    projectUnderstanding: (() => { try { return JSON.parse(formatProjectUnderstanding(understandProject(state as unknown as ProjectState))); } catch { return { health: "unknown", risks: ["project understanding unavailable"] }; } })(),
     projectState: {
       projectType: state.projectType,
       framework: state.framework,
