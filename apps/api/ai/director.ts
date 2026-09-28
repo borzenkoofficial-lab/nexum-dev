@@ -22,7 +22,7 @@ export class NexumDirector {
   decide(task: string, mode: DirectorMode = "auto", budget?: DirectorBudget, availableProviderIds?: Iterable<string>): DirectorDecision[] {
     const text = task.toLowerCase();
     const complex = /с нуля|полноцен|saas|crm|marketplace|backend|api|база данных|database|auth|авторизац|интеграц|connector|mcp|многостранич|from scratch/.test(text);
-    const debugging = /ошиб|bug|debug|не работает|сломал|fix|исправь|тест|build|ci|compile|typecheck/.test(text);
+    const debugging = /ошиб|bug|debug|не работает|сломал|fix\s+(?:ошиб|баг|код|проблем)|исправь\s+(?:ошиб|баг|код|проблем)|exception|failed|crash|build failed|compile (?:error|failed)|typecheck (?:failed|error)|ci (?:failed|error)/.test(text);
     const visual = /дизайн|ui|ux|страниц|лендинг|сайт|dashboard|интерфейс/.test(text);
     const availableProviders = new Set(
       availableProviderIds ?? getModelRegistry().filter((route) => route.enabled).map((route) => route.provider),
