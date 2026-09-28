@@ -485,8 +485,6 @@ html,body,#root{
   --line:#dedee4;
   --line-strong:#cdced5;
 }
-[data-ui-scale="90"] .app{zoom:.9}
-[data-ui-scale="110"] .app{zoom:1.1}
 .settings-page-v2{
   width:min(1240px,100%);
   padding:48px 48px 80px;
@@ -740,3 +738,63 @@ html,body,#root{
 .app-project .preview-content span{font-size:11px}
 .app-project .welcome .eyebrow{font-size:11px}
 .app-project .starter-grid button{font-size:11px}
+
+
+/* NEXUM HD 2.1 — readable workspace scale without CSS zoom */
+.settings-api-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;margin-top:14px}
+.settings-api-row input{width:100%;height:42px;padding:0 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--text);outline:0}
+.settings-api-row input:focus{border-color:#bdb8ff;box-shadow:0 0 0 3px var(--accent-soft)}
+.settings-api-row .home-primary{height:42px}
+
+.app-project .agent-panel,
+.app-project .right-panel,
+.app-project .editor-shell{font-size:13px}
+.app-project .agent-panel-header h2{font-size:20px}
+.app-project .agent-panel-header p{font-size:12px}
+.app-project .agent-status-pill{font-size:11px}
+.app-project .agent-current strong{font-size:14px}
+.app-project .agent-current span{font-size:11px}
+.app-project .pipeline-step{font-size:11px}
+.app-project .pipeline-step i{font-size:10px}
+.app-project .agent-result-card,.app-project .agent-plan-card,.app-project .agent-timeline{font-size:12px}
+.app-project .agent-result-head strong{font-size:14px}
+.app-project .agent-result-head span{font-size:12px}
+.app-project .agent-result-meta b{font-size:12px}
+.app-project .agent-result-meta small{font-size:10px}
+.app-project .agent-result-actions button{font-size:11px;height:32px}
+.app-project .agent-plan-goal{font-size:12px}
+.app-project .agent-plan-section{font-size:11px}
+.app-project .agent-event-copy strong{font-size:11px}
+.app-project .agent-event-copy p{font-size:11px}
+.app-project .agent-event time{font-size:10px}
+.app-project .agent-empty{font-size:11px}
+.app-project .agent-problems{font-size:11px}
+
+.app-project .panel-tabs{height:52px}
+.app-project .panel-tabs>button:not(.preview-refresh):not(.preview-expand){font-size:12px}
+.app-project .preview-address{font-size:11px}
+.app-project .preview-address b{font-size:9px}
+.app-project .preview-content strong{font-size:16px}
+.app-project .preview-content span,.app-project .preview-content .coming-soon{font-size:11px}
+.app-project .preview-runtime-error{font-size:10px}
+
+.app-project .editor-filebar{height:46px;font-size:11px}
+.app-project .editor-save{font-size:10px;height:29px}
+.app-project .file-row{height:30px;font-size:10px}
+.app-project .editor-tree{padding:12px}
+.app-project .editor-gutter{font-size:10px;line-height:1.7}
+.app-project .code-editor textarea{font-size:11px;line-height:1.7}
+.app-project .editor-empty,.app-project .files-empty{font-size:11px}
+.app-project .editor-error{font-size:10px}
+
+.app-project .builder-editorial-preview,
+.app-project .agent-hero-mockup,
+.app-project .preview-editorial-browser{image-rendering:auto}
+
+@media(max-width:760px){
+  .settings-api-row{grid-template-columns:1fr}
+  .settings-api-row .home-primary{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  .builder-preview-chrome em,.builder-preview-agent i,.agent-hero-track span.is-live{animation:none}
+}
