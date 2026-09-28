@@ -197,8 +197,8 @@ async function main() {
 
   console.log("");
   const codespacesDomain = process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN;
-  const forwardedWebUrl = codespacesDomain
-    ? `https://5173-${process.env.CODESPACE_NAME}.${codespacesDomain}`
+  const forwardedWebUrl = codespacesDomain && process.env.CODESPACE_NAME
+    ? `https://${process.env.CODESPACE_NAME}-5173.${codespacesDomain}`
     : "http://localhost:5173";
   console.log(`[Nexum] Web: ${forwardedWebUrl}`);
   console.log("[Nexum] API: http://localhost:3001");
