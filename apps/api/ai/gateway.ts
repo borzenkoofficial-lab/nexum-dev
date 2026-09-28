@@ -121,6 +121,16 @@ export class AIGateway {
   getDefaultProviderId(): string {
     return this.defaultProviderId;
   }
+  getReadyProviderIds(): string[] {
+    return [...this.providers.values()]
+      .filter((provider) => {
+        const keyAware = provider as { hasApiKey?: () => boolean };
+        if (typeof keyAware.hasApiKey === "function") return keyAware.hasApiKey();
+        return provider.id === "mock" || provider.id === "ollama";
+      })
+      .map((provider) => provider.id);
+  }
+
 
   getDefaultModel(providerId = this.defaultProviderId): string {
     return this.providers.get(providerId)?.model ?? this.providers.get(this.defaultProviderId)!.model;
