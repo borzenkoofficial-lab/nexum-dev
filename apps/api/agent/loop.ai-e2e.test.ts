@@ -15,7 +15,7 @@ class E2EProvider implements AIProvider {
   private calls = 0;
   hasApiKey() { return true; }
   async getStatus(model = this.model): Promise<AIProviderStatus> {
-    return { available: true, model, latencyMs: 1, error: null };
+    return { available: true, model, latencyMs: 1, error: undefined };
   }
   async listModels() { return [this.model]; }
   async generate(message: string): Promise<string> {
