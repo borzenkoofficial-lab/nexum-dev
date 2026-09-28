@@ -976,7 +976,12 @@ app.post("/api/chat", async (req, res) => {
 
 app.get("/api/agent/history", async (req, res) => {
   const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : 200;
-  return res.json({ success: true, entries: await agentHistory.recent(Number.isFinite(limit) ? limit : 200) });
+  const userId = getAuthUser(req).id;
+  const userProjects = await getProjectManager(userId).listProjects();
+  const projectIds = new Set(userProjects.map((project) => project.id));
+  const entries = (await agentHistory.recent(Number.isFinite(limit) ? limit : 200))
+    .filter((entry) => !entry.projectId || projectIds.has(entry.projectId));
+  return res.json({ success: true, entries });
 });
 
 app.post("/api/agent/client-error", authMiddleware, async (req, res) => {
@@ -1003,7 +1008,10 @@ app.post("/api/agent/client-error", authMiddleware, async (req, res) => {
 app.get("/api/agent/diagnostics", async (req, res) => {
   const rawLimit = typeof req.query.limit === "string" ? Number(req.query.limit) : 100;
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 500) : 100;
-  const entries = await agentHistory.recent(limit);
+  const userId = getAuthUser(req).id;
+  const userProjects = await getProjectManager(userId).listProjects();
+  const projectIds = new Set(userProjects.map((project) => project.id));
+  const entries = (await agentHistory.recent(limit)).filter((entry) => !entry.projectId || projectIds.has(entry.projectId));
   const failures = entries.filter((entry) =>
     (entry.type === "agent-event" && (entry.status === "tool-error" || entry.status === "failed")) ||
     entry.type === "job-failed" ||
