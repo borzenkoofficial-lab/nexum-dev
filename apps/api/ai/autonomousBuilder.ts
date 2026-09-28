@@ -51,6 +51,7 @@ export function nextBuilderStep(state: BuilderExecutionState): BuilderStep | nul
     .flat()
     .find((id) => candidates.some((node) => node.id === id));
   const node = candidates.find((candidate) => candidate.id === nextId) ?? candidates[0];
+  if (!node) return null;
 
   return {
     node,
