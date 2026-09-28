@@ -19,7 +19,7 @@ export interface DirectorBudget {
 }
 
 export class NexumDirector {
-  decide(task: string, mode: DirectorMode = "auto", budget?: DirectorBudget): DirectorDecision[] {
+  decide(task: string, mode: DirectorMode = "auto", budget?: DirectorBudget, availableProviderIds?: Iterable<string>): DirectorDecision[] {
     const text = task.toLowerCase();
     const complex = /с нуля|полноцен|saas|crm|marketplace|backend|api|база данных|database|auth|авторизац|интеграц|connector|mcp|многостранич|from scratch/.test(text);
     const debugging = /ошиб|bug|debug|не работает|сломал|fix|исправь|тест|build|ci|compile|typecheck/.test(text);
@@ -61,19 +61,19 @@ export class NexumDirector {
       return allow([pick(debugging ? "debugger" : "coder", "Экономичный маршрут: один специализированный исполнитель без лишней декомпозиции.", debugging ? "high" : "normal")]);
     }
 
-    if (complex) {
-      return allow([
-        pick("director", "Сначала декомпозирую сложную задачу.", "high"),
-        pick("coder", "Затем выполняю основную реализацию.", "high"),
-        pick("tester", "После изменения выполняю независимую дешёвую проверку.", "normal"),
-      ]);
-    }
-
     if (debugging) {
       return allow([
         pick("director", "Определяю причину и минимальный порядок восстановления.", "high"),
         pick("debugger", "Выполняю глубокую диагностику и точечное исправление.", "high"),
         pick("tester", "Проверяю исправление отдельным проходом.", "normal"),
+      ]);
+    }
+
+    if (complex) {
+      return allow([
+        pick("director", "Сначала декомпозирую сложную задачу.", "high"),
+        pick("coder", "Затем выполняю основную реализацию.", "high"),
+        pick("tester", "После изменения выполняю независимую дешёвую проверку.", "normal"),
       ]);
     }
 
