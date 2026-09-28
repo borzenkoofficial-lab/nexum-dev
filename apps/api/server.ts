@@ -29,6 +29,9 @@ import { clearRuntimeMemory, loadRuntimeKeys, saveRuntimeKey } from "./ai/runtim
 import { readDesignSpec, writeDesignSpec, deriveDesignSpec } from "./design/designSpec.js";
 import { interactionScript } from "./design/interactionContract.js";
 import { verifyDesign } from "./design/visualVerification.js";
+import { prepareAutonomousDesignPipeline, getPipelineSnapshot } from "./design/autonomousPipeline.js";
+import { componentContracts } from "./design/componentIntelligence.js";
+import { inspectLiveUpdate } from "./design/liveUpdate.js";
 import { extractIntent } from "./ai/intentEngine.js";
 
 dotenv.config();
@@ -280,7 +283,7 @@ ${attachment.content.slice(0, 80_000)}`);
     job.steps = result.steps;
     job.productPlan = result.productPlan;
     const intent = extractIntent(message);
-    await writeDesignSpec(project.path, deriveDesignSpec({ domain: intent.domain, productType: intent.productType, visualDirection: intent.visualDirection, audience: intent.audience, features: intent.features }));
+    await prepareAutonomousDesignPipeline(project.path, intent);
     const successfulBuild = result.steps.some((step) =>
       step.success &&
       (step.tool === "runCommand" || step.tool === "runSandbox") &&
@@ -645,6 +648,33 @@ app.use("/api/preview/:id", authMiddleware, async (req, res) => {
     if (error instanceof ProjectManagerError) return sendProjectError(res, error);
     return res.status(500).send("Preview failed");
   }
+});
+
+app.get("/api/projects/:id/pipeline", async (req,res)=>{
+  try {
+    const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
+    return res.json({success:true,pipeline:await getPipelineSnapshot(project.path)});
+  } catch(error){ return sendProjectError(res,error); }
+});
+app.post("/api/projects/:id/pipeline/prepare", async (req,res)=>{
+  try {
+    const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
+    const intent=extractIntent(typeof req.body?.task==="string"?req.body.task:"");
+    return res.json({success:true,pipeline:await prepareAutonomousDesignPipeline(project.path,intent)});
+  } catch(error){ return sendProjectError(res,error); }
+});
+app.get("/api/projects/:id/components", async (req,res)=>{
+  try {
+    const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
+    const design=await readDesignSpec(project.path);
+    return res.json({success:true,components:componentContracts(design)});
+  } catch(error){ return sendProjectError(res,error); }
+});
+app.get("/api/projects/:id/preview/live", async (req,res)=>{
+  try {
+    const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
+    return res.json({success:true,live:await inspectLiveUpdate(project.path,String(project.id))});
+  } catch(error){ return sendProjectError(res,error); }
 });
 
 app.get("/api/projects/:id/design", async (req, res) => {
