@@ -1,14 +1,15 @@
 :root {
-  --bg: #0f1110;
-  --panel: #171a17;
-  --panel-raised: #1d211d;
-  --line: #2b302a;
-  --muted: #8b9389;
-  --text: #f3f6ef;
-  --accent: #d7f35b;
-  --accent-ink: #17200a;
-  --danger: #ff9d91;
-  --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+  --bg: #f5f6f8;
+  --panel: #ffffff;
+  --panel-raised: #f8f9fb;
+  --line: #e1e5ea;
+  --muted: #697386;
+  --text: #15181d;
+  --accent: #f2c400;
+  --accent-ink: #171717;
+  --danger: #c43d38;
+  --success: #1f8a55;
+  --shadow: 0 20px 60px rgba(16, 24, 40, 0.10);
 }
 
 * { box-sizing: border-box; }
@@ -3386,4 +3387,118 @@ body { overflow-x: hidden; }
 .app-project .right-panel > div:last-child {
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
+}
+
+
+/* NEXUM product UI — light graphite/yellow system.
+   Functional styles remain above; this layer centralizes the visual direction. */
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+.app {
+  background: var(--bg);
+}
+.sidebar {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: var(--line);
+  box-shadow: 8px 0 30px rgba(16, 24, 40, 0.03);
+}
+.logo { color: var(--text); }
+.logo span { color: #b38e00; }
+.new-project, .send-button, .create-button {
+  border-color: #d7ad00;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.project:hover, .project.active {
+  border-color: var(--line);
+  background: #f1f3f6;
+  color: var(--text);
+}
+.project-mark { background: #eef1f4; color: #596273; }
+.project.active .project-mark { background: var(--accent); color: var(--accent-ink); }
+.header {
+  background: rgba(255,255,255,.94);
+  border-color: var(--line);
+}
+.subtitle, .section-title, .eyebrow { color: var(--muted); }
+.ai-controls select,
+.message-box,
+.modal,
+.preview-browser-bar,
+.editor-shell,
+.agent-activity,
+.quick-actions,
+.conversation-message,
+.status-bar {
+  background: var(--panel);
+  border-color: var(--line);
+  color: var(--text);
+}
+.ai-controls select {
+  color: var(--text);
+}
+.message-box {
+  box-shadow: 0 12px 40px rgba(16,24,40,.06);
+}
+.message-box textarea { color: var(--text); }
+.message-box textarea::placeholder { color: #98a1af; }
+.reply { color: #394150; border-color: var(--line); }
+.preview {
+  background: #eef1f4;
+  border-color: var(--line);
+}
+.preview-header,
+.preview-browser-bar,
+.editor-filebar,
+.panel-tabs {
+  border-color: var(--line);
+}
+.preview-status,
+.status,
+.status-working { color: #8a6d00; }
+.preview-icon { border-color: #d8dee6; color: #9b7900; }
+.modal-backdrop { background: rgba(15, 23, 42, .32); }
+.modal { box-shadow: var(--shadow); }
+.modal input {
+  background: #f8fafc;
+  color: var(--text);
+  border-color: var(--line);
+}
+.modal input::placeholder { color: #98a1af; }
+.retry-button, .cancel-button, .icon-button {
+  background: #fff;
+  color: var(--text);
+  border-color: var(--line);
+}
+.retry-button:hover, .cancel-button:hover, .icon-button:hover {
+  border-color: #bcc4cf;
+  background: #f7f8fa;
+}
+button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(242,196,0,.34);
+}
+.preview-frame-wrap,
+.editor-body,
+.agent-panel,
+.quick-action {
+  border-color: var(--line);
+}
+.preview-address,
+.files-empty,
+.editor-empty,
+.agent-activity span,
+.agent-activity strong {
+  color: var(--muted);
+}
+.preview-runtime-error,
+.editor-error,
+.error-state {
+  color: var(--danger);
+  border-color: rgba(196,61,56,.24);
+  background: #fff8f7;
+}
+@media (max-width: 900px) {
+  .preview { background: var(--panel); }
 }
