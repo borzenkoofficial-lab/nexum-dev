@@ -1,5 +1,5 @@
-import type { NexumIntent } from "../ai/intentEngine.js";
-import { decomposeTask, type TaskGraph, type TaskNode } from "../ai/taskDecomposer.js";
+import type { NexumIntent } from "./intentEngine.js";
+import { decomposeTask, type TaskGraph, type TaskNode } from "./taskDecomposer.js";
 
 export interface BuilderExecutionState {
   graph: TaskGraph;
@@ -16,13 +16,6 @@ export interface BuilderStep {
   exhausted: boolean;
 }
 
-/**
- * Stage 6 execution coordinator.
- *
- * It turns the static task graph into a bounded state machine. The AgentLoop
- * remains responsible for actual tools; this module decides which graph node
- * is currently allowed to drive the next AI/tool action.
- */
 export function createBuilderExecutionState(
   task: string,
   intent: NexumIntent,
@@ -45,16 +38,24 @@ export function nextBuilderStep(state: BuilderExecutionState): BuilderStep | nul
     .filter((node) => !state.completed.has(node.id))
     .filter((node) => node.dependencies.every((dependency) => state.completed.has(dependency)));
 
-  if (!candidates.length) return null;\n\n  const exhaustedCandidate = candidates.find((candidate) => (state.attempts.get(candidate.id) ?? 0) >= MAX_NODE_ATTEMPTS);\n  if (exhaustedCandidate) {\n    return {\n      node: exhaustedCandidate,\n      remaining: candidates.filter((candidate) => candidate.id !== exhaustedCandidate.id).map((candidate) => candidate.id),\n      blocked: true,\n      exhausted: true,\n    };\n  }
+  if (!candidates.length) return null;
 
-  // Preserve the graph's declared execution order. Parallel batches are
-  // intentionally serialized here until the tool/runtime layer can prove that
-  // two mutations are isolated from each other.
+  const exhaustedCandidate = candidates.find(
+    (candidate) => (state.attempts.get(candidate.id) ?? 0) >= MAX_NODE_ATTEMPTS,
+  );
+  if (exhaustedCandidate) {
+    return {
+      node: exhaustedCandidate,
+      remaining: candidates.filter((candidate) => candidate.id !== exhaustedCandidate.id).map((candidate) => candidate.id),
+      blocked: true,
+      exhausted: true,
+    };
+  }
+
   const nextId = state.graph.executionOrder
     .flat()
     .find((id) => candidates.some((node) => node.id === id));
   const node = candidates.find((candidate) => candidate.id === nextId) ?? candidates[0];
-  if (!node) return null;
 
   return {
     node,
@@ -62,6 +63,7 @@ export function nextBuilderStep(state: BuilderExecutionState): BuilderStep | nul
       .filter((candidate) => !state.completed.has(candidate.id) && candidate.id !== node.id)
       .map((candidate) => candidate.id),
     blocked: false,
+    exhausted: false,
   };
 }
 
@@ -72,9 +74,26 @@ export function recordBuilderNodeResult(
 ): void {
   const attempts = (state.attempts.get(nodeId) ?? 0) + 1;
   state.attempts.set(nodeId, attempts);
+  if (success) state.completed.add(nodeId);
+}
 
-  if (success) {
-    state.completed.add(nodeId);
+/**
+ * Rewinds the active graph to a recovery node while preserving attempt counters.
+ * Preserving counters makes the recovery budget global and prevents infinite
+ * diagnose -> fix -> verify loops.
+ */
+export function rewindBuilderTo(
+  state: BuilderExecutionState,
+  nodeId: string,
+): void {
+  const targetIndex = state.graph.executionOrder
+    .flat()
+    .indexOf(nodeId);
+  if (targetIndex < 0) return;
+
+  const ordered = state.graph.executionOrder.flat();
+  for (let index = targetIndex; index < ordered.length; index += 1) {
+    state.completed.delete(ordered[index]);
   }
 }
 
@@ -91,7 +110,17 @@ export function builderExecutionPrompt(
     ].join("\n");
   }
 
-  const attempt = state.attempts.get(step.node.id) ?? 0;\n  if (step.exhausted) {\n    return [\n      "NEXUM EXECUTION STATE: blocked",\n      `currentNode=${step.node.id}`,\n      `attempts=${attempt}`,\n      `maxAttempts=${MAX_NODE_ATTEMPTS}`,\n      "This node exhausted its bounded attempts. Do not continue or invent a new path.",\n    ].join("\\n");\n  }
+  const attempt = state.attempts.get(step.node.id) ?? 0;
+  if (step.exhausted) {
+    return [
+      "NEXUM EXECUTION STATE: blocked",
+      `currentNode=${step.node.id}`,
+      `attempts=${attempt}`,
+      `maxAttempts=${MAX_NODE_ATTEMPTS}`,
+      "This node exhausted its bounded attempts. Do not continue or invent a new path.",
+    ].join("\n");
+  }
+
   return [
     "NEXUM EXECUTION STATE",
     `rootTask=${task.slice(0, 500)}`,
