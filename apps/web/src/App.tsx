@@ -4,6 +4,7 @@ import { ChatPanel } from "./components/ChatPanel";
 import { CommandPalette } from "./components/CommandPalette";
 import { CodePanel } from "./components/CodePanel";
 import { NewProjectModal } from "./components/NewProjectModal";
+import { NewsPage } from "./components/NewsPage";
 import { QuickActions } from "./components/QuickActions";
 import { RightPanel } from "./components/RightPanel";
 import { Sidebar } from "./components/Sidebar";
@@ -41,9 +42,9 @@ function App() {
   const [previewKey, setПредпросмотрKey] = useState(0);
   const [builderStarted, setBuilderStarted] = useState(false);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
-  const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings">(() => {
+  const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news">(() => {
     const path = window.location.pathname;
-    return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : "home";
+    return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : "home";
   });
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
@@ -79,20 +80,20 @@ function App() {
 
   const activeПроект = projects.find((project) => project.id === activeПроектId);
 
-  function navigate(nextView: "home" | "project" | "connectors" | "settings", projectId?: string, replace = false) {
+  function navigate(nextView: "home" | "project" | "connectors" | "settings" | "news", projectId?: string, replace = false) {
     setViewState(nextView);
     const target = nextView === "project"
       ? "/projects/" + encodeURIComponent(projectId ?? activeПроектId)
       : nextView === "connectors" ? "/connectors"
       : nextView === "settings" ? "/settings"
-      : "/projects";
+      : nextView === "news" ? "/news" : "/projects";
     if (window.location.pathname !== target) {
       if (replace) window.history.replaceState({ view: nextView, projectId }, "", target);
       else window.history.pushState({ view: nextView, projectId }, "", target);
     }
   }
 
-  const setView = (nextView: "home" | "project" | "connectors" | "settings") => navigate(nextView);
+  const setView = (nextView: "home" | "project" | "connectors" | "settings" | "news") => navigate(nextView);
 
   useEffect(() => {
     const onPopState = () => {
@@ -654,13 +655,15 @@ function App() {
     <div className={"app app-" + view}>
       {<Sidebar projects={projects} activeProjectId={activeПроектId} projectsLoading={projectsLoading} projectActionLoading={projectActionLoading} mobileOpen={mobileSidebarOpen} view={view} onDeleteProject={(id) => void deleteПроект(id)} onViewChange={(next) => { setMobileSidebarOpen(false); setView(next); }} onNewProject={() => { setMobileSidebarOpen(false); setModalOpen(true); }} onSelectProject={(id) => { setMobileSidebarOpen(false); openПроект(id); }} />}
       <main className="main">
-        {view !== "project" && <TopBar projectName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : "NEXUM.DEV"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />}
+        {view !== "project" && <TopBar projectName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : "NEXUM.DEV"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />}
         {view === "home" ? (
           <section className="nexum-home">
             <div className="home-hero"><div><div className="eyebrow">NEXUM.DEV</div><h1>Создавайте, не покидая рабочее пространство.</h1><p>Создайте проект, откройте его как отдельное рабочее пространство, подключите сервисы и поручите агенту разработку.</p></div><button className="home-primary" type="button" onClick={() => setModalOpen(true)}>+ Новый проект</button></div>
             <div className="home-section-title"><span>ВАШИ ПРОЕКТЫ</span><button type="button" onClick={() => setModalOpen(true)}>Новый проект</button></div>
             <div className="project-grid">{projects.filter((project) => project.status === "active").map((project) => <button key={project.id} className="project-window" type="button" onClick={() => openПроект(project.id)}><span className="window-chrome"><i/><i/><i/></span><span className="project-window-mark">{project.name.slice(0, 1)}</span><div className="project-window-head"><strong>{project.name}</strong><span className="project-type-badge">{project.type ?? "Проект"}</span></div><p className="project-window-description">{project.description || "Проект готов к разработке. Откройте рабочее пространство и задайте первую задачу агенту."}</p><span className="project-window-meta"><span>Обновлён {new Date(project.updatedAt).toLocaleDateString("ru-RU")}</span><b>Открыть →</b></span></button>)}{projects.length === 0 && <div className="empty-card">Создайте свой первый проект — после создания он появится здесь.</div>}</div>
           </section>
+        ) : view === "news" ? (
+          <NewsPage />
         ) : view === "connectors" ? (
           <section className="connectors-page">
             <div className="page-heading"><div><div className="eyebrow">ИНТЕГРАЦИИ</div><h1>Интеграции</h1><p>Подключите сервисы, которые используют ваши проекты.</p></div><button className="home-primary" type="button" onClick={() => setConnectorModal("Пользовательская интеграция")}>+ Добавить интеграцию</button></div>
