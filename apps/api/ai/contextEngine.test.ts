@@ -51,6 +51,7 @@ test("keeps context bounded", () => {
 
   assert.ok(selected.files.length <= 4);
   assert.ok(selected.charCount <= 1000);
+  assert.doesNotThrow(() => JSON.parse(selected.compactSummary));
 });
 
 test("preserves routes and architecture without dumping full project state", () => {
