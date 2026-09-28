@@ -704,17 +704,145 @@ function App() {
           />
         ) : view === "settings" ? (
           <section className="settings-page settings-page-v2">
-            <div className="settings-hero"><div><div className="eyebrow">NEXUM.DEV / SETTINGS</div><h1>Настройки</h1><p>Единый центр управления интерфейсом, AI Engine, проектами и рабочим процессом.</p></div><div className="settings-hero-status"><i/>Система готова</div></div>
-            <div className="settings-layout"><aside className="settings-index"><span>РАЗДЕЛЫ</span><a href="#settings-interface">Интерфейс</a><a href="#settings-ai">AI Engine</a><a href="#settings-projects">Проекты</a><a href="#settings-notifications">Уведомления</a><a href="#settings-shortcuts">Горячие клавиши</a><a href="#settings-storage">Хранилище</a></aside><div className="settings-content"><div id="settings-interface" className="settings-section"><div className="settings-section-head"><span>01</span><div><h2>Интерфейс</h2><p>Настройте масштаб, плотность и движение интерфейса.</p></div></div><div className="settings-card settings-card-wide"><strong>Масштаб интерфейса</strong><span>{uiSettings.scale}% · оптимизировано для HiDPI</span><small>100% — рекомендуемый режим. Используйте 110% на экране с высокой плотностью пикселей, если элементы кажутся слишком мелкими.</small><div className="settings-scale-group">{[90,100,110].map((scale)=><button key={scale} type="button" className={uiSettings.scale===scale?"selected":""} onClick={()=>setUiSettings(s=>({...s,scale}))}>{scale}%</button>)}</div></div><div className="settings-grid settings-grid-secondary">
-              <div className="settings-card"><strong>Плотность</strong><span>{uiSettings.compact ? "Компактный" : "Комфортный"}</span><small>Определяет расстояния и размер служебных элементов.</small><div className="settings-option-row"><div className="settings-option-copy"><b>Компактный режим</b><span>Больше информации на экране</span></div><button type="button" aria-label="Toggle compact mode" className={`nexum-toggle ${uiSettings.compact?"on":""}`} onClick={()=>setUiSettings(s=>({...s,compact:!s.compact}))}></button></div></div><div className="settings-card"><strong>Движение</strong><span>{uiSettings.animations ? "Плавные переходы" : "Минимум движения"}</span><small>Анимации интерфейса без постоянного декоративного свечения.</small><div className="settings-option-row"><div className="settings-option-copy"><b>Анимации</b><span>120–220 ms, только функциональные</span></div><button type="button" aria-label="Toggle animations" className={`nexum-toggle ${uiSettings.animations?"on":""}`} onClick={()=>setUiSettings(s=>({...s,animations:!s.animations}))}></button></div></div></div></div>
-            <div id="settings-ai" className="settings-section"><div className="settings-section-head"><span>02</span><div><h2>AI Engine</h2><p>Провайдер, модель и ключи доступа.</p></div></div><div className="settings-grid"><div className="settings-card"><strong>Активная модель</strong><span>{aiProvider} · {aiModel}</span><small>Текущий маршрут AI Agent.</small></div><div className="settings-card"><strong>Статус</strong><span className={aiStatus?.available ? "settings-status-ok" : "settings-status-muted"}>{aiStatus?.available ? "Подключено" : "Ожидание подключения"}</span><small>{aiStatus?.error || "NEXUM проверяет доступность выбранной модели."}</small></div></div></div>
-            <div id="settings-projects" className="settings-section"><div className="settings-section-head"><span>03</span><div><h2>Проекты</h2><p>Поведение Builder и Preview.</p></div></div><div className="settings-grid"><div className="settings-card"><strong>Предпросмотр</strong><span>{uiSettings.autoПредпросмотр ? "Автообновление" : "Ручное обновление"}</span><small>Обновлять Preview после успешной работы Agent.</small><div className="settings-option-row"><div className="settings-option-copy"><b>Автопредпросмотр</b><span>Обновлять после сборки</span></div><button type="button" aria-label="Toggle auto preview" className={`nexum-toggle ${uiSettings.autoПредпросмотр?"on":""}`} onClick={()=>setUiSettings(s=>({...s,autoПредпросмотр:!s.autoПредпросмотр}))}></button></div></div><div className="settings-card"><strong>Активные проекты</strong><span>{projects.filter((project) => project.status === "active").length} проектов</span><small>Каждый проект хранит собственные файлы, Preview и контекст.</small></div></div></div>
-            <div id="settings-notifications" className="settings-section"><div className="settings-section-head"><span>04</span><div><h2>Уведомления</h2><p>Только полезные сигналы от Agent.</p></div></div><div className="settings-card settings-card-wide"><strong>Звук завершения</strong><span>{uiSettings.sound ? "Включён" : "Выключен"}</span><small>Сигнал при завершении или ошибке Agent.</small><div className="settings-option-row"><div className="settings-option-copy"><b>Уведомлять звуком</b><span>Без визуального шума</span></div><button type="button" aria-label="Toggle completion sound" className={`nexum-toggle ${uiSettings.sound?"on":""}`} onClick={()=>setUiSettings(s=>({...s,sound:!s.sound}))}></button></div></div></div>
-            <div id="settings-shortcuts" className="settings-section"><div className="settings-section-head"><span>05</span><div><h2>Горячие клавиши</h2><p>Быстрый доступ к рабочему пространству.</p></div></div><div className="settings-card settings-card-wide settings-shortcuts"><div><strong>Command Palette</strong><small>Открыть палитру команд</small></div><kbd>⌘ K</kbd><div><strong>Ctrl / Command</strong><small>Поддерживаются основные системные сочетания</small></div></div></div>
-            <div id="settings-storage" className="settings-section"><div className="settings-section-head"><span>06</span><div><h2>Хранилище</h2><p>Данные проектов и локальные настройки.</p></div></div><div className="settings-card settings-card-wide"><strong>Локальное состояние</strong><span>{projects.length} проектов загружено</span><small>Настройки интерфейса и история чатов сохраняются локально. Секретные ключи не встраиваются в клиентский bundle.</small></div></div>
-            <div className="settings-section"><div className="settings-section-head"><span>07</span><div><h2>API access</h2><p>Подключение внешней AI-модели.</p></div></div><div className="settings-card settings-card-wide"><strong>ИИ API key</strong><span>Автоматическое определение провайдера</span><small>Вставьте ключ OpenAI, OpenRouter или OrcaRouter. NEXUM проверит его и сохранит только в памяти текущего сервера.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={aiApiKey} onChange={event=>setAiApiKey(event.target.value)} placeholder="Вставьте API-ключ" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={aiApiKeyLoading||!aiApiKey.trim()} onClick={()=>void connectAIKey()}>{aiApiKeyLoading?"Проверяю…":"Подключить ИИ"}</button></div></div>
-            {localAITestEnabled && <div className="settings-card settings-card-wide" style={{marginTop:12}}><strong>Тестовая сессия OpenRouter</strong><span>{localAIConfigured?"Подключено":"Не подключено"}</span><small>Временный ключ сессии для тестирования моделей без хранения учётных данных в репозитории.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={localAIKey} onChange={event=>setLocalAIKey(event.target.value)} placeholder="sk-or-v1-…" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={localAIKeyLoading||!localAIKey.trim()} onClick={()=>void saveLocalAIKey()}>{localAIKeyLoading?"Проверяю…":"Подключить"}</button></div></div>}
-            </div></div>
+            <div className="settings-hero">
+              <div>
+                <div className="eyebrow">NEXUM.DEV / SETTINGS</div>
+                <h1>Настройки</h1>
+                <p>Единый центр управления интерфейсом, AI Engine, проектами и рабочим процессом.</p>
+              </div>
+              <div className="settings-hero-status"><i />Система готова</div>
+            </div>
+
+            <div className="settings-layout">
+              <aside className="settings-index">
+                <span>РАЗДЕЛЫ</span>
+                <a href="#settings-interface">Интерфейс</a>
+                <a href="#settings-ai">AI Engine</a>
+                <a href="#settings-projects">Проекты</a>
+                <a href="#settings-notifications">Уведомления</a>
+                <a href="#settings-shortcuts">Горячие клавиши</a>
+                <a href="#settings-storage">Хранилище</a>
+              </aside>
+
+              <div className="settings-content">
+                <section id="settings-interface" className="settings-section">
+                  <div className="settings-section-head">
+                    <span>01</span>
+                    <div><h2>Интерфейс</h2><p>Масштаб, плотность и движение интерфейса.</p></div>
+                  </div>
+                  <div className="settings-card settings-card-wide">
+                    <strong>Масштаб интерфейса</strong>
+                    <span>{uiSettings.scale}% · оптимизировано для HiDPI</span>
+                    <small>100% — базовый режим. 110% увеличивает читаемость на плотных экранах.</small>
+                    <div className="settings-scale-group">
+                      {[90, 100, 110].map((scale) => (
+                        <button key={scale} type="button" className={uiSettings.scale === scale ? "selected" : ""} onClick={() => setUiSettings((state) => ({ ...state, scale }))}>{scale}%</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="settings-grid settings-grid-secondary">
+                    <div className="settings-card">
+                      <strong>Плотность</strong>
+                      <span>{uiSettings.compact ? "Компактный" : "Комфортный"}</span>
+                      <small>Определяет расстояния и размер служебных элементов.</small>
+                      <div className="settings-option-row">
+                        <div className="settings-option-copy"><b>Компактный режим</b><span>Больше информации на экране</span></div>
+                        <button type="button" aria-label="Toggle compact mode" className={`nexum-toggle ${uiSettings.compact ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, compact: !state.compact }))} />
+                      </div>
+                    </div>
+                    <div className="settings-card">
+                      <strong>Движение</strong>
+                      <span>{uiSettings.animations ? "Плавные переходы" : "Минимум движения"}</span>
+                      <small>Только функциональная анимация без постоянного декоративного свечения.</small>
+                      <div className="settings-option-row">
+                        <div className="settings-option-copy"><b>Анимации</b><span>120–220 ms</span></div>
+                        <button type="button" aria-label="Toggle animations" className={`nexum-toggle ${uiSettings.animations ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, animations: !state.animations }))} />
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section id="settings-ai" className="settings-section">
+                  <div className="settings-section-head">
+                    <span>02</span>
+                    <div><h2>AI Engine</h2><p>Провайдер, модель и ключи доступа.</p></div>
+                  </div>
+                  <div className="settings-grid">
+                    <div className="settings-card"><strong>Активная модель</strong><span>{aiProvider} · {aiModel}</span><small>Текущий маршрут AI Agent.</small></div>
+                    <div className="settings-card"><strong>Статус</strong><span className={aiStatus?.available ? "settings-status-ok" : "settings-status-muted"}>{aiStatus?.available ? "Подключено" : "Ожидание подключения"}</span><small>{aiStatus?.error || "NEXUM проверяет доступность выбранной модели."}</small></div>
+                  </div>
+                </section>
+
+                <section id="settings-projects" className="settings-section">
+                  <div className="settings-section-head">
+                    <span>03</span>
+                    <div><h2>Проекты</h2><p>Поведение Builder и Preview.</p></div>
+                  </div>
+                  <div className="settings-grid">
+                    <div className="settings-card">
+                      <strong>Предпросмотр</strong>
+                      <span>{uiSettings.autoПредпросмотр ? "Автообновление" : "Ручное обновление"}</span>
+                      <small>Обновлять Preview после успешной работы Agent.</small>
+                      <div className="settings-option-row">
+                        <div className="settings-option-copy"><b>Автопредпросмотр</b><span>Обновлять после сборки</span></div>
+                        <button type="button" aria-label="Toggle auto preview" className={`nexum-toggle ${uiSettings.autoПредпросмотр ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, autoПредпросмотр: !state.autoПредпросмотр }))} />
+                      </div>
+                    </div>
+                    <div className="settings-card"><strong>Активные проекты</strong><span>{projects.filter((project) => project.status === "active").length} проектов</span><small>Каждый проект хранит собственные файлы, Preview и контекст.</small></div>
+                  </div>
+                </section>
+
+                <section id="settings-notifications" className="settings-section">
+                  <div className="settings-section-head"><span>04</span><div><h2>Уведомления</h2><p>Только полезные сигналы от Agent.</p></div></div>
+                  <div className="settings-card settings-card-wide">
+                    <strong>Звук завершения</strong><span>{uiSettings.sound ? "Включён" : "Выключен"}</span><small>Сигнал при завершении или ошибке Agent.</small>
+                    <div className="settings-option-row">
+                      <div className="settings-option-copy"><b>Уведомлять звуком</b><span>Без визуального шума</span></div>
+                      <button type="button" aria-label="Toggle completion sound" className={`nexum-toggle ${uiSettings.sound ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, sound: !state.sound }))} />
+                    </div>
+                  </div>
+                </section>
+
+                <section id="settings-shortcuts" className="settings-section">
+                  <div className="settings-section-head"><span>05</span><div><h2>Горячие клавиши</h2><p>Быстрый доступ к рабочему пространству.</p></div></div>
+                  <div className="settings-card settings-card-wide settings-shortcuts">
+                    <div><strong>Command Palette</strong><small>Открыть палитру команд</small></div>
+                    <kbd>⌘ K</kbd>
+                    <div><strong>Навигация</strong><small>Ctrl / Command + K поддерживается</small></div>
+                  </div>
+                </section>
+
+                <section id="settings-storage" className="settings-section">
+                  <div className="settings-section-head"><span>06</span><div><h2>Хранилище</h2><p>Данные проектов и локальные настройки.</p></div></div>
+                  <div className="settings-card settings-card-wide">
+                    <strong>Локальное состояние</strong><span>{projects.length} проектов загружено</span>
+                    <small>Настройки интерфейса и история чатов сохраняются локально. Секретные ключи не встраиваются в клиентский bundle.</small>
+                  </div>
+                </section>
+
+                <section className="settings-section">
+                  <div className="settings-section-head"><span>07</span><div><h2>API access</h2><p>Подключение внешней AI-модели.</p></div></div>
+                  <div className="settings-card settings-card-wide">
+                    <strong>ИИ API key</strong><span>Автоматическое определение провайдера</span>
+                    <small>Вставьте ключ OpenAI, OpenRouter или OrcaRouter. NEXUM проверит его и сохранит только в памяти текущего сервера.</small>
+                    <div className="settings-api-row">
+                      <input type="password" value={aiApiKey} onChange={(event) => setAiApiKey(event.target.value)} placeholder="Вставьте API-ключ" autoComplete="off" />
+                      <button type="button" className="home-primary" disabled={aiApiKeyLoading || !aiApiKey.trim()} onClick={() => void connectAIKey()}>{aiApiKeyLoading ? "Проверяю…" : "Подключить ИИ"}</button>
+                    </div>
+                  </div>
+                  {localAITestEnabled && (
+                    <div className="settings-card settings-card-wide">
+                      <strong>Тестовая сессия OpenRouter</strong><span>{localAIConfigured ? "Подключено" : "Не подключено"}</span>
+                      <small>Временный ключ сессии для тестирования моделей без хранения учётных данных в репозитории.</small>
+                      <div className="settings-api-row">
+                        <input type="password" value={localAIKey} onChange={(event) => setLocalAIKey(event.target.value)} placeholder="sk-or-v1-…" autoComplete="off" />
+                        <button type="button" className="home-primary" disabled={localAIKeyLoading || !localAIKey.trim()} onClick={() => void saveLocalAIKey()}>{localAIKeyLoading ? "Проверяю…" : "Подключить"}</button>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              </div>
+            </div>
           </section>
         ) : (
         <>
