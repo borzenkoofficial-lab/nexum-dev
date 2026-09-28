@@ -672,6 +672,7 @@ function App() {
     { label: "Перезапустить предпросмотр", hint: "R", run: () => { setRightTab("preview"); setПредпросмотрKey((key) => key + 1); setNotice("Предпросмотр перезапущен"); } },
     { label: "Ask ИИ", hint: "A", run: () => focusTask() },
     { label: "Сменить модель", hint: "M", run: () => document.querySelector<HTMLSelectElement>("select[aria-label='ИИ model']")?.focus() },
+    { label: "Диагностика Agent", hint: "D", run: () => setView("diagnostics") },
     { label: "Настройки", hint: "", run: () => setView("settings") },
   ];
 
