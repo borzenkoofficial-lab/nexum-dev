@@ -530,8 +530,11 @@ app.delete("/api/projects/:id", async (req, res) => {
 
 // Static project preview. The agent writes the project files, and the preview
 // renders index.html directly without requiring a separate dev server.
-app.use("/api/preview/:id", async (req, res) => {
+app.use("/api/preview/:id", authMiddleware, async (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const requestedPath = req.path.replace(/^\/+/, "") || "index.html";
     const distRoot = resolve(project.path, "dist");
