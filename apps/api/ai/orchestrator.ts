@@ -29,7 +29,7 @@ export class AIOrchestrator {
   ): Promise<AIOrchestratorRun> {
     const requested = options?.model?.trim();
     const explicitProvider = options?.provider?.trim();
-    const availableProviders = new Set(this.gateway.getProviders().map((provider) => provider.id));
+    const availableProviders = new Set(this.gateway.getReadyProviderIds());
     const routes = routesForRole(role, availableProviders);
 
     const providerDefault = explicitProvider && !requested
