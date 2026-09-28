@@ -56,6 +56,7 @@ export function nextBuilderStep(state: BuilderExecutionState): BuilderStep | nul
     .flat()
     .find((id) => candidates.some((node) => node.id === id));
   const node = candidates.find((candidate) => candidate.id === nextId) ?? candidates[0];
+  if (!node) return null;
 
   return {
     node,
@@ -93,7 +94,8 @@ export function rewindBuilderTo(
 
   const ordered = state.graph.executionOrder.flat();
   for (let index = targetIndex; index < ordered.length; index += 1) {
-    state.completed.delete(ordered[index]);
+    const candidate = ordered[index];
+    if (candidate) state.completed.delete(candidate);
   }
 }
 
