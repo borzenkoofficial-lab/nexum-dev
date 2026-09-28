@@ -25,7 +25,7 @@ test("NEXUM acceptance: builds a domain-locked static site and repairs a real va
   let validationFailures = 0;
 
   const runtime: AgentRuntime = {
-    getAvailableTools: () => agent.getAvailableTools().filter((tool) => tool !== "testProject"),
+    getAvailableTools: () => agent.getAvailableTools(),
     plan: () => ({ tool: "", input: "", done: true, finalResponse: "fallback" }),
     executeTool: (tool, input) => agent.executeTool(tool, input),
     planWithAI: async (_task, previousResults) => {
@@ -39,7 +39,7 @@ test("NEXUM acceptance: builds a domain-locked static site and repairs a real va
         (item) => item.tool === "validateProject" && !item.result.success,
       );
 
-      if (!previousResults.some((item) => item.tool === "readFile")) {
+      if (hasWriteStyle && !hasValidationFailure && !previousResults.some((item) => item.tool === "validateProject")) {\n        return { tool: "validateProject", input: "." };\n      }\n\n      if (!previousResults.some((item) => item.tool === "readFile")) {
         return { tool: "readFile", input: "index.html" };
       }
 
