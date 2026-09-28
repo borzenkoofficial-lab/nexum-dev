@@ -2,10 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { extractIntent } from "./intentEngine.js";
 import {
-  builderExecutionPrompt,\n  MAX_NODE_ATTEMPTS,
+  builderExecutionPrompt,
+  MAX_NODE_ATTEMPTS,
   createBuilderExecutionState,
   nextBuilderStep,
   recordBuilderNodeResult,
+  rewindBuilderTo,
 } from "./autonomousBuilder.js";
 
 test("builder state starts with the first graph node", () => {
@@ -41,13 +43,12 @@ test("builder prompt is bounded and names the active node", () => {
   assert.ok(prompt.length < 2_500);
 });
 
-
 test("builder node becomes exhausted after bounded failed attempts", () => {
   const task = "Создай production сайт строительной компании с CRM, API и авторизацией";
   const state = createBuilderExecutionState(task, extractIntent(task));
   const nodeId = nextBuilderStep(state)!.node.id;
 
-  for (let i = 0; i < MAX_NODE_ATTEMPTS; i++) {
+  for (let i = 0; i < MAX_NODE_ATTEMPTS; i += 1) {
     recordBuilderNodeResult(state, nodeId, false);
   }
 
@@ -57,4 +58,20 @@ test("builder node becomes exhausted after bounded failed attempts", () => {
   assert.equal(step?.blocked, true);
   assert.equal(step?.exhausted, true);
   assert.match(builderExecutionPrompt(state, task), /maxAttempts=/);
+});
+
+test("builder can rewind verification failure without resetting recovery budget", () => {
+  const task = "Исправь ошибку сборки существующего приложения";
+  const state = createBuilderExecutionState(task, extractIntent(task));
+  const diagnose = nextBuilderStep(state);
+  assert.equal(diagnose?.node.id, "diagnose");
+
+  recordBuilderNodeResult(state, "diagnose", true);
+  recordBuilderNodeResult(state, "fix", true);
+  recordBuilderNodeResult(state, "verify", false);
+
+  rewindBuilderTo(state, "diagnose");
+
+  assert.equal(nextBuilderStep(state)?.node.id, "diagnose");
+  assert.equal(state.attempts.get("verify"), 1);
 });
