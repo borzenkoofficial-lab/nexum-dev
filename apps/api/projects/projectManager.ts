@@ -240,7 +240,7 @@ export class ProjectManager {
 
   private defaultIndexHtml(name: string): string {
     return `<!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -252,8 +252,8 @@ export class ProjectManager {
     <section class="card">
       <span class="eyebrow">NEXUM.DEV</span>
       <h1>${name}</h1>
-      <p>Your project is ready. Ask the Agent to design and build it.</p>
-      <button id="action">Start building</button>
+      <p>Проект готов. Передайте задачу агенту — NEXUM спроектирует и соберёт приложение.</p>
+      <button id="action">Начать разработку</button>
     </section>
   </main>
   <script src="./app.js"></script>
@@ -275,7 +275,7 @@ button { border: 0; border-radius: 12px; padding: 14px 20px; background: #111; c
 
   private defaultAppJs(name: string): string {
     return `document.getElementById("action")?.addEventListener("click", () => {
-  document.querySelector("p").textContent = "NEXUM Agent can now replace this starter with your real product.";
+  document.querySelector("p").textContent = "NEXUM Agent готов заменить стартовый экран вашим продуктом.";
   document.title = "${name} — NEXUM";
 });`;
   }
