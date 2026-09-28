@@ -104,7 +104,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
       void fetch("/api/agent/client-error", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: compact, source: "preview", url: frame?.src }),
+        body: JSON.stringify({ projectId, message: compact, source: "preview", url: frame?.src }),
       }).catch(() => undefined);
     };
     const handleRejection = (event: PromiseRejectionEvent) => {
@@ -114,7 +114,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
       void fetch("/api/agent/client-error", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: compact, source: "preview", url: frame?.src }),
+        body: JSON.stringify({ projectId, message: compact, source: "preview", url: frame?.src }),
       }).catch(() => undefined);
     };
 
