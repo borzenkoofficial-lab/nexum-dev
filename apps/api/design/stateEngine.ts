@@ -38,7 +38,7 @@ const defaults = (): StateSpec => ({
 });
 
 export async function readStateSpec(projectRoot: string): Promise<StateSpec> {
-  const file = resolve(projectRoot, ".nexum", "state.json");
+  const file = resolve(projectRoot, ".nexum", "state-spec.json");
   try {
     const raw = JSON.parse(await readFile(file, "utf8")) as Partial<StateSpec>;
     return {
@@ -63,7 +63,7 @@ export async function writeStateSpec(projectRoot: string, patch: Partial<StateSp
     updatedAt: new Date().toISOString(),
   };
   await mkdir(resolve(projectRoot, ".nexum"), { recursive: true });
-  await writeFile(resolve(projectRoot, ".nexum", "state.json"), JSON.stringify(next, null, 2), "utf8");
+  await writeFile(resolve(projectRoot, ".nexum", "state-spec.json"), JSON.stringify(next, null, 2), "utf8");
   return next;
 }
 
