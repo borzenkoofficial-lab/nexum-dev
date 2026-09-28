@@ -62,6 +62,7 @@ test("AI E2E keeps construction intent and executes a real AI plan", async () =>
   const agent = new NexumAgent(gateway, root);
   const result = await new AgentLoop(agent, gateway, 8).run(
     "Создай современный сайт строительной компании по демонтажу фасадов",
+    { provider: "openai", model: "e2e" },
   );
 
   assert.equal(result.success, true);
@@ -107,6 +108,7 @@ test("AI E2E recovers a real Preview-bound validation failure", async () => {
   const agent = new NexumAgent(gateway, root);
   const result = await new AgentLoop(agent, gateway, 10).run(
     "Создай современный сайт строительной компании по демонтажу фасадов",
+    { provider: "openai", model: "e2e" },
   );
 
   assert.equal(result.success, true);
