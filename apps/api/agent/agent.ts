@@ -87,13 +87,6 @@ ${result.output}`
     previousResults: AgentToolResult[],
     options?: AgentModelOptions,
   ): Promise<ProductPlan> {
-    const lowerTask = task.toLowerCase();
-    const isConstructionTask = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lowerTask);
-    const isAutoRepairTask = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lowerTask);
-    if (isConstructionTask || isAutoRepairTask) {
-      return this.fallbackProductPlan(task, previousResults);
-    }
-
     const inspection = previousResults
       .filter((item) => item.result.success)
       .slice(-4)
