@@ -9,9 +9,9 @@ import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVer
 import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
 import { executionBudget, routeTask } from "../ai/taskRouter.js";
-import { NexumDirector } from "../ai/director.js";
 import { extractIntent } from "../ai/intentEngine.js";
-import { createBuilderExecutionState, builderExecutionPrompt, nextBuilderStep, recordBuilderNodeResult, type BuilderExecutionState } from "../ai/autonomousBuilder.js";
+import { createBuilderExecutionState, builderExecutionPrompt, nextBuilderStep, recordBuilderNodeResult, rewindBuilderTo, type BuilderExecutionState } from "../ai/autonomousBuilder.js";
+import { routeWithStructuredContext } from "../ai/router2.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 import type {
   AgentModelOptions,
@@ -140,8 +140,10 @@ export class AgentLoop {
     let remotePlannerRateLimited = false;
     let aiPlannerCalls = 0;
     let productPlannerCreated = false;
+    let recoveryDiagnosis: ReturnType<typeof diagnoseError> | null = null;
+    let recoveryCycles = 0;
+    const MAX_RECOVERY_CYCLES = 3;
     const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
-    const director = new NexumDirector();
     const intent = extractIntent(task);
     const routing = routeTask(task);
     const builderState: BuilderExecutionState | null = routing.mode === "simple" ? null : createBuilderExecutionState(task, intent);
@@ -243,20 +245,45 @@ export class AgentLoop {
         try {
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
-          const directorDecision = director.decide(task, "auto", undefined, this.gateway.getReadyProviderIds())[0];
           const graphStep = builderState ? nextBuilderStep(builderState) : null;
           if (graphStep?.exhausted) {
             const error = "Builder node \"" + graphStep.node.id + "\" exhausted its bounded attempts.";
             emit({ iteration, type: "failed", tool: "AI planner", message: error });
             return { phase, success: false, iterations: iteration, steps, error };
           }
-          const selectedRole = graphStep?.node.role ?? directorDecision?.role;
+          const structuredRouting = builderState
+            ? routeWithStructuredContext({
+                task,
+                intent,
+                graph: builderState.graph,
+                availableProviders: this.gateway.getReadyProviderIds(),
+                requestedProvider: options?.provider,
+                requestedModel: options?.model,
+              })
+            : null;
+          const selectedRole = recoveryDiagnosis
+            ? "debugger"
+            : graphStep?.node.role ?? structuredRouting?.role ?? routeTask(task).role;
           const planningRole = (selectedRole === "debugger" || selectedRole === "coder" || selectedRole === "planner" || selectedRole === "reviewer" || selectedRole === "tester"
             ? selectedRole
-            : selectedRole === "director" ? "planner" : routeTask(task).role) as "planner" | "coder" | "debugger" | "reviewer" | "tester";
+            : "planner") as "planner" | "coder" | "reviewer" | "debugger" | "tester";
           const aiOptions = aiOptionsForTask(options, planningRole);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
-          const executionContext = builderState ? builderExecutionPrompt(builderState, task) : "";
+          const executionContext = [
+            builderState ? builderExecutionPrompt(builderState, task) : "",
+            recoveryDiagnosis
+              ? [
+                  "NEXUM DEBUGGER RECOVERY MODE",
+                  `recoveryCycle=${recoveryCycles}/${MAX_RECOVERY_CYCLES}`,
+                  `category=${recoveryDiagnosis.category}`,
+                  `summary=${recoveryDiagnosis.summary}`,
+                  `likelyFiles=${recoveryDiagnosis.likelyFiles.join(",") || "unknown"}`,
+                  `evidence=${recoveryDiagnosis.evidence}`,
+                  `strategy=${recoveryDiagnosis.strategy}`,
+                  "Do not change the product domain. Inspect the current project and make the minimum fix required by this real failure.",
+                ].join("\n")
+              : "",
+          ].filter(Boolean).join("\n\n");
           modelPlan = await this.runtime.planWithAI(
             [task, executionContext].join("\n\n"),
             compactAgentHistory(previousResults),
@@ -763,6 +790,43 @@ export class AgentLoop {
           (graphStep.node.id === "findings" && plan.done)
         );
         recordBuilderNodeResult(builderState, graphStep.node.id, nodeComplete ?? false);
+      }
+      const verificationFailure = !result.success && (
+        plan.tool === "testProject" ||
+        plan.tool === "validateProject" ||
+        ((plan.tool === "runCommand" || plan.tool === "runSandbox") &&
+          /npm run (?:build|test|typecheck|lint)|(?:build|test|typecheck|lint)/i.test(plan.input))
+      );
+      if (verificationFailure) {
+        recoveryCycles += 1;
+        recoveryDiagnosis = diagnoseError(result.output);
+        transition("repair");
+        if (builderState) {
+          const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+            ? "diagnose"
+            : builderState.graph.nodes.some((node) => node.id === "implement")
+              ? "implement"
+              : null;
+          if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+        }
+        emit({
+          iteration,
+          type: "thinking",
+          tool: "Debugger",
+          message: `Verification failed. Recovery cycle ${recoveryCycles}/${MAX_RECOVERY_CYCLES}; category=${recoveryDiagnosis.category}; files=${recoveryDiagnosis.likelyFiles.join(",") || "unknown"}.`,
+        });
+        if (recoveryCycles >= MAX_RECOVERY_CYCLES) {
+          const error = `Verification failed after ${MAX_RECOVERY_CYCLES} bounded recovery cycles: ${recoveryDiagnosis.summary}`;
+          emit({ iteration, type: "failed", tool: "Debugger", message: error });
+          return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+        }
+      } else if (result.success && recoveryDiagnosis && (
+        plan.tool === "testProject" ||
+        plan.tool === "validateProject" ||
+        ((plan.tool === "runCommand" || plan.tool === "runSandbox") && /npm run (?:build|test|typecheck|lint)/i.test(plan.input))
+      )) {
+        recoveryDiagnosis = null;
+        recoveryCycles = 0;
       }
       const runtimeRoot = this.runtime instanceof Object && "projectRoot" in this.runtime ? (this.runtime as { projectRoot?: string }).projectRoot : undefined;
       if (runtimeRoot) {
