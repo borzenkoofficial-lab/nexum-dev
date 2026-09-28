@@ -34,7 +34,7 @@ test("decomposes debugging into diagnose, fix and verify", () => {
     ["fix"],
     ["verify"],
   ]);
-  assert.equal(graph.nodes[1].dependencies[0], "diagnose");
+  assert.equal(graph.nodes[1]?.dependencies[0], "diagnose");
 });
 
 test("keeps a small modification bounded to implementation and verification", () => {
