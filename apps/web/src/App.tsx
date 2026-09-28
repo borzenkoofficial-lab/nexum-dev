@@ -5,7 +5,6 @@ import { CommandPalette } from "./components/CommandPalette";
 import { CodePanel } from "./components/CodePanel";
 import { NewProjectModal } from "./components/NewProjectModal";
 import { NewsPage } from "./components/NewsPage";
-import { QuickActions } from "./components/QuickActions";
 import { RightPanel } from "./components/RightPanel";
 import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
@@ -753,12 +752,12 @@ function App() {
             <button className="project-editor-share" type="button" onClick={() => { const url = window.location.origin + "/api/preview/" + activeПроектId + "/index.html"; void navigator.clipboard.writeText(url).then(() => setNotice("Ссылка скопирована")).catch(() => setNotice(url)); }}>Поделиться</button>
           </div>
         </div>
-        {codeMode ? <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshПредпросмотр={() => setПредпросмотрKey((key) => key + 1)} onClose={() => setCodeMode(false)} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
+        {codeMode ? <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} onClose={() => setCodeMode(false)} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
-            <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenАгент={() => setRightTab("agent")} />
+            <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => setRightTab("agent")} />
 
           </div>
-          <RightPanel tab={rightTab} onTabChange={setRightTab} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId} previewOnline={previewOnline} previewKey={previewKey} onRefreshПредпросмотр={() => setПредпросмотрKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onPreviewError={(message) => { setProblems((items) => [...items, { message, source: "preview" }].slice(-20)); setRightTab("agent"); setАгентStage("error"); }} onRepair={repairLastTask} />
+          <RightPanel tab={rightTab} onTabChange={setRightTab} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onRepair={repairLastTask} />
         </div>}
         </>
         )}
