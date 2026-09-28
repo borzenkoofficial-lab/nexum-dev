@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { extractIntent } from "./intentEngine.js";
 import {
-  builderExecutionPrompt,
+  builderExecutionPrompt,\n  MAX_NODE_ATTEMPTS,
   createBuilderExecutionState,
   nextBuilderStep,
   recordBuilderNodeResult,
@@ -39,4 +39,22 @@ test("builder prompt is bounded and names the active node", () => {
   assert.match(prompt, /currentNode=/);
   assert.match(prompt, /Execute only this node/);
   assert.ok(prompt.length < 2_500);
+});
+
+
+test("builder node becomes exhausted after bounded failed attempts", () => {
+  const task = "Создай production сайт строительной компании с CRM, API и авторизацией";
+  const state = createBuilderExecutionState(task, extractIntent(task));
+  const nodeId = nextBuilderStep(state)!.node.id;
+
+  for (let i = 0; i < MAX_NODE_ATTEMPTS; i++) {
+    recordBuilderNodeResult(state, nodeId, false);
+  }
+
+  const step = nextBuilderStep(state);
+  assert.ok(step);
+  assert.equal(step?.node.id, nodeId);
+  assert.equal(step?.blocked, true);
+  assert.equal(step?.exhausted, true);
+  assert.match(builderExecutionPrompt(state, task), /maxAttempts=/);
 });
