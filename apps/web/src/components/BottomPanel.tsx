@@ -7,6 +7,9 @@ interface BottomPanelProps {
   activityEvents: Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>;
   currentActivity: string;
   problems: Array<{ message: string; source?: string }>;
+  onOpenPreview: () => void;
+  onBackToChat: () => void;
+  onRepair: () => void;
   productPlan: {
     goal: string;
     productType: string;
@@ -28,7 +31,7 @@ const labels: Record<string, string> = {
   error: "Требуется внимание",
 };
 
-export function BottomPanel({ jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan }: BottomPanelProps) {
+export function BottomPanel({ jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan, onOpenPreview, onBackToChat, onRepair }: BottomPanelProps) {
   const live = Boolean(jobId) && stage !== "completed" && stage !== "error";
   const order = ["analyzing", "planning", "editing", "testing", "completed"];
   const stageIndex = order.indexOf(stage ?? "");
@@ -52,6 +55,8 @@ export function BottomPanel({ jobId, stage, activitySteps, activityEvents, curre
       })}
     </div>
     {problems.length > 0 && <div className="agent-problems">{problems.map((problem, index) => <div key={index}><strong>!</strong><span>{problem.source ? `${problem.source}: ` : ""}{problem.message}</span></div>)}</div>}
+    {stage === "completed" && <div className="agent-result-card"><div className="agent-result-head"><span className="eyebrow">РЕЗУЛЬТАТ</span><strong>Проект готов к просмотру</strong></div><div className="agent-result-meta"><span><b>{productPlan?.productType ?? "Проект"}</b><small>Тип продукта</small></span><span><b>{productPlan?.pages.length ?? 0}</b><small>Страниц</small></span><span><b>{productPlan?.components.length ?? 0}</b><small>Компонентов</small></span><span><b>{activitySteps.filter((step) => step.success).length}</b><small>Успешных шагов</small></span></div><div className="agent-result-actions"><button className="agent-result-primary" type="button" onClick={onOpenPreview}>Открыть Preview</button><button type="button" onClick={onRepair}>Изменить</button><button type="button" onClick={onBackToChat}>Вернуться к чату</button></div></div>}
+    {stage === "error" && <div className="agent-result-card agent-result-error"><div className="agent-result-head"><span className="eyebrow">ОШИБКА</span><strong>Задача не завершена</strong></div><p>Агент сохранил контекст последней задачи. Можно запустить автоматическое исправление или продолжить вручную.</p><div className="agent-result-actions"><button className="agent-result-primary" type="button" onClick={onRepair}>Исправить автоматически</button><button type="button" onClick={onBackToChat}>Вернуться к чату</button></div></div>}
     {productPlan && <div className="agent-plan-card">
       <div className="agent-timeline-title"><strong>План продукта</strong><span>{productPlan.productType}</span></div>
       <p className="agent-plan-goal">{productPlan.goal}</p>
