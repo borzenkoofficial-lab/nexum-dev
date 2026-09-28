@@ -6,6 +6,13 @@ import type { ProjectState } from "../projects/projectState.js";
 export interface AgentContextSnapshot {
   task: string;
   knowledge: string;
+  contracts: {
+    operating: string;
+    project: string;
+    architecture: string;
+    rules: string;
+    role: string;
+  };
   state: Record<string, unknown>;
   recentErrors: string[];
   recentActions: Array<{
@@ -61,8 +68,14 @@ export async function buildAgentContext(
   history: Array<{ tool: string; success: boolean; output: string }>,
   task = "",
 ): Promise<AgentContextSnapshot> {
-  const [knowledge, stateRaw, journalRaw] = await Promise.all([
+  const role = "general";
+  const [knowledge, operating, project, architecture, rules, roleInstructions, stateRaw, journalRaw] = await Promise.all([
     optionalFile(root, ".nexum/knowledge.md"),
+    optionalFile(root, ".nexum/AI.md"),
+    optionalFile(root, ".nexum/PROJECT.md"),
+    optionalFile(root, ".nexum/ARCHITECTURE.md"),
+    optionalFile(root, ".nexum/RULES.md"),
+    optionalFile(root, `.nexum/agents/${role}.md`),
     optionalFile(root, ".nexum/state.json"),
     optionalFile(root, ".nexum/action-journal.jsonl"),
   ]);
@@ -79,6 +92,13 @@ export async function buildAgentContext(
   return {
     task: task.slice(0, 3000),
     knowledge: knowledge.slice(0, 6000),
+    contracts: {
+      operating: operating.slice(0, 7000),
+      project: project.slice(0, 3500),
+      architecture: architecture.slice(0, 3500),
+      rules: rules.slice(0, 3500),
+      role: roleInstructions.slice(0, 2500),
+    },
     state,
     recentErrors,
     recentActions,
@@ -90,6 +110,11 @@ export function formatAgentContext(context: AgentContextSnapshot): string {
   return JSON.stringify({
     task: context.task || "Current task unavailable.",
     projectKnowledge: context.knowledge || "No persistent project knowledge.",
+    nexumContract: context.contracts.operating || "No NEXUM operating contract found.",
+    projectContract: context.contracts.project || "No persistent project identity found.",
+    architectureContract: context.contracts.architecture || "No persistent architecture contract found.",
+    rulesContract: context.contracts.rules || "No persistent project rules found.",
+    roleInstructions: context.contracts.role || "No role-specific instructions found.",
     projectUnderstanding: (() => { try { return JSON.parse(formatProjectUnderstanding(understandProject(state as unknown as ProjectState))); } catch { return { health: "unknown", risks: ["project understanding unavailable"] }; } })(),
     projectState: {
       projectType: state.projectType,
