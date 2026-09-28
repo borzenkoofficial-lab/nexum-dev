@@ -25,6 +25,7 @@ import { CheckpointManager } from "./agent/checkpoint.js";
 import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
 import { pingDatabase } from "./db.js";
+import { clearRuntimeMemory, loadRuntimeKeys, saveRuntimeKey } from "./ai/runtimeKeys.js";
 
 dotenv.config();
 
@@ -47,8 +48,10 @@ const projectManagers = new Map<string, ProjectManager>();
 type RuntimeAIKeys = Partial<Record<"openai" | "openrouter" | "orcarouter", string>>;
 const runtimeAIKeysByUser = new Map<string, RuntimeAIKeys>();
 
-function getUserAIGateway(userId: string): AIGateway {
-  const keys = runtimeAIKeysByUser.get(userId) ?? {};
+async function getUserAIGateway(userId: string): Promise<AIGateway> {
+  const persisted = await loadRuntimeKeys(userId);
+  const keys = { ...persisted, ...(runtimeAIKeysByUser.get(userId) ?? {}) };
+  runtimeAIKeysByUser.set(userId, keys);
   const gateway = new AIGateway(
     [new MockProvider(), new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider()],
     defaultProvider,
@@ -207,7 +210,7 @@ ${attachment.content.slice(0, 80_000)}`);
       attachmentContext.length ? `ATTACHED FILES:\n${attachmentContext.join("\n\n")}` : "",
     ].filter(Boolean).join("\n\n");
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
-    const userGateway = getUserAIGateway(userId);
+    const userGateway = await getUserAIGateway(userId);
     const agent = new NexumAgent(userGateway, project.path);
     const agentLoop = new AgentLoop(
       agent,
@@ -357,6 +360,7 @@ app.get("/api/auth/me", authMiddleware, (req, res) => {
 
 app.post("/api/auth/logout", authMiddleware, (req, res) => {
   runtimeAIKeysByUser.delete(getAuthUser(req).id);
+  clearRuntimeMemory(getAuthUser(req).id);
   clearSessionCookie(res);
   return res.json({ success: true });
 });
@@ -378,7 +382,7 @@ app.get("/api/ai/models", async (_req, res) => {
 const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM_LOCAL_TEST_MODE !== "false";
 
 app.get("/api/ai/key-status", (req, res) => {
-  const userGateway = getUserAIGateway(getAuthUser(req).id);
+  const userGateway = await getUserAIGateway(getAuthUser(req).id);
   return res.json({ success: true, providers: { openai: userGateway.hasOpenAIKey(), openrouter: userGateway.hasOpenRouterKey(), orcarouter: userGateway.hasOrcaRouterKey() } });
 });
 
@@ -405,6 +409,7 @@ app.post("/api/ai/connect-key", async (req, res) => {
         const userId = getAuthUser(req).id;
         const keys = runtimeAIKeysByUser.get(userId) ?? {};
         runtimeAIKeysByUser.set(userId, { ...keys, openai: apiKey });
+        await saveRuntimeKey(userId, "openai", apiKey);
         return res.json({ success: true, provider: "openai", model: status.model, status });
       }
       if (providerId === "orcarouter") {
@@ -415,6 +420,7 @@ app.post("/api/ai/connect-key", async (req, res) => {
         const userId = getAuthUser(req).id;
         const keys = runtimeAIKeysByUser.get(userId) ?? {};
         runtimeAIKeysByUser.set(userId, { ...keys, orcarouter: apiKey });
+        await saveRuntimeKey(userId, "orcarouter", apiKey);
         return res.json({ success: true, provider: "orcarouter", model: status.model, status });
       }
 
@@ -425,6 +431,7 @@ app.post("/api/ai/connect-key", async (req, res) => {
       const userId = getAuthUser(req).id;
       const keys = runtimeAIKeysByUser.get(userId) ?? {};
       runtimeAIKeysByUser.set(userId, { ...keys, openrouter: apiKey });
+      await saveRuntimeKey(userId, "openrouter", apiKey);
       return res.json({ success: true, provider: "openrouter", model: status.model, status });
     } catch (error) {
       errors.push(providerId + ": " + (error instanceof Error ? error.message : "verification failed"));
@@ -470,7 +477,7 @@ app.get("/api/ai/status", async (req, res) => {
   const provider = typeof req.query.provider === "string" ? req.query.provider : undefined;
   const model = typeof req.query.model === "string" ? req.query.model : undefined;
   try {
-    return res.json({ success: true, status: await getUserAIGateway(getAuthUser(req).id).getStatus(provider, model) });
+    return res.json({ success: true, status: await (await getUserAIGateway(getAuthUser(req).id)).getStatus(provider, model) });
   } catch (error) {
     return res.status(400).json({
       success: false,
