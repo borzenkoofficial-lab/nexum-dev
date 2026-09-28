@@ -526,7 +526,23 @@ function App() {
         }
 
         if (status === "failed") {
-          throw new Error(data?.job?.error || "ИИ-агент завершил работу с ошибкой");
+          const job = data?.job;
+          setActivitySteps(job?.steps ?? []);
+          setActivityEvents(job?.events ?? []);
+          setCurrentActivity(job?.currentMessage ?? "Задача не прошла контрольные проверки.");
+          setProblems(job?.problems ?? []);
+          setReply(job?.reply ?? "");
+          if (job?.productPlan) setProductPlan({
+            goal: job.productPlan.goal ?? "",
+            productType: job.productPlan.productType ?? "Product",
+            pages: job.productPlan.pages ?? [],
+            components: job.productPlan.components ?? [],
+            acceptanceCriteria: job.productPlan.acceptanceCriteria ?? [],
+          });
+          setApiError(job?.error || job?.currentMessage || "NEXUM не смог завершить задачу. Откройте вкладку «Агент» для деталей.");
+          setAgentStage("error");
+          setChatJobId(null);
+          return;
         }
 
         setActivitySteps(data?.job?.steps ?? []);
