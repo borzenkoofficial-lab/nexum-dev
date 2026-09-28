@@ -30,6 +30,9 @@ const labels: Record<string, string> = {
 
 export function BottomPanel({ jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan }: BottomPanelProps) {
   const live = Boolean(jobId) && stage !== "completed" && stage !== "error";
+  const order = ["analyzing", "planning", "editing", "testing", "completed"];
+  const stageIndex = order.indexOf(stage ?? "");
+  const effectiveIndex = stage === "thinking" || stage === "reading" || stage === "running" || stage === "building" ? Math.max(stageIndex, 0) : stageIndex;
   return <div className="agent-panel">
     <div className="agent-panel-header">
       <div><span className="eyebrow">ИИ-АГЕНТ</span><h2>{live ? "Агент работает" : stage === "completed" ? "Работа завершена" : stage === "error" ? "Агент остановлен" : "Агент готов"}</h2></div>
@@ -44,9 +47,7 @@ export function BottomPanel({ jobId, stage, activitySteps, activityEvents, curre
         ["testing", "Проверка"],
         ["completed", "Готово"],
       ] as const).map(([item, title], index) => {
-        const order = ["analyzing", "planning", "editing", "testing", "completed"];
-        const current = order.indexOf(stage ?? "");
-        const done = stage === "completed" || (current >= 0 && index < current);
+        const done = stage === "completed" || (effectiveIndex >= 0 && index < effectiveIndex);
         return <div key={item} className={`pipeline-step ${stage === item ? "active" : ""} ${done ? "done" : ""}`}><i>{done ? "✓" : index + 1}</i><span>{title}</span>{index < 4 && <b aria-hidden="true">→</b>}</div>;
       })}
     </div>
@@ -59,7 +60,7 @@ export function BottomPanel({ jobId, stage, activitySteps, activityEvents, curre
       <div className="agent-plan-section"><strong>Критерии приёмки</strong><span>{productPlan.acceptanceCriteria.slice(0, 5).join(" · ") || "—"}</span></div>
     </div>}
     <div className="agent-timeline"><div className="agent-timeline-title"><strong>Работа в реальном времени</strong><span>{activitySteps.length} действий</span></div>
-      {activityEvents.length ? [...activityEvents].reverse().map((event) => <div className={`agent-event agent-event-${event.type}`} key={event.id}><div className="agent-event-marker">{event.type === "tool-error" || event.type === "failed" ? "!" : event.type === "tool-success" || event.type === "completed" ? "✓" : "•"}</div><div className="agent-event-copy"><strong>{event.tool ?? "Агент"} · шаг {event.iteration}</strong><p>{event.message}</p></div><time>{new Date(event.timestamp).toLocaleTimeString()}</time></div>) : <div className="agent-empty">Действий пока нет. Здесь появится каждый важный шаг агента.</div>}
+      {activityEvents.length ? [...activityEvents].reverse().slice(0, 30).map((event) => <div className={`agent-event agent-event-${event.type}`} key={event.id}><div className="agent-event-marker">{event.type === "tool-error" || event.type === "failed" ? "!" : event.type === "tool-success" || event.type === "completed" ? "✓" : "•"}</div><div className="agent-event-copy"><strong>{event.tool ?? "Агент"} · шаг {event.iteration}</strong><p>{event.message}</p></div><time>{new Date(event.timestamp).toLocaleTimeString()}</time></div>) : <div className="agent-empty">Действий пока нет. Здесь появится каждый важный шаг агента.</div>}
     </div>
   </div>;
 }
