@@ -29,6 +29,7 @@ import { clearRuntimeMemory, loadRuntimeKeys, saveRuntimeKey } from "./ai/runtim
 import { readDesignSpec, writeDesignSpec, deriveDesignSpec } from "./design/designSpec.js";
 import { interactionScript } from "./design/interactionContract.js";
 import { verifyDesign } from "./design/visualVerification.js";
+import { extractIntent } from "./ai/intentEngine.js";
 
 dotenv.config();
 
@@ -278,6 +279,8 @@ ${attachment.content.slice(0, 80_000)}`);
     void agentHistory.record({ type: "job-completed", jobId, projectId, userId, provider, model, status: "completed", message: result.finalResponse });
     job.steps = result.steps;
     job.productPlan = result.productPlan;
+    const intent = extractIntent(message);
+    await writeDesignSpec(project.path, deriveDesignSpec({ domain: intent.domain, productType: intent.productType, visualDirection: intent.visualDirection, audience: intent.audience, features: intent.features }));
     const successfulBuild = result.steps.some((step) =>
       step.success &&
       (step.tool === "runCommand" || step.tool === "runSandbox") &&
