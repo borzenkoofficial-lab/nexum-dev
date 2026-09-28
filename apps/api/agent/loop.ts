@@ -237,7 +237,10 @@ export class AgentLoop {
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
           const directorDecision = director.decide(task, "auto", undefined, this.gateway.getReadyProviderIds())[0];
-          const planningRole = (directorDecision?.role ?? routeTask(task).role) as "planner" | "coder" | "debugger";
+          const selectedRole = directorDecision?.role;
+          const planningRole = (selectedRole === "debugger" || selectedRole === "coder" || selectedRole === "planner"
+            ? selectedRole
+            : selectedRole === "director" ? "planner" : routeTask(task).role) as "planner" | "coder" | "debugger";
           const aiOptions = aiOptionsForTask(options, planningRole);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           modelPlan = await this.runtime.planWithAI(task, compactHistory, aiOptions as AgentModelOptions, productPlan ?? undefined);
