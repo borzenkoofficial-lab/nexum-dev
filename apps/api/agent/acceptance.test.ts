@@ -39,7 +39,11 @@ test("NEXUM acceptance: builds a domain-locked static site and repairs a real va
         (item) => item.tool === "validateProject" && !item.result.success,
       );
 
-      if (hasWriteStyle && !hasValidationFailure && !previousResults.some((item) => item.tool === "validateProject")) {\n        return { tool: "validateProject", input: "." };\n      }\n\n      if (!previousResults.some((item) => item.tool === "readFile")) {
+      if (hasWriteStyle && !hasValidationFailure && !previousResults.some((item) => item.tool === "validateProject")) {
+        return { tool: "validateProject", input: "." };
+      }
+
+      if (!previousResults.some((item) => item.tool === "readFile")) {
         return { tool: "readFile", input: "index.html" };
       }
 
