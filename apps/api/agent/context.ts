@@ -67,8 +67,8 @@ export async function buildAgentContext(
   root: string,
   history: Array<{ tool: string; success: boolean; output: string }>,
   task = "",
+  role = "general",
 ): Promise<AgentContextSnapshot> {
-  const role = "general";
   const [knowledge, operating, project, architecture, rules, roleInstructions, stateRaw, journalRaw] = await Promise.all([
     optionalFile(root, ".nexum/knowledge.md"),
     optionalFile(root, ".nexum/AI.md"),
