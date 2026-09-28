@@ -13,6 +13,7 @@ export type DesignTokens = {
 export type DesignSpec = {
   version: 1;
   productType: string;
+  domain: string;
   visualDirection: string;
   audience: string;
   tokens: DesignTokens;
@@ -27,6 +28,7 @@ export type DesignSpec = {
 const defaults = (): DesignSpec => ({
   version:1,
   productType:"generic",
+  domain:"generic",
   visualDirection:"clean, product-grade, responsive",
   audience:"end users",
   tokens:{
@@ -85,5 +87,5 @@ export function deriveDesignSpec(input:{domain?:string;productType?:string;visua
   const resolvedDirection=matched && (!input.visualDirection || input.visualDirection==="clean, trustworthy, responsive, production-grade")
     ? matched[1]
     : visualDirection;
-  return {productType,visualDirection:resolvedDirection,audience:input.audience??"end users",components:[...new Set(components)],interactions:[]};
+  return {domain,productType,visualDirection:resolvedDirection,audience:input.audience??"end users",components:[...new Set(components)],interactions:[]};
 }
