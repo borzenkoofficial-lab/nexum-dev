@@ -705,7 +705,7 @@ function App() {
               onПредпросмотр={() => { setRightTab("preview"); setПредпросмотрKey((key) => key + 1); setNotice("Предпросмотр обновлён"); }}
               onDeploy={() => { window.open(`/api/preview/${activeПроектId}/index.html`, "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }} />
           </div>
-          <RightPanel tab={rightTab} onTabChange={setRightTab} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId} previewOnline={previewOnline} previewKey={previewKey} onRefreshПредпросмотр={() => setПредпросмотрKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} />
+          <RightPanel tab={rightTab} onTabChange={setRightTab} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId} previewOnline={previewOnline} previewKey={previewKey} onRefreshПредпросмотр={() => setПредпросмотрKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onPreviewError={(message) => { setProblems((items) => [...items, { message, source: "preview" }].slice(-20)); setRightTab("agent"); setАгентStage("error"); }} onRepair={repairLastTask} />
         </div>}
         </>
         )}
