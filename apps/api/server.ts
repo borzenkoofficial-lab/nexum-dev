@@ -200,7 +200,7 @@ async function runChatJob(
     const agent = new NexumAgent(userGateway, project.path);
     const agentLoop = new AgentLoop(
       agent,
-      aiGateway,
+      userGateway,
       undefined,
       (step) => {
         job.steps = [...(job.steps ?? []), step];
@@ -362,7 +362,7 @@ app.get("/api/ai/models", async (_req, res) => {
 
 const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM_LOCAL_TEST_MODE !== "false";
 
-app.get("/api/ai/key-status", (_req, res) => {
+app.get("/api/ai/key-status", (req, res) => {
   const userGateway = getUserAIGateway(getAuthUser(req).id);
   return res.json({ success: true, providers: { openai: userGateway.hasOpenAIKey(), openrouter: userGateway.hasOpenRouterKey(), orcarouter: userGateway.hasOrcaRouterKey() } });
 });
