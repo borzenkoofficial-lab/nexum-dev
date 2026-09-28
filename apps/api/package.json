@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch server.ts",
-    "test": "tsx --test agent/ai-loop.test.ts agent/checkpoint.test.ts agent/errorRecovery.test.ts agent/loop.test.ts agent/tools/github.test.ts agent/tools/patchFile.test.ts agent/tools/path.test.ts agent/tools/testProject.test.ts ai/director.test.ts ai/gateway.test.ts ai/modelRegistry.test.ts ai/orchestrator.test.ts ai/providers/ollama.test.ts ai/providers/openai.test.ts ai/providers/openrouter.test.ts ai/providers/orcarouter.test.ts ai/taskRouter.test.ts ai/intentEngine.test.ts projects/projectManager.test.ts sandbox/dockerSandbox.test.ts",
+    "test": "tsx --test agent/ai-loop.test.ts agent/checkpoint.test.ts agent/errorRecovery.test.ts agent/loop.test.ts agent/tools/github.test.ts agent/tools/patchFile.test.ts agent/tools/path.test.ts agent/tools/testProject.test.ts ai/director.test.ts ai/gateway.test.ts ai/modelRegistry.test.ts ai/orchestrator.test.ts ai/providers/ollama.test.ts ai/providers/openai.test.ts ai/providers/openrouter.test.ts ai/providers/orcarouter.test.ts ai/taskRouter.test.ts ai/intentEngine.test.ts projects/projectManager.test.ts sandbox/dockerSandbox.test.ts projects/projectUnderstanding.test.ts",
     "start": "tsx server.ts",
     "typecheck": "tsc --noEmit",
     "db:migrate": "tsx db/migrate.ts"
