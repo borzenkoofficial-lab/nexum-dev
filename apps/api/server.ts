@@ -131,6 +131,36 @@ const projectJobsInFlight = new Set<string>();
 const runtimeRecoveryLastStartedAt = new Map<string, number>();
 const RUNTIME_RECOVERY_COOLDOWN_MS = 60_000;
 
+type PreviewSubscriber = { userId: string; projectId: string; response: Response };
+const previewSubscribers = new Map<string, Set<PreviewSubscriber>>();
+
+function previewSubscriberKey(userId: string, projectId: string): string {
+  return userId + ":" + projectId;
+}
+
+function closePreviewSubscriber(subscriber: PreviewSubscriber): void {
+  const key = previewSubscriberKey(subscriber.userId, subscriber.projectId);
+  const subscribers = previewSubscribers.get(key);
+  if (!subscribers) return;
+  subscribers.delete(subscriber);
+  if (subscribers.size === 0) previewSubscribers.delete(key);
+}
+
+async function broadcastPreviewRevision(userId: string, projectId: string, projectPath: string): Promise<void> {
+  const key = previewSubscriberKey(userId, projectId);
+  const subscribers = previewSubscribers.get(key);
+  if (!subscribers?.size) return;
+  const live = await inspectLiveUpdate(projectPath, projectId);
+  const payload = JSON.stringify(live);
+  for (const subscriber of [...subscribers]) {
+    try {
+      subscriber.response.write(`event: preview-update\\ndata: ${payload}\\n\\n`);
+    } catch {
+      closePreviewSubscriber(subscriber);
+    }
+  }
+}
+
 function cleanupChatJobs() {
   const cutoff = Date.now() - CHAT_JOB_TTL_MS;
   for (const [id, job] of chatJobs) {
@@ -293,6 +323,7 @@ ${attachment.content.slice(0, 80_000)}`);
     const finalizedPipeline = await finalizeAutonomousDesignPipeline(project.path, project.id, successfulBuild);
     if (successfulBuild) {
       await stateManager.markBuildSucceeded();
+      await broadcastPreviewRevision(userId, project.id, project.path);
     }
     if (!finalizedPipeline.completed) {
       job.problems = [
@@ -730,6 +761,28 @@ app.get("/api/projects/:id/preview/live", async (req,res)=>{
     return res.json({success:true,live:await inspectLiveUpdate(project.path,String(project.id))});
   } catch(error){ return sendProjectError(res,error); }
 });
+app.get("/api/projects/:id/preview/live/events", async (req,res)=>{
+  const userId=getAuthUser(req).id;
+  try {
+    const project=await getProjectManager(userId).getProject(String(req.params.id));
+    const projectId=String(project.id);
+    const subscriber: PreviewSubscriber={userId,projectId,response:res};
+    const key=previewSubscriberKey(userId,projectId);
+    const subscribers=previewSubscribers.get(key) ?? new Set<PreviewSubscriber>();
+    subscribers.add(subscriber);
+    previewSubscribers.set(key,subscribers);
+    res.status(200);
+    res.setHeader("Content-Type","text/event-stream; charset=utf-8");
+    res.setHeader("Cache-Control","no-cache, no-transform");
+    res.setHeader("Connection","keep-alive");
+    res.setHeader("X-Accel-Buffering","no");
+    res.flushHeaders();
+    const live=await inspectLiveUpdate(project.path,projectId);
+    res.write(`event: preview-ready\\ndata: ${JSON.stringify(live)}\\n\\n`);
+    const heartbeat=setInterval(()=>{ try { res.write(": ping\\n\\n"); } catch { clearInterval(heartbeat); closePreviewSubscriber(subscriber); } },15000);
+    req.on("close",()=>{ clearInterval(heartbeat); closePreviewSubscriber(subscriber); });
+  } catch(error){ if(!res.headersSent) return sendProjectError(res,error); res.end(); }
+});
 
 app.get("/api/projects/:id/design", async (req, res) => {
   try { const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id)); return res.json({success:true,design:await readDesignSpec(project.path)}); }
@@ -901,6 +954,7 @@ app.put("/api/projects/:id/file", async (req, res) => {
     // Re-check after creating parent directories to reject symlinked paths.
     await assertWritableProjectPath(project.path, requested);
     await fs.writeFile(filePath, content, "utf8");
+    await broadcastPreviewRevision(getAuthUser(req).id, project.id, project.path);
     return res.json({ success: true, path: projectRelative });
   } catch (error) {
     if (error instanceof ProjectPathError) return res.status(403).json({ success: false, error: error.message });
