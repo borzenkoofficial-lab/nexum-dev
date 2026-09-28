@@ -21,9 +21,9 @@ export class TestProjectTool implements Tool {
       }
 
       const scripts = pkg.scripts ?? {};
-      const commands = ["test", "typecheck", "lint"].filter((name) => typeof scripts[name] === "string");
+      const commands = ["test", "typecheck", "lint", "build"].filter((name) => typeof scripts[name] === "string");
       if (!commands.length) {
-        if (typeof scripts.build === "string") return this.run(root, "npm", ["run", "build"], "build");
+
         return { success: true, output: "No automated test/typecheck/lint/build script is defined; project structure is valid for Preview." };
       }
 
@@ -42,7 +42,7 @@ export class TestProjectTool implements Tool {
           };
         }
       }
-      return { success: true, output: JSON.stringify({ passed: commands, results: results.map((item) => item.slice(-1800)) }) };
+      return { success: true, output: JSON.stringify({ status: "passed", stages: commands, results: results.map((item) => item.slice(-1800)) }) };
     } catch (error) {
       return { success: false, output: error instanceof Error ? error.message : "Project test runner failed" };
     }
