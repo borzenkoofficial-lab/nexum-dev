@@ -34,3 +34,18 @@ test("visual verification checks responsive document basics", async () => {
   assert.equal(result.passed,true);
   assert.equal(result.score,100);
 });
+
+test("visual verification rejects a known domain mismatch", async () => {
+  const root=await mkdtemp(join(tmpdir(),"nexum-domain-"));
+  await writeFile(
+    join(root,"index.html"),
+    '<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width"><style>button{padding:8px}</style></head><body><main><h1>Цифровой продукт</h1><button>Открыть</button></main></body></html>',
+  );
+  await writeDesignSpec(root,{
+    ...deriveDesignSpec({domain:"automotive",productType:"auto-repair",features:["booking"]}),
+    interactions:[{id:"primary",component:"Button",event:"click",action:"execute-primary-action"}],
+  });
+  const result=await verifyDesign(root);
+  assert.equal(result.checks.some((check)=>check.name==="domain-fidelity"&&check.passed===false),true);
+  assert.equal(result.passed,false);
+});
