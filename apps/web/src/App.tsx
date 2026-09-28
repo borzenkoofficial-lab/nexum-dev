@@ -353,7 +353,7 @@ function App() {
       setMessage(data.description.trim());
       setNewProjectName("");
       setModalOpen(false);
-      void sendMessage(buildBrief, data.project.id);
+      void sendMessage(buildBrief, responseData.project.id);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Не удалось создать проект");
     } finally {
