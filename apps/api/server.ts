@@ -31,6 +31,7 @@ import { interactionScript } from "./design/interactionContract.js";
 import { verifyDesign } from "./design/visualVerification.js";
 import { prepareAutonomousDesignPipeline, getPipelineSnapshot } from "./design/autonomousPipeline.js";
 import { componentContracts } from "./design/componentIntelligence.js";
+import { allowedInteraction, createInteractionRecord, resolveInteraction } from "./design/interactionEngine.js";
 import { inspectLiveUpdate } from "./design/liveUpdate.js";
 import { extractIntent } from "./ai/intentEngine.js";
 
@@ -709,8 +710,13 @@ app.post("/api/projects/:id/preview/interaction", async (req,res)=>{
     if(projectId && projectId!==String(project.id)) return res.status(400).json({success:false,error:"Preview project mismatch"});
     const type=typeof req.body?.eventType==="string"?req.body.eventType.slice(0,40):"unknown";
     const target=typeof req.body?.target==="string"?req.body.target.slice(0,200):"unknown";
-    void agentHistory.record({type:"preview-interaction",projectId:project.id,userId,status:"success",message:`${type}: ${target}`,output:JSON.stringify({action:req.body?.action,value:req.body?.value})});
-    return res.json({success:true,accepted:true});
+    const design=await readDesignSpec(project.path);
+    const event={projectId:String(project.id),type: type as "click"|"submit"|"change"|"navigate",target,action:typeof req.body?.action==="string"?req.body.action.slice(0,200):undefined,value:typeof req.body?.value==="string"?req.body.value.slice(0,1000):undefined,timestamp:Date.now()};
+    const accepted=allowedInteraction(design,event);
+    const record=createInteractionRecord(event,event.action);
+    const resolved=resolveInteraction(record,accepted);
+    void agentHistory.record({type:"preview-interaction",projectId:project.id,userId,status:accepted?"success":"error",message:`${type}: ${target}`,output:JSON.stringify({accepted,record:resolved})});
+    return res.json({success:true,accepted,record:resolved});
   } catch(error){ return sendProjectError(res,error); }
 });
 app.get("/api/projects/:id/preview/bridge", async (req,res)=>{
