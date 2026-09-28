@@ -1029,14 +1029,17 @@ app.get("/api/agent/diagnostics", async (req, res) => {
     aiProvider: defaultProvider,
     failureCount: failures.length,
     failures,
-    jobs: [...chatJobs.values()].slice(-20).map((job) => ({
-      id: job.id,
-      status: job.status,
-      createdAt: job.createdAt,
-      updatedAt: job.updatedAt,
-      error: job.error,
-      problems: job.problems,
-    })),
+    jobs: [...chatJobs.values()]
+      .filter((job) => job.userId === userId)
+      .slice(-20)
+      .map((job) => ({
+        id: job.id,
+        status: job.status,
+        createdAt: job.createdAt,
+        updatedAt: job.updatedAt,
+        error: job.error,
+        problems: job.problems,
+      })),
     recent: entries,
   });
 });
