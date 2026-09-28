@@ -29,3 +29,16 @@ Visual language and copy must remain aligned with the user's requested product d
 
 ## Hot update
 The host may request a Preview refresh through the nexum-host postMessage contract. Prefer targeted/live updates when available; use a controlled reload as a safe fallback.
+
+
+## Executable state
+- .nexum/state-spec.json is the persistent UI state contract.
+- State covers form values, filters, route state, loading/success/error transitions and must be considered during implementation.
+- Agents must not replace the project runtime state file .nexum/state.json; that file belongs to project execution/state tracking.
+
+
+## Live preview
+- Workspace preview subscribes to project-scoped Server-Sent Events for revision changes.
+- CSS-only build changes are hot-swapped in the iframe when possible.
+- JS/HTML/app-shell changes fall back to a controlled preview reload.
+- Runtime errors and interaction telemetry are sent back to the host and remain project/user scoped.
