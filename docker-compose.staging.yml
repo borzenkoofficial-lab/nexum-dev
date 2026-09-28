@@ -1,0 +1,46 @@
+services:
+  nexum:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexum-staging
+    restart: unless-stopped
+    env_file:
+      - .env.staging
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      HOST: 0.0.0.0
+    volumes:
+      - nexum-runtime:/app/runtime
+      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - "3001"
+    networks:
+      - nexum
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: nexum-caddy
+    restart: unless-stopped
+    depends_on:
+      - nexum
+    environment:
+      NEXUM_DOMAIN: ${NEXUM_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - nexum
+
+volumes:
+  nexum-runtime:
+  caddy-data:
+  caddy-config:
+
+networks:
+  nexum:
