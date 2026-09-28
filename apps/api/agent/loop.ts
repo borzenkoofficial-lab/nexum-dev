@@ -518,7 +518,23 @@ export class AgentLoop {
               ? "Статический проект прошёл проверку."
               : `Найдены ошибки: ${validation.output.slice(0, 700)}`,
           });
-          if (!validation.success) { transition("repair"); continue; }
+          if (!validation.success) {
+            recoveryCycles += 1;
+            recoveryDiagnosis = diagnoseError(validation.output);
+            transition("repair");
+            if (builderState) {
+              const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+                ? "diagnose"
+                : builderState.graph.nodes.some((node) => node.id === "implement") ? "implement" : null;
+              if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+            }
+            if (recoveryCycles >= MAX_RECOVERY_CYCLES) {
+              const error = `Static validation failed after ${MAX_RECOVERY_CYCLES} bounded recovery cycles: ${recoveryDiagnosis.summary}`;
+              emit({ iteration, type: "failed", tool: "Debugger", message: error });
+              return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+            }
+            continue;
+          }
         }
 
         const hasProjectChanges = previousResults.some((item) =>
@@ -571,7 +587,26 @@ export class AgentLoop {
                 : `Не удалось выполнить «${command}»: ${result.output.slice(0, 500)}`,
             });
             if (!result.success) {
-              emit({ iteration, type: "thinking", message: "Финальная проверка не прошла. Возвращаю ошибку модели для автоматического исправления." });
+              recoveryCycles += 1;
+              recoveryDiagnosis = diagnoseError(result.output);
+              transition("repair");
+              if (builderState) {
+                const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+                  ? "diagnose"
+                  : builderState.graph.nodes.some((node) => node.id === "implement") ? "implement" : null;
+                if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+              }
+              emit({
+                iteration,
+                type: "thinking",
+                tool: "Debugger",
+                message: `Final verification failed. Recovery cycle ${recoveryCycles}/${MAX_RECOVERY_CYCLES}; category=${recoveryDiagnosis.category}.`,
+              });
+              if (recoveryCycles >= MAX_RECOVERY_CYCLES) {
+                const error = `Final verification failed after ${MAX_RECOVERY_CYCLES} bounded recovery cycles: ${recoveryDiagnosis.summary}`;
+                emit({ iteration, type: "failed", tool: "Debugger", message: error });
+                return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+              }
               break;
             }
           }
@@ -606,7 +641,23 @@ export class AgentLoop {
               ? "Автоматические проверки проекта пройдены."
               : `Tester Agent нашёл проблему: ${testResult.output.slice(0, 900)}`,
           });
-          if (!testResult.success) { transition("repair"); continue; }
+          if (!testResult.success) {
+            recoveryCycles += 1;
+            recoveryDiagnosis = diagnoseError(testResult.output);
+            transition("repair");
+            if (builderState) {
+              const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+                ? "diagnose"
+                : builderState.graph.nodes.some((node) => node.id === "implement") ? "implement" : null;
+              if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+            }
+            if (recoveryCycles >= MAX_RECOVERY_CYCLES) {
+              const error = `Project tests failed after ${MAX_RECOVERY_CYCLES} bounded recovery cycles: ${recoveryDiagnosis.summary}`;
+              emit({ iteration, type: "failed", tool: "Debugger", message: error });
+              return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+            }
+            continue;
+          }
         }
 
         // Hard domain gate: never report success when the generated file content belongs to another industry.
