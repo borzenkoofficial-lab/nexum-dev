@@ -28,7 +28,7 @@ import { ValidateProjectTool } from "./tools/validateProject.js";
 import { PatchFileTool } from "./tools/patchFile.js";
 import { TestProjectTool } from "./tools/testProject.js";
 import { buildAgentContext, formatAgentContext } from "./context.js";
-import { deriveDesignSpec, writeDesignSpec } from "../design/designSpec.js";
+import { deriveDesignSpec, writeDesignSpec, type DesignSpec } from "../design/designSpec.js";
 import { deriveInteractionContract } from "../design/interactionEngine.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -108,7 +108,7 @@ ${result.output}`
       });
       await writeDesignSpec(this.projectRoot, {
         ...design,
-        interactions: deriveInteractionContract(design),
+        interactions: deriveInteractionContract(design as DesignSpec),
       });
     } catch (error) {
       console.warn("[agent] design contract preparation failed; continuing without pre-materialized contract", error);
