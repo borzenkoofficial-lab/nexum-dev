@@ -270,3 +270,15 @@ button:disabled{cursor:default;opacity:.55}
  .nexum-overview-live .live-project-card{padding-top:154px}
  .nexum-overview-live .preview-overlay{opacity:1;transform:none}
 }
+
+.nexum-overview-live .project-live-meta{display:grid;gap:5px;margin-top:8px;padding-top:9px;border-top:1px solid var(--line)}
+.nexum-overview-live .project-live-meta small{display:block;overflow:hidden;color:var(--text-3);font-size:10px;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}
+.nexum-overview-live .project-agent-status{display:inline-flex;align-items:center;gap:6px;width:max-content;color:var(--text-2);font-size:10px;font-weight:600}
+.nexum-overview-live .project-agent-status i{display:block;width:6px;height:6px;border-radius:50%;background:#45a978}
+.nexum-overview-live .project-agent-status.is-running i{animation:nexum-agent-pulse 1.2s ease-in-out infinite}
+.nexum-overview-live .project-agent-status.is-running{color:#635bff}
+.nexum-overview-live .project-agent-status.is-running i{background:#635bff}
+.nexum-overview-live .project-agent-status.is-error{color:#b34c55}
+.nexum-overview-live .project-agent-status.is-error i{background:#b34c55}
+@keyframes nexum-agent-pulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+@media(max-width:560px){.nexum-overview-live .project-live-meta small{white-space:normal}}
