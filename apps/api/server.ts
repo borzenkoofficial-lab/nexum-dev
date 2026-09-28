@@ -282,6 +282,7 @@ ${attachment.content.slice(0, 80_000)}`);
     // the generated application is actually ready for the user.
     job.steps = result.steps;
     job.productPlan = result.productPlan;
+    if (result.finalResponse !== undefined) job.reply = result.finalResponse;
     const intent = extractIntent(message);
     const successfulBuild = result.steps.some((step) =>
       step.success &&
