@@ -7,10 +7,13 @@ export interface BuilderExecutionState {
   attempts: Map<string, number>;
 }
 
+export const MAX_NODE_ATTEMPTS = 3;
+
 export interface BuilderStep {
   node: TaskNode;
   remaining: string[];
   blocked: boolean;
+  exhausted: boolean;
 }
 
 /**
@@ -42,7 +45,7 @@ export function nextBuilderStep(state: BuilderExecutionState): BuilderStep | nul
     .filter((node) => !state.completed.has(node.id))
     .filter((node) => node.dependencies.every((dependency) => state.completed.has(dependency)));
 
-  if (!candidates.length) return null;
+  if (!candidates.length) return null;\n\n  const exhaustedCandidate = candidates.find((candidate) => (state.attempts.get(candidate.id) ?? 0) >= MAX_NODE_ATTEMPTS);\n  if (exhaustedCandidate) {\n    return {\n      node: exhaustedCandidate,\n      remaining: candidates.filter((candidate) => candidate.id !== exhaustedCandidate.id).map((candidate) => candidate.id),\n      blocked: true,\n      exhausted: true,\n    };\n  }
 
   // Preserve the graph's declared execution order. Parallel batches are
   // intentionally serialized here until the tool/runtime layer can prove that
@@ -88,7 +91,7 @@ export function builderExecutionPrompt(
     ].join("\n");
   }
 
-  const attempt = state.attempts.get(step.node.id) ?? 0;
+  const attempt = state.attempts.get(step.node.id) ?? 0;\n  if (step.exhausted) {\n    return [\n      "NEXUM EXECUTION STATE: blocked",\n      `currentNode=${step.node.id}`,\n      `attempts=${attempt}`,\n      `maxAttempts=${MAX_NODE_ATTEMPTS}`,\n      "This node exhausted its bounded attempts. Do not continue or invent a new path.",\n    ].join("\\n");\n  }
   return [
     "NEXUM EXECUTION STATE",
     `rootTask=${task.slice(0, 500)}`,
