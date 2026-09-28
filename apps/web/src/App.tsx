@@ -350,7 +350,7 @@ function App() {
         "Тип проекта — обязательное требование: реализуй именно этот тип продукта, а не обычный лендинг.",
         "Не ограничивайся созданием названия или стартового шаблона: создай рабочую структуру, интерфейс, страницы, компоненты и необходимые сценарии для выбранного типа.",
       ].join("\n");
-      setMessage(data.description.trim());
+      setMessage("");
       setNewПроектName("");
       setModalOpen(false);
       void sendMessage(buildBrief, responseData.project.id);
