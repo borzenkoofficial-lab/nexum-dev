@@ -143,7 +143,7 @@ async function runChatJob(
 
   job.status = "running";
   job.updatedAt = Date.now();
-  void agentHistory.record({ type: "job-start", jobId, projectId, provider, model, message, output: `user:${userId}` });
+  void agentHistory.record({ type: "job-start", jobId, projectId, userId, provider, model, message });
   job.currentMessage = "Запускаю AI-агента и начинаю выполнение задачи.";
   job.stage = "analyzing";
 
@@ -158,6 +158,7 @@ async function runChatJob(
       type: "checkpoint-created",
       jobId,
       projectId: project.id,
+      userId,
       status: "success",
       message: "Automatic pre-task checkpoint created",
       output: JSON.stringify({ checkpointId: checkpoint.id, files: checkpoint.files.length }),
@@ -231,7 +232,7 @@ ${attachment.content.slice(0, 80_000)}`);
         }
         if (event.type === "tool-error" || event.type === "failed") job.stage = "error";
         job.updatedAt = Date.now();
-        void agentHistory.record({ type: "agent-event", jobId, projectId, provider, model, iteration: event.iteration, tool: event.tool, status: event.type, message: event.message });
+        void agentHistory.record({ type: "agent-event", jobId, projectId, userId, provider, model, iteration: event.iteration, tool: event.tool, status: event.type, message: event.message });
         if (event.type === "tool-error" || event.type === "failed") {
           job.problems = [
             ...(job.problems ?? []),
@@ -256,7 +257,7 @@ ${attachment.content.slice(0, 80_000)}`);
       job.status = "failed";
       job.stage = "error";
       job.error = result.error ?? "AI agent failed";
-      void agentHistory.record({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
+      void agentHistory.record({ type: "job-failed", jobId, projectId, userId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
       return;
     }
@@ -264,7 +265,7 @@ ${attachment.content.slice(0, 80_000)}`);
     job.status = "completed";
     job.stage = "completed";
     if (result.finalResponse !== undefined) job.reply = result.finalResponse;
-    void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
+    void agentHistory.record({ type: "job-completed", jobId, projectId, userId, provider, model, status: "completed", message: result.finalResponse });
     job.steps = result.steps;
     job.productPlan = result.productPlan;
     const successfulBuild = result.steps.some((step) =>
@@ -288,7 +289,7 @@ ${attachment.content.slice(0, 80_000)}`);
     job.stage = "error";
     job.updatedAt = Date.now();
     job.error = error instanceof Error ? error.message : "AI provider request failed";
-    void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
+    void agentHistory.record({ type: "job-exception", jobId, projectId, userId, provider, model, status: "failed", message: job.error });
     console.error("[Nexum] chat job failed", jobId, error);
   }
 }
