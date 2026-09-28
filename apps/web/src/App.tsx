@@ -68,7 +68,7 @@ function App() {
   const [uiSettings, setUiSettings] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("nexum:ui-settings") || "{}") as Partial<{animations:boolean; compact:boolean; autoPreview:boolean; sound:boolean; glow:boolean}>;
-      return { animations: saved.animations !== false, compact: Boolean(saved.compact), autoPreview: saved.autoPreview !== false, sound: Boolean(saved.sound), glow: saved.glow !== false };
+      return { animations: saved.animations !== false, compact: Boolean(saved.compact), autoPreview: saved.autoPreview !== false, sound: Boolean(saved.sound), glow: saved.glow === true };
     } catch { return { animations:true, compact:false, autoPreview:true, sound:false, glow:true }; }
   });
   useEffect(() => { try { localStorage.setItem("nexum:ui-settings", JSON.stringify(uiSettings)); } catch {} }, [uiSettings]);
