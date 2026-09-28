@@ -324,7 +324,7 @@ export class AgentLoop {
       // already failed, switch to the deterministic planner so recovery can continue.
       let plan = modelPlan ?? this.runtime.plan(task, previousResults);
       if (plan && !plan.done) transition(plan.tool === "runCommand" || plan.tool === "runSandbox" ? "validate" : plan.tool === "readFile" || plan.tool === "listFiles" || plan.tool === "searchFiles" ? "analyze" : "implement");
-      if (modelPlan) {
+      if (modelPlan && !modelPlan.done) {
         const modelActionKey = this.actionFingerprint(modelPlan.tool, modelPlan.input);
         const repeatedFailure = previousResults.some(
           (item) => item.tool === modelPlan.tool && item.input === modelPlan.input && !item.result.success,
