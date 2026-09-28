@@ -51,7 +51,7 @@ export function CodePanel({ projectId, projectName, previewOnline, previewKey, o
       .catch((reason) => { if (!cancelled) setError(reason instanceof Error ? reason.message : "Не удалось загрузить файлы"); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [projectId]);
+  }, [projectId, previewKey]);
 
   useEffect(() => {
     if (!selectedFile) return;
