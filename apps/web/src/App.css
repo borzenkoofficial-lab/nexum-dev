@@ -715,3 +715,28 @@ html,body,#root{
   .settings-shortcuts{grid-template-columns:1fr auto}
   .settings-shortcuts>div:last-child{grid-column:1/-1}
 }
+
+
+/* HD readability hardening — real workspace surfaces only */
+.app-project .chat-project-context small,
+.app-project .conversation-meta,
+.app-project .composer-hint,
+.app-project .attach-button{font-size:11px}
+.app-project .activity-copy strong{font-size:12px}
+.app-project .activity-copy span{font-size:11px}
+.app-project .panel-tabs button{font-size:12px}
+.app-project .preview-address{font-size:11px}
+.app-project .preview-address b{font-size:10px}
+.app-project .preview-runtime-error{font-size:11px}
+.app-project .editor-file-name,
+.app-project .editor-save,
+.app-project .file-row{font-size:12px}
+.app-project .editor-gutter{font-size:11px;line-height:1.7}
+.app-project .code-editor textarea{font-size:13px;line-height:1.65}
+.app-project .editor-empty,
+.app-project .files-empty{font-size:12px}
+.app-project .editor-error{font-size:11px}
+.app-project .preview-content .coming-soon{font-size:12px}
+.app-project .preview-content span{font-size:11px}
+.app-project .welcome .eyebrow{font-size:11px}
+.app-project .starter-grid button{font-size:11px}
