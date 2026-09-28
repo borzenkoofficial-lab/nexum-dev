@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 type IntegrationPageProps = {
   connectedConnectors: string[];
   onToggleConnector: (name: string) => void;
