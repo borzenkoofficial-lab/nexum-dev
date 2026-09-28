@@ -12,7 +12,7 @@ export interface TaskRoutingDecision {
 }
 
 const BUILD = /создай|сделай|разработай|построй|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|ui|код|code|добавь|измени|поменяй|реализ/i;
-const DEBUG = /ошиб|error|debug|не работает|слом|fix|исправ|exception|failed|crash|build failed|compile/i;
+const DEBUG = /ошиб|error|debug|не работает|слом|fix\s+(?:ошиб|баг|код|проблем)|исправь\s+(?:ошиб|баг|код|проблем)|exception|failed|crash|build failed|compile (?:error|failed)/i;
 const REVIEW = /проверь|провер|ревью|review|audit|аудит|оцени код|найди проблемы/i;
 const COMPLEX = /полностью|с нуля|full|production|продакш|автоном|marketplace|crm|backend|база|database|auth|авторизац|интеграц|api|платформ/i;
 
