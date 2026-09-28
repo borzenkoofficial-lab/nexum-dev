@@ -29,7 +29,8 @@ import { clearRuntimeMemory, loadRuntimeKeys, saveRuntimeKey } from "./ai/runtim
 import { readDesignSpec, writeDesignSpec, deriveDesignSpec } from "./design/designSpec.js";
 import { interactionScript } from "./design/interactionContract.js";
 import { verifyDesign } from "./design/visualVerification.js";
-import { prepareAutonomousDesignPipeline, finalizeAutonomousDesignPipeline, getPipelineSnapshot } from "./design/autonomousPipeline.js";
+import { prepareAutonomousDesignPipeline, finalizeAutonomousDesignPipeline, getPipelineSnapshot, evaluatePipelineGates } from "./design/autonomousPipeline.js";
+import { createPipelineController, decidePipelineRecovery, recoveryPromptFor } from "./design/pipelineController.js";
 import { componentContracts } from "./design/componentIntelligence.js";
 import { allowedInteraction, createInteractionRecord, resolveInteraction } from "./design/interactionEngine.js";
 import { inspectLiveUpdate } from "./design/liveUpdate.js";
@@ -296,7 +297,7 @@ ${attachment.content.slice(0, 80_000)}`);
     // This makes design a build-time contract, not a post-build decoration.
     await prepareAutonomousDesignPipeline(project.path, extractIntent(message));
 
-    const result = await agentLoop.run(agentMessage, {
+    let result = await agentLoop.run(agentMessage, {
       ...(provider === undefined ? {} : { provider }),
       ...(model === undefined ? {} : { model }),
     });
@@ -312,20 +313,50 @@ ${attachment.content.slice(0, 80_000)}`);
       return;
     }
 
-    // Do not mark the job completed until the autonomous design/build/live gates
-    // have been finalized. A successful agent loop is not sufficient evidence that
-    // the generated application is actually ready for the user.
+    // A successful agent loop is necessary but not sufficient: the product must
+    // also pass the design/component/interaction/verification/build/live gates.
     job.steps = result.steps;
     job.productPlan = result.productPlan;
     if (result.finalResponse !== undefined) job.reply = result.finalResponse;
     const intent = extractIntent(message);
-    const successfulBuild = result.steps.some((step) =>
+    let successfulBuild = result.steps.some((step) =>
       step.success &&
       (step.tool === "runCommand" || step.tool === "runSandbox") &&
       /(?:npm run build|pnpm (?:run )?build|yarn build|bun run build)/i.test(step.input),
     );
-    const pipeline = await prepareAutonomousDesignPipeline(project.path, intent);
-    const finalizedPipeline = await finalizeAutonomousDesignPipeline(project.path, project.id, successfulBuild);
+    let finalizedPipeline = await finalizeAutonomousDesignPipeline(project.path, project.id, successfulBuild);
+    const pipelineController = createPipelineController(3);
+
+    while (!finalizedPipeline.completed) {
+      const gates = evaluatePipelineGates(finalizedPipeline);
+      const decision = decidePipelineRecovery(finalizedPipeline, gates, pipelineController);
+      if (decision.exhausted) break;
+
+      const recoveryMessage = [
+        agentMessage,
+        "",
+        recoveryPromptFor(decision),
+        "",
+        `Current pipeline stage: ${finalizedPipeline.stage}`,
+        `Gate detail: ${decision.gate?.detail ?? "unknown"}`,
+      ].join("\n");
+      const recoveryResult = await agentLoop.run(recoveryMessage, {
+        ...(provider === undefined ? {} : { provider }),
+        ...(model === undefined ? {} : { model }),
+      });
+      result = recoveryResult;
+      job.steps = recoveryResult.steps;
+      job.productPlan = recoveryResult.productPlan ?? job.productPlan;
+      if (recoveryResult.finalResponse !== undefined) job.reply = recoveryResult.finalResponse;
+      if (!recoveryResult.success) break;
+      successfulBuild = successfulBuild || recoveryResult.steps.some((step) =>
+        step.success &&
+        (step.tool === "runCommand" || step.tool === "runSandbox") &&
+        /(?:npm run build|pnpm (?:run )?build|yarn build|bun run build)/i.test(step.input),
+      );
+      finalizedPipeline = await finalizeAutonomousDesignPipeline(project.path, project.id, successfulBuild);
+    }
+
     if (successfulBuild) {
       await stateManager.markBuildSucceeded();
       await broadcastPreviewRevision(userId, project.id, project.path);
