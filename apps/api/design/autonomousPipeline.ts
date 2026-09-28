@@ -7,6 +7,23 @@ import type { NexumIntent } from "../ai/intentEngine.js";
 
 export type PipelineStage = "intent" | "design" | "components" | "interactions" | "build" | "verify" | "live" | "done" | "failed";
 
+export type PipelineGate = {
+  name:string;
+  passed:boolean;
+  detail:string;
+};
+
+export function evaluatePipelineGates(snapshot:Pick<PipelineSnapshot,"design"|"componentCount"|"interactionCount"|"verification"|"live"|"buildVerified">):PipelineGate[] {
+  return [
+    {name:"design",passed:snapshot.design.version===1 && snapshot.design.components.length>0,detail:"DesignSpec exists with components"},
+    {name:"components",passed:snapshot.componentCount>0,detail:"Component contracts are available"},
+    {name:"interactions",passed:snapshot.interactionCount>0,detail:"Interaction contract is executable"},
+    {name:"verification",passed:snapshot.verification?.passed===true,detail:"Visual/domain verification passed"},
+    {name:"build",passed:snapshot.buildVerified,detail:"Production build was verified"},
+    {name:"live",passed:snapshot.live?.buildReady===true,detail:"Preview entry is available"},
+  ];
+}
+
 export interface PipelineSnapshot {
   stage: PipelineStage;
   design: DesignSpec;
@@ -36,16 +53,21 @@ export async function prepareAutonomousDesignPipeline(
   const verification = await verifyDesign(projectRoot);
   const live = await inspectLiveUpdate(projectRoot, "pending");
 
-  return {
-    stage: verification.passed ? (live.buildReady ? "live" : "verify") : "design",
+  const base = {
     design: finalDesign,
     componentCount: componentContracts(finalDesign).length,
     interactionCount: finalDesign.interactions.length,
     verification,
     live,
     buildVerified: live.buildReady && live.mode === "built-app",
-    readyForLive: verification.passed && live.buildReady,
-    completed: verification.passed && live.buildReady,
+  };
+  const gates=evaluatePipelineGates(base);
+  const allDesignGates=gates.slice(0,4).every((gate)=>gate.passed);
+  return {
+    stage: allDesignGates ? (live.buildReady ? "live" : "verify") : "design",
+    ...base,
+    readyForLive: allDesignGates && live.buildReady,
+    completed: allDesignGates && live.buildReady,
   };
 }
 
@@ -59,16 +81,14 @@ export async function finalizeAutonomousDesignPipeline(
   const live = await inspectLiveUpdate(projectRoot, projectId);
   const buildReady = buildVerified && (live.mode === "built-app" || live.mode === "static");
 
+  const base = {design,componentCount:componentContracts(design).length,interactionCount:design.interactions.length,verification,live,buildVerified};
+  const gates=evaluatePipelineGates(base);
+  const allGates=gates.every((gate)=>gate.passed);
   return {
-    stage: !verification.passed ? "failed" : buildReady ? "done" : "build",
-    design,
-    componentCount: componentContracts(design).length,
-    interactionCount: design.interactions.length,
-    verification,
-    live,
-    buildVerified,
-    readyForLive: verification.passed && buildReady,
-    completed: verification.passed && buildReady,
+    stage: !verification.passed ? "failed" : allGates ? "done" : "build",
+    ...base,
+    readyForLive: allGates && buildReady,
+    completed: allGates && buildReady,
   };
 }
 
