@@ -981,7 +981,7 @@ app.get("/api/agent/history", async (req, res) => {
   const userProjects = await getProjectManager(userId).listProjects();
   const projectIds = new Set(userProjects.map((project) => project.id));
   const entries = (await agentHistory.recent(Number.isFinite(limit) ? limit : 200))
-    .filter((entry) => !entry.userId || entry.userId === userId)
+    .filter((entry) => entry.userId === userId)
     .filter((entry) => !entry.projectId || projectIds.has(entry.projectId));
   return res.json({ success: true, entries });
 });
