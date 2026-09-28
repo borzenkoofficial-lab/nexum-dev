@@ -11,9 +11,11 @@ import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
 import { TopBar } from "./components/TopBar";
 import type { AIProviderInfo, AIProviderStatus, AgentStage as АгентStage, Project as Проект } from "./components/types";
+import { diagnosticsEvent, getDiagnosticsSessionId, startDiagnostics } from "./diagnostics";
 // UI controls persist locally; server-side credentials remain outside the client bundle.
 
 function App() {
+  useEffect(() => { startDiagnostics(); diagnosticsEvent({ type: "app-mounted", level: "info", message: "NEXUM application mounted" }); }, []);
   const [projects, setПроектs] = useState<Проект[]>([]);
   const [activeПроектId, setActiveПроектId] = useState(() => {
     const segments = window.location.pathname.split("/").filter(Boolean);
@@ -80,6 +82,18 @@ function App() {
   useEffect(() => { document.documentElement.dataset.motion=uiSettings.animations?"on":"off"; document.documentElement.dataset.compact=uiSettings.compact?"on":"off"; document.documentElement.dataset.glow=uiSettings.glow?"on":"off"; document.documentElement.dataset.uiScale=String(uiSettings.scale); }, [uiSettings]);
 
   const activeПроект = projects.find((project) => project.id === activeПроектId);
+  useEffect(() => {
+    diagnosticsEvent({
+      type: "workspace-context",
+      level: "info",
+      message: "Workspace context changed",
+      projectId: activeПроектId,
+      jobId: chatJobId ?? undefined,
+      metadata: { view, stage: agentStage, diagnosticsSessionId: getDiagnosticsSessionId() },
+    });
+  }, [activeПроектId, chatJobId, view, agentStage]);
+
+
   useEffect(() => { try { localStorage.setItem("nexum:project-task-meta", JSON.stringify(projectTaskMeta)); } catch {} }, [projectTaskMeta]);
   const formatRelativeTime = (value?: string | number) => { if (!value) return "Недавно"; const delta = Math.max(0, Date.now() - new Date(value).getTime()); const minutes = Math.floor(delta / 60000); if (minutes < 1) return "только что"; if (minutes < 60) return `${minutes} мин назад`; const hours = Math.floor(minutes / 60); if (hours < 24) return `${hours} ч назад`; const days = Math.floor(hours / 24); return `${days} дн назад`; };
 
