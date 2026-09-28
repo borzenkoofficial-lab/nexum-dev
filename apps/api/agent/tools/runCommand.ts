@@ -204,7 +204,6 @@ export class RunCommandTool implements Tool {
 
       const timer = setTimeout(() => {
         timedOut = true;
-        stderr += "
         stderr += "\nCommand timed out";
       }, this.timeoutMs);
 
