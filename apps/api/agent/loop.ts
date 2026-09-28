@@ -143,8 +143,8 @@ export class AgentLoop {
     const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
     const director = new NexumDirector();
     const intent = extractIntent(task);
-    const builderState: BuilderExecutionState | null = routing.mode === "simple" ? null : createBuilderExecutionState(task, intent);
     const routing = routeTask(task);
+    const builderState: BuilderExecutionState | null = routing.mode === "simple" ? null : createBuilderExecutionState(task, intent);
     const routingBudget = executionBudget(routing);
     const maxPlannerCalls = Math.min(MAX_AI_PLANNER_CALLS, routingBudget.maxAiCalls);
     const aiOptionsForTask = (base?: GatewayGenerateOptions, role: "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" = "general"): GatewayGenerateOptions | undefined => {
@@ -735,7 +735,7 @@ export class AgentLoop {
       actionAttempts.set(fingerprint, (actionAttempts.get(fingerprint) ?? 0) + 1);
       seenActions.add(fingerprint);
       const result = await this.runtime.executeTool(plan.tool, plan.input);
-      const graphStep = nextBuilderStep(builderState);
+      const graphStep = builderState ? nextBuilderStep(builderState) : null;
       const step: AgentStep = {
         iteration,
         tool: plan.tool,
@@ -757,7 +757,7 @@ export class AgentLoop {
           (graphStep.node.id === "inspect" && ["listFiles", "readFile", "searchFiles"].includes(plan.tool)) ||
           (graphStep.node.id === "findings" && plan.done)
         );
-        recordBuilderNodeResult(builderState, graphStep.node.id, nodeComplete ?? false);
+        if (builderState) recordBuilderNodeResult(builderState, graphStep.node.id, nodeComplete ?? false);
       }
       const runtimeRoot = this.runtime instanceof Object && "projectRoot" in this.runtime ? (this.runtime as { projectRoot?: string }).projectRoot : undefined;
       if (runtimeRoot) {
