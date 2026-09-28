@@ -9,7 +9,7 @@ import { evaluatePipelineGates, finalizeAutonomousDesignPipeline, getPipelineSna
 test("autonomous pipeline derives design, interactions and verification", async () => {
   const root = await mkdtemp(resolve(tmpdir(), "nexum-pipeline-"));
   try {
-    await writeFile(resolve(root, "index.html"), `<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:system-ui}</style></head><body><button type="button">Оформить доставку</button><p>Доставка по городу и отслеживание заказа</p></body></html>`, "utf8");
+    await writeFile(resolve(root, "index.html"), `<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:system-ui}</style></head><body><button type="button" data-nexum-action="execute-primary-action">Оформить доставку</button><p>Доставка по городу и отслеживание заказа</p></body></html>`, "utf8");
     const intent = extractIntent("создай приложение доставки с формой заказа и картой");
     const prepared = await prepareAutonomousDesignPipeline(root, intent);
     assert.equal(prepared.interactionCount > 0, true);
@@ -59,7 +59,7 @@ test("prepared pipeline cannot report completion without a verified production b
   try {
     await writeFile(
       resolve(root, "index.html"),
-      `<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:system-ui}</style></head><body><button type="button">Открыть заказ</button><p>Доставка по городу</p></body></html>`,
+      `<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:system-ui}</style></head><body><button type="button" data-nexum-action="execute-primary-action">Открыть заказ</button><p>Доставка по городу</p></body></html>`,
       "utf8",
     );
     const intent = extractIntent("создай приложение доставки");
