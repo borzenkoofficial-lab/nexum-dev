@@ -350,3 +350,49 @@ button:disabled{cursor:default;opacity:.55}
 /* Responsive workspace */
 @media(max-width:900px){.chat-history{padding:34px 24px 150px}.message-form{padding-left:24px;padding-right:24px}.send-button{right:34px}.agent-panel{padding:22px}.agent-result-meta{grid-template-columns:repeat(2,1fr)}.agent-result-meta span:nth-child(2){border-right:0}.editor-body{grid-template-columns:150px 1fr}}
 @media(max-width:620px){.chat-history{padding:26px 16px 145px}.welcome h1{font-size:44px}.welcome p{font-size:13px}.message-form{padding:10px 16px 16px}.composer-actions{flex-wrap:wrap}.starter-grid{display:none}.composer-hint{margin-left:0}.send-button{right:27px;bottom:25px}.agent-panel{padding:18px}.agent-panel-header{align-items:flex-start;flex-direction:column}.agent-pipeline{overflow:auto;grid-template-columns:repeat(5,100px);padding-bottom:5px}.agent-plan-section{grid-template-columns:1fr;gap:4px}.editor-body{grid-template-columns:1fr}.editor-tree{max-height:150px;border-right:0;border-bottom:1px solid var(--line)}.preview-frame-wrap{padding:10px}}
+
+/* VISUAL 3.1 — final workspace polish, aligned to Product Journal */
+.app-project .main{background:var(--bg)}
+.app-project .workspace{background:var(--bg);gap:0}
+.app-project .workspace>.chat{border-right:1px solid var(--line)}
+.app-project .chat-history{padding-top:46px}
+.app-project .welcome h1{font-weight:680}
+.app-project .welcome p{max-width:560px}
+.app-project .conversation-message{box-shadow:none}
+.app-project .conversation-message.assistant{background:transparent;border-color:transparent;padding-left:2px}
+.app-project .conversation-message.user{background:var(--surface);border-color:var(--line-strong)}
+.app-project .agent-activity-live{box-shadow:none}
+.app-project .message-form{padding-top:16px}
+.app-project .message-box{box-shadow:0 8px 30px rgba(0,0,0,.045)}
+.app-project .right-panel{box-shadow:-8px 0 30px rgba(0,0,0,.018)}
+.app-project .panel-tabs{padding-left:16px}
+.app-project .panel-tabs button{letter-spacing:.01em}
+.app-project .preview-frame-wrap{padding:16px}
+.app-project .preview-browser-bar{box-shadow:0 1px 0 rgba(0,0,0,.02)}
+.app-project .preview-viewport{box-shadow:0 8px 28px rgba(0,0,0,.045)}
+.app-project .agent-panel{padding:34px 30px}
+.app-project .agent-panel-header h2{font-weight:680}
+.app-project .agent-result-card,.app-project .agent-plan-card,.app-project .agent-timeline{box-shadow:none}
+.app-project .agent-current{box-shadow:none}
+.app-project .editor-shell{background:var(--bg)}
+.app-project .editor-body{background:var(--surface)}
+.app-project .editor-tree{background:var(--surface-2)}
+.app-project .code-editor{background:#fff}
+.app-project .status-bar{backdrop-filter:blur(16px)}
+@media(min-width:1200px){
+  .app-project .chat-history{padding-left:58px;padding-right:58px}
+  .app-project .message-form{width:min(760px,calc(100% - 116px))}
+  .app-project .welcome h1{font-size:48px}
+}
+@media(max-width:1050px){
+  .app-project .workspace{grid-template-columns:minmax(0,1fr) minmax(330px,42%)}
+}
+@media(max-width:760px){
+  .app-project .workspace{display:block}
+  .app-project .workspace>.chat{min-height:calc(100dvh - 52px);border-right:0}
+  .app-project .right-panel{position:absolute;inset:52px 0 0 0;z-index:25}
+  .app-project .agent-panel{padding:22px 18px 60px}
+  .app-project .chat-history{padding-left:18px;padding-right:18px}
+  .app-project .message-form{width:calc(100% - 32px)}
+  .app-project .chat-footer-fixed{width:calc(100% - 32px)}
+}
