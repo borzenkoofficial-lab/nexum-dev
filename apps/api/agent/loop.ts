@@ -143,7 +143,7 @@ export class AgentLoop {
     const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
     const director = new NexumDirector();
     const intent = extractIntent(task);
-    const builderState: BuilderExecutionState = createBuilderExecutionState(task, intent);
+    const builderState: BuilderExecutionState | null = routing.mode === "simple" ? null : createBuilderExecutionState(task, intent);
     const routing = routeTask(task);
     const routingBudget = executionBudget(routing);
     const maxPlannerCalls = Math.min(MAX_AI_PLANNER_CALLS, routingBudget.maxAiCalls);
@@ -244,14 +244,14 @@ export class AgentLoop {
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
           const directorDecision = director.decide(task, "auto", undefined, this.gateway.getReadyProviderIds())[0];
-          const graphStep = nextBuilderStep(builderState);
+          const graphStep = builderState ? nextBuilderStep(builderState) : null;
           const selectedRole = graphStep?.node.role ?? directorDecision?.role;
           const planningRole = (selectedRole === "debugger" || selectedRole === "coder" || selectedRole === "planner" || selectedRole === "reviewer" || selectedRole === "tester"
             ? selectedRole
             : selectedRole === "director" ? "planner" : routeTask(task).role) as "planner" | "coder" | "debugger" | "reviewer" | "tester";
           const aiOptions = aiOptionsForTask(options, planningRole);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
-          const executionContext = builderExecutionPrompt(builderState, task);
+          const executionContext = builderState ? builderExecutionPrompt(builderState, task) : "";
           modelPlan = await this.runtime.planWithAI(
             [task, executionContext].join("\n\n"),
             compactAgentHistory(previousResults),
