@@ -76,7 +76,7 @@ test("NEXUM acceptance: builds a domain-locked static site and repairs a real va
         };
       }
 
-      return { tool: "validateProject", input: "." };
+      if (previousResults.some((item) => item.tool === "validateProject" && item.result.success)) {\n        return { tool: "", input: "", done: true, finalResponse: "Готово" };\n      }\n\n      return { tool: "validateProject", input: "." };
     },
   };
 
