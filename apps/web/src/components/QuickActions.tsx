@@ -15,7 +15,7 @@ export function QuickActions({ onNewProject, onOpenProject, onAsk, onTask, onPre
     { label: "Запустить тесты", run: () => onTask("Запусти тесты в изолированной среде") },
     { label: "Открыть предпросмотр", run: onPreview },
     { label: "Статус Git", run: () => onTask("Покажи статус Git") },
-    { label: "Опубликовать", run: onDeploy },
+    { label: "Открыть", run: onDeploy },
     { label: "GitHub", run: () => onTask("Покажи информацию о репозитории GitHub") },
   ];
 
