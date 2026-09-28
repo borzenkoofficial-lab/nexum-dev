@@ -9,6 +9,7 @@ import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVer
 import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
 import { routeTask } from "../ai/taskRouter.js";
+import { NexumDirector } from "../ai/director.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 import type {
   AgentModelOptions,
@@ -138,6 +139,7 @@ export class AgentLoop {
     let aiPlannerCalls = 0;
     let productPlannerCreated = false;
     const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
+    const director = new NexumDirector();
     const aiOptionsForTask = (base?: GatewayGenerateOptions, role: "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" = "general"): GatewayGenerateOptions | undefined => {
       const maxTokens = adaptiveBudget.reserve(role, typeof base?.maxTokens === "number" && base.maxTokens > 0 ? base.maxTokens : undefined);
       return maxTokens > 0 ? { ...(base ?? {}), maxTokens } : undefined;
@@ -234,7 +236,8 @@ export class AgentLoop {
         try {
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
-          const planningRole = routeTask(task).role as "planner" | "coder" | "debugger";
+          const directorDecision = director.decide(task, "auto", undefined, this.gateway.getReadyProviderIds())[0];
+          const planningRole = (directorDecision?.role ?? routeTask(task).role) as "planner" | "coder" | "debugger";
           const aiOptions = aiOptionsForTask(options, planningRole);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           modelPlan = await this.runtime.planWithAI(task, compactHistory, aiOptions as AgentModelOptions, productPlan ?? undefined);
