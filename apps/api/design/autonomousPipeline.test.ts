@@ -15,7 +15,9 @@ test("autonomous pipeline derives design, interactions and verification", async 
     assert.equal(prepared.interactionCount > 0, true);
     assert.equal(prepared.componentCount > 0, true);
     assert.equal(prepared.verification?.passed, true);
-    assert.equal(prepared.readyForLive, true);
+    assert.equal(prepared.readyForLive, false);
+    assert.equal(prepared.completed, false);
+    assert.equal(prepared.stage, "build");
 
     const snapshot = await getPipelineSnapshot(root);
     assert.equal(snapshot.readyForLive, true);
