@@ -51,7 +51,7 @@ export function understandProject(state: ProjectState): ProjectUnderstanding {
     health,
     entryPoints,
     relevantFiles,
-    scripts: state.buildCommand ? ["build", ...(state.buildCommand ? [] : [])] : [],
+    scripts: state.buildCommand ? ["build"] : [],
     dependencies: state.dependencies.slice(0, 80),
     routes: state.routes.slice(0, 40),
     architecture: state.architecture.slice(0, 40),
