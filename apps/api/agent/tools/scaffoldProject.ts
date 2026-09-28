@@ -60,7 +60,7 @@ export class ScaffoldProjectTool implements Tool {
           : [
             ["index.html", this.indexHtml(title, brief)],
             ["style.css", "html,body{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#fff;color:#111}"],
-            ["app.js", 'console.info("NEXUM project foundation ready");'],
+            ["app.js", 'console.info("NEXUM project foundation ready"); // NEXUM project foundation ready'],
           ] as const;
 
       for (const [path, content] of files) {
