@@ -116,6 +116,8 @@ interface ChatJob {
 const chatJobs = new Map<string, ChatJob>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
 const runtimeRecoveryInFlight = new Set<string>();
+const runtimeRecoveryLastStartedAt = new Map<string, number>();
+const RUNTIME_RECOVERY_COOLDOWN_MS = 60_000;
 
 function cleanupChatJobs() {
   const cutoff = Date.now() - CHAT_JOB_TTL_MS;
@@ -646,7 +648,10 @@ app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
     // not create an uncontrolled AI loop. The recovery job uses the same
     // authenticated project workspace and normal Debugger -> verification flow.
     const recoveryKey = `${userId}:${project.id}`;
-    if (!runtimeRecoveryInFlight.has(recoveryKey)) {
+    const lastStartedAt = runtimeRecoveryLastStartedAt.get(recoveryKey) ?? 0;
+    const cooldownActive = Date.now() - lastStartedAt < RUNTIME_RECOVERY_COOLDOWN_MS;
+    if (!runtimeRecoveryInFlight.has(recoveryKey) && !cooldownActive) {
+      runtimeRecoveryLastStartedAt.set(recoveryKey, Date.now());
       runtimeRecoveryInFlight.add(recoveryKey);
       cleanupChatJobs();
       const jobId = randomUUID();
@@ -679,7 +684,7 @@ app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
       return res.status(202).json({ success: true, recovery: { started: true, jobId } });
     }
 
-    return res.status(202).json({ success: true, recovery: { started: false, reason: "already-running" } });
+    return res.status(202).json({ success: true, recovery: { started: false, reason: cooldownActive ? "cooldown" : "already-running" } });
   } catch (error) {
     return sendProjectError(res, error);
   }
