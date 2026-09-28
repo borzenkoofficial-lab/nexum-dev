@@ -168,3 +168,42 @@ button:disabled{cursor:default;opacity:.55}
 .cancel-button{border:1px solid var(--line);background:#fff;color:var(--text-2)}
 .create-button{border:1px solid var(--accent);background:var(--accent);color:#fff}
 .create-button:hover{background:var(--accent-hover)}
+
+/* Overview / Product Journal 1.0 */
+.nexum-home{width:min(1220px,100%);padding:48px 42px 72px}
+.nexum-home .home-hero{min-height:300px;align-items:flex-end;margin-bottom:42px}
+.nexum-home .home-hero h1{font-size:clamp(42px,5vw,66px);max-width:760px;letter-spacing:-.065em}
+.nexum-home .home-hero p{max-width:650px;font-size:15px}
+.nexum-home .home-hero-actions{display:flex;align-items:flex-end;gap:12px}
+.nexum-home .news-launch-button{display:flex;align-items:center;gap:9px;min-height:40px;padding:0 13px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--text);text-align:left}
+.nexum-home .news-launch-button span:first-child{color:var(--accent)}
+.nexum-home .news-launch-button small{display:block;margin-top:2px;color:var(--text-3);font-size:9px}
+.nexum-home .home-section-title{padding-bottom:11px;border-bottom:1px solid var(--line)}
+.nexum-home .project-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.nexum-home .project-window{min-height:310px;padding:150px 24px 21px;border-radius:18px;overflow:hidden}
+.nexum-home .project-window:before{content:"";position:absolute;left:0;right:0;top:0;height:132px;background:linear-gradient(135deg,#f1f1f4,#fbfbfc);border-bottom:1px solid var(--line)}
+.nexum-home .project-window:after{content:"";position:absolute;left:24px;right:24px;top:34px;height:78px;border:1px solid #e1e1e6;border-radius:9px;background:linear-gradient(90deg,#fff 0 18%,#f7f7f9 18% 100%);box-shadow:0 8px 20px rgba(0,0,0,.035)}
+.nexum-home .window-chrome{z-index:2;top:14px}
+.nexum-home .project-window-mark{position:relative;z-index:3;width:42px;height:42px;margin-bottom:13px;border-radius:12px}
+.nexum-home .project-window-head,.nexum-home .project-window-description,.nexum-home .project-window-meta{position:relative;z-index:3}
+.nexum-home .project-window-head strong{font-size:16px}
+.nexum-home .project-window-description{min-height:42px}
+.nexum-home .project-window-meta{padding-top:12px;border-top:1px solid var(--line)}
+.nexum-home .project-window:hover{transform:translateY(-4px);box-shadow:0 20px 46px rgba(0,0,0,.09)}
+.nexum-home .empty-card{grid-column:1/-1;min-height:220px;display:grid;place-items:center;text-align:center;background:var(--surface)}
+.nexum-home:after{content:"";display:block;height:1px;margin:70px 0 0;background:var(--line)}
+.nexum-home .project-grid + .overview-future-note{display:block}
+@media(max-width:800px){
+ .nexum-home{padding:34px 20px 54px}
+ .nexum-home .home-hero{min-height:0;align-items:flex-start;gap:22px}
+ .nexum-home .home-hero-actions{align-items:stretch;width:100%;flex-wrap:wrap}
+ .nexum-home .project-grid{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+ .nexum-home{padding:28px 14px 46px}
+ .nexum-home .home-hero h1{font-size:40px}
+ .nexum-home .home-hero-actions{display:grid;grid-template-columns:1fr}
+ .nexum-home .home-primary,.nexum-home .news-launch-button{width:100%;justify-content:center}
+ .nexum-home .project-window{min-height:290px;padding:142px 18px 18px}
+ .nexum-home .project-window:after{left:18px;right:18px}
+}
