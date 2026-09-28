@@ -1015,7 +1015,7 @@ app.get("/api/agent/diagnostics", async (req, res) => {
   const userProjects = await getProjectManager(userId).listProjects();
   const projectIds = new Set(userProjects.map((project) => project.id));
   const entries = (await agentHistory.recent(limit))
-    .filter((entry) => !entry.userId || entry.userId === userId)
+    .filter((entry) => entry.userId === userId)
     .filter((entry) => !entry.projectId || projectIds.has(entry.projectId));
   const failures = entries.filter((entry) =>
     (entry.type === "agent-event" && (entry.status === "tool-error" || entry.status === "failed")) ||
