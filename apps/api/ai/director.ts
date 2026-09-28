@@ -25,7 +25,7 @@ export class NexumDirector {
     const debugging = /ошиб|bug|debug|не работает|сломал|fix|исправь|тест|build|ci|compile|typecheck/.test(text);
     const visual = /дизайн|ui|ux|страниц|лендинг|сайт|dashboard|интерфейс/.test(text);
     const availableProviders = new Set(
-      getModelRegistry().filter((route) => route.enabled).map((route) => route.provider),
+      availableProviderIds ?? getModelRegistry().filter((route) => route.enabled).map((route) => route.provider),
     );
 
     const pick = (role: AIOrchestratorRole, reason: string, priority: DirectorDecision["priority"]): DirectorDecision => {
