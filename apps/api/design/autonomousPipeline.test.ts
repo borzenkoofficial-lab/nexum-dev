@@ -9,7 +9,7 @@ import { finalizeAutonomousDesignPipeline, getPipelineSnapshot, prepareAutonomou
 test("autonomous pipeline derives design, interactions and verification", async () => {
   const root = await mkdtemp(resolve(tmpdir(), "nexum-pipeline-"));
   try {
-    await writeFile(resolve(root, "index.html"), "<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:system-ui}</style></head><body><button type="button">Создать</button></body></html>", "utf8");
+    await writeFile(resolve(root, "index.html"), `<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:system-ui}</style></head><body><button type="button">Создать</button></body></html>`, "utf8");
     const intent = extractIntent("создай приложение доставки с формой заказа и картой");
     const prepared = await prepareAutonomousDesignPipeline(root, intent);
     assert.equal(prepared.interactionCount > 0, true);
