@@ -1,73 +1,46 @@
-const stories = [
-  { eyebrow:"FOUNDATION", version:"01", title:"NEXUM. С нуля.", date:"25 сентября 2026", lead:"Первый экран появился как рабочая точка будущего продукта.", body:"NEXUM начинался не как набор красивых экранов. Сначала нужно было создать основу: проект, рабочее пространство и место, где идея превращается в продукт.", tags:["Project Home","Workspace","Foundation"], view:"home" },
-  { eyebrow:"BUILDER", version:"02", title:"От чата к Builder.", date:"25–27 сентября 2026", lead:"Чат становится главным способом создавать продукт.", body:"Появляется сценарий Describe → Build → Preview → Iterate. Пользователь описывает задачу, а NEXUM начинает превращать её в структуру продукта.", tags:["Chat Builder","Preview","Iterate"], view:"builder" },
-  { eyebrow:"AGENT", version:"03", title:"Агент начинает работать.", date:"27 сентября 2026", lead:"NEXUM получает видимый цикл разработки.", body:"Агент больше не должен быть просто окном с ответом. Он планирует, выполняет действия, показывает прогресс и возвращается к задаче после проверки.", tags:["Plan","Tools","Live activity"], view:"agent" },
-  { eyebrow:"CONTEXT", version:"04", title:"Проект становится контекстом.", date:"27 сентября 2026", lead:"NEXUM учится работать внутри конкретного проекта.", body:"Файлы, состояние проекта, история задач и инструменты становятся частью одного рабочего контекста. Это фундамент для последовательной разработки.", tags:["Files","Context","Project state"], view:"files" },
-  { eyebrow:"VERIFY", version:"05", title:"Агент учится доказывать результат.", date:"27 сентября 2026", lead:"Создать недостаточно — нужно проверить.", body:"В рабочий цикл добавляются Preview, проверка результата, поиск ошибок и повторная итерация. NEXUM начинает двигаться к замкнутому агентному циклу.", tags:["Preview","Verify","Repair"], view:"verify" },
-  { eyebrow:"INTELLIGENCE", version:"06", title:"NEXUM Intelligence.", date:"Сентябрь 2026", lead:"Архитектура постепенно превращается в интеллектуальный слой.", body:"Планирование, выбор инструментов, доменная логика и проверка результата объединяются вокруг одной задачи: понять, какой продукт действительно просит пользователь.", tags:["Planning","Domain aware","Agent"], view:"intelligence" },
-  { eyebrow:"VISUAL", version:"07", title:"NEXUM Visual 3.0.", date:"28 сентября 2026", lead:"Интерфейс перестраивается вокруг продукта, а не вокруг IDE.", body:"Светлое рабочее пространство, спокойная типографика, Preview и Agent справа. Интерфейс становится частью самого продукта NEXUM.", tags:["Light UI","Agent Panel","Product UX"], view:"visual" },
+const chapters = [
+  {eyebrow:"FOUNDATION",version:"01",title:"NEXUM. С нуля.",date:"25 сентября 2026",lead:"Первый рабочий контур будущего продукта.",body:"Проект начинается с базовой среды: workspace, проекты, навигация и первый путь от идеи к результату.",tags:["Project Home","Workspace","Foundation"],variant:"home"},
+  {eyebrow:"BUILDER",version:"02",title:"От чата к Builder.",date:"25–27 сентября 2026",lead:"Чат становится интерфейсом создания.",body:"Появляется главный сценарий NEXUM: описать продукт, построить его, открыть Preview и продолжить итерацию.",tags:["Chat Builder","Preview","Iterate"],variant:"builder"},
+  {eyebrow:"AGENT",version:"03",title:"Агент начинает работать.",date:"27 сентября 2026",lead:"NEXUM получает исполняемый цикл разработки.",body:"Агент планирует задачу, использует инструменты, изменяет проект и показывает пользователю, что происходит.",tags:["Plan","Tools","Live activity"],variant:"agent"},
+  {eyebrow:"CONTEXT",version:"04",title:"Проект становится контекстом.",date:"27 сентября 2026",lead:"Файлы и состояние проекта становятся частью мышления агента.",body:"Workspace, файлы, история задач и состояние приложения соединяются в единый контекст, чтобы следующие действия опирались на уже сделанную работу.",tags:["Files","Context","Project state"],variant:"files"},
+  {eyebrow:"VERIFY",version:"05",title:"Создать недостаточно.",date:"27 сентября 2026",lead:"NEXUM начинает проверять собственный результат.",body:"В цикл добавляются Preview, проверка, обнаружение проблем и повторный запуск. Цель — не красивый ответ в чате, а работающий результат.",tags:["Preview","Verify","Runtime"],variant:"verify"},
+  {eyebrow:"REPAIR",version:"06",title:"Появляется Repair Engine.",date:"27–28 сентября 2026",lead:"Ошибка становится частью нормального рабочего цикла.",body:"NEXUM должен увидеть проблему, понять контекст, внести минимальное исправление и снова проверить Preview вместо остановки на первой ошибке.",tags:["Detect","Repair","Recheck"],variant:"repair"},
+  {eyebrow:"INTELLIGENCE",version:"07",title:"NEXUM Intelligence.",date:"Сентябрь 2026",lead:"Мы начинаем разделять интеллект на отдельные уровни.",body:"Планирование, выбор инструментов, доменная логика, контекст и проверка результата постепенно превращаются в самостоятельные части архитектуры.",tags:["Planning","Routing","Domain aware"],variant:"intelligence"},
+  {eyebrow:"CORE",version:"08",title:"NEXUM Core Lab.",date:"Сентябрь 2026",lead:"Параллельно мы строим отдельный интеллектуальный слой.",body:"NEXUM Core развивается отдельно от интерфейса NEXUM.DEV. Это лаборатория для экспериментов с моделями, локальным inference, памятью, источниками, teachers и собственными AI-пайплайнами.",tags:["Core","Local AI","Memory","Teachers"],variant:"core"},
+  {eyebrow:"MODELS",version:"09",title:"AI Engine & Model Routing.",date:"Сентябрь 2026",lead:"Модель не должна быть единственной точкой системы.",body:"Архитектура рассматривает разные модели и провайдеры как взаимозаменяемые двигатели. Локальные модели могут использоваться для части задач, внешние — для более сложного reasoning или coding.",tags:["Model Gateway","Ollama","Routing"],variant:"models"},
+  {eyebrow:"TOOLS",version:"10",title:"Tools Engine.",date:"Сентябрь 2026",lead:"Агент получает руки.",body:"Самая важная часть автономного агента — не только модель. Ей нужны безопасные инструменты: читать файлы, искать код, писать изменения, смотреть Git и взаимодействовать с проектом.",tags:["Read","Write","Search","Git"],variant:"tools"},
+  {eyebrow:"MEMORY",version:"11",title:"Memory & Project Context.",date:"Сентябрь 2026",lead:"NEXUM должен помнить, над чем работает.",body:"Мы развиваем слой контекста, который связывает текущую задачу с проектом, предыдущими действиями и накопленными знаниями, не превращая каждый запрос в чистый лист.",tags:["Memory","Context","History"],variant:"memory"},
+  {eyebrow:"PRODUCT INTELLIGENCE",version:"12",title:"Понимать продукт, а не только prompt.",date:"Сентябрь 2026",lead:"Одна из главных задач — перестать создавать один и тот же шаблон.",body:"Запрос «создай доставку», «создай CRM» или «создай marketplace» должен приводить к разной архитектуре, страницам, сущностям и пользовательским сценариям.",tags:["Product type","Architecture","User flows"],variant:"product"},
+  {eyebrow:"VISUAL",version:"13",title:"NEXUM Visual 3.0.",date:"28 сентября 2026",lead:"Интерфейс перестраивается вокруг продукта.",body:"Светлое рабочее пространство, спокойная типографика, Preview и Agent справа. Мы убираем ощущение сложной IDE и строим собственную продуктовую среду.",tags:["Light UI","Agent Panel","Product UX"],variant:"visual"},
+  {eyebrow:"NOW",version:"14",title:"NEXUM сегодня.",date:"28 сентября 2026",lead:"Builder, Agent, Preview и Core развиваются одновременно.",body:"Текущий NEXUM — это не финальная версия. Это система, в которой интерфейс, агентный runtime, модели и собственный Core продолжают развиваться вместе.",tags:["NEXUM.DEV","NEXUM Core","Agent","Builder"],variant:"now"}
 ];
 
-function BrowserMockup({ title="NEXUM / Preview", variant="workspace", className="" }: { title?: string; variant?: string; className?: string }) {
-  const labels: Record<string,string[]> = {
-    home:["Projects","New project","Recent","Settings"], builder:["Chat","Preview","Agent","Files"], agent:["Agent","Live","Tasks","History"],
-    files:["Files","src","components","App.tsx"], verify:["Preview","Console","Errors","Checks"], intelligence:["Models","Planning","Tools","Memory"],
-    visual:["Projects","Chat","Preview","Agent"], workspace:["Workspace","Projects","Preview","Agent"],
-  };
-  const active = labels[variant] ?? labels.workspace;
-  const heading = variant === "builder" ? "Create your product" : variant === "verify" ? "Verification" : variant === "agent" ? "Agent Workspace" : variant === "files" ? "Project files" : "Project Home";
-  return <div className={`news-mock-browser ${className}`}>
-    <div className="news-mock-top"><span/><span/><span/><b>{title}</b></div>
-    <div className="news-product-screen">
-      <aside>{active.map((item,i)=><div className={i===0?"mock-nav active":"mock-nav"} key={item}><i/>{item}</div>)}</aside>
-      <main>
-        <div className="mock-product-header"><div><small>NEXUM PROJECT</small><strong>{heading}</strong></div><span className="mock-live">● Live</span></div>
-        {variant === "agent" || variant === "verify" ? <div className="mock-check-list">{["Analyze task","Plan architecture","Build interface","Run Preview","Verify result"].map((x,i)=><div key={x}><b>{i < 3 ? "✓" : i === 3 ? "◉" : "○"}</b><span>{x}</span><small>{i < 3 ? "Done" : i === 3 ? "Working" : "Waiting"}</small></div>)}</div> :
-        <><div className="mock-line wide"/><div className="mock-line"/><div className="mock-product-cards"><i/><i/><i/></div><div className="mock-product-canvas"><span/><span/><span/></div></>}
-      </main>
-    </div>
-  </div>;
+function BrowserMockup({title="NEXUM / Preview",variant="workspace"}:{title?:string;variant?:string}) {
+  const nav:Record<string,string[]>={home:["Projects","New project","Recent","Settings"],builder:["Chat","Preview","Agent","Files"],agent:["Agent","Live","Tasks","History"],files:["Files","src","components","App.tsx"],verify:["Preview","Console","Errors","Checks"],repair:["Problems","Diagnosis","Repair","Verify"],intelligence:["Models","Planning","Tools","Memory"],core:["Core","Models","Memory","Teachers"],models:["Gateway","Ollama","Providers","Routing"],tools:["Tools","Read","Write","Git"],memory:["Memory","Project","History","Knowledge"],product:["Product","Pages","Entities","Flows"],visual:["Projects","Chat","Preview","Agent"],now:["Workspace","Builder","Core","Settings"]};
+  const items=nav[variant]||nav.workspace;
+  const checklist=variant==="agent"||variant==="verify"||variant==="repair";
+  return <div className="news-mock-browser"><div className="news-mock-top"><span/><span/><span/><b>{title}</b></div><div className="news-product-screen"><aside>{items.map((x,i)=><div className={i===0?"mock-nav active":"mock-nav"} key={x}><i/>{x}</div>)}</aside><main><div className="mock-product-header"><div><small>NEXUM PRODUCT SYSTEM</small><strong>{variant==="core"?"NEXUM Core":variant==="models"?"AI Engine":variant==="tools"?"Tools Engine":variant==="memory"?"Memory & Context":variant==="product"?"Product Intelligence":variant==="repair"?"Repair Engine":variant==="agent"?"Agent Workspace":variant==="verify"?"Verification":"NEXUM Workspace"}</strong></div><span className="mock-live">● Live</span></div>{checklist?<div className="mock-check-list">{["Analyze task","Plan architecture","Build interface","Run Preview","Verify result"].map((x,i)=><div key={x}><b>{i<3?"✓":i===3?"◉":"○"}</b><span>{x}</span><small>{i<3?"Done":i===3?"Working":"Waiting"}</small></div>)}</div>:<><div className="mock-line wide"/><div className="mock-line"/><div className="mock-product-cards"><i/><i/><i/></div><div className="mock-product-canvas"><span/><span/><span/></div></>}</main></div></div>;
 }
 
-function PhoneMockup({ title="NEXUM" }: { title?: string }) {
-  return <div className="news-phone"><div className="news-phone-speaker"/><div className="news-phone-screen"><div className="phone-status">9:41</div><div className="phone-title">{title}</div><div className="phone-card"/><div className="phone-card short"/><div className="phone-nav"><i/><i/><i/></div></div></div>;
-}
+function PhoneMockup(){return <div className="news-phone"><div className="news-phone-speaker"/><div className="news-phone-screen"><div className="phone-status">9:41</div><div className="phone-title">NEXUM</div><div className="phone-card"/><div className="phone-card short"/><div className="phone-nav"><i/><i/><i/></div></div></div>;}
+function AgentMockup(){return <div className="news-agent-mock"><div className="agent-mock-head"><b>AGENT</b><span>● Live</span></div>{["Analyze task","Plan architecture","Build interface","Run Preview","Verify result"].map((x,i)=><div className="agent-mock-step" key={x}><b>{i<3?"✓":i===3?"◉":"○"}</b><span>{x}</span><small>{i<3?"Done":i===3?"Working":"Waiting"}</small></div>)}<div className="agent-mock-progress"><i/></div></div>;}
+function CoreDiagram(){return <div className="news-core-diagram"><div className="core-node main">NEXUM CORE</div><div className="core-orbit"><span>MODEL</span><span>MEMORY</span><span>TOOLS</span><span>TEACHERS</span><span>SOURCES</span><span>VERIFY</span></div><div className="core-caption">INPUT → REASON → ACT → CHECK → LEARN</div></div>;}
 
-function AgentMockup() {
-  return <div className="news-agent-mock"><div className="agent-mock-head"><b>AGENT</b><span>● Live</span></div>{["Analyze task","Plan architecture","Build interface","Run Preview","Verify result"].map((item,i)=><div className="agent-mock-step" key={item}><b>{i<3?"✓":i===3?"◉":"○"}</b><span>{item}</span><small>{i<3?"Done":i===3?"Working":"Waiting"}</small></div>)}<div className="agent-mock-progress"><i/></div></div>;
-}
-
-export function NewsPage() {
+export function NewsPage(){
   return <section className="news-page news-page-editorial">
-    <header className="news-hero news-hero-editorial">
-      <div><div className="eyebrow">NEXUM / PRODUCT JOURNAL</div><h1>Мы показываем не только релизы. Мы показываем, как строится NEXUM.</h1><p>Каждая глава — часть продукта. Здесь история разработки превращается в визуальный журнал: реальные идеи, интерфейсы, агентный цикл и то, как NEXUM меняется от версии к версии.</p></div>
-      <div className="news-hero-badge"><span>●</span> Built in public</div>
-    </header>
+    <header className="news-hero news-hero-editorial"><div><div className="eyebrow">NEXUM / PRODUCT JOURNAL</div><h1>Как мы строим NEXUM.</h1><p>Не просто список релизов. Это визуальный журнал разработки: продукт, агент, движки, модели, NEXUM Core и эксперименты, которые постепенно превращают идею в самостоятельную AI development platform.</p></div><div className="news-hero-badge"><span>●</span> Built in public</div></header>
 
-    <article className="news-feature news-feature-editorial">
-      <div className="news-feature-content"><div className="news-kicker">NOW · VISUAL 3.0</div><h2>NEXUM — это уже продукт, а не просто эксперимент.</h2><p>Рабочее пространство, Builder, Preview, Files и Agent собираются в одну систему. Поэтому журнал тоже должен выглядеть как часть продукта.</p><button type="button" onClick={() => window.scrollTo({top:520,behavior:"smooth"})}>Читать журнал ↓</button></div>
-      <div className="news-feature-art news-feature-art-rich"><BrowserMockup title="NEXUM / Project Home" variant="visual"/><div className="news-floating-agent"><AgentMockup/></div></div>
-    </article>
+    <article className="news-feature news-feature-editorial"><div className="news-feature-content"><div className="news-kicker">NOW · NEXUM SYSTEM</div><h2>Один продукт. Несколько двигателей.</h2><p>NEXUM.DEV — интерфейс и Builder. Agent — исполнитель. Tools — руки. Model Gateway — слой моделей. NEXUM Core — отдельная лаборатория интеллекта. Verification и Repair замыкают цикл.</p><button type="button" onClick={()=>window.scrollTo({top:520,behavior:"smooth"})}>Открыть журнал ↓</button></div><div className="news-feature-art news-feature-art-rich"><BrowserMockup title="NEXUM / System" variant="now"/><div className="news-floating-agent"><AgentMockup/></div></div></article>
 
-    <section className="news-showcase">
-      <div className="news-section-heading"><div><div className="eyebrow">PRODUCT MOCKUPS</div><h2>NEXUM в работе</h2></div><span>PRODUCT · UI · AGENT</span></div>
-      <div className="news-mockup-grid">
-        <article className="news-visual-card news-visual-wide"><div className="news-visual-copy"><span>01 · WORKSPACE</span><h3>Главный экран продукта.</h3><p>Projects, Builder, Preview и Agent живут в одном рабочем пространстве.</p></div><BrowserMockup title="NEXUM / Workspace" variant="workspace"/></article>
-        <article className="news-visual-card news-visual-phone"><div className="news-visual-copy"><span>02 · PRODUCT</span><h3>Наш продукт в мобильном формате.</h3><p>Каждый важный сценарий получает собственную визуальную форму.</p></div><PhoneMockup title="NEXUM"/></article>
-        <article className="news-visual-card news-visual-agent"><div className="news-visual-copy"><span>03 · AGENT</span><h3>Агент — отдельный продуктовый слой.</h3><p>Пользователь видит не магию, а последовательность работы.</p></div><AgentMockup/></article>
-        <article className="news-visual-card news-visual-photo"><div className="news-photo-scene"><div className="photo-window"/><div className="photo-device"><BrowserMockup title="NEXUM / Create · Build · Verify" variant="builder"/></div><div className="photo-caption">NEXUM · CREATE · BUILD · VERIFY</div></div></article>
-      </div>
-    </section>
+    <section className="news-showcase"><div className="news-section-heading"><div><div className="eyebrow">PRODUCT SYSTEM</div><h2>Из чего состоит NEXUM</h2></div><span>UI · AGENT · CORE · ENGINES</span></div><div className="news-mockup-grid">
+      <article className="news-visual-card news-visual-wide"><div className="news-visual-copy"><span>01 · BUILDER</span><h3>Среда создания продукта.</h3><p>Chat, Preview, Files и Agent объединены в одном рабочем цикле.</p></div><BrowserMockup title="NEXUM / Builder" variant="builder"/></article>
+      <article className="news-visual-card news-visual-agent"><div className="news-visual-copy"><span>02 · AGENT</span><h3>Агент, который не просто отвечает.</h3><p>Он планирует, действует, проверяет и исправляет.</p></div><AgentMockup/></article>
+      <article className="news-visual-card news-visual-wide"><div className="news-visual-copy"><span>03 · CORE</span><h3>NEXUM Core Lab.</h3><p>Отдельный слой для моделей, памяти, teachers, источников и AI-пайплайнов.</p></div><CoreDiagram/></article>
+      <article className="news-visual-card news-visual-phone"><div className="news-visual-copy"><span>04 · PRODUCT</span><h3>NEXUM в мобильном формате.</h3><p>Продуктовая система должна быть понятной независимо от устройства.</p></div><PhoneMockup/></article>
+    </div></section>
 
-    <section className="news-journal">
-      <div className="news-section-heading news-release-heading"><div><div className="eyebrow">THE JOURNAL</div><h2>От первой строки к продукту</h2></div><span>{stories.length} chapters</span></div>
-      <div className="news-journal-list">{stories.map((story,index)=><article className={index===stories.length-1?"news-journal-story current":"news-journal-story"} key={story.version}>
-        <div className="journal-meta"><b>{story.version}</b><span>{story.eyebrow}</span><time>{story.date}</time></div>
-        <div className="journal-copy"><h3>{story.title}</h3><p className="journal-lead">{story.lead}</p><p className="journal-body">{story.body}</p><div className="news-tags">{story.tags.map(tag=><span key={tag}>✓ {tag}</span>)}</div></div>
-        <div className="journal-art"><BrowserMockup title={`NEXUM / ${story.eyebrow}`} variant={story.view}/></div>
-      </article>)}</div>
-    </section>
+    <section className="news-journal"><div className="news-section-heading news-release-heading"><div><div className="eyebrow">THE JOURNAL</div><h2>От первой строки к собственной AI-платформе</h2></div><span>{chapters.length} chapters</span></div><div className="news-journal-list">{chapters.map((c,i)=><article className={i===chapters.length-1?"news-journal-story current":"news-journal-story"} key={c.version}><div className="journal-meta"><b>{c.version}</b><span>{c.eyebrow}</span><time>{c.date}</time></div><div className="journal-copy"><h3>{c.title}</h3><p className="journal-lead">{c.lead}</p><p className="journal-body">{c.body}</p><div className="news-tags">{c.tags.map(t=><span key={t}>✓ {t}</span>)}</div></div><div className="journal-art"><BrowserMockup title={`NEXUM / ${c.eyebrow}`} variant={c.variant}/></div></article>)}</div></section>
 
-    <footer className="news-footer"><strong>NEXUM is being built in public.</strong><span>Следующая глава появится здесь вместе со следующим изменением продукта.</span></footer>
+    <footer className="news-footer"><strong>NEXUM is being built in public.</strong><span>Следующая глава появляется вместе с реальным изменением продукта.</span></footer>
   </section>;
 }
