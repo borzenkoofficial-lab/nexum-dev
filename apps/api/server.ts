@@ -116,7 +116,6 @@ interface ChatJob {
 const chatJobs = new Map<string, ChatJob>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
 const runtimeRecoveryInFlight = new Set<string>();
-const MAX_RUNTIME_RECOVERY_ATTEMPTS = 1;
 
 function cleanupChatJobs() {
   const cutoff = Date.now() - CHAT_JOB_TTL_MS;
@@ -677,7 +676,7 @@ app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
         .finally(() => {
           runtimeRecoveryInFlight.delete(recoveryKey);
         });
-      return res.status(202).json({ success: true, recovery: { started: true, jobId, maxAttempts: MAX_RUNTIME_RECOVERY_ATTEMPTS } });
+      return res.status(202).json({ success: true, recovery: { started: true, jobId } });
     }
 
     return res.status(202).json({ success: true, recovery: { started: false, reason: "already-running" } });
