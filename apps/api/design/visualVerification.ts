@@ -25,6 +25,23 @@ export async function verifyDesign(projectRoot:string):Promise<VisualVerificatio
       const spec=await readDesignSpec(projectRoot);
       checks.push({name:"design-spec",passed:spec.version===1&&spec.components.length>0&&spec.tokens.colors.background.length>0,message:"NEXUM DesignSpec is present"});
       checks.push({name:"interaction-contract",passed:spec.interactions.length>0,message:"Interaction Contract contains executable intents"});
+      if (spec.interactions.length > 0) {
+        const interactionHooks = {
+          click: /onClick\\s*=|onclick\\s*=|data-nexum-action=/i,
+          submit: /onSubmit\\s*=|onsubmit\\s*=|data-nexum-action=|<button\\b[^>]*type=["']submit["']/i,
+          change: /onChange\\s*=|onchange\\s*=|data-nexum-action=/i,
+          navigate: /href=["']|navigate\\s*\\(|router\\.|data-nexum-action=/i,
+        };
+        const hookChecks = spec.interactions.map((interaction) => {
+          const pattern = interactionHooks[interaction.event];
+          return pattern ? pattern.test(searchableContent) : true;
+        });
+        checks.push({
+          name:"interaction-runtime-hooks",
+          passed:hookChecks.every(Boolean),
+          message:"Interaction Contract maps to executable runtime hooks in the generated application",
+        });
+      }
       const domain = String(spec.domain ?? "").toLowerCase();
       const sourceCandidates = [
         "src/App.tsx","src/App.jsx","src/App.js","src/App.ts",
