@@ -29,6 +29,7 @@ export interface GatewayGenerationResult {
   provider: string;
   model: string;
   fallback: boolean;
+  usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
 }
 
 export class AIGateway {
@@ -95,6 +96,23 @@ export class AIGateway {
     (provider as unknown as { setRuntimeApiKey: (key: string) => void }).setRuntimeApiKey(apiKey);
   }
 
+  setRuntimeProviderKey(providerId: string, apiKey: string): void {
+    const provider = this.providers.get(providerId);
+    if (!provider || typeof (provider as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey !== "function") {
+      throw new Error(`Provider does not support runtime API keys: ${providerId}`);
+    }
+    (provider as unknown as { setRuntimeApiKey: (key: string) => void }).setRuntimeApiKey(apiKey);
+  }
+
+  hasProviderKey(providerId: string): boolean {
+    const provider = this.providers.get(providerId);
+    return Boolean(
+      provider &&
+      typeof (provider as { hasApiKey?: () => boolean }).hasApiKey === "function" &&
+      (provider as unknown as { hasApiKey: () => boolean }).hasApiKey(),
+    );
+  }
+
   hasOpenRouterKey(): boolean {
     const provider = this.providers.get("openrouter");
     return Boolean(provider && typeof (provider as { hasApiKey?: () => boolean }).hasApiKey === "function" && (provider as unknown as { hasApiKey: () => boolean }).hasApiKey());
@@ -103,6 +121,16 @@ export class AIGateway {
   getDefaultProviderId(): string {
     return this.defaultProviderId;
   }
+  getReadyProviderIds(): string[] {
+    return [...this.providers.values()]
+      .filter((provider) => {
+        const keyAware = provider as { hasApiKey?: () => boolean };
+        if (typeof keyAware.hasApiKey === "function") return keyAware.hasApiKey();
+        return true;
+      })
+      .map((provider) => provider.id);
+  }
+
 
   getDefaultModel(providerId = this.defaultProviderId): string {
     return this.providers.get(providerId)?.model ?? this.providers.get(this.defaultProviderId)!.model;

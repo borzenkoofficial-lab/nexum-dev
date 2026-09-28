@@ -5,6 +5,7 @@ import { MockProvider } from "../ai/providers/mock.js";
 import { NexumAgent } from "./agent.js";
 import { AgentLoop, compactAgentHistory } from "./loop.js";
 import type { AgentRuntime } from "./types.js";
+import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVerificationState } from "./taskState.js";
 
 const gateway = new AIGateway([new MockProvider()]);
 
@@ -115,6 +116,35 @@ test("stops repeated identical actions", async () => {
   assert.equal(result.iterations, 1);
   assert.equal(result.steps.length, 1);
   assert.match(result.error ?? "", /repeated.*action/i);
+});
+
+test("modifies the current project without scaffolding over it", async () => {
+  let writes = 0;
+  let scaffolded = false;
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["listFiles", "readFile", "writeFile", "testProject"],
+    plan: (_task, previousResults) => {
+      if (previousResults.length === 0) return { tool: "listFiles", input: "." };
+      if (!previousResults.some((item) => item.tool === "readFile")) return { tool: "readFile", input: "src/App.jsx" };
+      if (!previousResults.some((item) => item.tool === "writeFile")) {
+        return { tool: "writeFile", input: JSON.stringify({ path: "src/App.jsx", content: "existing construction site + new services" }) };
+      }
+      return { tool: "", input: "", done: true, finalResponse: "Изменения внесены в текущий проект." };
+    },
+    executeTool: async (tool, input) => {
+      if (tool === "listFiles") return { success: true, output: "src/App.jsx\npackage.json" };
+      if (tool === "readFile") return { success: true, output: "existing construction site" };
+      if (tool === "writeFile") { writes += 1; return { success: true, output: "updated current file" }; }
+      return { success: true, output: "tests passed" };
+    },
+  };
+
+  const result = await new AgentLoop(runtime, gateway).run("Измени текущий сайт строительной компании: добавь услуги");
+  scaffolded = result.steps.some((step) => step.tool === "scaffoldProject");
+  assert.equal(result.success, true);
+  assert.equal(scaffolded, false);
+  assert.equal(writes, 1);
+  assert.deepEqual(result.steps.map((step) => step.tool), ["listFiles", "readFile", "writeFile", "testProject"]);
 });
 
 test("scaffold tool refuses non-empty projects", async () => {
@@ -251,6 +281,38 @@ test("locks auto-repair requests to the automotive domain", async () => {
   assert.ok(plan.acceptanceCriteria.every((item) => !/construction|строитель/i.test(item)));
 });
 
+test("rejects a domain-drifting product plan before Builder execution", async () => {
+  const agent = new NexumAgent(gateway);
+  const aligned = (agent as any).isProductPlanAlignedWithTask("Сделай сайт строительной компании по демонтажу фасадов", {
+    goal: "Сайт строительной компании",
+    productType: "Строительная компания",
+    targetUser: "Заказчики и подрядчики",
+    pages: ["Главная", "Услуги", "Объекты", "Контакты"],
+    components: ["Форма заявки", "Карточки объектов"],
+    visualSystem: ["Графит и жёлтый"],
+    interactions: ["Заявка на расчёт"],
+    dataModel: ["заявки", "объекты"],
+    filesToInspect: ["src/App.tsx"],
+    filesToChange: ["src/App.tsx"],
+    acceptanceCriteria: ["Демонтаж фасадов представлен на странице"]
+  });
+  const drifted = (agent as any).isProductPlanAlignedWithTask("Сделай сайт строительной компании по демонтажу фасадов", {
+    goal: "Digital products studio",
+    productType: "SaaS platform",
+    targetUser: "Developers",
+    pages: ["Home", "Dashboard"],
+    components: ["AI tools"],
+    visualSystem: ["Modern SaaS"],
+    interactions: ["Generate"],
+    dataModel: ["projects"],
+    filesToInspect: ["src/App.tsx"],
+    filesToChange: ["src/App.tsx"],
+    acceptanceCriteria: ["AI studio landing page"]
+  });
+  assert.equal(aligned, true);
+  assert.equal(drifted, false);
+});
+
 test("does not let an automotive request accept a construction write plan", () => {
   const agent = new NexumAgent(gateway);
   const aligned = (agent as any).isPlanAlignedWithTask("Сделай сайт по ремонту авто", {
@@ -339,4 +401,40 @@ test("does not finish an automotive site when generated content is construction-
   const result = await new AgentLoop(runtime, gateway).run("Сделай сайт по ремонту авто");
   assert.equal(domainValidationSeen, true);
   assert.equal(result.success, true);
+});
+
+
+test("completion gate rejects stale verification after a new change", () => {
+  const state = createAgentTaskState("modify current construction site");
+  recordSuccessfulChange(state, JSON.stringify({ path: "index.html", content: "v1" }));
+  const results = [
+    { iteration: 1, tool: "writeFile", input: JSON.stringify({ path: "index.html", content: "v1" }), result: { success: true, output: "written" } },
+    { iteration: 2, tool: "validateProject", input: ".", result: { success: true, output: "valid" } },
+    { iteration: 3, tool: "testProject", input: ".", result: { success: true, output: "passed" } },
+  ];
+  state.verified.domain = true;
+  syncVerificationState(state, results);
+  assert.equal(canFinishBuilder(state, results, false, true, true).ok, true);
+
+  recordSuccessfulChange(state, JSON.stringify({ path: "index.html", content: "v2" }));
+  syncVerificationState(state, [...results, {
+    iteration: 4,
+    tool: "writeFile",
+    input: JSON.stringify({ path: "index.html", content: "v2" }),
+    result: { success: true, output: "written" },
+  }]);
+  assert.equal(canFinishBuilder(state, results, false, true, true).ok, false);
+});
+
+test("completion gate permits a verified single-file static modification", () => {
+  const state = createAgentTaskState("modify current project");
+  recordSuccessfulChange(state, JSON.stringify({ path: "index.html", content: "updated" }));
+  const results = [
+    { iteration: 1, tool: "writeFile", input: JSON.stringify({ path: "index.html", content: "updated" }), result: { success: true, output: "written" } },
+    { iteration: 2, tool: "validateProject", input: ".", result: { success: true, output: "valid" } },
+    { iteration: 3, tool: "testProject", input: ".", result: { success: true, output: "passed" } },
+  ];
+  state.verified.domain = true;
+  syncVerificationState(state, results);
+  assert.equal(canFinishBuilder(state, results, false, true, true).ok, true);
 });

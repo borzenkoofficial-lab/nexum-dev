@@ -154,6 +154,7 @@ export async function createUser(email: string, name: string, password: string):
       [id, normalizedEmail, normalizedName, passwordHash],
     );
     const row = result.rows[0];
+    if (!row) throw new Error("User insert returned no row");
     return { id: row.id, email: row.email, name: row.name, createdAt: row.created_at };
   } catch (error) {
     if (String(error).includes("users_email_key")) throw new Error("An account with this email already exists.");

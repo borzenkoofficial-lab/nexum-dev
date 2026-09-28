@@ -1,3 +1,5 @@
+import type { AIOrchestratorRole } from "../ai/orchestrator.js";
+
 export interface ToolResult {
   success: boolean;
   output: string;
@@ -41,6 +43,8 @@ export interface AgentPlan {
 export interface AgentModelOptions {
   provider?: string;
   model?: string;
+  /** Logical NEXUM role selected by the Director; not forwarded to providers. */
+  role?: AIOrchestratorRole;
 }
 
 export interface AgentToolResult {

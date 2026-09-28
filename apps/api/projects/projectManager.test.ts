@@ -117,6 +117,20 @@ test("creates a React/Vite scaffold for SPA requests", async () => {
 });
 
 
+test("isolates project stores between users", async () => {
+  const root = await mkdtemp(join(tmpdir(), "nexum-user-isolation-"));
+  const userA = new ProjectManager(join(root, "user-a"));
+  const userB = new ProjectManager(join(root, "user-b"));
+
+  await userA.initialize();
+  await userB.initialize();
+  const projectA = await userA.createProject("Private A");
+
+  assert.equal((await userA.listProjects()).some((project) => project.id === projectA.id), true);
+  assert.equal((await userB.listProjects()).some((project) => project.id === projectA.id), false);
+  await assert.rejects(() => userB.getProject(projectA.id), /Project not found/);
+});
+
 test("protects the default NEXUM project from permanent deletion", async () => {
   const { manager } = await createManager();
   await manager.initialize();

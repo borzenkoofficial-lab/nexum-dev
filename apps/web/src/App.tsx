@@ -68,7 +68,7 @@ function App() {
   const [uiSettings, setUiSettings] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("nexum:ui-settings") || "{}") as Partial<{animations:boolean; compact:boolean; autoPreview:boolean; sound:boolean; glow:boolean}>;
-      return { animations: saved.animations !== false, compact: Boolean(saved.compact), autoPreview: saved.autoPreview !== false, sound: Boolean(saved.sound), glow: saved.glow !== false };
+      return { animations: saved.animations !== false, compact: Boolean(saved.compact), autoPreview: saved.autoPreview !== false, sound: Boolean(saved.sound), glow: saved.glow === true };
     } catch { return { animations:true, compact:false, autoPreview:true, sound:false, glow:true }; }
   });
   useEffect(() => { try { localStorage.setItem("nexum:ui-settings", JSON.stringify(uiSettings)); } catch {} }, [uiSettings]);
@@ -150,14 +150,33 @@ function App() {
     const onError = (event: ErrorEvent) => report({ message: event.message || "Browser runtime error", stack: event.error?.stack, source: event.filename });
     const onRejection = (event: PromiseRejectionEvent) => report({ message: event.reason instanceof Error ? event.reason.message : String(event.reason), stack: event.reason instanceof Error ? event.reason.stack : undefined, source: "unhandledrejection" });
     const onPreviewMessage = (event: MessageEvent) => {
-      const data = event.data as { source?: string; projectId?: string; kind?: string; message?: string; stack?: string };
-      if (data?.source !== "nexum-preview" || data.projectId !== activeProjectId || typeof data.message !== "string") return;
+      const data = event.data as { source?: string; projectId?: string; kind?: string; message?: string; stack?: string; eventType?: string; target?: string; action?: string };
+      if (event.origin !== window.location.origin) return;
+      if (data?.source !== "nexum-preview" || data.projectId !== activeProjectId) return;
+      if (data.kind === "interaction") {
+        void fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/preview/interaction`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ projectId: activeProjectId, eventType: data.eventType, target: data.target, action: data.action }), keepalive: true }).catch(() => {});
+        return;
+      }
+      if (data.kind === "preview-ready") { setPreviewOnline(true); return; }
+      if (typeof data.message !== "string") return;
       setProblems((items) => [...items, { message: `Preview ${data.kind ?? "error"}: ${data.message}`, source: "preview" }].slice(-20));
       void fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/preview/runtime-error`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: data.kind, message: data.message, stack: data.stack }),
+        body: JSON.stringify({ projectId: activeProjectId, kind: data.kind, message: data.message, stack: data.stack }),
         keepalive: true,
+      }).then(async (response) => {
+        const payload = await response.json().catch(() => ({})) as { recovery?: { started?: boolean; jobId?: string; reason?: string } };
+        if (!response.ok) return;
+        if (payload.recovery?.started && payload.recovery.jobId) {
+          setChatJobId(payload.recovery.jobId);
+          setRightTab("agent");
+          setNotice("NEXUM обнаружил runtime-ошибку и запустил автоматический Debugger.");
+        } else if (payload.recovery?.reason === "already-running") {
+          setNotice("Debugger уже исправляет текущую runtime-ошибку.");
+        } else if (payload.recovery?.reason === "cooldown") {
+          setNotice("Debugger уже запускался недавно. NEXUM не создаёт повторный recovery-job, чтобы не запускать бесконечный цикл.");
+        }
       }).catch(() => {});
     };
 
@@ -169,7 +188,7 @@ function App() {
       window.removeEventListener("unhandledrejection", onRejection);
       window.removeEventListener("message", onPreviewMessage);
     };
-  }, []);
+  }, [activeProjectId]);
 
   useEffect(() => {
     try {
@@ -353,7 +372,7 @@ function App() {
       setMessage(data.description.trim());
       setNewProjectName("");
       setModalOpen(false);
-      void sendMessage(buildBrief, data.project.id);
+      void sendMessage(buildBrief, responseData.project.id);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Не удалось создать проект");
     } finally {
@@ -475,38 +494,55 @@ function App() {
           if (data?.job?.reply) setConversation((items) => [...items, { id: `assistant-${Date.now()}`, role: "assistant", content: data.job!.reply!, timestamp: Date.now() }]);
           setRightTab("preview");
 
-          // The agent can finish immediately after the build while the filesystem
-          // and preview status endpoint are still settling. Wait briefly for the
-          // production bundle, then force a cache-busted iframe reload.
-          let previewReady = false;
-          for (let attempt = 0; attempt < 12; attempt += 1) {
-            try {
-              const previewResponse = await fetch(
-                `/api/projects/${encodeURIComponent(activeProjectId)}/preview/status?ts=${Date.now()}`,
-                { cache: "no-store" },
-              );
-              if (previewResponse.ok) {
-                const previewData = await previewResponse.json() as { online?: boolean };
-                if (previewData.online) {
-                  previewReady = true;
-                  break;
+          if (uiSettings.autoPreview) {
+            // The agent can finish immediately after the build while the filesystem
+            // and preview status endpoint are still settling. Wait briefly for the
+            // production bundle, then force a cache-busted iframe reload.
+            let previewReady = false;
+            for (let attempt = 0; attempt < 12; attempt += 1) {
+              try {
+                const previewResponse = await fetch(
+                  `/api/projects/${encodeURIComponent(activeProjectId)}/preview/status?ts=${Date.now()}`,
+                  { cache: "no-store" },
+                );
+                if (previewResponse.ok) {
+                  const previewData = await previewResponse.json() as { online?: boolean };
+                  if (previewData.online) {
+                    previewReady = true;
+                    break;
+                  }
                 }
+              } catch {
+                // The next attempt can succeed while the build output settles.
               }
-            } catch {
-              // The next attempt can succeed while the build output settles.
+              await new Promise((resolve) => window.setTimeout(resolve, 500));
             }
-            await new Promise((resolve) => window.setTimeout(resolve, 500));
+            setPreviewOnline(previewReady);
+            setPreviewKey((key) => key + 1);
           }
-
-          setPreviewOnline(previewReady);
-          setPreviewKey((key) => key + 1);
           setAgentStage("completed");
           setChatJobId(null);
           return;
         }
 
         if (status === "failed") {
-          throw new Error(data?.job?.error || "ИИ-агент завершил работу с ошибкой");
+          const job = data?.job;
+          setActivitySteps(job?.steps ?? []);
+          setActivityEvents(job?.events ?? []);
+          setCurrentActivity(job?.currentMessage ?? "Задача не прошла контрольные проверки.");
+          setProblems(job?.problems ?? []);
+          setReply(job?.reply ?? "");
+          if (job?.productPlan) setProductPlan({
+            goal: job.productPlan.goal ?? "",
+            productType: job.productPlan.productType ?? "Product",
+            pages: job.productPlan.pages ?? [],
+            components: job.productPlan.components ?? [],
+            acceptanceCriteria: job.productPlan.acceptanceCriteria ?? [],
+          });
+          setApiError(job?.error || job?.currentMessage || "NEXUM не смог завершить задачу. Откройте вкладку «Агент» для деталей.");
+          setAgentStage("error");
+          setChatJobId(null);
+          return;
         }
 
         setActivitySteps(data?.job?.steps ?? []);
@@ -584,7 +620,7 @@ function App() {
       setLocalAIKey("");
       setAIProvider("openrouter");
       setAIModel("openrouter/free");
-      setNotice("OpenRouter подключён for this local test session");
+      setNotice("OpenRouter подключён для этой тестовой сессии");
       window.setTimeout(() => setNotice(""), 3200);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Не удалось подключить ключ OpenRouter");
@@ -646,17 +682,17 @@ function App() {
           </section>
         ) : view === "settings" ? (
           <section className="settings-page">
-            <div className="page-heading"><div><div className="eyebrow">УПРАВЛЕНИЕ РАБОЧИМ ПРОСТРАНСТВОМ</div><h1>Настройки</h1><p>ИИ, workspace behavior and interface preferences.</p></div></div>
+            <div className="page-heading"><div><div className="eyebrow">УПРАВЛЕНИЕ РАБОЧИМ ПРОСТРАНСТВОМ</div><h1>Настройки</h1><p>ИИ, поведение рабочего пространства и настройки интерфейса.</p></div></div>
             <div className="settings-grid">
               <div className="settings-card"><strong>ИИ provider</strong><span>{aiProvider} · {aiModel}</span><small>Активный провайдер и модель агента.</small></div>
               <div className="settings-card"><strong>Поведение предпросмотра</strong><span>{uiSettings.autoPreview ? "Автообновление включено" : "Ручное обновление"}</span><small>Автоматически обновлять предпросмотр после успешной работы агента.</small><div className="settings-option-row"><div className="settings-option-copy"><b>Автопредпросмотр</b><span>Обновлять после сборки</span></div><button type="button" aria-label="Toggle auto preview" className={`nexum-toggle ${uiSettings.autoPreview?"on":""}`} onClick={()=>setUiSettings(s=>({...s,autoPreview:!s.autoPreview}))}></button></div></div>
               <div className="settings-card"><strong>Анимации и эффекты</strong><span>{uiSettings.animations ? "Анимированный интерфейс" : "Минимум анимаций"}</span><small>Управляет переходами, анимациями появления и микро-взаимодействиями.</small><div className="settings-option-row"><div className="settings-option-copy"><b>Анимации</b><span>Переходы и движение</span></div><button type="button" aria-label="Toggle animations" className={`nexum-toggle ${uiSettings.animations?"on":""}`} onClick={()=>setUiSettings(s=>({...s,animations:!s.animations}))}></button></div><div className="settings-option-row"><div className="settings-option-copy"><b>Свечение</b><span>Акцентная подсветка и свечение фокуса</span></div><button type="button" aria-label="Toggle ambient glow" className={`nexum-toggle ${uiSettings.glow?"on":""}`} onClick={()=>setUiSettings(s=>({...s,glow:!s.glow}))}></button></div></div>
-              <div className="settings-card"><strong>Плотность интерфейса</strong><span>{uiSettings.compact ? "Компактный" : "Комфортный"}</span><small>Выберите объём информации, отображаемый одновременно.</small><div className="settings-option-row"><div className="settings-option-copy"><b>Компактный mode</b><span>Более плотные панели и элементы управления</span></div><button type="button" aria-label="Toggle compact mode" className={`nexum-toggle ${uiSettings.compact?"on":""}`} onClick={()=>setUiSettings(s=>({...s,compact:!s.compact}))}></button></div></div>
+              <div className="settings-card"><strong>Плотность интерфейса</strong><span>{uiSettings.compact ? "Компактный" : "Комфортный"}</span><small>Выберите объём информации, отображаемый одновременно.</small><div className="settings-option-row"><div className="settings-option-copy"><b>Компактный режим</b><span>Более плотные панели и элементы управления</span></div><button type="button" aria-label="Toggle compact mode" className={`nexum-toggle ${uiSettings.compact?"on":""}`} onClick={()=>setUiSettings(s=>({...s,compact:!s.compact}))}></button></div></div>
               <div className="settings-card"><strong>Уведомления</strong><span>{uiSettings.sound ? "Звук включён" : "Без звука"}</span><small>Необязательный звук завершения агента при успехе или ошибке.</small><div className="settings-option-row"><div className="settings-option-copy"><b>Звук завершения</b><span>Агент завершил работу / ошибка</span></div><button type="button" aria-label="Toggle completion sound" className={`nexum-toggle ${uiSettings.sound?"on":""}`} onClick={()=>setUiSettings(s=>({...s,sound:!s.sound}))}></button></div></div>
               <div className="settings-card"><strong>Горячие клавиши</strong><span>⌘/Ctrl + K</span><small>Открывайте палитру команд для проектов, проверок, Git и переключения разделов.</small></div>
               <div className="settings-card"><strong>Хранилище проектов</strong><span>{projects.filter((project) => project.status === "active").length} активных проектов</span><small>Каждый проект хранит собственные файлы, предпросмотр и контекст диалога.</small></div>
             </div>
-            <div className="settings-card" style={{marginTop:12}}><strong>ИИ API key</strong><span>Автоматическое определение провайдера</span><small>Paste an OpenAI, OpenRouter, or OrcaRouter key. NEXUM verifies the key and keeps it only in running server memory.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={aiApiKey} onChange={event=>setAiApiKey(event.target.value)} placeholder="Вставьте API-ключ" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={aiApiKeyLoading||!aiApiKey.trim()} onClick={()=>void connectAIKey()}>{aiApiKeyLoading?"Проверяю…":"Подключить ИИ"}</button></div></div>
+            <div className="settings-card" style={{marginTop:12}}><strong>ИИ API key</strong><span>Автоматическое определение провайдера</span><small>Вставьте ключ OpenAI, OpenRouter или OrcaRouter. NEXUM проверит его и хранит только в памяти работающего сервера.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={aiApiKey} onChange={event=>setAiApiKey(event.target.value)} placeholder="Вставьте API-ключ" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={aiApiKeyLoading||!aiApiKey.trim()} onClick={()=>void connectAIKey()}>{aiApiKeyLoading?"Проверяю…":"Подключить ИИ"}</button></div></div>
             {localAITestEnabled && <div className="settings-card" style={{marginTop:12}}><strong>Тестовая сессия OpenRouter</strong><span>{localAIConfigured?"Подключено":"Не подключено"}</span><small>Временный ключ сессии для тестирования моделей без хранения учётных данных в репозитории.</small><div style={{display:"flex",gap:8,marginTop:12}}><input type="password" value={localAIKey} onChange={event=>setLocalAIKey(event.target.value)} placeholder="sk-or-v1-…" autoComplete="off" style={{flex:1,minWidth:0}}/><button type="button" className="home-primary" disabled={localAIKeyLoading||!localAIKey.trim()} onClick={()=>void saveLocalAIKey()}>{localAIKeyLoading?"Проверяю…":"Подключить"}</button></div></div>}
           </section>
         ) : (
@@ -666,7 +702,7 @@ function App() {
           <div className="workspace-actions">
             <button type="button" onClick={() => setConnectorModal("Интеграция проекта")}>◇ Подключить</button>
             <button type="button" onClick={async () => { const url = `${window.location.origin}/api/preview/${activeProjectId}/index.html`; try { await navigator.clipboard.writeText(url); setNotice("Ссылка на предпросмотр скопирована"); } catch { setNotice(url); } }}>↗ Share</button>
-            <button className="workspace-deploy" type="button" onClick={() => { const url = `/api/preview/${activeProjectId}/index.html`; window.open(url, "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }}>Опубликовать</button>
+            <button className="workspace-deploy" type="button" onClick={() => { const url = `/api/preview/${activeProjectId}/index.html`; window.open(url, "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }}>Открыть Preview</button>
             <button className="workspace-more" type="button" aria-label="Project menu" onClick={() => setWorkspaceMenuOpen((open) => !open)}>•••</button>
             {workspaceMenuOpen && <div className="workspace-menu"><button type="button" onClick={() => { setWorkspaceMenuOpen(false); setView("settings"); }}>Project settings</button><button type="button" onClick={async () => {
                 setWorkspaceMenuOpen(false);

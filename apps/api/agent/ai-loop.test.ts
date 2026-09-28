@@ -32,15 +32,14 @@ async function createLoop(responses: string[]) {
 test("AI structured plan selects writeFile and executes it", async () => {
   const { projectRoot, loop } = await createLoop([
     JSON.stringify({ tool: "writeFile", input: { path: "index.html", content: "<h1>NEXUM.DEV</h1>" } }),
-    JSON.stringify({ tool: "runCommand", input: "node --version" }),
-    JSON.stringify({ done: true, finalResponse: "Created index.html and verified the project." }),
+    JSON.stringify({ done: true, finalResponse: "Created index.html." }),
   ]);
 
   const result = await loop.run("Запиши index.html", { provider: "openrouter", model: "openrouter/free" });
   const content = await readFile(join(projectRoot, "index.html"), "utf8");
 
   assert.equal(result.success, true);
-  assert.deepEqual(result.steps.map((step) => step.tool), ["writeFile", "runCommand"]);
+  assert.deepEqual(result.steps.map((step) => step.tool), ["writeFile"]);
   assert.equal(content, "<h1>NEXUM.DEV</h1>");
   assert.match(result.finalResponse ?? "", /Created index\.html/);
   assert.equal((result.finalResponse ?? "").includes("<h1>NEXUM.DEV</h1>"), false);

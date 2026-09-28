@@ -8,7 +8,14 @@ import { diagnoseError } from "./errorRecovery.js";
 import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVerificationState } from "./taskState.js";
 import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
+import { executionBudget, routeTask } from "../ai/taskRouter.js";
+import { extractIntent } from "../ai/intentEngine.js";
+import { createBuilderExecutionState, builderExecutionPrompt, nextBuilderStep, recordBuilderNodeResult, rewindBuilderTo, type BuilderExecutionState } from "../ai/autonomousBuilder.js";
+import { routeWithStructuredContext } from "../ai/router2.js";
+import { NexumDirector } from "../ai/director.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
+import { evaluatePipelineGates, getPipelineSnapshot } from "../design/autonomousPipeline.js";
+import { createPipelineController, decidePipelineRecovery, recoveryPromptFor } from "../design/pipelineController.js";
 import type {
   AgentModelOptions,
   AgentPlan,
@@ -21,7 +28,7 @@ import type {
 } from "./types.js";
 
 const DEFAULT_MAX_ITERATIONS = 12;
-const MAX_AI_PLANNER_CALLS = 3;
+const MAX_AI_PLANNER_CALLS = 4;
 const MAX_PRODUCT_REVIEW_CALLS = 1;
 // One bounded token budget is shared by every remote AI call in a single task.
 // The budget is based on requested max tokens, so a long agent run cannot
@@ -131,12 +138,22 @@ export class AgentLoop {
     let eventId = 0;
     let phase: AgentPhase = "analyze";
     const taskState = createAgentTaskState(task);
+    const director = new NexumDirector();
     let productPlan: ProductPlan | null = null;
     let productReviewAttempts = 0;
     let remotePlannerRateLimited = false;
     let aiPlannerCalls = 0;
     let productPlannerCreated = false;
+    let recoveryDiagnosis: ReturnType<typeof diagnoseError> | null = null;
+    let recoveryCycles = 0;
+    const MAX_RECOVERY_CYCLES = 3;
+    const pipelineController = createPipelineController(3);
     const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
+    const intent = extractIntent(task);
+    const routing = routeTask(task);
+    const builderState: BuilderExecutionState | null = routing.mode === "simple" ? null : createBuilderExecutionState(task, intent);
+    const routingBudget = executionBudget(routing);
+    const maxPlannerCalls = Math.min(MAX_AI_PLANNER_CALLS, routingBudget.maxAiCalls);
     const aiOptionsForTask = (base?: GatewayGenerateOptions, role: "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" = "general"): GatewayGenerateOptions | undefined => {
       const maxTokens = adaptiveBudget.reserve(role, typeof base?.maxTokens === "number" && base.maxTokens > 0 ? base.maxTokens : undefined);
       return maxTokens > 0 ? { ...(base ?? {}), maxTokens } : undefined;
@@ -229,13 +246,57 @@ export class AgentLoop {
         })),
       });
       const plannerContextSeen = seenPlannerContexts.has(plannerContextFingerprint);
-      if (this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < MAX_AI_PLANNER_CALLS && !plannerContextSeen) {
+      if (this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < maxPlannerCalls && !plannerContextSeen) {
         try {
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
-          const aiOptions = aiOptionsForTask(options, "finalizer");
+          const graphStep = builderState ? nextBuilderStep(builderState) : null;
+          if (graphStep?.exhausted) {
+            const error = "Builder node \"" + graphStep.node.id + "\" exhausted its bounded attempts.";
+            emit({ iteration, type: "failed", tool: "AI planner", message: error });
+            return { phase, success: false, iterations: iteration, steps, error };
+          }
+          const structuredRouting = builderState
+            ? routeWithStructuredContext({
+                task,
+                intent,
+                graph: builderState.graph,
+                availableProviders: this.gateway.getReadyProviderIds(),
+                requestedProvider: options?.provider,
+                requestedModel: options?.model,
+              })
+            : null;
+          const directorDecisions = director.decide(task, "auto", undefined, this.gateway.getReadyProviderIds());
+          const directorRole = directorDecisions[Math.min(Math.max(aiPlannerCalls - 1, 0), directorDecisions.length - 1)]?.role;
+          const selectedRole = recoveryDiagnosis
+            ? "debugger"
+            : graphStep?.node.role ?? directorRole ?? structuredRouting?.role ?? routeTask(task).role;
+          const planningRole = (selectedRole === "director" || selectedRole === "debugger" || selectedRole === "coder" || selectedRole === "planner" || selectedRole === "reviewer" || selectedRole === "tester"
+            ? selectedRole
+            : "planner") as "director" | "planner" | "coder" | "reviewer" | "debugger" | "tester";
+          const aiOptions = aiOptionsForTask(options, planningRole === "director" ? "planner" : planningRole);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
-          modelPlan = await this.runtime.planWithAI(task, compactHistory, aiOptions as AgentModelOptions, productPlan ?? undefined);
+          const executionContext = [
+            builderState ? builderExecutionPrompt(builderState, task) : "",
+            recoveryDiagnosis
+              ? [
+                  "NEXUM DEBUGGER RECOVERY MODE",
+                  `recoveryCycle=${recoveryCycles}/${MAX_RECOVERY_CYCLES}`,
+                  `category=${recoveryDiagnosis.category}`,
+                  `summary=${recoveryDiagnosis.summary}`,
+                  `likelyFiles=${recoveryDiagnosis.likelyFiles.join(",") || "unknown"}`,
+                  `evidence=${recoveryDiagnosis.evidence}`,
+                  `strategy=${recoveryDiagnosis.strategy}`,
+                  "Do not change the product domain. Inspect the current project and make the minimum fix required by this real failure.",
+                ].join("\n")
+              : "",
+          ].filter(Boolean).join("\n\n");
+          modelPlan = await this.runtime.planWithAI(
+            [task, executionContext].join("\n\n"),
+            compactAgentHistory(previousResults),
+            { ...aiOptions, role: planningRole } as AgentModelOptions,
+            productPlan ?? undefined,
+          );
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI planning failed";
           if (/(?:rate limit|rate-limit|too many requests|429)/i.test(message)) {
@@ -266,13 +327,13 @@ export class AgentLoop {
       // already failed, switch to the deterministic planner so recovery can continue.
       let plan = modelPlan ?? this.runtime.plan(task, previousResults);
       if (plan && !plan.done) transition(plan.tool === "runCommand" || plan.tool === "runSandbox" ? "validate" : plan.tool === "readFile" || plan.tool === "listFiles" || plan.tool === "searchFiles" ? "analyze" : "implement");
-      if (modelPlan) {
+      if (modelPlan && !modelPlan.done) {
         const modelActionKey = this.actionFingerprint(modelPlan.tool, modelPlan.input);
         const repeatedFailure = previousResults.some(
           (item) => item.tool === modelPlan.tool && item.input === modelPlan.input && !item.result.success,
         );
         const attempts = actionAttempts.get(modelActionKey) ?? 0;
-        if (repeatedFailure || seenActions.has(modelActionKey) || attempts >= 2) {
+        if (!recoveryDiagnosis && (repeatedFailure || seenActions.has(modelActionKey) || attempts >= 2)) {
           emit({
             iteration,
             type: "thinking",
@@ -401,7 +462,23 @@ export class AgentLoop {
               tool: "runCommand",
               message: result.success ? "Production-сборка подтверждена." : `Сборка не прошла: ${result.output.slice(0, 500)}`,
             });
-            if (!result.success) { transition("repair"); continue; }
+            if (!result.success) {
+              recoveryCycles += 1;
+              recoveryDiagnosis = diagnoseError(result.output);
+              transition("repair");
+              if (builderState) {
+                const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+                  ? "diagnose"
+                  : builderState.graph.nodes.some((node) => node.id === "implement") ? "implement" : null;
+                if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+              }
+              if (recoveryCycles >= MAX_RECOVERY_CYCLES) {
+                const error = `Production build failed after ${MAX_RECOVERY_CYCLES} bounded recovery cycles.`;
+                emit({ iteration, type: "failed", tool: "Debugger", message: error });
+                return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+              }
+              continue;
+            }
           }
         }
 
@@ -448,7 +525,23 @@ export class AgentLoop {
               ? "Статический проект прошёл проверку."
               : `Найдены ошибки: ${validation.output.slice(0, 700)}`,
           });
-          if (!validation.success) { transition("repair"); continue; }
+          if (!validation.success) {
+            recoveryCycles += 1;
+            recoveryDiagnosis = diagnoseError(validation.output);
+            transition("repair");
+            if (builderState) {
+              const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+                ? "diagnose"
+                : builderState.graph.nodes.some((node) => node.id === "implement") ? "implement" : null;
+              if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+            }
+            if (recoveryCycles >= MAX_RECOVERY_CYCLES) {
+              const error = `Static validation failed after ${MAX_RECOVERY_CYCLES} bounded recovery cycles: ${recoveryDiagnosis.summary}`;
+              emit({ iteration, type: "failed", tool: "Debugger", message: error });
+              return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+            }
+            continue;
+          }
         }
 
         const hasProjectChanges = previousResults.some((item) =>
@@ -501,7 +594,26 @@ export class AgentLoop {
                 : `Не удалось выполнить «${command}»: ${result.output.slice(0, 500)}`,
             });
             if (!result.success) {
-              emit({ iteration, type: "thinking", message: "Финальная проверка не прошла. Возвращаю ошибку модели для автоматического исправления." });
+              recoveryCycles += 1;
+              recoveryDiagnosis = diagnoseError(result.output);
+              transition("repair");
+              if (builderState) {
+                const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+                  ? "diagnose"
+                  : builderState.graph.nodes.some((node) => node.id === "implement") ? "implement" : null;
+                if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+              }
+              emit({
+                iteration,
+                type: "thinking",
+                tool: "Debugger",
+                message: `Final verification failed. Recovery cycle ${recoveryCycles}/${MAX_RECOVERY_CYCLES}; category=${recoveryDiagnosis.category}.`,
+              });
+              if (recoveryCycles >= MAX_RECOVERY_CYCLES) {
+                const error = `Final verification failed after ${MAX_RECOVERY_CYCLES} bounded recovery cycles: ${recoveryDiagnosis.summary}`;
+                emit({ iteration, type: "failed", tool: "Debugger", message: error });
+                return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+              }
               break;
             }
           }
@@ -536,7 +648,23 @@ export class AgentLoop {
               ? "Автоматические проверки проекта пройдены."
               : `Tester Agent нашёл проблему: ${testResult.output.slice(0, 900)}`,
           });
-          if (!testResult.success) { transition("repair"); continue; }
+          if (!testResult.success) {
+            recoveryCycles += 1;
+            recoveryDiagnosis = diagnoseError(testResult.output);
+            transition("repair");
+            if (builderState) {
+              const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+                ? "diagnose"
+                : builderState.graph.nodes.some((node) => node.id === "implement") ? "implement" : null;
+              if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+            }
+            if (recoveryCycles >= MAX_RECOVERY_CYCLES) {
+              const error = `Project tests failed after ${MAX_RECOVERY_CYCLES} bounded recovery cycles: ${recoveryDiagnosis.summary}`;
+              emit({ iteration, type: "failed", tool: "Debugger", message: error });
+              return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+            }
+            continue;
+          }
         }
 
         // Hard domain gate: never report success when the generated file content belongs to another industry.
@@ -713,6 +841,7 @@ export class AgentLoop {
       actionAttempts.set(fingerprint, (actionAttempts.get(fingerprint) ?? 0) + 1);
       seenActions.add(fingerprint);
       const result = await this.runtime.executeTool(plan.tool, plan.input);
+      const graphStep = builderState ? nextBuilderStep(builderState) : null;
       const step: AgentStep = {
         iteration,
         tool: plan.tool,
@@ -722,12 +851,127 @@ export class AgentLoop {
       steps.push(step);
       this.onStep?.(step);
       previousResults.push({ iteration, tool: plan.tool, input: plan.input, result });
+      if (builderState && graphStep) {
+        const nodeComplete = result.success && (
+          plan.done ||
+          (graphStep.node.id === "understand" && ["listFiles", "readFile", "searchFiles"].includes(plan.tool)) ||
+          (graphStep.node.id === "scaffold" && ["scaffoldProject", "writeFile", "patchFile"].includes(plan.tool)) ||
+          (graphStep.node.id === "implement" && ["writeFile", "patchFile"].includes(plan.tool)) ||
+          (graphStep.node.id === "verify" && (plan.tool === "testProject" || (plan.tool === "runCommand" && /npm run (?:build|test|typecheck|lint)/.test(plan.input)))) ||
+          (graphStep.node.id === "diagnose" && ["readFile", "searchFiles", "runCommand", "runSandbox"].includes(plan.tool)) ||
+          (graphStep.node.id === "fix" && ["writeFile", "patchFile"].includes(plan.tool)) ||
+          (graphStep.node.id === "inspect" && ["listFiles", "readFile", "searchFiles"].includes(plan.tool)) ||
+          (graphStep.node.id === "findings" && plan.done)
+        );
+        recordBuilderNodeResult(builderState, graphStep.node.id, nodeComplete ?? false);
+      }
+      const verificationFailure = !result.success && (
+        plan.tool === "testProject" ||
+        plan.tool === "validateProject" ||
+        ((plan.tool === "runCommand" || plan.tool === "runSandbox") &&
+          /npm run (?:build|test|typecheck|lint)|(?:build|test|typecheck|lint)/i.test(plan.input))
+      );
+      if (verificationFailure) {
+        recoveryCycles += 1;
+        recoveryDiagnosis = diagnoseError(result.output);
+        transition("repair");
+        if (builderState) {
+          const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+            ? "diagnose"
+            : builderState.graph.nodes.some((node) => node.id === "implement")
+              ? "implement"
+              : null;
+          if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+        }
+        emit({
+          iteration,
+          type: "thinking",
+          tool: "Debugger",
+          message: `Verification failed. Recovery cycle ${recoveryCycles}/${MAX_RECOVERY_CYCLES}; category=${recoveryDiagnosis.category}; files=${recoveryDiagnosis.likelyFiles.join(",") || "unknown"}.`,
+        });
+        if (recoveryCycles >= MAX_RECOVERY_CYCLES) {
+          const error = `Verification failed after ${MAX_RECOVERY_CYCLES} bounded recovery cycles: ${recoveryDiagnosis.summary}`;
+          emit({ iteration, type: "failed", tool: "Debugger", message: error });
+          return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+        }
+      } else if (result.success && recoveryDiagnosis && (
+        plan.tool === "testProject" ||
+        plan.tool === "validateProject" ||
+        ((plan.tool === "runCommand" || plan.tool === "runSandbox") && /npm run (?:build|test|typecheck|lint)/i.test(plan.input))
+      )) {
+        recoveryDiagnosis = null;
+        recoveryCycles = 0;
+      }
       const runtimeRoot = this.runtime instanceof Object && "projectRoot" in this.runtime ? (this.runtime as { projectRoot?: string }).projectRoot : undefined;
       if (runtimeRoot) {
         void recordAction(runtimeRoot, { timestamp: new Date().toISOString(), iteration, tool: plan.tool, input: plan.input, success: result.success, output: result.output }).catch(() => undefined);
       }
       if (result.success && (plan.tool === "writeFile" || plan.tool === "patchFile")) recordSuccessfulChange(taskState, plan.input);
       syncVerificationState(taskState, previousResults, productPlan);
+
+      // The pipeline is a closed-loop controller, not a post-hoc report. Once a
+      // build/test command succeeds, re-evaluate every autonomous gate. A failed
+      // gate becomes a concrete recovery instruction and the AgentLoop continues
+      // with a bounded attempt instead of returning a false "done".
+      if (
+        builderTask &&
+        result.success &&
+        (plan.tool === "testProject" ||
+          ((plan.tool === "runCommand" || plan.tool === "runSandbox") &&
+            /npm run (?:build|test|typecheck|lint)/i.test(plan.input)))
+      ) {
+        try {
+          const runtimeRoot = this.runtime instanceof Object && "projectRoot" in this.runtime
+            ? (this.runtime as { projectRoot?: string }).projectRoot
+            : undefined;
+          if (runtimeRoot) {
+            const pipelineSnapshot = await getPipelineSnapshot(runtimeRoot);
+            const gates = evaluatePipelineGates(pipelineSnapshot);
+            const decision = decidePipelineRecovery(pipelineSnapshot, gates, pipelineController);
+            if (!decision.passed) {
+              const prompt = recoveryPromptFor(decision);
+              emit({
+                iteration,
+                type: "thinking",
+                tool: "Autonomous Pipeline",
+                message: `${prompt} Gate: ${decision.gate?.name ?? "unknown"}.`,
+              });
+              if (decision.exhausted) {
+                const error = `Autonomous pipeline gate "${decision.gate?.name ?? "unknown"}" failed after bounded recovery attempts.`;
+                emit({ iteration, type: "failed", tool: "Autonomous Pipeline", message: error });
+                return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+              }
+              recoveryCycles += 1;
+              recoveryDiagnosis = diagnoseError(
+                `AUTONOMOUS_GATE_FAILURE: ${decision.gate?.name ?? "unknown"} — ${decision.reason}. ${prompt}`,
+              );
+              transition("repair");
+              if (builderState) {
+                const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+                  ? "diagnose"
+                  : builderState.graph.nodes.some((node) => node.id === "implement")
+                    ? "implement"
+                    : null;
+                if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+              }
+              continue;
+            }
+            emit({
+              iteration,
+              type: "thinking",
+              tool: "Autonomous Pipeline",
+              message: "Все автономные контрольные ворота прошли проверку.",
+            });
+          }
+        } catch (error) {
+          emit({
+            iteration,
+            type: "tool-error",
+            tool: "Autonomous Pipeline",
+            message: `Не удалось проверить pipeline gates: ${error instanceof Error ? error.message : "unknown error"}`,
+          });
+        }
+      }
 
       // Validate the domain immediately after every implementation write so a
       // premature done=true cannot bypass the intent lock.
@@ -853,11 +1097,26 @@ export class AgentLoop {
               : `Не удалось выполнить «${command}»: ${buildResult.output.slice(0, 400)}`,
           });
           if (!buildResult.success) {
+            recoveryCycles += 1;
+            recoveryDiagnosis = diagnoseError(buildResult.output);
+            transition("repair");
+            if (builderState) {
+              const recoveryTarget = builderState.graph.nodes.some((node) => node.id === "diagnose")
+                ? "diagnose"
+                : builderState.graph.nodes.some((node) => node.id === "implement") ? "implement" : null;
+              if (recoveryTarget) rewindBuilderTo(builderState, recoveryTarget);
+            }
             emit({
               iteration,
               type: "thinking",
-              message: `Сборка не прошла на шаге «${command}». Передаю ошибку планировщику для исправления.`,
+              tool: "Debugger",
+              message: `Production build failed. Recovery cycle ${recoveryCycles}/${MAX_RECOVERY_CYCLES}; category=${recoveryDiagnosis.category}.`,
             });
+            if (recoveryCycles >= MAX_RECOVERY_CYCLES) {
+              const error = `Production build failed after ${MAX_RECOVERY_CYCLES} bounded recovery cycles.`;
+              emit({ iteration, type: "failed", tool: "Debugger", message: error });
+              return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
+            }
             break;
           }
         }

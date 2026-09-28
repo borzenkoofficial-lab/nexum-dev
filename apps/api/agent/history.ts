@@ -6,6 +6,7 @@ export interface AgentHistoryEntry {
   type: string;
   jobId?: string;
   projectId?: string;
+  userId?: string;
   provider?: string;
   model?: string;
   iteration?: number;

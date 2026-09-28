@@ -82,6 +82,46 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
     setPreviewError("");
   }, [projectId, previewKey, previewOnline]);
 
+  useEffect(() => {
+    if (!projectId || !previewOnline) return;
+    const source = new EventSource(`/api/projects/${encodeURIComponent(projectId)}/preview/live/events`);
+    const applyRevision = (raw: string) => {
+      try {
+        const live = JSON.parse(raw) as { revision?: string; cssRevision?: string; appRevision?: string };
+        const frame = previewFrameRef.current?.contentWindow;
+        if (!frame || !live.revision) return;
+        frame.postMessage(
+          {
+            source: "nexum-host",
+            projectId,
+            type: "update",
+            revision: live.revision,
+            cssRevision: live.cssRevision,
+            appRevision: live.appRevision,
+          },
+          window.location.origin,
+        );
+      } catch {
+        // Ignore malformed live-update events; the next event will reconcile state.
+      }
+    };
+    source.addEventListener("preview-ready", (event) => applyRevision((event as MessageEvent).data));
+    source.addEventListener("preview-update", (event) => applyRevision((event as MessageEvent).data));
+    source.onerror = () => {
+      // EventSource automatically reconnects. Preview remains usable while it reconnects.
+    };
+    return () => source.close();
+  }, [projectId, previewOnline]);
+
+  useEffect(() => {
+    if (!previewOnline || !previewFrameRef.current?.contentWindow) return;
+    if (stage !== "completed") return;
+    previewFrameRef.current.contentWindow.postMessage(
+      { source: "nexum-host", projectId, type: "refresh", revision: String(previewKey) },
+      window.location.origin,
+    );
+  }, [stage, projectId, previewOnline, previewKey]);
+
   function handlePreviewLoad() {
     setPreviewError("");
     const frame = previewFrameRef.current;
@@ -95,7 +135,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
       void fetch("/api/agent/client-error", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: compact, source: "preview", url: frame?.src }),
+        body: JSON.stringify({ projectId, message: compact, source: "preview", url: frame?.src }),
       }).catch(() => undefined);
     };
     const handleRejection = (event: PromiseRejectionEvent) => {
@@ -105,7 +145,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
       void fetch("/api/agent/client-error", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: compact, source: "preview", url: frame?.src }),
+        body: JSON.stringify({ projectId, message: compact, source: "preview", url: frame?.src }),
       }).catch(() => undefined);
     };
 

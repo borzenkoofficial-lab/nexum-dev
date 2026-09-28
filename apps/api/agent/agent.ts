@@ -2,6 +2,8 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AIGateway, GatewayGenerateOptions } from "../ai/gateway.js";
 import { AIOrchestrator } from "../ai/orchestrator.js";
+import { routeTask } from "../ai/taskRouter.js";
+import { extractIntent, intentSummary } from "../ai/intentEngine.js";
 import type {
   AgentModelOptions,
   AgentRuntime,
@@ -26,6 +28,8 @@ import { ValidateProjectTool } from "./tools/validateProject.js";
 import { PatchFileTool } from "./tools/patchFile.js";
 import { TestProjectTool } from "./tools/testProject.js";
 import { buildAgentContext, formatAgentContext } from "./context.js";
+import { deriveDesignSpec, writeDesignSpec, type DesignSpec } from "../design/designSpec.js";
+import { deriveInteractionContract } from "../design/interactionEngine.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -85,19 +89,42 @@ ${result.output}`
     previousResults: AgentToolResult[],
     options?: AgentModelOptions,
   ): Promise<ProductPlan> {
-    const lowerTask = task.toLowerCase();
-    const isConstructionTask = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lowerTask);
-    const isAutoRepairTask = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lowerTask);
-    if (isConstructionTask || isAutoRepairTask) {
-      return this.fallbackProductPlan(task, previousResults);
-    }
-
     const inspection = previousResults
       .filter((item) => item.result.success)
       .slice(-4)
       .map((item) => `${item.tool}: ${item.result.output.slice(0, 700)}`)
       .join("\n");
+    const intent = extractIntent(task);
+    // Materialize the design/interaction contract before planning so every
+    // builder request is generated against the user's actual domain rather
+    // than receiving the design contract only after the build has finished.
+    try {
+      const design = deriveDesignSpec({
+        domain: intent.domain,
+        productType: intent.productType,
+        visualDirection: intent.visualDirection.join(", "),
+        audience: intent.audience,
+        features: intent.features,
+      });
+      await writeDesignSpec(this.projectRoot, {
+        ...design,
+        interactions: deriveInteractionContract(design as DesignSpec),
+      });
+    } catch (error) {
+      console.warn("[agent] design contract preparation failed; continuing without pre-materialized contract", error);
+    }
+    const plannerContextSnapshot = await buildAgentContext(
+      this.projectRoot,
+      previousResults.map((item) => ({ tool: item.tool, success: item.result.success, output: item.result.output })),
+      task,
+      options?.role ?? "planner",
+    );
+    const persistentContractContext = formatAgentContext(plannerContextSnapshot);
     const prompt = [
+      "PERSISTENT NEXUM CONTRACT CONTEXT:",
+      persistentContractContext,
+      `STRUCTURED INTENT: ${intentSummary(intent)}`,
+      `INTENT JSON: ${JSON.stringify(intent)}`,
       "LANGUAGE PROTOCOL: Understand Russian natively. The user communicates in Russian. Interpret Russian requests, terminology, slang, spelling variations and mixed Russian/English technical terms correctly. All human-readable text you generate (site copy, UI text, plans, summaries, errors and final responses) must be in Russian unless the user explicitly requests another language. Keep required JSON property names, tool names, file paths, code, commands and API identifiers exactly as specified.",
       "You are the NEXUM product planner.",
       "Turn the user's request into a concrete implementation plan for a coding agent.",
@@ -111,7 +138,10 @@ ${result.output}`
     try {
       const run = await this.orchestrator.run("planner", prompt, options);
       const parsed = this.parseProductPlan(run.response);
-      if (parsed) return parsed;
+      if (parsed && this.isProductPlanAlignedWithTask(task, parsed)) return parsed;
+      if (parsed) {
+        console.warn("[agent] rejected product plan because it does not match the user domain; using deterministic recovery");
+      }
 
       // A malformed response is worth one repair pass, but a provider rate-limit
       // is not: retrying immediately only burns another request and delays the
@@ -138,7 +168,16 @@ ${result.output}`
       .slice(-8)
       .map((item) => `${item.tool}: ${item.result.output.slice(0, 700)}`)
       .join("\n");
+    const reviewContextSnapshot = await buildAgentContext(
+      this.projectRoot,
+      previousResults.map((item) => ({ tool: item.tool, success: item.result.success, output: item.result.output })),
+      task,
+      options?.role ?? "reviewer",
+    );
+    const reviewPersistentContext = formatAgentContext(reviewContextSnapshot);
     const prompt = [
+      "PERSISTENT NEXUM CONTRACT CONTEXT:",
+      reviewPersistentContext,
       "LANGUAGE PROTOCOL: Understand Russian natively. Review Russian-language user requests and Russian UI/content. All human-readable review output must be in Russian; keep JSON keys in the required English schema.",
       "You are the NEXUM final implementation reviewer.",
       "Review whether the coding agent actually implemented the requested product, not merely a scaffold.",
@@ -218,6 +257,7 @@ ${result.output}`
         output: item.result.output,
       })),
       task,
+      options?.role ?? "general",
     );
     const persistentContext = formatAgentContext(contextSnapshot);
     const projectStateContext = "Project state is included in persistent context.";
@@ -274,11 +314,8 @@ ${result.output}`
       `Previous tool results:\n${history}`,
     ].join("\n");
 
-    const role = /ошибк|error|debug|сборк|build|compile|fix|исправ/i.test(task)
-      ? "debugger"
-      : /создай|разработай|сайт|приложени|dashboard|landing|react|ui|код|code/i.test(task)
-        ? "coder"
-        : "planner";
+    const routing = routeTask(task);
+    const role = options?.role ?? routing.role;
     const run = await this.orchestrator.run(role, prompt, options);
     console.log(JSON.stringify({ type: "ai-role", role: run.role, provider: run.provider, model: run.model, fallback: run.fallback }));
     const parsed = this.parseAIPlan(run.response);
@@ -672,6 +709,29 @@ ${result.output}`
         "No placeholder/demo NEXUM starter content remains",
       ],
     };
+  }
+
+  private isProductPlanAlignedWithTask(task: string, plan: ProductPlan): boolean {
+    const lower = task.toLowerCase();
+    const domainSignals: Array<{ pattern: RegExp; required: RegExp }> = [
+      {
+        pattern: /строит|строитель|демонтаж|фасад|подряд|отделк|бетон|стяжк|штукатур|монтаж|кровл|стройк|генподряд|бригада|грузчик/i,
+        required: /строит|демонтаж|фасад|подряд|объект|бригада|отделк|бетон|стяжк|штукатур|монтаж|кровл/i,
+      },
+      {
+        pattern: /авто|автомобил|автосервис|сто\\b|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/i,
+        required: /авто|автомобил|автосервис|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/i,
+      },
+      {
+        pattern: /доставк|курьер|логист|такси|перевоз/i,
+        required: /доставк|курьер|логист|перевоз|заказ/i,
+      },
+    ];
+    const matched = domainSignals.find((item) => item.pattern.test(lower));
+    if (!matched) return true;
+    const serialized = JSON.stringify(plan).toLowerCase();
+    const genericDigital = /nexum\\.dev|digital products|ai studio|saas|software products|digital systems/.test(serialized);
+    return matched.required.test(serialized) && !genericDigital;
   }
 
   private isPlanAlignedWithTask(task: string, plan: AgentPlan): boolean {

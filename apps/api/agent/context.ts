@@ -1,9 +1,20 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { formatProjectUnderstanding, understandProject } from "../projects/projectUnderstanding.js";
+import type { ProjectState } from "../projects/projectState.js";
 
 export interface AgentContextSnapshot {
   task: string;
   knowledge: string;
+  contracts: {
+    operating: string;
+    project: string;
+    architecture: string;
+    rules: string;
+    design: string;
+    stateContract: string;
+    role: string;
+  };
   state: Record<string, unknown>;
   recentErrors: string[];
   recentActions: Array<{
@@ -58,9 +69,17 @@ export async function buildAgentContext(
   root: string,
   history: Array<{ tool: string; success: boolean; output: string }>,
   task = "",
+  role = "general",
 ): Promise<AgentContextSnapshot> {
-  const [knowledge, stateRaw, journalRaw] = await Promise.all([
+  const [knowledge, operating, project, architecture, rules, design, stateSpecRaw, roleInstructions, stateRaw, journalRaw] = await Promise.all([
     optionalFile(root, ".nexum/knowledge.md"),
+    optionalFile(root, ".nexum/AI.md"),
+    optionalFile(root, ".nexum/PROJECT.md"),
+    optionalFile(root, ".nexum/ARCHITECTURE.md"),
+    optionalFile(root, ".nexum/RULES.md"),
+    optionalFile(root, ".nexum/DESIGN.md"),
+    optionalFile(root, ".nexum/state-spec.json"),
+    optionalFile(root, `.nexum/agents/${role}.md`),
     optionalFile(root, ".nexum/state.json"),
     optionalFile(root, ".nexum/action-journal.jsonl"),
   ]);
@@ -77,6 +96,15 @@ export async function buildAgentContext(
   return {
     task: task.slice(0, 3000),
     knowledge: knowledge.slice(0, 6000),
+    contracts: {
+      operating: operating.slice(0, 7000),
+      project: project.slice(0, 3500),
+      architecture: architecture.slice(0, 3500),
+      rules: rules.slice(0, 3500),
+      design: design.slice(0, 3500),
+      stateContract: stateSpecRaw.slice(0, 3500),
+      role: roleInstructions.slice(0, 2500),
+    },
     state,
     recentErrors,
     recentActions,
@@ -88,6 +116,14 @@ export function formatAgentContext(context: AgentContextSnapshot): string {
   return JSON.stringify({
     task: context.task || "Current task unavailable.",
     projectKnowledge: context.knowledge || "No persistent project knowledge.",
+    nexumContract: context.contracts.operating || "No NEXUM operating contract found.",
+    projectContract: context.contracts.project || "No persistent project identity found.",
+    architectureContract: context.contracts.architecture || "No persistent architecture contract found.",
+    rulesContract: context.contracts.rules || "No persistent project rules found.",
+    designContract: context.contracts.design || "No persistent design contract found.",
+    stateContract: context.contracts.stateContract || "No executable state contract found.",
+    roleInstructions: context.contracts.role || "No role-specific instructions found.",
+    projectUnderstanding: (() => { try { return JSON.parse(formatProjectUnderstanding(understandProject(state as unknown as ProjectState))); } catch { return { health: "unknown", risks: ["project understanding unavailable"] }; } })(),
     projectState: {
       projectType: state.projectType,
       framework: state.framework,
@@ -95,6 +131,10 @@ export function formatAgentContext(context: AgentContextSnapshot): string {
       buildCommand: state.buildCommand,
       previewMode: state.previewMode,
       currentGoal: state.currentGoal,
+      intentDomain: state.intentDomain,
+      intentProductType: state.intentProductType,
+      intentAudience: state.intentAudience,
+      intentConfidence: state.intentConfidence,
       changedFiles: Array.isArray(state.changedFiles) ? state.changedFiles.slice(-12) : [],
       knownErrors: Array.isArray(state.knownErrors) ? state.knownErrors.slice(-6) : [],
       lastSuccessfulBuildAt: state.lastSuccessfulBuildAt,

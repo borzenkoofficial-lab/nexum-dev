@@ -1,6 +1,6 @@
 import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { spawn } from "node:child_process";
+import { RunCommandTool } from "./runCommand.js";
 import type { Tool, ToolResult } from "../types.js";
 import { ProjectWorkspace } from "./workspace.js";
 
@@ -21,9 +21,9 @@ export class TestProjectTool implements Tool {
       }
 
       const scripts = pkg.scripts ?? {};
-      const commands = ["test", "typecheck", "lint"].filter((name) => typeof scripts[name] === "string");
+      const commands = ["test", "typecheck", "lint", "build"].filter((name) => typeof scripts[name] === "string");
       if (!commands.length) {
-        if (typeof scripts.build === "string") return this.run(root, "npm", ["run", "build"], "build");
+
         return { success: true, output: "No automated test/typecheck/lint/build script is defined; project structure is valid for Preview." };
       }
 
@@ -42,7 +42,7 @@ export class TestProjectTool implements Tool {
           };
         }
       }
-      return { success: true, output: JSON.stringify({ passed: commands, results: results.map((item) => item.slice(-1800)) }) };
+      return { success: true, output: JSON.stringify({ status: "passed", stages: commands, results: results.map((item) => item.slice(-1800)) }) };
     } catch (error) {
       return { success: false, output: error instanceof Error ? error.message : "Project test runner failed" };
     }
@@ -63,18 +63,12 @@ export class TestProjectTool implements Tool {
     }
   }
 
-  private run(cwd: string, command: string, args: string[], stage: string): Promise<ToolResult> {
-    return new Promise((resolveResult) => {
-      const child = spawn(command, args, { cwd, shell: process.platform === "win32", env: process.env });
-      let stdout = "";
-      let stderr = "";
-      child.stdout.on("data", (chunk) => { stdout += chunk.toString(); });
-      child.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
-      child.on("error", (error) => resolveResult({ success: false, output: stage + ": " + error.message }));
-      child.on("close", (code) => resolveResult({
-        success: code === 0,
-        output: (stage + " exit=" + (code ?? "unknown") + "\n" + stdout + "\n" + stderr).slice(-16000),
-      }));
-    });
+  private async run(cwd: string, command: string, args: string[], stage: string): Promise<ToolResult> {
+    const runner = new RunCommandTool(cwd);
+    const result = await runner.execute([command, ...args].join(" "));
+    return {
+      success: result.success,
+      output: (stage + " exit=" + (result.exitCode ?? "unknown") + "\n" + result.stdout + "\n" + result.stderr).slice(-16000),
+    };
   }
 }

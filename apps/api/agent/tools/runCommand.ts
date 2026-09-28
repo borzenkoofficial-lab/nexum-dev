@@ -152,7 +152,10 @@ export class RunCommandTool implements Tool {
       throw new Error("npx package installation and shell options are not allowed");
     }
 
-    return { executable: "npx", args };
+    const command = args[0];
+    if (!command) throw new Error("npx command is required");
+    const safeArgs = args.includes("--no-install") ? args : [command, "--no-install", ...args.slice(1)];
+    return { executable: "npx", args: safeArgs };
   }
 
   private validateNode(args: string[]): { executable: string; args: string[] } {
@@ -203,7 +206,6 @@ export class RunCommandTool implements Tool {
       const timer = setTimeout(() => {
         timedOut = true;
         stderr += "\nCommand timed out";
-        child.kill("SIGTERM");
       }, this.timeoutMs);
 
       child.on("error", (error) => {
