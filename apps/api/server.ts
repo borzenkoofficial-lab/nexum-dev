@@ -155,9 +155,6 @@ async function runChatJob(
   try {
     const project = await getProjectManager(userId).getActiveProject(projectId);
     projectLockKey = userId + ":" + project.id;
-    if (!projectJobsInFlight.has(projectLockKey)) {
-      projectJobsInFlight.add(projectLockKey);
-    }
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     const checkpoint = await checkpointManager.create(project.id, project.path, `before agent job ${jobId}`);
@@ -674,8 +671,9 @@ ${stack}` : ""}`;
     const recoveryKey = `${userId}:${project.id}`;
     const lastStartedAt = runtimeRecoveryLastStartedAt.get(recoveryKey) ?? 0;
     const cooldownActive = Date.now() - lastStartedAt < RUNTIME_RECOVERY_COOLDOWN_MS;
-    if (!runtimeRecoveryInFlight.has(recoveryKey) && !cooldownActive) {
+    if (!runtimeRecoveryInFlight.has(recoveryKey) && !cooldownActive && !projectJobsInFlight.has(recoveryKey)) {
       runtimeRecoveryLastStartedAt.set(recoveryKey, Date.now());
+      projectJobsInFlight.add(recoveryKey);
       runtimeRecoveryInFlight.add(recoveryKey);
       cleanupChatJobs();
       const jobId = randomUUID();
@@ -708,7 +706,7 @@ ${stack}` : ""}`;
       return res.status(202).json({ success: true, recovery: { started: true, jobId } });
     }
 
-    return res.status(202).json({ success: true, recovery: { started: false, reason: cooldownActive ? "cooldown" : "already-running" } });
+    return res.status(202).json({ success: true, recovery: { started: false, reason: cooldownActive ? "cooldown" : (projectJobsInFlight.has(recoveryKey) ? "project-busy" : "already-running") } });
   } catch (error) {
     return sendProjectError(res, error);
   }
