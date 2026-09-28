@@ -168,6 +168,8 @@ function App() {
           setNotice("NEXUM обнаружил runtime-ошибку и запустил автоматический Debugger.");
         } else if (payload.recovery?.reason === "already-running") {
           setNotice("Debugger уже исправляет текущую runtime-ошибку.");
+        } else if (payload.recovery?.reason === "cooldown") {
+          setNotice("Debugger уже запускался недавно. NEXUM не создаёт повторный recovery-job, чтобы не запускать бесконечный цикл.");
         }
       }).catch(() => {});
     };
