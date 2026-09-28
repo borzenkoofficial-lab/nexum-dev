@@ -84,7 +84,7 @@ class RecoveryE2EProvider extends E2EProvider {
       if (this.recoveryCalls === 1) {
         return JSON.stringify({ tool: "writeFile", input: JSON.stringify({
           path: "index.html",
-          content: "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p></main></body></html>",
+          content: "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p>",
         }) });
       }
       return JSON.stringify({ done: true, finalResponse: "Debugger исправил ошибку и повторная проверка пройдена." });
