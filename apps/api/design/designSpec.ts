@@ -64,8 +64,26 @@ export function deriveDesignSpec(input:{domain?:string;productType?:string;visua
   const domain=input.domain ?? "generic";
   const productType=input.productType ?? domain;
   const visualDirection=input.visualDirection ?? "clean, trustworthy, responsive, production-grade";
+  const featureText=(input.features??[]).join(" ").toLowerCase();
   const components=["Button","Input","Form","Card","Navigation"];
-  if ((input.features??[]).some(x=>/modal|dialog/i.test(x))) components.push("Modal");
-  if ((input.features??[]).some(x=>/table|dashboard/i.test(x))) components.push("Table");
-  return {productType,visualDirection,audience:input.audience??"end users",components,interactions:[]};
+  if (/modal|dialog|popup|окно/.test(featureText)) components.push("Modal");
+  if (/table|dashboard|таблиц|панел/.test(featureText)) components.push("Table");
+  if (/list|catalog|каталог|список/.test(featureText)) components.push("List");
+  if (/search|поиск/.test(featureText)) components.push("Search");
+  if (/filter|фильтр/.test(featureText)) components.push("Filter");
+  if (/map|карта/.test(featureText)) components.push("Map");
+  if (/calendar|календар|booking|запис/.test(featureText)) components.push("Calendar");
+  const domainText=domain.toLowerCase();
+  const domainDirection:Record<string,string>={
+    construction:"professional construction, project-site credibility, technical hierarchy",
+    automotive:"automotive service, mechanical precision, diagnostic trust",
+    delivery:"logistics, speed, tracking clarity, operational control",
+    restaurant:"hospitality, menu discovery, reservation clarity",
+    ecommerce:"commerce, product discovery, catalog clarity",
+  };
+  const matched=Object.entries(domainDirection).find(([key])=>domainText.includes(key));
+  const resolvedDirection=matched && (!input.visualDirection || input.visualDirection==="clean, trustworthy, responsive, production-grade")
+    ? matched[1]
+    : visualDirection;
+  return {productType,visualDirection:resolvedDirection,audience:input.audience??"end users",components:[...new Set(components)],interactions:[]};
 }
