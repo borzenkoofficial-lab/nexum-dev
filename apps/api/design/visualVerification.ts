@@ -25,6 +25,22 @@ export async function verifyDesign(projectRoot:string):Promise<VisualVerificatio
       const spec=await readDesignSpec(projectRoot);
       checks.push({name:"design-spec",passed:spec.version===1&&spec.components.length>0&&spec.tokens.colors.background.length>0,message:"NEXUM DesignSpec is present"});
       checks.push({name:"interaction-contract",passed:spec.interactions.length>0,message:"Interaction Contract contains executable intents"});
+      const domain = String(spec.domain ?? "").toLowerCase();
+      const domainSignals:Record<string,RegExp> = {
+        construction:/строит|строитель|демонтаж|фасад|подряд|объект|бетон|стяжк|монтаж|кровл|construction|contractor/i,
+        automotive:/авто|автомобил|автосервис|диагностик|шиномонтаж|кузов|двигател|тормоз|масл|automotive|auto repair/i,
+        delivery:/доставк|курьер|логист|перевоз|delivery|courier|logistics/i,
+        restaurant:/ресторан|кафе|меню|блюд|заказ стол|restaurant|menu|reservation/i,
+        ecommerce:/магазин|каталог|товар|корзин|оплат|ecommerce|shop|store|catalog/i,
+      };
+      const requiredSignal=Object.entries(domainSignals).find(([key])=>domain.includes(key))?.[1];
+      if(requiredSignal){
+        checks.push({
+          name:"domain-fidelity",
+          passed:requiredSignal.test(html),
+          message:"Generated UI contains domain-specific content matching the requested product",
+        });
+      }
     } catch {
       checks.push({name:"design-spec",passed:false,message:"NEXUM DesignSpec unavailable"});
     }
