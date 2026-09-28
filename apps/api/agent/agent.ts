@@ -223,6 +223,7 @@ ${result.output}`
         output: item.result.output,
       })),
       task,
+      options?.role ?? "general",
     );
     const persistentContext = formatAgentContext(contextSnapshot);
     const projectStateContext = "Project state is included in persistent context.";
