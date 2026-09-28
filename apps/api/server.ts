@@ -33,6 +33,7 @@ import { prepareAutonomousDesignPipeline, finalizeAutonomousDesignPipeline, getP
 import { componentContracts } from "./design/componentIntelligence.js";
 import { allowedInteraction, createInteractionRecord, resolveInteraction } from "./design/interactionEngine.js";
 import { inspectLiveUpdate } from "./design/liveUpdate.js";
+import { readStateSpec, writeStateSpec } from "./design/stateEngine.js";
 import { extractIntent } from "./ai/intentEngine.js";
 
 dotenv.config();
@@ -757,6 +758,18 @@ app.get("/api/projects/:id/components", async (req,res)=>{
     const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
     const design=await readDesignSpec(project.path);
     return res.json({success:true,components:componentContracts(design)});
+  } catch(error){ return sendProjectError(res,error); }
+});
+app.get("/api/projects/:id/state", async (req,res)=>{
+  try {
+    const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
+    return res.json({success:true,state:await readStateSpec(project.path)});
+  } catch(error){ return sendProjectError(res,error); }
+});
+app.put("/api/projects/:id/state", async (req,res)=>{
+  try {
+    const project=await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id));
+    return res.json({success:true,state:await writeStateSpec(project.path,req.body&&typeof req.body==="object"?req.body:{})});
   } catch(error){ return sendProjectError(res,error); }
 });
 app.get("/api/projects/:id/preview/live", async (req,res)=>{
