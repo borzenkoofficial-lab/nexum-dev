@@ -488,31 +488,32 @@ function App() {
           if (data?.job?.reply) setConversation((items) => [...items, { id: `assistant-${Date.now()}`, role: "assistant", content: data.job!.reply!, timestamp: Date.now() }]);
           setRightTab("preview");
 
-          // The agent can finish immediately after the build while the filesystem
-          // and preview status endpoint are still settling. Wait briefly for the
-          // production bundle, then force a cache-busted iframe reload.
-          let previewReady = false;
-          for (let attempt = 0; attempt < 12; attempt += 1) {
-            try {
-              const previewResponse = await fetch(
-                `/api/projects/${encodeURIComponent(activeProjectId)}/preview/status?ts=${Date.now()}`,
-                { cache: "no-store" },
-              );
-              if (previewResponse.ok) {
-                const previewData = await previewResponse.json() as { online?: boolean };
-                if (previewData.online) {
-                  previewReady = true;
-                  break;
+          if (uiSettings.autoPreview) {
+            // The agent can finish immediately after the build while the filesystem
+            // and preview status endpoint are still settling. Wait briefly for the
+            // production bundle, then force a cache-busted iframe reload.
+            let previewReady = false;
+            for (let attempt = 0; attempt < 12; attempt += 1) {
+              try {
+                const previewResponse = await fetch(
+                  `/api/projects/${encodeURIComponent(activeProjectId)}/preview/status?ts=${Date.now()}`,
+                  { cache: "no-store" },
+                );
+                if (previewResponse.ok) {
+                  const previewData = await previewResponse.json() as { online?: boolean };
+                  if (previewData.online) {
+                    previewReady = true;
+                    break;
+                  }
                 }
+              } catch {
+                // The next attempt can succeed while the build output settles.
               }
-            } catch {
-              // The next attempt can succeed while the build output settles.
+              await new Promise((resolve) => window.setTimeout(resolve, 500));
             }
-            await new Promise((resolve) => window.setTimeout(resolve, 500));
+            setPreviewOnline(previewReady);
+            setPreviewKey((key) => key + 1);
           }
-
-          setPreviewOnline(previewReady);
-          setPreviewKey((key) => key + 1);
           setAgentStage("completed");
           setChatJobId(null);
           return;
