@@ -361,6 +361,18 @@ function App() {
     }
   }
 
+  function repairLastTask() {
+    const task = lastMessage.trim();
+    if (!task) {
+      setRightTab("preview");
+      return;
+    }
+    const repairTask = `Исправь результат последней задачи. Проверь Preview, найди ошибки и внеси необходимые исправления: ${task}`;
+    setMessage(repairTask);
+    setRightTab("agent");
+    window.setTimeout(() => void sendMessage(repairTask), 0);
+  }
+
   async function sendMessage(task = message, projectIdOverride?: string) {
     const targetПроектId = projectIdOverride ?? activeПроектId;
     if (!task.trim() || !targetПроектId) return;
