@@ -10,6 +10,8 @@ import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
 import { executionBudget, routeTask } from "../ai/taskRouter.js";
 import { NexumDirector } from "../ai/director.js";
+import { extractIntent } from "../ai/intentEngine.js";
+import { createBuilderExecutionState, builderExecutionPrompt, nextBuilderStep, recordBuilderNodeResult, type BuilderExecutionState } from "../ai/autonomousBuilder.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 import type {
   AgentModelOptions,
@@ -140,6 +142,8 @@ export class AgentLoop {
     let productPlannerCreated = false;
     const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
     const director = new NexumDirector();
+    const intent = extractIntent(task);
+    const builderState: BuilderExecutionState = createBuilderExecutionState(task, intent);
     const routing = routeTask(task);
     const routingBudget = executionBudget(routing);
     const maxPlannerCalls = Math.min(MAX_AI_PLANNER_CALLS, routingBudget.maxAiCalls);
@@ -240,13 +244,20 @@ export class AgentLoop {
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
           const directorDecision = director.decide(task, "auto", undefined, this.gateway.getReadyProviderIds())[0];
-          const selectedRole = directorDecision?.role;
-          const planningRole = (selectedRole === "debugger" || selectedRole === "coder" || selectedRole === "planner"
+          const graphStep = nextBuilderStep(builderState);
+          const selectedRole = graphStep?.node.role ?? directorDecision?.role;
+          const planningRole = (selectedRole === "debugger" || selectedRole === "coder" || selectedRole === "planner" || selectedRole === "reviewer" || selectedRole === "tester"
             ? selectedRole
-            : selectedRole === "director" ? "planner" : routeTask(task).role) as "planner" | "coder" | "debugger";
+            : selectedRole === "director" ? "planner" : routeTask(task).role) as "planner" | "coder" | "debugger" | "reviewer" | "tester";
           const aiOptions = aiOptionsForTask(options, planningRole);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
-          modelPlan = await this.runtime.planWithAI(task, compactAgentHistory(previousResults), { ...aiOptions, role: planningRole } as AgentModelOptions, productPlan ?? undefined);
+          const executionContext = builderExecutionPrompt(builderState, task);
+          modelPlan = await this.runtime.planWithAI(
+            [task, executionContext].join("\n\n"),
+            compactAgentHistory(previousResults),
+            { ...aiOptions, role: planningRole } as AgentModelOptions,
+            productPlan ?? undefined,
+          );
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI planning failed";
           if (/(?:rate limit|rate-limit|too many requests|429)/i.test(message)) {
@@ -724,6 +735,7 @@ export class AgentLoop {
       actionAttempts.set(fingerprint, (actionAttempts.get(fingerprint) ?? 0) + 1);
       seenActions.add(fingerprint);
       const result = await this.runtime.executeTool(plan.tool, plan.input);
+      const graphStep = nextBuilderStep(builderState);
       const step: AgentStep = {
         iteration,
         tool: plan.tool,
@@ -733,6 +745,20 @@ export class AgentLoop {
       steps.push(step);
       this.onStep?.(step);
       previousResults.push({ iteration, tool: plan.tool, input: plan.input, result });
+      if (graphStep) {
+        const nodeComplete = result.success && (
+          plan.done ||
+          (graphStep.node.id === "understand" && ["listFiles", "readFile", "searchFiles"].includes(plan.tool)) ||
+          (graphStep.node.id === "scaffold" && ["scaffoldProject", "writeFile", "patchFile"].includes(plan.tool)) ||
+          (graphStep.node.id === "implement" && ["writeFile", "patchFile"].includes(plan.tool)) ||
+          (graphStep.node.id === "verify" && ["runCommand", "runSandbox"].includes(plan.tool)) ||
+          (graphStep.node.id === "diagnose" && ["readFile", "searchFiles", "runCommand", "runSandbox"].includes(plan.tool)) ||
+          (graphStep.node.id === "fix" && ["writeFile", "patchFile"].includes(plan.tool)) ||
+          (graphStep.node.id === "inspect" && ["listFiles", "readFile", "searchFiles"].includes(plan.tool)) ||
+          (graphStep.node.id === "findings" && plan.done)
+        );
+        recordBuilderNodeResult(builderState, graphStep.node.id, nodeComplete);
+      }
       const runtimeRoot = this.runtime instanceof Object && "projectRoot" in this.runtime ? (this.runtime as { projectRoot?: string }).projectRoot : undefined;
       if (runtimeRoot) {
         void recordAction(runtimeRoot, { timestamp: new Date().toISOString(), iteration, tool: plan.tool, input: plan.input, success: result.success, output: result.output }).catch(() => undefined);
