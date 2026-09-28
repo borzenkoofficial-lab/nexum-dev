@@ -798,3 +798,38 @@ html,body,#root{
 @media(prefers-reduced-motion:reduce){
   .builder-preview-chrome em,.builder-preview-agent i,.agent-hero-track span.is-live{animation:none}
 }
+
+
+/* Diagnostics — live agent observability */
+.diagnostics-page{max-width:1440px;margin:0 auto;padding:48px 52px 72px}
+.diagnostics-hero{display:flex;justify-content:space-between;gap:32px;align-items:flex-end;border-bottom:1px solid var(--line);padding-bottom:34px}
+.diagnostics-hero h1{margin:10px 0 8px;font-size:42px;letter-spacing:-.04em;line-height:1.05}
+.diagnostics-hero p{margin:0;color:var(--text-2);font-size:16px;max-width:720px;line-height:1.55}
+.diagnostics-actions{display:flex;gap:10px;flex-shrink:0}
+.diagnostics-actions button,.diagnostics-filters button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;font:inherit;cursor:pointer}
+.diagnostics-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+.diagnostics-stats>div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.diagnostics-stats span,.diagnostics-stats small{display:block;color:var(--text-3);font-size:12px}
+.diagnostics-stats strong{display:block;margin:8px 0;font-size:24px;letter-spacing:-.02em}
+.diagnostics-layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px}
+.diagnostics-jobs,.diagnostics-main{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.diagnostics-panel-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
+.diagnostics-panel-head span{font-size:10px;letter-spacing:.12em;color:var(--text-3)}
+.diagnostics-panel-head h2{margin:4px 0 0;font-size:17px}
+.diagnostics-panel-head>b{font-size:12px;color:var(--text-3)}
+.diagnostics-job{width:100%;display:flex;align-items:center;gap:10px;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:14px 16px;cursor:pointer;color:inherit}
+.diagnostics-job:hover,.diagnostics-job.selected{background:var(--surface-2)}
+.diagnostics-job-dot{width:8px;height:8px;border-radius:50%;background:var(--text-3);flex:none}
+.diagnostics-job-dot.completed{background:var(--green)} .diagnostics-job-dot.failed{background:var(--red)} .diagnostics-job-dot.running,.diagnostics-job-dot.queued{background:var(--accent)}
+.diagnostics-job-main{min-width:0;flex:1}.diagnostics-job-main strong,.diagnostics-job-main small{display:block}.diagnostics-job-main strong{font-size:13px}.diagnostics-job-main small{margin-top:3px;color:var(--text-3);font-size:11px}
+.diagnostics-job-status{font-size:11px;color:var(--text-2)}
+.diagnostics-filters{display:flex;gap:6px}.diagnostics-filters button{padding:7px 10px;font-size:12px}.diagnostics-filters button.selected{background:var(--text);color:#fff;border-color:var(--text)}
+.diagnostics-empty{padding:32px 20px;color:var(--text-3);font-size:13px}
+.diagnostics-timeline{padding:8px 18px 24px}
+.diagnostics-event{padding:15px 2px;border-bottom:1px solid var(--line)}
+.diagnostics-event.error{margin:8px -8px;padding:15px 10px;background:#fff6f7;border:1px solid #f0d7da;border-radius:10px}
+.diagnostics-event-meta{display:flex;justify-content:space-between;color:var(--text-3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.diagnostics-event>strong{display:block;font-size:13px;font-weight:600;line-height:1.45}
+.diagnostics-event-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.diagnostics-event-tags span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--line);border-radius:6px;padding:3px 6px;color:var(--text-3);font-size:10px}
+@media (max-width:900px){.diagnostics-page{padding:28px 18px 48px}.diagnostics-hero{display:block}.diagnostics-actions{margin-top:20px}.diagnostics-stats{grid-template-columns:repeat(2,1fr)}.diagnostics-layout{grid-template-columns:1fr}}
+@media (max-width:620px){.diagnostics-hero h1{font-size:32px}.diagnostics-stats{grid-template-columns:1fr}.diagnostics-filters{display:none}}
