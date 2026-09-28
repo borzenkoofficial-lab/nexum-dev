@@ -246,7 +246,7 @@ export class AgentLoop {
             : selectedRole === "director" ? "planner" : routeTask(task).role) as "planner" | "coder" | "debugger";
           const aiOptions = aiOptionsForTask(options, planningRole);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
-          modelPlan = await this.runtime.planWithAI(task, { ...aiOptions, role: planningRole } as AgentModelOptions, productPlan ?? undefined);
+          modelPlan = await this.runtime.planWithAI(task, compactAgentHistory(previousResults), { ...aiOptions, role: planningRole } as AgentModelOptions, productPlan ?? undefined);
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI planning failed";
           if (/(?:rate limit|rate-limit|too many requests|429)/i.test(message)) {
