@@ -151,6 +151,7 @@ function App() {
     const onRejection = (event: PromiseRejectionEvent) => report({ message: event.reason instanceof Error ? event.reason.message : String(event.reason), stack: event.reason instanceof Error ? event.reason.stack : undefined, source: "unhandledrejection" });
     const onPreviewMessage = (event: MessageEvent) => {
       const data = event.data as { source?: string; projectId?: string; kind?: string; message?: string; stack?: string };
+      if (event.origin !== window.location.origin) return;
       if (data?.source !== "nexum-preview" || data.projectId !== activeProjectId || typeof data.message !== "string") return;
       setProblems((items) => [...items, { message: `Preview ${data.kind ?? "error"}: ${data.message}`, source: "preview" }].slice(-20));
       void fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/preview/runtime-error`, {
@@ -169,7 +170,7 @@ function App() {
       window.removeEventListener("unhandledrejection", onRejection);
       window.removeEventListener("message", onPreviewMessage);
     };
-  }, []);
+  }, [activeProjectId]);
 
   useEffect(() => {
     try {
