@@ -8,7 +8,7 @@ import { diagnoseError } from "./errorRecovery.js";
 import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVerificationState } from "./taskState.js";
 import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
-import { routeTask } from "../ai/taskRouter.js";
+import { executionBudget, routeTask } from "../ai/taskRouter.js";
 import { NexumDirector } from "../ai/director.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 import type {
@@ -140,6 +140,9 @@ export class AgentLoop {
     let productPlannerCreated = false;
     const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
     const director = new NexumDirector();
+    const routing = routeTask(task);
+    const routingBudget = executionBudget(routing);
+    const maxPlannerCalls = Math.min(MAX_AI_PLANNER_CALLS, routingBudget.maxAiCalls);
     const aiOptionsForTask = (base?: GatewayGenerateOptions, role: "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" = "general"): GatewayGenerateOptions | undefined => {
       const maxTokens = adaptiveBudget.reserve(role, typeof base?.maxTokens === "number" && base.maxTokens > 0 ? base.maxTokens : undefined);
       return maxTokens > 0 ? { ...(base ?? {}), maxTokens } : undefined;
@@ -232,7 +235,7 @@ export class AgentLoop {
         })),
       });
       const plannerContextSeen = seenPlannerContexts.has(plannerContextFingerprint);
-      if (this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < MAX_AI_PLANNER_CALLS && !plannerContextSeen) {
+      if (this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < maxPlannerCalls && !plannerContextSeen) {
         try {
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
@@ -243,7 +246,7 @@ export class AgentLoop {
             : selectedRole === "director" ? "planner" : routeTask(task).role) as "planner" | "coder" | "debugger";
           const aiOptions = aiOptionsForTask(options, planningRole);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
-          modelPlan = await this.runtime.planWithAI(task, compactHistory, aiOptions as AgentModelOptions, productPlan ?? undefined);
+          modelPlan = await this.runtime.planWithAI(task, { ...aiOptions, role: planningRole } as AgentModelOptions, productPlan ?? undefined);
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI planning failed";
           if (/(?:rate limit|rate-limit|too many requests|429)/i.test(message)) {
