@@ -240,7 +240,7 @@ export class ProjectManager {
 
   private defaultIndexHtml(name: string): string {
     return `<!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -275,8 +275,8 @@ button { border: 0; border-radius: 12px; padding: 14px 20px; background: #111; c
 
   private defaultAppJs(name: string): string {
     return `document.getElementById("action")?.addEventListener("click", () => {
-  document.querySelector("p").textContent = "NEXUM Agent can now replace this starter with your real product.";
-  document.title = "${name} — NEXUM";
+  document.querySelector("p").textContent = "Агент готов заменить стартовый экран полноценной реализацией вашего продукта.";
+  document.title = "${name}";
 });`;
   }
 
