@@ -116,6 +116,7 @@ interface ChatJob {
 const chatJobs = new Map<string, ChatJob>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
 const runtimeRecoveryInFlight = new Set<string>();
+const projectJobsInFlight = new Set<string>();
 const runtimeRecoveryLastStartedAt = new Map<string, number>();
 const RUNTIME_RECOVERY_COOLDOWN_MS = 60_000;
 
@@ -149,6 +150,11 @@ async function runChatJob(
 
   try {
     const project = await getProjectManager(userId).getActiveProject(projectId);
+    const projectLockKey = userId + ":" + project.id;
+    if (projectJobsInFlight.has(projectLockKey)) {
+      throw new Error("Another AI job is already running for this project.");
+    }
+    projectJobsInFlight.add(projectLockKey);
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     const checkpoint = await checkpointManager.create(project.id, project.path, `before agent job ${jobId}`);
@@ -259,6 +265,7 @@ ${attachment.content.slice(0, 80_000)}`);
       job.error = result.error ?? "AI agent failed";
       void agentHistory.record({ type: "job-failed", jobId, projectId, userId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
+      projectJobsInFlight.delete(projectLockKey);
       return;
     }
 
@@ -283,6 +290,7 @@ ${attachment.content.slice(0, 80_000)}`);
       } catch { return ""; }
     }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
     await stateManager.markCompleted(message.slice(0, 240));
+    projectJobsInFlight.delete(projectLockKey);
     console.log("[Nexum] chat job completed", jobId);
   } catch (error) {
     job.status = "failed";
@@ -290,6 +298,7 @@ ${attachment.content.slice(0, 80_000)}`);
     job.updatedAt = Date.now();
     job.error = error instanceof Error ? error.message : "AI provider request failed";
     void agentHistory.record({ type: "job-exception", jobId, projectId, userId, provider, model, status: "failed", message: job.error });
+    if (projectId) projectJobsInFlight.delete(userId + ":" + projectId);
     console.error("[Nexum] chat job failed", jobId, error);
   }
 }
@@ -346,7 +355,8 @@ app.get("/api/auth/me", authMiddleware, (req, res) => {
   return res.json({ success: true, user: getAuthUser(req) });
 });
 
-app.post("/api/auth/logout", (_req, res) => {
+app.post("/api/auth/logout", authMiddleware, (req, res) => {
+  runtimeAIKeysByUser.delete(getAuthUser(req).id);
   clearSessionCookie(res);
   return res.json({ success: true });
 });
@@ -934,7 +944,13 @@ app.post("/api/chat", async (req, res) => {
   try {
     // Validate the project before creating the background job so bad project IDs
     // still fail immediately instead of creating a job that can never run.
-    await getProjectManager(getAuthUser(req).id).getActiveProject(projectId);
+    const userId = getAuthUser(req).id;
+    const activeProject = await getProjectManager(userId).getActiveProject(projectId);
+    const projectLockKey = userId + ":" + activeProject.id;
+    if (projectJobsInFlight.has(projectLockKey)) {
+      return res.status(409).json({ success: false, error: "Another AI job is already running for this project." });
+    }
+    projectJobsInFlight.add(projectLockKey);
 
     cleanupChatJobs();
     const jobId = randomUUID();
@@ -945,7 +961,7 @@ app.post("/api/chat", async (req, res) => {
       createdAt: now,
       updatedAt: now,
       stage: "queued",
-      userId: getAuthUser(req).id,
+      userId,
       attachments: normalizedAttachments.map((item) => item.name),
       productPlan: undefined,
     });
@@ -956,7 +972,7 @@ app.post("/api/chat", async (req, res) => {
       jobId,
       message.trim(),
       projectId,
-      getAuthUser(req).id,
+      userId,
       provider,
       model,
       normalizedAttachments,
