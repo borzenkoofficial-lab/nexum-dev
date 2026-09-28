@@ -115,6 +115,8 @@ interface ChatJob {
 }
 const chatJobs = new Map<string, ChatJob>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
+const runtimeRecoveryInFlight = new Set<string>();
+const MAX_RUNTIME_RECOVERY_ATTEMPTS = 1;
 
 function cleanupChatJobs() {
   const cutoff = Date.now() - CHAT_JOB_TTL_MS;
@@ -623,13 +625,15 @@ app.use("/api/preview/:id", authMiddleware, async (req, res) => {
 
 app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
   try {
-    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    const userId = getAuthUser(req).id;
+    const project = await getProjectManager(userId).getProject(req.params.id);
     const message = typeof req.body?.message === "string" ? req.body.message.slice(0, 4000) : "Preview runtime error";
     const stack = typeof req.body?.stack === "string" ? req.body.stack.slice(0, 8000) : undefined;
     const kind = typeof req.body?.kind === "string" ? req.body.kind.slice(0, 80) : "error";
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
-    await stateManager.refresh(undefined, undefined, [], [`preview:${kind}: ${message}`]);
+    const evidence = `preview runtime error [${kind}]: ${message}${stack ? `\n${stack}` : ""}`;
+    await stateManager.refresh(undefined, undefined, [], [evidence]);
     void agentHistory.record({
       type: "preview-runtime-error",
       projectId: project.id,
@@ -637,7 +641,46 @@ app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
       message,
       output: JSON.stringify({ kind, stack }),
     });
-    return res.status(202).json({ success: true });
+
+    // A browser runtime failure is a real debugger signal, not just telemetry.
+    // Start one bounded recovery job per project so repeated iframe events do
+    // not create an uncontrolled AI loop. The recovery job uses the same
+    // authenticated project workspace and normal Debugger -> verification flow.
+    const recoveryKey = `${userId}:${project.id}`;
+    if (!runtimeRecoveryInFlight.has(recoveryKey)) {
+      runtimeRecoveryInFlight.add(recoveryKey);
+      cleanupChatJobs();
+      const jobId = randomUUID();
+      const now = Date.now();
+      chatJobs.set(jobId, {
+        id: jobId,
+        status: "queued",
+        createdAt: now,
+        updatedAt: now,
+        stage: "queued",
+        userId,
+        problems: [{ message: `Preview runtime error: ${message}`, source: "Preview" }],
+      });
+      const recoveryMessage = [
+        "АВТОМАТИЧЕСКОЕ ВОССТАНОВЛЕНИЕ NEXUM.",
+        "Preview проекта сообщил реальную runtime-ошибку. Не создавай новый проект и не меняй домен продукта.",
+        "Сначала изучи текущий проект и стек ошибки, затем найди минимальную причину и исправь её.",
+        "После исправления обязательно выполни доступную проверку/сборку. Заверши только после успешной проверки.",
+        `Проект: ${project.name} (${project.id})`,
+        `Ошибка: ${message}`,
+        stack ? `Stack:\n${stack}` : "",
+      ].filter(Boolean).join("\n\n");
+      void runChatJob(jobId, recoveryMessage, project.id, userId, undefined, undefined, [], [])
+        .catch((error) => {
+          console.error("[Nexum] preview recovery failed", jobId, error);
+        })
+        .finally(() => {
+          runtimeRecoveryInFlight.delete(recoveryKey);
+        });
+      return res.status(202).json({ success: true, recovery: { started: true, jobId, maxAttempts: MAX_RUNTIME_RECOVERY_ATTEMPTS } });
+    }
+
+    return res.status(202).json({ success: true, recovery: { started: false, reason: "already-running" } });
   } catch (error) {
     return sendProjectError(res, error);
   }
