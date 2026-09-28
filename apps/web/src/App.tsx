@@ -157,7 +157,7 @@ function App() {
       void fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/preview/runtime-error`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: data.kind, message: data.message, stack: data.stack }),
+        body: JSON.stringify({ projectId: activeProjectId, kind: data.kind, message: data.message, stack: data.stack }),
         keepalive: true,
       }).then(async (response) => {
         const payload = await response.json().catch(() => ({})) as { recovery?: { started?: boolean; jobId?: string; reason?: string } };
