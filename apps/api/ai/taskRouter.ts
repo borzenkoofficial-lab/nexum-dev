@@ -13,12 +13,13 @@ export interface TaskRoutingDecision {
 
 const BUILD = /создай|сделай|разработай|построй|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|ui|код|code|добавь|измени|поменяй|реализ/i;
 const DEBUG = /ошиб|error|debug|не работает|слом|fix\s+(?:ошиб|баг|код|проблем)|исправь\s+(?:ошиб|баг|код|проблем)|exception|failed|crash|build failed|compile (?:error|failed)/i;
+const RUNTIME = /runtime|preview|предпросмотр|iframe|unhandledrejection|uncaught|stack trace|white screen|белый экран/i;
 const REVIEW = /проверь|провер|ревью|review|audit|аудит|оцени код|найди проблемы/i;
 const COMPLEX = /полностью|с нуля|full|production|продакш|автоном|marketplace|crm|backend|база|database|auth|авторизац|интеграц|api|платформ/i;
 
 export function routeTask(task: string): TaskRoutingDecision {
   const text = task.trim();
-  const debugging = DEBUG.test(text);
+  const debugging = DEBUG.test(text) || RUNTIME.test(text);
   const building = BUILD.test(text);
   const review = REVIEW.test(text);
   const complex = COMPLEX.test(text);
