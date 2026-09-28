@@ -74,7 +74,7 @@ export function executionBudget(decision: TaskRoutingDecision): {
   maxAiCalls: number;
   maxOutputTokens: number;
 } {
-  if (decision.mode === "simple") return { maxAiCalls: 1, maxOutputTokens: 1200 };
+  if (decision.mode === "simple") return { maxAiCalls: 2, maxOutputTokens: 1800 };
   if (decision.mode === "review") return { maxAiCalls: 1, maxOutputTokens: 1800 };
   if (decision.mode === "debug") return { maxAiCalls: 3, maxOutputTokens: 6500 };
   if (decision.complexity === "high") return { maxAiCalls: 4, maxOutputTokens: 8500 };
