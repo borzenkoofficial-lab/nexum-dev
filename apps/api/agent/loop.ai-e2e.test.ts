@@ -84,7 +84,7 @@ class RecoveryE2EProvider extends E2EProvider {
       if (this.recoveryCalls === 1) {
         return JSON.stringify({ tool: "writeFile", input: JSON.stringify({
           path: "index.html",
-          content: "<!doctype html><html lang="ru"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p></main></body></html>",
+          content: "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p></main></body></html>",
         }) });
       }
       return JSON.stringify({ done: true, finalResponse: "Debugger исправил ошибку и повторная проверка пройдена." });
@@ -99,7 +99,7 @@ class RecoveryE2EProvider extends E2EProvider {
 
 test("AI E2E recovers a real Preview-bound validation failure", async () => {
   const root = await mkdtemp(join(tmpdir(), "nexum-ai-recovery-e2e-"));
-  await writeFile(join(root, "index.html"), "<!doctype html><html lang="ru"><body><h1>Старый проект</h1></body></html>", "utf8");
+  await writeFile(join(root, "index.html"), "<!doctype html><html lang=\"ru\"><body><h1>Старый проект</h1></body></html>", "utf8");
 
   const provider = new RecoveryE2EProvider();
   const gateway = new AIGateway([provider], "openai");
