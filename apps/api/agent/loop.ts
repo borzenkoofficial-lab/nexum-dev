@@ -26,7 +26,7 @@ import type {
 } from "./types.js";
 
 const DEFAULT_MAX_ITERATIONS = 12;
-const MAX_AI_PLANNER_CALLS = 3;
+const MAX_AI_PLANNER_CALLS = 4;
 const MAX_PRODUCT_REVIEW_CALLS = 1;
 // One bounded token budget is shared by every remote AI call in a single task.
 // The budget is based on requested max tokens, so a long agent run cannot
