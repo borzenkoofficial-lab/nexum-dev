@@ -13,7 +13,8 @@ export interface RunCommandResult extends ToolResult {
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_BYTES = 32 * 1024;
-const SHELL_SYNTAX = /[;&|`$()<>\n\r\\]/;
+const SHELL_SYNTAX = /[;&|`$()<>
+\r\\]/;
 const BLOCKED_ARGUMENTS = new Set([
   "-c",
   "--config",
@@ -152,7 +153,8 @@ export class RunCommandTool implements Tool {
       throw new Error("npx package installation and shell options are not allowed");
     }
 
-    const safeArgs = args.includes("--no-install") ? args : [args[0], "--no-install", ...args.slice(1)];\n    return { executable: "npx", args: safeArgs };
+    const safeArgs = args.includes("--no-install") ? args : [args[0], "--no-install", ...args.slice(1)];
+    return { executable: "npx", args: safeArgs };
   }
 
   private validateNode(args: string[]): { executable: string; args: string[] } {
@@ -192,7 +194,8 @@ export class RunCommandTool implements Tool {
 
         if (chunk.byteLength > remaining) {
           outputLimitReached = true;
-          stderr += "\nOutput limit exceeded";
+          stderr += "
+Output limit exceeded";
           child.kill("SIGTERM");
         }
       };
@@ -202,7 +205,8 @@ export class RunCommandTool implements Tool {
 
       const timer = setTimeout(() => {
         timedOut = true;
-        stderr += "\nCommand timed out";
+        stderr += "
+Command timed out";
         child.kill("SIGTERM");
       }, this.timeoutMs);
 
