@@ -83,6 +83,37 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   }, [projectId, previewKey, previewOnline]);
 
   useEffect(() => {
+    if (!projectId || !previewOnline) return;
+    const source = new EventSource(`/api/projects/${encodeURIComponent(projectId)}/preview/live/events`);
+    const applyRevision = (raw: string) => {
+      try {
+        const live = JSON.parse(raw) as { revision?: string; cssRevision?: string; appRevision?: string };
+        const frame = previewFrameRef.current?.contentWindow;
+        if (!frame || !live.revision) return;
+        frame.postMessage(
+          {
+            source: "nexum-host",
+            projectId,
+            type: "update",
+            revision: live.revision,
+            cssRevision: live.cssRevision,
+            appRevision: live.appRevision,
+          },
+          window.location.origin,
+        );
+      } catch {
+        // Ignore malformed live-update events; the next event will reconcile state.
+      }
+    };
+    source.addEventListener("preview-ready", (event) => applyRevision((event as MessageEvent).data));
+    source.addEventListener("preview-update", (event) => applyRevision((event as MessageEvent).data));
+    source.onerror = () => {
+      // EventSource automatically reconnects. Preview remains usable while it reconnects.
+    };
+    return () => source.close();
+  }, [projectId, previewOnline]);
+
+  useEffect(() => {
     if (!previewOnline || !previewFrameRef.current?.contentWindow) return;
     if (stage !== "completed") return;
     previewFrameRef.current.contentWindow.postMessage(
