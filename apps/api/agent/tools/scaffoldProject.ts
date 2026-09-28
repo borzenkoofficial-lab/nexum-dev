@@ -37,7 +37,7 @@ export class ScaffoldProjectTool implements Tool {
           const starterApp = await readFile(join(dir, "app.js"), "utf8");
           canInitializeStarter =
             /Your project is ready\. Ask the Agent to design and build it\./i.test(starterHtml) &&
-            /NEXUM Agent can now replace this starter/i.test(starterApp);
+            /NEXUM Agent can now replace this starter|NEXUM project foundation ready/i.test(starterApp);
         } catch {
           canInitializeStarter = false;
         }
