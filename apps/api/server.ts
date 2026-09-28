@@ -541,6 +541,11 @@ app.use("/api/preview/:id", async (req, res) => {
     const hasBuild = await stat(distIndex).then(() => true).catch(() => false);
     let filePath = hasBuild ? distCandidate : sourceCandidate;
     const requestedExtension = extname(requestedPath);
+    const previewAllowed = new Set([".html", ".css", ".js", ".mjs", ".json", ".svg", ".png", ".jpg", ".jpeg", ".webp", ".ico", ".woff", ".woff2", ".ttf"]);
+    const basename = requestedPath.split("/").pop() ?? "";
+    if (basename.startsWith(".") || basename === "package-lock.json" || basename === "pnpm-lock.yaml" || basename === "yarn.lock" || (requestedExtension && !previewAllowed.has(requestedExtension.toLowerCase()))) {
+      return res.status(403).send("Preview file is not allowed");
+    }
 
     // Support client-side routes in single-page apps: /dashboard, /settings, etc.
     // If the requested route is not a real asset, serve the app entry document.
@@ -918,7 +923,7 @@ app.get("/api/agent/history", async (req, res) => {
   return res.json({ success: true, entries: await agentHistory.recent(Number.isFinite(limit) ? limit : 200) });
 });
 
-app.post("/api/agent/client-error", async (req, res) => {
+app.post("/api/agent/client-error", authMiddleware, async (req, res) => {
   const { message, stack, source, url } = req.body as {
     message?: unknown;
     stack?: unknown;
@@ -969,9 +974,10 @@ app.get("/api/agent/diagnostics", async (req, res) => {
 });
 
 app.get("/api/chat/jobs/:id", (req, res) => {
+  const userId = getAuthUser(req).id;
   cleanupChatJobs();
   const job = chatJobs.get(req.params.id);
-  if (!job) {
+  if (!job || job.userId !== userId) {
     return res.status(404).json({
       success: false,
       error: "Chat job not found or expired",
