@@ -757,7 +757,7 @@ export class AgentLoop {
           (graphStep.node.id === "inspect" && ["listFiles", "readFile", "searchFiles"].includes(plan.tool)) ||
           (graphStep.node.id === "findings" && plan.done)
         );
-        recordBuilderNodeResult(builderState, graphStep.node.id, nodeComplete);
+        recordBuilderNodeResult(builderState, graphStep.node.id, nodeComplete ?? false);
       }
       const runtimeRoot = this.runtime instanceof Object && "projectRoot" in this.runtime ? (this.runtime as { projectRoot?: string }).projectRoot : undefined;
       if (runtimeRoot) {
