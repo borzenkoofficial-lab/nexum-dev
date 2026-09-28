@@ -37,7 +37,7 @@ export class AIOrchestrator {
       : undefined;
 
     const candidates = requested
-      ? [{ provider: explicitProvider, model: requested }]
+      ? [{ provider: explicitProvider ?? this.gateway.getDefaultProviderId(), model: requested }]
       : explicitProvider && providerDefault
         ? [{ provider: explicitProvider, model: providerDefault }]
         : routes.length
