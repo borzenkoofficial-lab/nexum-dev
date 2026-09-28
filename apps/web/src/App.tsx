@@ -14,7 +14,10 @@ import type { AIProviderInfo, AIProviderStatus, AgentStage as АгентStage, P
 
 function App() {
   const [projects, setПроектs] = useState<Проект[]>([]);
-  const [activeПроектId, setActiveПроектId] = useState("nexum");
+  const [activeПроектId, setActiveПроектId] = useState(() => {
+    const segments = window.location.pathname.split("/").filter(Boolean);
+    return segments[0] === "projects" && segments[1] ? decodeURIComponent(segments[1]) : "nexum";
+  });
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
   const [lastMessage, setLastMessage] = useState("");
@@ -275,7 +278,14 @@ function App() {
   }, [modalOpen]);
 
   function openПроект(projectId: string) {
-    navigate("project", projectId);
+    const project = projects.find((item) => item.id === projectId);
+    if (project) {
+      setActiveПроектId(projectId);
+      setReply("");
+      setАгентStage(null);
+      setViewState("project");
+      navigate("project", projectId);
+    }
     void selectПроект(projectId);
   }
 
