@@ -13,7 +13,7 @@ export type DesignTokens = {
 export type DesignSpec = {
   version: 1;
   productType: string;
-  domain: string;
+  domain?: string;
   visualDirection: string;
   audience: string;
   tokens: DesignTokens;
