@@ -96,7 +96,7 @@ export function getModelRegistry(): ModelRoute[] {
       id: "coding-worker",
       label: "Coding Worker",
       provider: process.env.NEXUM_CODING_WORKER_PROVIDER || "openrouter",
-      model: process.env.NEXUM_CODING_WORKER_MODEL || "qwen/qwen3-coder:free",
+      model: process.env.NEXUM_CODING_WORKER_MODEL || process.env.OPENROUTER_MODEL || "openrouter/free",
       roles: ["coder", "debugger", "tester"],
       capabilities: ["coding", "debugging", "cheap"],
       priority: 70,
