@@ -62,12 +62,12 @@ export async function prepareAutonomousDesignPipeline(
     buildVerified: live.buildReady && live.mode === "built-app",
   };
   const gates=evaluatePipelineGates(base);
-  const allDesignGates=gates.slice(0,4).every((gate)=>gate.passed);
+  const allGates=gates.every((gate)=>gate.passed);
   return {
-    stage: allDesignGates ? (live.buildReady ? "live" : "verify") : "design",
+    stage: allGates ? "done" : gates.find((gate)=>!gate.passed)?.name === "build" ? "build" : "verify",
     ...base,
-    readyForLive: allDesignGates && live.buildReady,
-    completed: allDesignGates && live.buildReady,
+    readyForLive: allGates,
+    completed: allGates,
   };
 }
 
