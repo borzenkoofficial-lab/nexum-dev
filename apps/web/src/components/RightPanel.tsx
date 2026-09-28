@@ -80,7 +80,14 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
 
   useEffect(() => {
     setPreviewError("");
-  }, [projectId, previewKey, previewOnline]);
+  }, [projectId, previewKey, previewOnline]);\n\n  useEffect(() => {
+    if (!previewOnline || !previewFrameRef.current?.contentWindow) return;
+    if (stage !== "completed") return;
+    previewFrameRef.current.contentWindow.postMessage(
+      { source: "nexum-host", projectId, type: "refresh" },
+      window.location.origin,
+    );
+  }, [stage, projectId, previewOnline, previewKey]);
 
   function handlePreviewLoad() {
     setPreviewError("");
