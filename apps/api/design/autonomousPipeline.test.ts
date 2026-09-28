@@ -22,7 +22,6 @@ test("autonomous pipeline derives design, interactions and verification", async 
     const snapshot = await getPipelineSnapshot(root);
     assert.equal(snapshot.readyForLive, false);
     assert.equal(snapshot.completed, false);
-    assert.equal(snapshot.completed, false);
 
     await mkdir(resolve(root, "dist"), { recursive: true });
     await writeFile(resolve(root, "dist", "index.html"), await readFileCompat(resolve(root, "index.html")), "utf8");
