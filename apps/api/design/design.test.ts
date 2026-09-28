@@ -28,7 +28,8 @@ test("interaction bridge emits runtime interaction contract", () => {
 
 test("visual verification checks responsive document basics", async () => {
   const root=await mkdtemp(join(tmpdir(),"nexum-visual-"));
-  await writeFile(join(root,"index.html"),'<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width"></head><body><button>OK</button></body></html>');
+  await writeFile(join(root,"index.html"),'<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width"><style>button{padding:8px}</style></head><body><button>OK</button></body></html>');
+  await writeDesignSpec(root,{...deriveDesignSpec({features:["modal"]}),interactions:[{id:"primary",component:"Button",event:"click",action:"execute-primary-action"}]});
   const result=await verifyDesign(root);
   assert.equal(result.passed,true);
   assert.equal(result.score,100);
