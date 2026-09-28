@@ -29,6 +29,7 @@ export interface GatewayGenerationResult {
   provider: string;
   model: string;
   fallback: boolean;
+  usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
 }
 
 export class AIGateway {
