@@ -28,7 +28,7 @@ test("interaction bridge emits runtime interaction contract", () => {
 
 test("visual verification checks responsive document basics", async () => {
   const root=await mkdtemp(join(tmpdir(),"nexum-visual-"));
-  await writeFile(join(root,"index.html"),'<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width"><style>button{padding:8px}</style></head><body><button>OK</button></body></html>');
+  await writeFile(join(root,"index.html"),'<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width"><style>button{padding:8px}</style></head><body><button data-nexum-action="execute-primary-action">OK</button></body></html>');
   await writeDesignSpec(root,{...deriveDesignSpec({features:["modal"]}),interactions:[{id:"primary",component:"Button",event:"click",action:"execute-primary-action"}]});
   const result=await verifyDesign(root);
   assert.equal(result.passed,true);
@@ -39,7 +39,7 @@ test("visual verification rejects a known domain mismatch", async () => {
   const root=await mkdtemp(join(tmpdir(),"nexum-domain-"));
   await writeFile(
     join(root,"index.html"),
-    '<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width"><style>button{padding:8px}</style></head><body><main><h1>Цифровой продукт</h1><button>Открыть</button></main></body></html>',
+    '<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width"><style>button{padding:8px}</style></head><body><main><h1>Цифровой продукт</h1><button data-nexum-action="execute-primary-action">Открыть</button></main></body></html>',
   );
   await writeDesignSpec(root,{
     ...deriveDesignSpec({domain:"automotive",productType:"auto-repair",features:["booking"]}),
