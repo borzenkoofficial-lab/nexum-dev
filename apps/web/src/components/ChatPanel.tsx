@@ -59,9 +59,21 @@ export function ChatPanel({
 
         {messages.length === 0 ? (
           <div className="welcome">
-            <span className="eyebrow">NEXUM AGENT</span>
+            <span className="eyebrow">NEXUM / BUILDER</span>
             <h1>Что создаём?</h1>
-            <p>Опишите идею обычным языком. NEXUM спланирует работу, изменит проект и покажет результат.</p>
+            <p>Опишите продукт обычным языком. NEXUM разложит задачу на архитектуру, интерфейс и логику, затем покажет живой результат.</p>
+            <div className="builder-editorial-preview" aria-hidden="true">
+              <div className="builder-preview-chrome"><span/><span/><span/><b>PROJECT / LIVE BUILD</b><em>● READY</em></div>
+              <div className="builder-preview-body">
+                <div className="builder-preview-sidebar"><i/><i/><i/><i/></div>
+                <div className="builder-preview-canvas">
+                  <div className="builder-preview-top"><small>YOUR PRODUCT</small><b>Describe it. NEXUM builds it.</b></div>
+                  <div className="builder-preview-blocks"><i/><i/><i/></div>
+                  <div className="builder-preview-footer"><span>Preview</span><span>Agent</span><span>Iteration</span></div>
+                </div>
+                <div className="builder-preview-agent"><small>AGENT</small><b>Ready to build</b><span>Analyze → Plan → Build → Verify</span><i/></div>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="conversation" aria-live="polite">
