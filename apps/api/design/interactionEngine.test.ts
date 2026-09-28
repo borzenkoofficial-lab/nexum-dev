@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deriveDesignSpec } from "./designSpec.js";
+import { deriveDesignSpec, type DesignSpec } from "./designSpec.js";
 import { deriveInteractionContract, allowedInteraction, createInteractionRecord, resolveInteraction } from "./interactionEngine.js";
 
 test("interaction engine accepts contracted events and resolves state",()=>{
@@ -14,7 +14,7 @@ test("interaction engine accepts contracted events and resolves state",()=>{
 });
 
 test("interaction engine rejects unsupported action target",()=>{
-  const spec={...deriveDesignSpec({}),interactions:[{id:"x",component:"Button",event:"click" as const,action:"save",target:"save-button"}]};
+  const spec={...deriveDesignSpec({}),interactions:[{id:"x",component:"Button",event:"click" as const,action:"save",target:"save-button"}]} as DesignSpec;
   const event={projectId:"p1",type:"click" as const,target:"other-button",timestamp:Date.now()};
   assert.equal(allowedInteraction(spec,event),false);
 });
