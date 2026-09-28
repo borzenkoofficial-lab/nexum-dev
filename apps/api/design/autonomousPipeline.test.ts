@@ -20,7 +20,8 @@ test("autonomous pipeline derives design, interactions and verification", async 
     assert.equal(prepared.stage, "build");
 
     const snapshot = await getPipelineSnapshot(root);
-    assert.equal(snapshot.readyForLive, true);
+    assert.equal(snapshot.readyForLive, false);
+    assert.equal(snapshot.completed, false);
     assert.equal(snapshot.completed, false);
 
     await mkdir(resolve(root, "dist"), { recursive: true });
