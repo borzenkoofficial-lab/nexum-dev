@@ -41,6 +41,13 @@ export function BottomPanel({ jobId, stage, activitySteps, activityEvents, curre
       <div><span className="eyebrow">ИИ-АГЕНТ</span><h2>{live ? "Агент работает" : stage === "completed" ? "Работа завершена" : stage === "error" ? "Агент остановлен" : "Агент готов"}</h2></div>
       <span className={`agent-status-pill ${live ? "live" : stage === "error" ? "error" : "done"}`}><i />{labels[stage ?? ""] ?? "Готов"}</span>
     </div>
+    <div className="agent-hero-mockup">
+      <div className="agent-hero-top"><span className="eyebrow">NEXUM / AGENT</span><span className={live ? "agent-hero-live" : "agent-hero-ready"}><i />{live ? "LIVE" : "READY"}</span></div>
+      <strong>{live ? "NEXUM is building." : stage === "completed" ? "Build complete." : stage === "error" ? "Repair required." : "Ready for your next build."}</strong>
+      <p>{currentActivity || "The agent turns a product brief into architecture, code, Preview and verification."}</p>
+      <div className="agent-hero-track"><span className="is-done"/><span className={live ? "is-live" : stage === "completed" ? "is-done" : ""}/><span className={stage === "completed" ? "is-done" : ""}/><span className={stage === "completed" ? "is-done" : ""}/><span className={stage === "completed" ? "is-done" : ""}/></div>
+      <div className="agent-hero-labels"><span>Analyze</span><span>Plan</span><span>Build</span><span>Verify</span><span>Done</span></div>
+    </div>
     <div className="agent-current"><span className={live ? "activity-dot working" : "activity-dot"} /><div><strong>{labels[stage ?? ""] ?? "Готов"}</strong><p>{currentActivity || "Отправьте задачу — NEXUM выполнит её здесь, без терминала."}</p></div></div>
     <div className="agent-pipeline" aria-label="Этапы работы агента">
       {([
