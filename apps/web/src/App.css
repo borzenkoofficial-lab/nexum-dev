@@ -3519,3 +3519,103 @@ body{overflow-x:hidden!important}
   .right-panel{flex-basis:62vh!important;min-height:460px!important}
   .editor-body{grid-template-columns:145px minmax(0,1fr)!important}
 }
+
+
+/* NEXUM DESIGN SYSTEM 2.0 — unified visual language */
+:root{
+  --nx-bg:#0a0d0f;
+  --nx-surface:#101417;
+  --nx-surface-2:#151a1e;
+  --nx-surface-3:#1b2227;
+  --nx-border:rgba(255,255,255,.09);
+  --nx-border-hover:rgba(255,255,255,.16);
+  --nx-text:#f2f5f3;
+  --nx-text-2:#b2bbb6;
+  --nx-text-3:#747f79;
+  --nx-accent:#d7ff45;
+  --nx-accent-hover:#e2ff72;
+  --nx-danger:#ff756d;
+  --nx-radius-sm:8px;
+  --nx-radius-md:12px;
+  --nx-radius-lg:16px;
+  --nx-shadow:0 18px 55px rgba(0,0,0,.32);
+  --nx-motion:180ms cubic-bezier(.22,1,.36,1);
+}
+*,*:before,*:after{box-sizing:border-box}
+button,input,textarea,select{font:inherit}
+button{transition:background var(--nx-motion),border-color var(--nx-motion),color var(--nx-motion),transform var(--nx-motion),opacity var(--nx-motion)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--nx-accent);outline-offset:2px}
+.app{color:var(--nx-text)}
+.main{background:var(--nx-bg)}
+.eyebrow{color:var(--nx-text-3)!important;letter-spacing:.12em!important;font-size:10px!important;font-weight:750!important}
+.page-heading h1,.home-hero h1{letter-spacing:-.035em!important}
+.page-heading p,.home-hero p{color:var(--nx-text-2)!important;max-width:680px!important;line-height:1.6!important}
+.home-primary{
+  min-height:38px!important;padding:0 15px!important;border:0!important;border-radius:var(--nx-radius-sm)!important;
+  background:var(--nx-accent)!important;color:#101500!important;font-weight:750!important;
+  box-shadow:0 5px 18px rgba(215,255,69,.10)!important
+}
+.home-primary:hover{background:var(--nx-accent-hover)!important;transform:translateY(-1px)!important}
+.home-primary:disabled{opacity:.45!important;transform:none!important}
+.project-grid,.connector-grid,.settings-grid{align-items:stretch!important}
+.project-window,.connector-card,.settings-card{
+  border:1px solid var(--nx-border)!important;
+  border-radius:var(--nx-radius-md)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.012))!important;
+  box-shadow:none!important;
+}
+.project-window:hover,.connector-card:hover,.settings-card:hover{border-color:var(--nx-border-hover)!important}
+.project-window{min-width:0!important;text-align:left!important}
+.project-window-description,.connector-copy p,.settings-card small{color:var(--nx-text-2)!important;line-height:1.55!important}
+.project-window-meta{color:var(--nx-text-3)!important}
+.project-window-meta b{color:var(--nx-accent)!important}
+.workspace-toolbar{border-bottom:1px solid var(--nx-border)!important}
+.workspace-breadcrumb{min-width:0!important}
+.workspace-breadcrumb strong{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.workspace-actions{position:relative!important;display:flex!important;align-items:center!important;gap:6px!important}
+.workspace-actions>button{
+  min-height:32px!important;padding:0 10px!important;border:1px solid var(--nx-border)!important;
+  border-radius:var(--nx-radius-sm)!important;background:transparent!important;color:var(--nx-text-2)!important;font-size:11px!important
+}
+.workspace-actions>button:hover{border-color:var(--nx-border-hover)!important;background:rgba(255,255,255,.045)!important;color:var(--nx-text)!important}
+.workspace-actions .workspace-deploy{background:var(--nx-accent)!important;color:#101500!important;border-color:transparent!important;font-weight:750!important}
+.workspace-actions .workspace-deploy:hover{background:var(--nx-accent-hover)!important}
+.chat{color:var(--nx-text)!important}
+.welcome h1{font-size:clamp(34px,4vw,54px)!important;line-height:1.02!important;letter-spacing:-.045em!important}
+.welcome p{max-width:640px!important;color:var(--nx-text-2)!important;line-height:1.6!important}
+.message-box{
+  border:1px solid var(--nx-border-hover)!important;
+  border-radius:var(--nx-radius-lg)!important;
+  background:var(--nx-surface)!important;
+  box-shadow:0 20px 70px rgba(0,0,0,.20)!important;
+}
+.message-box:focus-within{border-color:rgba(215,255,69,.35)!important;box-shadow:0 20px 70px rgba(0,0,0,.28),0 0 0 1px rgba(215,255,69,.08)!important}
+.message-box textarea{color:var(--nx-text)!important;background:transparent!important}
+.message-box textarea::placeholder{color:var(--nx-text-3)!important}
+.send-button{border-radius:10px!important;background:var(--nx-accent)!important;color:#101500!important;font-weight:800!important}
+.send-button:hover{background:var(--nx-accent-hover)!important;transform:translateY(-1px)!important}
+.quick-actions{gap:8px!important}
+.quick-action-grid button{
+  min-height:44px!important;border:1px solid var(--nx-border)!important;border-radius:var(--nx-radius-sm)!important;
+  background:var(--nx-surface)!important;color:var(--nx-text-2)!important;text-align:left!important
+}
+.quick-action-grid button:hover{background:var(--nx-surface-2)!important;border-color:var(--nx-border-hover)!important;color:var(--nx-text)!important}
+.right-panel{background:var(--nx-surface)!important}
+.panel-tabs{border-bottom:1px solid var(--nx-border)!important;background:rgba(16,20,23,.94)!important}
+.panel-tabs button{color:var(--nx-text-3)!important;border:0!important;background:transparent!important}
+.panel-tabs button:hover{color:var(--nx-text)!important}
+.panel-tabs button.active{color:var(--nx-text)!important;box-shadow:inset 0 -2px var(--nx-accent)!important}
+.project-editor-status .status-dot{width:7px!important;height:7px!important}
+.project-editor-status .status-dot.online{box-shadow:0 0 0 4px rgba(215,255,69,.08)!important;background:var(--nx-accent)!important}
+.toast{border:1px solid var(--nx-border-hover)!important;border-radius:10px!important;background:#151a1e!important;color:var(--nx-text)!important;box-shadow:var(--nx-shadow)!important}
+@media(max-width:900px){
+  .workspace-toolbar{padding-inline:14px!important}
+  .workspace-actions>button:not(.workspace-deploy){display:none!important}
+  .workspace-actions .workspace-deploy{display:block!important}
+}
+@media(max-width:620px){
+  .home-hero{gap:22px!important}
+  .home-hero h1{font-size:42px!important}
+  .page-heading{gap:18px!important}
+  .page-heading h1{font-size:34px!important}
+}
