@@ -980,6 +980,7 @@ app.get("/api/agent/history", async (req, res) => {
   const userProjects = await getProjectManager(userId).listProjects();
   const projectIds = new Set(userProjects.map((project) => project.id));
   const entries = (await agentHistory.recent(Number.isFinite(limit) ? limit : 200))
+    .filter((entry) => !entry.userId || entry.userId === userId)
     .filter((entry) => !entry.projectId || projectIds.has(entry.projectId));
   return res.json({ success: true, entries });
 });
@@ -994,6 +995,7 @@ app.post("/api/agent/client-error", authMiddleware, async (req, res) => {
   const errorMessage = typeof message === "string" ? message.slice(0, 4000) : "Unknown client error";
   void agentHistory.record({
     type: "client-error",
+    userId: getAuthUser(req).id,
     status: "error",
     message: errorMessage,
     output: JSON.stringify({
@@ -1011,7 +1013,9 @@ app.get("/api/agent/diagnostics", async (req, res) => {
   const userId = getAuthUser(req).id;
   const userProjects = await getProjectManager(userId).listProjects();
   const projectIds = new Set(userProjects.map((project) => project.id));
-  const entries = (await agentHistory.recent(limit)).filter((entry) => !entry.projectId || projectIds.has(entry.projectId));
+  const entries = (await agentHistory.recent(limit))
+    .filter((entry) => !entry.userId || entry.userId === userId)
+    .filter((entry) => !entry.projectId || projectIds.has(entry.projectId));
   const failures = entries.filter((entry) =>
     (entry.type === "agent-event" && (entry.status === "tool-error" || entry.status === "failed")) ||
     entry.type === "job-failed" ||
