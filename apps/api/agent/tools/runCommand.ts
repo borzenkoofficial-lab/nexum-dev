@@ -13,7 +13,7 @@ export interface RunCommandResult extends ToolResult {
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_BYTES = 32 * 1024;
-const SHELL_SYNTAX = /[;&|`$()<>
+const SHELL_SYNTAX = /[;&|`$()<>\n\r\\]/;
 \r\\]/;
 const BLOCKED_ARGUMENTS = new Set([
   "-c",
@@ -194,8 +194,7 @@ export class RunCommandTool implements Tool {
 
         if (chunk.byteLength > remaining) {
           outputLimitReached = true;
-          stderr += "
-Output limit exceeded";
+          stderr += "\nOutput limit exceeded";
           child.kill("SIGTERM");
         }
       };
@@ -206,8 +205,7 @@ Output limit exceeded";
       const timer = setTimeout(() => {
         timedOut = true;
         stderr += "
-Command timed out";
-        child.kill("SIGTERM");
+        stderr += "\nCommand timed out";
       }, this.timeoutMs);
 
       child.on("error", (error) => {
