@@ -640,7 +640,7 @@ app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
     const message = typeof req.body?.message === "string" ? req.body.message.slice(0, 4000) : "Preview runtime error";
     const stack = typeof req.body?.stack === "string" ? req.body.stack.slice(0, 8000) : undefined;
     const kind = typeof req.body?.kind === "string" ? req.body.kind.slice(0, 80) : "error";
-    const originProjectId = typeof req.body?.projectId === "string" ? req.body.projectId : "";
+    const originProjectId = typeof req.body?.projectId === "string" ? req.body.projectId : "";\n    // projectId is supplied by the injected Preview bridge and must match the route project.
     if (originProjectId && originProjectId !== String(project.id)) return res.status(400).json({ success: false, error: "Preview project mismatch" });
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
