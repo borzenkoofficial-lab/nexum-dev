@@ -159,6 +159,16 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind: data.kind, message: data.message, stack: data.stack }),
         keepalive: true,
+      }).then(async (response) => {
+        const payload = await response.json().catch(() => ({})) as { recovery?: { started?: boolean; jobId?: string; reason?: string } };
+        if (!response.ok) return;
+        if (payload.recovery?.started && payload.recovery.jobId) {
+          setChatJobId(payload.recovery.jobId);
+          setRightTab("agent");
+          setNotice("NEXUM обнаружил runtime-ошибку и запустил автоматический Debugger.");
+        } else if (payload.recovery?.reason === "already-running") {
+          setNotice("Debugger уже исправляет текущую runtime-ошибку.");
+        }
       }).catch(() => {});
     };
 
