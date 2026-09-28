@@ -123,14 +123,36 @@ export function selectContext(
       ...compact,
       project: {
         ...compact.project,
-        files: candidates.slice(0, Math.max(4, Math.floor(config.maxFiles / 2))),
-        routes: routes.slice(0, Math.max(4, Math.floor(config.maxRoutes / 2))),
-        architecture: architecture.slice(0, Math.max(4, Math.floor(config.maxArchitecture / 2))),
-        risks: errors.slice(0, Math.max(3, Math.floor(config.maxErrors / 2))),
+        files: candidates.slice(0, Math.max(3, Math.floor(config.maxFiles / 2))),
+        routes: routes.slice(0, Math.max(3, Math.floor(config.maxRoutes / 2))),
+        architecture: architecture.slice(0, Math.max(3, Math.floor(config.maxArchitecture / 2))),
+        risks: errors.slice(0, Math.max(2, Math.floor(config.maxErrors / 2))),
       },
     };
-    compactSummary = JSON.stringify(reduced).slice(0, config.maxChars);
+    compactSummary = JSON.stringify(reduced);
   }
+  if (compactSummary.length > config.maxChars) {
+    const minimal = {
+      task: task.slice(0, 500),
+      intent: {
+        mode: intent.mode,
+        domain: intent.domain,
+        productType: intent.productType,
+      },
+      project: {
+        framework: understanding.framework,
+        health: understanding.health,
+        entryPoints: understanding.entryPoints.slice(0, 4),
+        files: candidates.slice(0, 4),
+        routes: routes.slice(0, 4),
+        architecture: architecture.slice(0, 4),
+        risks: errors.slice(0, 2),
+      },
+    };
+    compactSummary = JSON.stringify(minimal);
+  }
+  // Keep the context structurally valid JSON even when a caller requests an
+  // unusually small character budget. Never slice serialized JSON mid-token.
 
   return {
     task,
