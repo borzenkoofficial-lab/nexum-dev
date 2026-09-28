@@ -72,7 +72,8 @@ class ScriptedAgent extends NexumAgent {
     if (!previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
       return { tool: "listFiles", input: "." };
     }
-    if (!previousResults.some((item) => item.tool === "writeFile" && item.result.success)) {
+    const writes = previousResults.filter((item) => item.tool === "writeFile" && item.result.success);
+    if (writes.length === 0) {
       return {
         tool: "writeFile",
         input: JSON.stringify({
@@ -80,6 +81,15 @@ class ScriptedAgent extends NexumAgent {
           content: this.malformed
             ? "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p>"
             : "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p></main></body></html>",
+        }),
+      };
+    }
+    if (writes.length === 1) {
+      return {
+        tool: "writeFile",
+        input: JSON.stringify({
+          path: "style.css",
+          content: "body{font-family:system-ui} main{padding:40px}",
         }),
       };
     }
