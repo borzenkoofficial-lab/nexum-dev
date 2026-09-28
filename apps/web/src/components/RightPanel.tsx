@@ -127,7 +127,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
           <button type="button" className="preview-browser-reload" onClick={onRefreshPreview} aria-label="Перезагрузить предпросмотр">↻</button>
         </div>
         <div className="preview-viewport">
-          <iframe ref={previewFrameRef} key={previewKey} className="preview-frame" title={projectName + " live preview"} src={previewUrl} onLoad={handlePreviewLoad} sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" />
+          <iframe ref={previewFrameRef} key={previewKey} className="preview-frame" title={projectName + " live preview"} src={previewUrl} onLoad={handlePreviewLoad} sandbox="allow-scripts" referrerPolicy="no-referrer" />
           {previewError && <div className="preview-runtime-error" role="alert">{previewError}</div>}
         </div>
       </div>
