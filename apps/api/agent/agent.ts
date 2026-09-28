@@ -118,7 +118,10 @@ ${result.output}`
     try {
       const run = await this.orchestrator.run("planner", prompt, options);
       const parsed = this.parseProductPlan(run.response);
-      if (parsed) return parsed;
+      if (parsed && this.isProductPlanAlignedWithTask(task, parsed)) return parsed;
+      if (parsed) {
+        console.warn("[agent] rejected product plan because it does not match the user domain; using deterministic recovery");
+      }
 
       // A malformed response is worth one repair pass, but a provider rate-limit
       // is not: retrying immediately only burns another request and delays the
@@ -686,6 +689,29 @@ ${result.output}`
         "No placeholder/demo NEXUM starter content remains",
       ],
     };
+  }
+
+  private isProductPlanAlignedWithTask(task: string, plan: ProductPlan): boolean {
+    const lower = task.toLowerCase();
+    const domainSignals: Array<{ pattern: RegExp; required: RegExp }> = [
+      {
+        pattern: /строит|строитель|демонтаж|фасад|подряд|отделк|бетон|стяжк|штукатур|монтаж|кровл|стройк|генподряд|бригада|грузчик/i,
+        required: /строит|демонтаж|фасад|подряд|объект|бригада|отделк|бетон|стяжк|штукатур|монтаж|кровл/i,
+      },
+      {
+        pattern: /авто|автомобил|автосервис|сто\\b|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/i,
+        required: /авто|автомобил|автосервис|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/i,
+      },
+      {
+        pattern: /доставк|курьер|логист|такси|перевоз/i,
+        required: /доставк|курьер|логист|перевоз|заказ/i,
+      },
+    ];
+    const matched = domainSignals.find((item) => item.pattern.test(lower));
+    if (!matched) return true;
+    const serialized = JSON.stringify(plan).toLowerCase();
+    const genericDigital = /nexum\\.dev|digital products|ai studio|saas|software products|digital systems/.test(serialized);
+    return matched.required.test(serialized) && !genericDigital;
   }
 
   private isPlanAlignedWithTask(task: string, plan: AgentPlan): boolean {
