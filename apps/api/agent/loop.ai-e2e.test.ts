@@ -39,9 +39,6 @@ class E2EProvider implements AIProvider {
       return JSON.stringify({ tool: "listFiles", input: "." });
     }
     if (this.calls === 2) {
-      return JSON.stringify({ tool: "readFile", input: "index.html" });
-    }
-    if (this.calls === 3) {
       return JSON.stringify({
         tool: "writeFile",
         input: JSON.stringify({
