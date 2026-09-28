@@ -277,10 +277,9 @@ ${attachment.content.slice(0, 80_000)}`);
       return;
     }
 
-    job.status = "completed";
-    job.stage = "completed";
-    if (result.finalResponse !== undefined) job.reply = result.finalResponse;
-    void agentHistory.record({ type: "job-completed", jobId, projectId, userId, provider, model, status: "completed", message: result.finalResponse });
+    // Do not mark the job completed until the autonomous design/build/live gates
+    // have been finalized. A successful agent loop is not sufficient evidence that
+    // the generated application is actually ready for the user.
     job.steps = result.steps;
     job.productPlan = result.productPlan;
     const intent = extractIntent(message);
@@ -305,9 +304,25 @@ ${attachment.content.slice(0, 80_000)}`);
         },
       ];
     }
+
+    // The externally visible job status follows the final acceptance gates.
+    // This prevents the UI/API from reporting "completed" while verification
+    // still has a failed gate.
+    job.status = finalizedPipeline.completed ? "completed" : "failed";
+    job.stage = finalizedPipeline.completed ? "completed" : "error";
     job.currentMessage = finalizedPipeline.completed
       ? "Autonomous pipeline completed: build, design verification and live preview are ready."
-      : `Autonomous pipeline completed with gate status: ${finalizedPipeline.stage}.`;
+      : `Autonomous pipeline failed acceptance gates at stage: ${finalizedPipeline.stage}.`;
+    void agentHistory.record({
+      type: finalizedPipeline.completed ? "job-completed" : "job-failed",
+      jobId,
+      projectId,
+      userId,
+      provider,
+      model,
+      status: finalizedPipeline.completed ? "completed" : "failed",
+      message: job.currentMessage,
+    });
     void agentHistory.record({
       type: "autonomous-pipeline",
       jobId,
@@ -329,9 +344,18 @@ ${attachment.content.slice(0, 80_000)}`);
         return typeof parsed.path === "string" ? parsed.path : "";
       } catch { return ""; }
     }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
-    await stateManager.markCompleted(message.slice(0, 240));
+    if (finalizedPipeline.completed) {
+      await stateManager.markCompleted(message.slice(0, 240));
+    } else {
+      await stateManager.refresh(
+        message,
+        result.productPlan,
+        [],
+        (job.problems ?? []).map((problem) => problem.message).slice(-20),
+      );
+    }
     projectJobsInFlight.delete(projectLockKey);
-    console.log("[Nexum] chat job completed", jobId);
+    console.log("[Nexum] chat job finished", jobId, job.status);
   } catch (error) {
     job.status = "failed";
     job.stage = "error";
