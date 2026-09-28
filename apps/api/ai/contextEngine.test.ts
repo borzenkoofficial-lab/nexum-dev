@@ -38,7 +38,7 @@ test("prioritizes entry points and task-relevant construction files", () => {
   const task = "Создай страницу строительной компании с портфолио";
   const selected = selectContext(task, extractIntent(task), understanding);
 
-  assert.equal(selected.files[0].path, "src/App.tsx");
+  assert.equal(selected.files[0]?.path, "src/App.tsx");
   assert.ok(selected.files.some((file) => file.path === "src/pages/Construction.tsx"));
   assert.ok(selected.compactSummary.includes("construction"));
 });
