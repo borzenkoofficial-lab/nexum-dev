@@ -45,13 +45,11 @@ export async function verifyDesign(projectRoot:string):Promise<VisualVerificatio
         const hookChecks = spec.interactions.map((interaction) => {
           const pattern = interactionHooks[interaction.event];
           if (!pattern) return true;
-          const relevantControl = interaction.event === "click"
-            ? /<button\b|\[role=["']button["']\]|onClick\s*=|data-nexum-action=/i.test(searchableContent)
-            : interaction.event === "submit"
-              ? /<form\b|onSubmit\s*=|data-nexum-action=/i.test(searchableContent)
-              : interaction.event === "change"
-                ? /<(input|select|textarea)\b|onChange\s*=|data-nexum-action=/i.test(searchableContent)
-                : /<a\b|href=["']|navigate\s*\(|router\.|data-nexum-action=/i.test(searchableContent);
+          const relevantControl =
+            (interaction.event === "click" && /<button\b|\[role=["']button["']\]|onClick\s*=|data-nexum-action=/i.test(searchableContent)) ||
+            (interaction.event === "submit" && /<form\b|onSubmit\s*=|data-nexum-action=/i.test(searchableContent)) ||
+            (interaction.event === "change" && /<(input|select|textarea)\b|onChange\s*=|data-nexum-action=/i.test(searchableContent)) ||
+            (interaction.event === "navigate" && /<a\b|href=["']|navigate\s*\(|router\.|data-nexum-action=/i.test(searchableContent));
           return !relevantControl || pattern.test(searchableContent);
         });
         checks.push({
