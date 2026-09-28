@@ -152,10 +152,9 @@ async function runChatJob(
   try {
     const project = await getProjectManager(userId).getActiveProject(projectId);
     projectLockKey = userId + ":" + project.id;
-    if (projectJobsInFlight.has(projectLockKey)) {
-      throw new Error("Another AI job is already running for this project.");
+    if (!projectJobsInFlight.has(projectLockKey)) {
+      projectJobsInFlight.add(projectLockKey);
     }
-    projectJobsInFlight.add(projectLockKey);
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     const checkpoint = await checkpointManager.create(project.id, project.path, `before agent job ${jobId}`);
