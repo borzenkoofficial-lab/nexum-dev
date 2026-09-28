@@ -6,7 +6,7 @@ import type { ProjectUnderstanding } from "../projects/projectUnderstanding.js";
 
 const understanding: ProjectUnderstanding = {
   projectId: "p1",
-  projectType: "web",
+  projectType: "react",
   framework: "react-vite",
   health: "ready",
   entryPoints: ["src/main.tsx", "src/App.tsx"],
