@@ -172,7 +172,8 @@ async function runChatJob(
         const target = resolve(attachmentDir, safeName);
         if (attachment.content !== undefined) {
           await writeFile(target, attachment.content.slice(0, 80_000), "utf8");
-          attachmentContext.push(`Attached text file ${safeName}:\\n${attachment.content.slice(0, 80_000)}`);
+          attachmentContext.push(`Attached text file ${safeName}:\
+${attachment.content.slice(0, 80_000)}`);
         } else if (attachment.data) {
           await writeFile(target, Buffer.from(attachment.data, "base64"));
           attachmentContext.push(`Attached binary file ${safeName} is stored at .nexum/attachments/${jobId}/${safeName}.`);
@@ -184,20 +185,28 @@ async function runChatJob(
     const compactConversation = conversation
       .slice(-8)
       .map((item) => `${item.role === "user" ? "Пользователь" : "NEXUM"}: ${item.content.slice(0, 900)}`)
-      .join("\n");
+      .join("
+");
     const projectContext = [
       "PROJECT CONTEXT LOCK:",
       `Текущий проект: «${project.name}»`,
       `ID проекта: ${project.id}`,
       "Все действия, файлы, команды и ответы относятся ТОЛЬКО к этому проекту.",
       "Не переносить файлы, дизайн, контент или предположения из других проектов.",
-      compactConversation ? `Последние сообщения ЭТОГО проекта:\n${compactConversation}` : "Предыдущих сообщений в этом проекте нет.",
-    ].join("\n");
+      compactConversation ? `Последние сообщения ЭТОГО проекта:
+${compactConversation}` : "Предыдущих сообщений в этом проекте нет.",
+    ].join("
+");
     const agentMessage = [
       projectContext,
       message,
-      attachmentContext.length ? `ATTACHED FILES:\n${attachmentContext.join("\n\n")}` : "",
-    ].filter(Boolean).join("\n\n");
+      attachmentContext.length ? `ATTACHED FILES:
+${attachmentContext.join("
+
+")}` : "",
+    ].filter(Boolean).join("
+
+");
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const userGateway = getUserAIGateway(userId);
     const agent = new NexumAgent(userGateway, project.path);
@@ -630,10 +639,13 @@ app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
     const project = await getProjectManager(userId).getProject(req.params.id);
     const message = typeof req.body?.message === "string" ? req.body.message.slice(0, 4000) : "Preview runtime error";
     const stack = typeof req.body?.stack === "string" ? req.body.stack.slice(0, 8000) : undefined;
-    const kind = typeof req.body?.kind === "string" ? req.body.kind.slice(0, 80) : "error";\n    const originProjectId = typeof req.body?.projectId === "string" ? req.body.projectId : "";\n    if (originProjectId && originProjectId !== String(project.id)) return res.status(400).json({ success: false, error: "Preview project mismatch" });
+    const kind = typeof req.body?.kind === "string" ? req.body.kind.slice(0, 80) : "error";
+    const originProjectId = typeof req.body?.projectId === "string" ? req.body.projectId : "";
+    if (originProjectId && originProjectId !== String(project.id)) return res.status(400).json({ success: false, error: "Preview project mismatch" });
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
-    const evidence = `preview runtime error [${kind}]: ${message}${stack ? `\n${stack}` : ""}`;
+    const evidence = `preview runtime error [${kind}]: ${message}${stack ? `
+${stack}` : ""}`;
     await stateManager.refresh(undefined, undefined, [], [evidence]);
     void agentHistory.record({
       type: "preview-runtime-error",
@@ -672,8 +684,11 @@ app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
         "После исправления обязательно выполни доступную проверку/сборку. Заверши только после успешной проверки.",
         `Проект: ${project.name} (${project.id})`,
         `Ошибка: ${message}`,
-        stack ? `Stack:\n${stack}` : "",
-      ].filter(Boolean).join("\n\n");
+        stack ? `Stack:
+${stack}` : "",
+      ].filter(Boolean).join("
+
+");
       void runChatJob(jobId, recoveryMessage, project.id, userId, undefined, undefined, [], [])
         .catch((error) => {
           console.error("[Nexum] preview recovery failed", jobId, error);
