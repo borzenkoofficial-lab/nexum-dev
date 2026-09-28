@@ -1,0 +1,4 @@
+{$NEXUM_DOMAIN} {
+  encode gzip zstd
+  reverse_proxy nexum:3001
+}
