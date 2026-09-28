@@ -630,7 +630,7 @@ app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
     const project = await getProjectManager(userId).getProject(req.params.id);
     const message = typeof req.body?.message === "string" ? req.body.message.slice(0, 4000) : "Preview runtime error";
     const stack = typeof req.body?.stack === "string" ? req.body.stack.slice(0, 8000) : undefined;
-    const kind = typeof req.body?.kind === "string" ? req.body.kind.slice(0, 80) : "error";
+    const kind = typeof req.body?.kind === "string" ? req.body.kind.slice(0, 80) : "error";\n    const originProjectId = typeof req.body?.projectId === "string" ? req.body.projectId : "";\n    if (originProjectId && originProjectId !== String(project.id)) return res.status(400).json({ success: false, error: "Preview project mismatch" });
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     const evidence = `preview runtime error [${kind}]: ${message}${stack ? `\n${stack}` : ""}`;
