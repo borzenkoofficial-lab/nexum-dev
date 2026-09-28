@@ -35,8 +35,7 @@ test("routes final test failures through bounded Debugger recovery", async () =>
       return { tool: "", input: "", done: true, finalResponse: "Готово" };
     },
     executeTool: async (tool) => {
-      if (tool === "listFiles") return { success: true, output: "src/App.tsx
-src/App.css" };
+      if (tool === "listFiles") return { success: true, output: "src/App.tsx\\nsrc/App.css" };
       if (tool === "writeFile") return { success: true, output: "written" };
       testAttempts += 1;
       return testAttempts === 1
