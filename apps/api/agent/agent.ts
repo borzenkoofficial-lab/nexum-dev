@@ -28,6 +28,8 @@ import { ValidateProjectTool } from "./tools/validateProject.js";
 import { PatchFileTool } from "./tools/patchFile.js";
 import { TestProjectTool } from "./tools/testProject.js";
 import { buildAgentContext, formatAgentContext } from "./context.js";
+import { deriveDesignSpec, writeDesignSpec } from "../design/designSpec.js";
+import { deriveInteractionContract } from "../design/interactionEngine.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -93,6 +95,24 @@ ${result.output}`
       .map((item) => `${item.tool}: ${item.result.output.slice(0, 700)}`)
       .join("\n");
     const intent = extractIntent(task);
+    // Materialize the design/interaction contract before planning so every
+    // builder request is generated against the user's actual domain rather
+    // than receiving the design contract only after the build has finished.
+    try {
+      const design = deriveDesignSpec({
+        domain: intent.domain,
+        productType: intent.productType,
+        visualDirection: intent.visualDirection.join(", "),
+        audience: intent.audience,
+        features: intent.features,
+      });
+      await writeDesignSpec(this.projectRoot, {
+        ...design,
+        interactions: deriveInteractionContract(design),
+      });
+    } catch (error) {
+      console.warn("[agent] design contract preparation failed; continuing without pre-materialized contract", error);
+    }
     const plannerContextSnapshot = await buildAgentContext(
       this.projectRoot,
       previousResults.map((item) => ({ tool: item.tool, success: item.result.success, output: item.result.output })),
