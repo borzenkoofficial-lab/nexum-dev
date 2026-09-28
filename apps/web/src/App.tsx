@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChatPanel } from "./components/ChatPanel";
 import { CommandPalette } from "./components/CommandPalette";
 import { CodePanel } from "./components/CodePanel";
-import { NewПроектModal } from "./components/NewПроектModal";
+import { NewProjectModal } from "./components/NewProjectModal";
 import { QuickActions } from "./components/QuickActions";
 import { RightPanel } from "./components/RightPanel";
 import { Sidebar } from "./components/Sidebar";
@@ -712,7 +712,7 @@ function App() {
       </main>
       <StatusBar projectName={activeПроект?.name ?? "NEXUM"} provider={aiProvider} aiStatus={aiStatus} previewOnline={previewOnline} />
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
-      <NewПроектModal open={modalOpen} name={newПроектName} loading={projectActionLoading} onNameChange={setNewПроектName} onClose={() => setModalOpen(false)} onSubmit={(data) => void createПроект(data)} />
+      <NewProjectModal open={modalOpen} name={newПроектName} loading={projectActionLoading} onNameChange={setNewПроектName} onClose={() => setModalOpen(false)} onSubmit={(data) => void createПроект(data)} />
       {connectorModal && <div className="modal-backdrop connector-backdrop" onMouseDown={() => setConnectorModal(null)}><section className="connector-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><div className="modal-top"><div><span className="eyebrow">ИНТЕГРАЦИЯ</span><h2>{connectorModal}</h2></div><button type="button" onClick={() => setConnectorModal(null)}>×</button></div><p>{connectedConnectors.includes(connectorModal) ? "Эта интеграция включена в интерфейсе рабочего пространства. OAuth/API-данные провайдера пока не сохраняются." : "Включить интеграцию для текущего рабочего пространства. OAuth/API-данные провайдера пока не сохраняются."}</p><div className="connector-modal-actions"><button type="button" onClick={() => setConnectorModal(null)}>Отмена</button><button className="home-primary" type="button" onClick={() => { if (!connectedConnectors.includes(connectorModal)) setConnectedConnectors((items) => [...items, connectorModal]); setConnectorModal(null); setNotice(connectorModal + " интеграция подключена"); }}>Продолжить</button></div></section></div>}
       {notice && <div className="toast" role="status">{notice}</div>}
     </div>
