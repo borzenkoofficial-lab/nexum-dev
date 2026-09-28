@@ -207,3 +207,44 @@ button:disabled{cursor:default;opacity:.55}
  .nexum-home .project-window{min-height:290px;padding:142px 18px 18px}
  .nexum-home .project-window:after{left:18px;right:18px}
 }
+
+/* Overview 2.0 — live project cards */
+.nexum-overview-live .project-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.nexum-overview-live .project-window{min-height:350px;padding:164px 24px 20px;overflow:hidden}
+.nexum-overview-live .project-window:before{height:148px;background:linear-gradient(135deg,#f0f0f3,#fafafd)}
+.nexum-overview-live .project-window:after{left:22px;right:22px;top:28px;height:102px;border-radius:10px;background:linear-gradient(90deg,#fff 0 17%,#f7f7f9 17% 100%);box-shadow:0 10px 24px rgba(0,0,0,.05)}
+.nexum-overview-live .project-window:before,.nexum-overview-live .project-window:after{transition:transform .22s ease}
+.nexum-overview-live .project-window:hover:after{transform:translateY(-3px) scale(1.012)}
+.nexum-overview-live .project-window-mark{z-index:4;position:relative}
+.nexum-overview-live .project-window-head,.nexum-overview-live .project-window-description,.nexum-overview-live .project-window-meta{z-index:4}
+.nexum-overview-live .project-window-description{margin-bottom:12px}
+.nexum-overview-live .project-window-meta{margin-top:10px}
+.nexum-overview-live .project-grid:has(.project-window:nth-child(3)) .project-window:first-child{grid-column:span 2}
+.nexum-overview-live .project-grid:has(.project-window:nth-child(3)) .project-window:first-child .project-window-description{max-width:720px}
+.nexum-overview-live .overview-command-strip{display:flex;align-items:center;gap:22px;margin:-18px 0 34px;padding:11px 13px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);color:var(--text-2);font-size:10px}
+.nexum-overview-live .overview-command-strip b{color:var(--text)}
+.nexum-overview-live .overview-command-strip i{display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:#45a978}
+.nexum-overview-live .overview-command-strip button{margin-left:auto;border:0;background:none;color:var(--accent);font-size:10px}
+.nexum-overview-live .overview-workflow-preview{display:grid;grid-template-columns:.8fr 1.2fr;gap:40px;align-items:center;margin-top:70px;padding:28px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.nexum-overview-live .overview-workflow-preview h2{margin:8px 0;font-size:24px;letter-spacing:-.035em}
+.nexum-overview-live .overview-workflow-preview p{max-width:430px;margin:0;color:var(--text-2);font-size:12px;line-height:1.55}
+.nexum-overview-live .workflow-line{display:flex;align-items:center;justify-content:flex-end;gap:10px;color:var(--text-2);font-size:10px;white-space:nowrap}
+.nexum-overview-live .workflow-line span{display:flex;flex-direction:column;gap:4px}
+.nexum-overview-live .workflow-line b{font-size:8px;color:var(--text-3)}
+.nexum-overview-live .workflow-line i{color:var(--accent);font-style:normal}
+.nexum-overview-live .live-empty{min-height:240px;display:grid;place-items:center;align-content:center;gap:7px;text-align:center}
+.nexum-overview-live .live-empty span{font-size:28px;color:var(--accent)}
+.nexum-overview-live .live-empty small{color:var(--text-3)}
+@media(max-width:800px){
+ .nexum-overview-live .project-grid{grid-template-columns:1fr}
+ .nexum-overview-live .project-grid:has(.project-window:nth-child(3)) .project-window:first-child{grid-column:auto}
+ .nexum-overview-live .overview-command-strip{flex-wrap:wrap;gap:10px}
+ .nexum-overview-live .overview-workflow-preview{grid-template-columns:1fr}
+ .nexum-overview-live .workflow-line{justify-content:flex-start;flex-wrap:wrap}
+}
+@media(max-width:560px){
+ .nexum-overview-live .project-window{min-height:310px;padding:145px 18px 18px}
+ .nexum-overview-live .project-window:after{left:18px;right:18px}
+ .nexum-overview-live .overview-command-strip{margin-top:-8px}
+ .nexum-overview-live .overview-workflow-preview{margin-top:48px}
+}
