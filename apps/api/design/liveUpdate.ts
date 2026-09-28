@@ -1,5 +1,5 @@
-import { readFile, stat } from "node:fs/promises";
-import { resolve } from "node:path";
+import { readFile, readdir, stat } from "node:fs/promises";
+import { resolve, relative } from "node:path";
 
 export interface LiveUpdateManifest {
   projectId: string;
@@ -8,6 +8,8 @@ export interface LiveUpdateManifest {
   buildReady: boolean;
   mode: "built-app" | "static" | "missing";
   revision?: string;
+  cssRevision?: string;
+  appRevision?: string;
 }
 
 async function fileRevision(path: string): Promise<string | undefined> {
@@ -19,31 +21,76 @@ async function fileRevision(path: string): Promise<string | undefined> {
   }
 }
 
+async function directoryRevision(root: string): Promise<{ revision: string; cssRevision: string; appRevision: string }> {
+  const rows: string[] = [];
+  const css: string[] = [];
+  const app: string[] = [];
+
+  async function walk(dir: string): Promise<void> {
+    let entries;
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.name === ".nexum" || entry.name === "node_modules" || entry.name === ".git") continue;
+      const path = resolve(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(path);
+        continue;
+      }
+      if (!/\.(css|js|mjs|html|json)$/i.test(entry.name)) continue;
+      const revision = await fileRevision(path);
+      if (!revision) continue;
+      const key = relative(root, path).replaceAll("\\", "/");
+      rows.push(`${key}=${revision}`);
+      if (/\.css$/i.test(entry.name)) css.push(`${key}=${revision}`);
+      else app.push(`${key}=${revision}`);
+    }
+  }
+
+  await walk(root);
+  rows.sort(); css.sort(); app.sort();
+  return {
+    revision: rows.join("|"),
+    cssRevision: css.join("|"),
+    appRevision: app.join("|"),
+  };
+}
+
 export async function inspectLiveUpdate(projectRoot: string, projectId: string): Promise<LiveUpdateManifest> {
-  const distEntry = resolve(projectRoot, "dist", "index.html");
+  const distRoot = resolve(projectRoot, "dist");
+  const distEntry = resolve(distRoot, "index.html");
   const sourceEntry = resolve(projectRoot, "index.html");
   const distRevision = await fileRevision(distEntry);
 
   if (distRevision) {
+    const revisions = await directoryRevision(distRoot);
     return {
       projectId,
       generatedAt: new Date().toISOString(),
       entry: distEntry,
       buildReady: true,
       mode: "built-app",
-      revision: distRevision,
+      revision: revisions.revision || distRevision,
+      cssRevision: revisions.cssRevision,
+      appRevision: revisions.appRevision,
     };
   }
 
   const sourceRevision = await fileRevision(sourceEntry);
   if (sourceRevision) {
+    const revisions = await directoryRevision(projectRoot);
     return {
       projectId,
       generatedAt: new Date().toISOString(),
       entry: sourceEntry,
       buildReady: true,
       mode: "static",
-      revision: sourceRevision,
+      revision: revisions.revision || sourceRevision,
+      cssRevision: revisions.cssRevision,
+      appRevision: revisions.appRevision,
     };
   }
 
