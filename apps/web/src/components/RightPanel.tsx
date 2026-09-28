@@ -86,7 +86,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
     if (!previewOnline || !previewFrameRef.current?.contentWindow) return;
     if (stage !== "completed") return;
     previewFrameRef.current.contentWindow.postMessage(
-      { source: "nexum-host", projectId, type: "refresh" },
+      { source: "nexum-host", projectId, type: "refresh", revision: String(previewKey) },
       window.location.origin,
     );
   }, [stage, projectId, previewOnline, previewKey]);
