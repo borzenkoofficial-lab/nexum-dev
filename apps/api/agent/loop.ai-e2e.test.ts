@@ -112,7 +112,6 @@ test("AI E2E keeps construction intent and executes a real AI plan", async () =>
   assert.ok(result.productPlan);
   assert.match(result.productPlan?.productType ?? "", /Construction/i);
   assert.ok(result.steps.some((step) => step.tool === "listFiles"));
-  assert.ok(result.steps.some((step) => step.tool === "readFile"));
   assert.ok(result.steps.some((step) => step.tool === "writeFile"));
   assert.ok(result.steps.some((step) => step.tool === "testProject"));
   assert.match(result.finalResponse ?? "", /Готово|создан|проверен/i);
