@@ -98,15 +98,20 @@ export async function getPipelineSnapshot(projectRoot: string): Promise<Pipeline
   const live = await inspectLiveUpdate(projectRoot, "pending");
   const buildVerified = live.mode === "built-app";
 
-  return {
-    stage: !verification.passed ? "design" : buildVerified ? "live" : "verify",
+  const base = {
     design,
     componentCount: componentContracts(design).length,
     interactionCount: design.interactions.length,
     verification,
     live,
     buildVerified,
-    readyForLive: verification.passed && live.buildReady,
-    completed: verification.passed && buildVerified,
+  };
+  const gates = evaluatePipelineGates(base);
+  const failedGate = gates.find((gate) => !gate.passed);
+  return {
+    stage: failedGate?.name === "design" ? "design" : failedGate?.name === "components" ? "components" : failedGate?.name === "interactions" ? "interactions" : failedGate?.name === "verification" ? "verify" : failedGate?.name === "build" ? "build" : failedGate?.name === "live" ? "live" : "done",
+    ...base,
+    readyForLive: gates.every((gate) => gate.passed),
+    completed: gates.every((gate) => gate.passed),
   };
 }
