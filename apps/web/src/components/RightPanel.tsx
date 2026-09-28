@@ -133,11 +133,15 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
         </div>
       </div>
     ) : (
-      <div className="preview-content">
-        <div className="preview-icon">{projectName.slice(0, 1) || "N"}</div>
-        <strong>{projectName}</strong>
-        <div className="coming-soon">Предпросмотр ожидает файл index.html</div>
-        <span>Спросите агента: «Создай приложение и запусти предпросмотр»</span>
+      <div className="preview-content preview-editorial-empty">
+        <div className="preview-editorial-browser">
+          <div className="preview-browser-bar"><div className="preview-browser-dots"><i/><i/><i/></div><div className="preview-address"><span>/preview/{projectId || "project"}</span><b>WAITING</b></div></div>
+          <div className="preview-editorial-canvas">
+            <div className="preview-editorial-copy"><span className="eyebrow">NEXUM / PREVIEW</span><strong>{projectName}</strong><p>Живой Preview появится, когда агент создаст первый рабочий интерфейс.</p><div><i/>Build</div><div><i/>Preview</div><div><i/>Verify</div></div>
+            <div className="preview-editorial-device"><span/><span/><span/></div>
+          </div>
+        </div>
+        <span className="coming-soon">Опишите продукт в чате — NEXUM построит его здесь.</span>
       </div>
     );
   } else if (tab === "files") {
