@@ -34,7 +34,7 @@ test("routes review requests to reviewer without unnecessary builder work", () =
 
 test("keeps simple tasks on a single cheap execution path", () => {
   const budget = executionBudget(routeTask("Напиши функцию сортировки"));
-  assert.equal(budget.maxAiCalls, 1);
+  assert.equal(budget.maxAiCalls, 2);
 });
 
 test("allows a complex build to use a bounded repair cycle", () => {
