@@ -42,6 +42,7 @@ function App() {
   const [previewKey, setПредпросмотрKey] = useState(0);
   const [builderStarted, setBuilderStarted] = useState(false);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
+  const [projectTaskMeta, setProjectTaskMeta] = useState<Record<string, { task: string; timestamp: number; status: "queued" | "running" | "completed" | "failed" }>>(() => { try { return JSON.parse(localStorage.getItem("nexum:project-task-meta") || "{}"); } catch { return {}; } });
   const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news">(() => {
     const path = window.location.pathname;
     return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : "home";
@@ -79,6 +80,8 @@ function App() {
   useEffect(() => { document.documentElement.dataset.motion=uiSettings.animations?"on":"off"; document.documentElement.dataset.compact=uiSettings.compact?"on":"off"; document.documentElement.dataset.glow=uiSettings.glow?"on":"off"; }, [uiSettings]);
 
   const activeПроект = projects.find((project) => project.id === activeПроектId);
+  useEffect(() => { try { localStorage.setItem("nexum:project-task-meta", JSON.stringify(projectTaskMeta)); } catch {} }, [projectTaskMeta]);
+  const formatRelativeTime = (value?: string | number) => { if (!value) return "Недавно"; const delta = Math.max(0, Date.now() - new Date(value).getTime()); const minutes = Math.floor(delta / 60000); if (minutes < 1) return "только что"; if (minutes < 60) return `${minutes} мин назад`; const hours = Math.floor(minutes / 60); if (hours < 24) return `${hours} ч назад`; const days = Math.floor(hours / 24); return `${days} дн назад`; };
 
   function navigate(nextView: "home" | "project" | "connectors" | "settings" | "news", projectId?: string, replace = false) {
     setViewState(nextView);
@@ -389,6 +392,7 @@ function App() {
     const targetПроектId = projectIdOverride ?? activeПроектId;
     if (!task.trim() || !targetПроектId) return;
     setLastMessage(task);
+    setProjectTaskMeta((items) => ({ ...items, [targetПроектId]: { task: task.trim(), timestamp: Date.now(), status: "queued" } }));
     setBuilderStarted(true);
     setRightTab("agent");
     setАгентStage("thinking");
@@ -435,6 +439,7 @@ function App() {
       if (!data.jobId) throw new Error(data.error || "API чата не вернул идентификатор задачи");
 
       setChatJobId(data.jobId);
+      setProjectTaskMeta((items) => ({ ...items, [targetПроектId]: { ...(items[targetПроектId] ?? { task: task.trim(), timestamp: Date.now() }), status: "running" } }));
     } catch (error) {
       console.error("[Nexum] Chat job creation failed:", error);
       setApiError(error instanceof Error ? error.message : "Не удалось отправить запрос к чату");
@@ -484,6 +489,7 @@ function App() {
 
         const status = data?.job?.status;
         if (status === "completed") {
+          setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "completed" } }));
           setActivitySteps(data?.job?.steps ?? []);
           setActivityEvents(data?.job?.events ?? []);
           setCurrentActivity(data?.job?.currentMessage ?? "Готово.");
@@ -530,6 +536,7 @@ function App() {
         }
 
         if (status === "failed") {
+          setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
           throw new Error(data?.job?.error || "ИИ-агент завершил работу с ошибкой");
         }
 
@@ -675,7 +682,8 @@ function App() {
                     <span className="project-window-head"><strong>{project.name}</strong><span className="project-type-badge">{project.type ?? "Проект"}</span></span>
                     <span className="project-window-description">{project.description || "Проект готов к разработке. Откройте рабочее пространство и задайте первую задачу агенту."}</span>
                     <span className="project-health"><span><i/> Workspace ready</span><span>Agent · Preview · Files</span></span>
-                    <span className="project-window-meta"><span>Обновлён {new Date(project.updatedAt).toLocaleDateString("ru-RU")}</span><b>Открыть →</b></span>
+                    <span className="project-window-meta"><span>Обновлён {formatRelativeTime(project.updatedAt)}</span><b>Открыть →</b></span>
+                  <span className="project-live-meta"><span className={"project-agent-status " + (projectTaskMeta[project.id]?.status === "running" ? "is-running" : projectTaskMeta[project.id]?.status === "failed" ? "is-error" : "is-ready")}><i/>{projectTaskMeta[project.id]?.status === "running" ? "Agent работает" : projectTaskMeta[project.id]?.status === "failed" ? "Нужна проверка" : "Agent готов"}</span><small>{projectTaskMeta[project.id]?.task ? "Последняя задача: " + projectTaskMeta[project.id].task.slice(0, 72) + (projectTaskMeta[project.id].task.length > 72 ? "…" : "") : "Задач ещё не запускали"}</small></span>
                   </span>
                 </button>
               ))}
