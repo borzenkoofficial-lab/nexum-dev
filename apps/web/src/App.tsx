@@ -9,7 +9,7 @@ import { RightPanel } from "./components/RightPanel";
 import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
 import { TopBar } from "./components/TopBar";
-import type { AIProviderInfo, AIProviderStatus, АгентStage, Проект } from "./components/types";
+import type { AIProviderInfo, AIProviderStatus, AgentStage as АгентStage, Project as Проект } from "./components/types";
 // UI controls persist locally; server-side credentials remain outside the client bundle.
 
 function App() {
@@ -630,7 +630,7 @@ function App() {
 
   return (
     <div className={"app app-" + view}>
-      {view !== "project" && <Sidebar projects={projects} activeПроектId={activeПроектId} projectsLoading={projectsLoading} projectActionLoading={projectActionLoading} mobileOpen={mobileSidebarOpen} view={view} onDeleteПроект={(id) => void deleteПроект(id)} onViewChange={(next) => { setMobileSidebarOpen(false); setView(next); }} onNewПроект={() => { setMobileSidebarOpen(false); setModalOpen(true); }} onSelectПроект={(id) => { setMobileSidebarOpen(false); openПроект(id); }} />}
+      {view !== "project" && <Sidebar projects={projects} activeProjectId={activeПроектId} projectsLoading={projectsLoading} projectActionLoading={projectActionLoading} mobileOpen={mobileSidebarOpen} view={view} onDeleteProject={(id) => void deleteПроект(id)} onViewChange={(next) => { setMobileSidebarOpen(false); setView(next); }} onNewProject={() => { setMobileSidebarOpen(false); setModalOpen(true); }} onSelectProject={(id) => { setMobileSidebarOpen(false); openПроект(id); }} />}
       <main className="main">
         {view !== "project" && <TopBar projectName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : "NEXUM.DEV"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />}
         {view === "home" ? (
