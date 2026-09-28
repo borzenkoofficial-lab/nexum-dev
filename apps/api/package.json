@@ -25,6 +25,7 @@
     "@types/cors": "^2.8.17",
     "@types/node": "^26.6.2",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "@types/pg": "^8.15.5"
   }
 }
