@@ -141,6 +141,7 @@ async function runChatJob(
 ) {
   const job = chatJobs.get(jobId);
   if (!job) return;
+  let projectLockKey: string | undefined;
 
   job.status = "running";
   job.updatedAt = Date.now();
@@ -150,7 +151,7 @@ async function runChatJob(
 
   try {
     const project = await getProjectManager(userId).getActiveProject(projectId);
-    const projectLockKey = userId + ":" + project.id;
+    projectLockKey = userId + ":" + project.id;
     if (projectJobsInFlight.has(projectLockKey)) {
       throw new Error("Another AI job is already running for this project.");
     }
@@ -298,7 +299,7 @@ ${attachment.content.slice(0, 80_000)}`);
     job.updatedAt = Date.now();
     job.error = error instanceof Error ? error.message : "AI provider request failed";
     void agentHistory.record({ type: "job-exception", jobId, projectId, userId, provider, model, status: "failed", message: job.error });
-    if (projectId) projectJobsInFlight.delete(userId + ":" + projectId);
+    if (projectLockKey) projectJobsInFlight.delete(projectLockKey);
     console.error("[Nexum] chat job failed", jobId, error);
   }
 }
