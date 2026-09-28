@@ -77,6 +77,7 @@ export function extractIntent(task: string): NexumIntent {
   ]);
   const features = extractList(sourceText, [
     [/чат|сообщен/i, "чат"],
+    [/запис|бронир|заказ/i, "форма заявки"],
     [/карта|map|геолокац/i, "карта или геолокация"],
     [/оплат|платеж/i, "оплата"],
     [/форм|заявк/i, "форма заявки"],
