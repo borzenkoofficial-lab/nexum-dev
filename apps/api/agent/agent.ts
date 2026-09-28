@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import type { AIGateway, GatewayGenerateOptions } from "../ai/gateway.js";
 import { AIOrchestrator } from "../ai/orchestrator.js";
 import { routeTask } from "../ai/taskRouter.js";
+import { extractIntent, intentSummary } from "../ai/intentEngine.js";
 import type {
   AgentModelOptions,
   AgentRuntime,
@@ -98,7 +99,10 @@ ${result.output}`
       .slice(-4)
       .map((item) => `${item.tool}: ${item.result.output.slice(0, 700)}`)
       .join("\n");
+    const intent = extractIntent(task);
     const prompt = [
+      `STRUCTURED INTENT: ${intentSummary(intent)}`,
+      `INTENT JSON: ${JSON.stringify(intent)}`,
       "LANGUAGE PROTOCOL: Understand Russian natively. The user communicates in Russian. Interpret Russian requests, terminology, slang, spelling variations and mixed Russian/English technical terms correctly. All human-readable text you generate (site copy, UI text, plans, summaries, errors and final responses) must be in Russian unless the user explicitly requests another language. Keep required JSON property names, tool names, file paths, code, commands and API identifiers exactly as specified.",
       "You are the NEXUM product planner.",
       "Turn the user's request into a concrete implementation plan for a coding agent.",
