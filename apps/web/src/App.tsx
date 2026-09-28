@@ -658,10 +658,31 @@ function App() {
       <main className="main">
         {view !== "project" && <TopBar projectName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : "NEXUM.DEV"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />}
         {view === "home" ? (
-          <section className="nexum-home">
-            <div className="home-hero"><div><div className="eyebrow">NEXUM.DEV</div><h1>Создавайте, не покидая рабочее пространство.</h1><p>Создайте проект, откройте его как отдельное рабочее пространство, подключите сервисы и поручите агенту разработку.</p></div><div className="home-hero-actions"><button className="home-primary" type="button" onClick={() => setModalOpen(true)}>+ Новый проект</button><button className="news-launch-button" type="button" onClick={() => setView("news")}><span>✦</span><span><b>NEXUM Visual 3.0</b><small>Что нового →</small></span></button></div></div>
-            <div className="home-section-title"><span>ВАШИ ПРОЕКТЫ</span><button type="button" onClick={() => setModalOpen(true)}>Новый проект</button></div>
-            <div className="project-grid">{projects.filter((project) => project.status === "active").map((project) => <button key={project.id} className="project-window" type="button" onClick={() => openПроект(project.id)}><span className="window-chrome"><i/><i/><i/></span><span className="project-window-mark">{project.name.slice(0, 1)}</span><div className="project-window-head"><strong>{project.name}</strong><span className="project-type-badge">{project.type ?? "Проект"}</span></div><p className="project-window-description">{project.description || "Проект готов к разработке. Откройте рабочее пространство и задайте первую задачу агенту."}</p><span className="project-window-meta"><span>Обновлён {new Date(project.updatedAt).toLocaleDateString("ru-RU")}</span><b>Открыть →</b></span></button>)}{projects.length === 0 && <div className="empty-card">Создайте свой первый проект — после создания он появится здесь.</div>}</div>
+          <section className="nexum-home nexum-overview-live">
+            <div className="home-hero"><div><div className="eyebrow">NEXUM.DEV / OVERVIEW</div><h1>Ваши проекты.<br/><em>В одном пространстве.</em></h1><p>Рабочие пространства для создания продуктов с AI Agent, Preview, файлами и проектным контекстом.</p></div><div className="home-hero-actions"><button className="home-primary" type="button" onClick={() => setModalOpen(true)}>+ Новый проект</button><button className="news-launch-button" type="button" onClick={() => setView("news")}><span>✦</span><span><b>NEXUM Visual 3.0</b><small>Что нового →</small></span></button></div></div>
+            <div className="overview-command-strip"><span><b>{projects.filter((p) => p.status === "active").length}</b> active projects</span><span><i/> Agent ready</span><span>Preview · Files · Context</span><button type="button" onClick={() => setModalOpen(true)}>Create project +</button></div>
+            <div className="home-section-title"><span>YOUR PROJECTS</span><button type="button" onClick={() => setModalOpen(true)}>Новый проект</button></div>
+            <div className="project-grid">
+              {projects.filter((project) => project.status === "active").map((project, index) => (
+                <button key={project.id} className={"project-window live-project-card " + (index === 0 ? "is-featured" : "")} type="button" onClick={() => openПроект(project.id)}>
+                  <span className="window-chrome"><i/><i/><i/><small>NEXUM / {project.name}</small></span>
+                  <span className="project-live-preview">
+                    <iframe title={"Preview " + project.name} src={"/api/preview/" + encodeURIComponent(project.id) + "/index.html"} loading="lazy" sandbox="allow-scripts" referrerPolicy="no-referrer"/>
+                    <span className="preview-overlay"><b>LIVE PREVIEW</b><small>Открыть рабочее пространство →</small></span>
+                  </span>
+                  <span className="project-card-body">
+                    <span className="project-window-mark">{project.name.slice(0, 1)}</span>
+                    <span className="project-window-head"><strong>{project.name}</strong><span className="project-type-badge">{project.type ?? "Проект"}</span></span>
+                    <span className="project-window-description">{project.description || "Проект готов к разработке. Откройте рабочее пространство и задайте первую задачу агенту."}</span>
+                    <span className="project-health"><span><i/> Workspace ready</span><span>Agent · Preview · Files</span></span>
+                    <span className="project-window-meta"><span>Обновлён {new Date(project.updatedAt).toLocaleDateString("ru-RU")}</span><b>Открыть →</b></span>
+                  </span>
+                </button>
+              ))}
+              {projects.filter((project) => project.status === "active").length === 0 && <button className="empty-card live-empty" type="button" onClick={() => setModalOpen(true)}><span>+</span><strong>Создайте первый проект</strong><small>NEXUM создаст отдельное рабочее пространство для него.</small></button>}
+            </div>
+            <section className="overview-workflow-preview"><div><div className="eyebrow">ONE WORKSPACE</div><h2>Describe → Agent → Preview → Iterate.</h2><p>Проект остаётся в контексте. Вы возвращаетесь туда, где остановились, а не начинаете заново.</p></div><div className="workflow-line"><span><b>01</b>Describe</span><i>→</i><span><b>02</b>Agent</span><i>→</i><span><b>03</b>Build</span><i>→</i><span><b>04</b>Preview</span><i>→</i><span><b>05</b>Iterate</span></div></section>
+            <footer className="overview-footer"><strong>NEXUM.DEV</strong><span>Создавайте продукты, а не просто файлы.</span><button type="button" onClick={() => setView("news")}>Открыть Product Journal →</button></footer>
           </section>
         ) : view === "news" ? (
           <NewsPage />
