@@ -25,12 +25,22 @@ export async function verifyDesign(projectRoot:string):Promise<VisualVerificatio
       const spec=await readDesignSpec(projectRoot);
       checks.push({name:"design-spec",passed:spec.version===1&&spec.components.length>0&&spec.tokens.colors.background.length>0,message:"NEXUM DesignSpec is present"});
       checks.push({name:"interaction-contract",passed:spec.interactions.length>0,message:"Interaction Contract contains executable intents"});
+      const domain = String(spec.domain ?? "").toLowerCase();
+      const sourceCandidates = [
+        "src/App.tsx","src/App.jsx","src/App.js","src/App.ts",
+        "src/main.tsx","src/main.jsx","src/main.js","src/main.ts",
+        "src/index.tsx","src/index.jsx","src/index.js",
+      ];
+      const sourceParts = await Promise.all(sourceCandidates.map(async (candidate) => {
+        try { return await readFile(resolve(projectRoot,candidate),"utf8"); } catch { return ""; }
+      }));
+      const searchableContent = [html,...sourceParts].join("\n");
       if (spec.interactions.length > 0) {
         const interactionHooks = {
-          click: /onClick\\s*=|onclick\\s*=|data-nexum-action=/i,
-          submit: /onSubmit\\s*=|onsubmit\\s*=|data-nexum-action=|<button\\b[^>]*type=["']submit["']/i,
-          change: /onChange\\s*=|onchange\\s*=|data-nexum-action=/i,
-          navigate: /href=["']|navigate\\s*\\(|router\\.|data-nexum-action=/i,
+          click: /onClick\s*=|onclick\s*=|data-nexum-action=/i,
+          submit: /onSubmit\s*=|onsubmit\s*=|data-nexum-action=|<button\b[^>]*type=["']submit["']/i,
+          change: /onChange\s*=|onchange\s*=|data-nexum-action=/i,
+          navigate: /href=["']|navigate\s*\(|router\.|data-nexum-action=/i,
         };
         const hookChecks = spec.interactions.map((interaction) => {
           const pattern = interactionHooks[interaction.event];
@@ -42,16 +52,6 @@ export async function verifyDesign(projectRoot:string):Promise<VisualVerificatio
           message:"Interaction Contract maps to executable runtime hooks in the generated application",
         });
       }
-      const domain = String(spec.domain ?? "").toLowerCase();
-      const sourceCandidates = [
-        "src/App.tsx","src/App.jsx","src/App.js","src/App.ts",
-        "src/main.tsx","src/main.jsx","src/main.js","src/main.ts",
-        "src/index.tsx","src/index.jsx","src/index.js",
-      ];
-      const sourceParts = await Promise.all(sourceCandidates.map(async (candidate) => {
-        try { return await readFile(resolve(projectRoot,candidate),"utf8"); } catch { return ""; }
-      }));
-      const searchableContent = [html,...sourceParts].join("\n");
       const domainSignals:Record<string,RegExp> = {
         construction:/строит|строитель|демонтаж|фасад|подряд|объект|бетон|стяжк|монтаж|кровл|construction|contractor/i,
         automotive:/авто|автомобил|автосервис|диагностик|шиномонтаж|кузов|двигател|тормоз|масл|automotive|auto repair/i,
