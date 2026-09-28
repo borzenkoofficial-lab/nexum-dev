@@ -5,6 +5,7 @@ import { MockProvider } from "../ai/providers/mock.js";
 import { NexumAgent } from "./agent.js";
 import { AgentLoop, compactAgentHistory } from "./loop.js";
 import type { AgentRuntime } from "./types.js";
+import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVerificationState } from "./taskState.js";
 
 const gateway = new AIGateway([new MockProvider()]);
 
@@ -400,4 +401,40 @@ test("does not finish an automotive site when generated content is construction-
   const result = await new AgentLoop(runtime, gateway).run("Сделай сайт по ремонту авто");
   assert.equal(domainValidationSeen, true);
   assert.equal(result.success, true);
+});
+
+
+test("completion gate rejects stale verification after a new change", () => {
+  const state = createAgentTaskState("modify current construction site");
+  recordSuccessfulChange(state, JSON.stringify({ path: "index.html", content: "v1" }));
+  const results = [
+    { iteration: 1, tool: "writeFile", input: JSON.stringify({ path: "index.html", content: "v1" }), result: { success: true, output: "written" } },
+    { iteration: 2, tool: "validateProject", input: ".", result: { success: true, output: "valid" } },
+    { iteration: 3, tool: "testProject", input: ".", result: { success: true, output: "passed" } },
+  ];
+  state.verified.domain = true;
+  syncVerificationState(state, results);
+  assert.equal(canFinishBuilder(state, results, false, true, true).ok, true);
+
+  recordSuccessfulChange(state, JSON.stringify({ path: "index.html", content: "v2" }));
+  syncVerificationState(state, [...results, {
+    iteration: 4,
+    tool: "writeFile",
+    input: JSON.stringify({ path: "index.html", content: "v2" }),
+    result: { success: true, output: "written" },
+  }]);
+  assert.equal(canFinishBuilder(state, results, false, true, true).ok, false);
+});
+
+test("completion gate permits a verified single-file static modification", () => {
+  const state = createAgentTaskState("modify current project");
+  recordSuccessfulChange(state, JSON.stringify({ path: "index.html", content: "updated" }));
+  const results = [
+    { iteration: 1, tool: "writeFile", input: JSON.stringify({ path: "index.html", content: "updated" }), result: { success: true, output: "written" } },
+    { iteration: 2, tool: "validateProject", input: ".", result: { success: true, output: "valid" } },
+    { iteration: 3, tool: "testProject", input: ".", result: { success: true, output: "passed" } },
+  ];
+  state.verified.domain = true;
+  syncVerificationState(state, results);
+  assert.equal(canFinishBuilder(state, results, false, true, true).ok, true);
 });
