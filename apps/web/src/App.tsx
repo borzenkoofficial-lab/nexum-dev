@@ -6,6 +6,7 @@ import { CodePanel } from "./components/CodePanel";
 import { NewProjectModal } from "./components/NewProjectModal";
 import { NewsPage } from "./components/NewsPage";
 import { IntegrationPage } from "./components/IntegrationPage";
+import { DiagnosticsPage } from "./components/DiagnosticsPage";
 import { RightPanel } from "./components/RightPanel";
 import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
@@ -47,7 +48,7 @@ function App() {
   const [projectTaskMeta, setProjectTaskMeta] = useState<Record<string, { task: string; timestamp: number; status: "queued" | "running" | "completed" | "failed" }>>(() => { try { return JSON.parse(localStorage.getItem("nexum:project-task-meta") || "{}"); } catch { return {}; } });
   const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news">(() => {
     const path = window.location.pathname;
-    return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : "home";
+    return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : path === "/diagnostics" ? "diagnostics" : "home";
   });
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
@@ -97,20 +98,20 @@ function App() {
   useEffect(() => { try { localStorage.setItem("nexum:project-task-meta", JSON.stringify(projectTaskMeta)); } catch {} }, [projectTaskMeta]);
   const formatRelativeTime = (value?: string | number) => { if (!value) return "Недавно"; const delta = Math.max(0, Date.now() - new Date(value).getTime()); const minutes = Math.floor(delta / 60000); if (minutes < 1) return "только что"; if (minutes < 60) return `${minutes} мин назад`; const hours = Math.floor(minutes / 60); if (hours < 24) return `${hours} ч назад`; const days = Math.floor(hours / 24); return `${days} дн назад`; };
 
-  function navigate(nextView: "home" | "project" | "connectors" | "settings" | "news", projectId?: string, replace = false) {
+  function navigate(nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics", projectId?: string, replace = false) {
     setViewState(nextView);
     const target = nextView === "project"
       ? "/projects/" + encodeURIComponent(projectId ?? activeПроектId)
       : nextView === "connectors" ? "/connectors"
       : nextView === "settings" ? "/settings"
-      : nextView === "news" ? "/news" : "/projects";
+      : nextView === "news" ? "/news" : nextView === "diagnostics" ? "/diagnostics" : "/projects";
     if (window.location.pathname !== target) {
       if (replace) window.history.replaceState({ view: nextView, projectId }, "", target);
       else window.history.pushState({ view: nextView, projectId }, "", target);
     }
   }
 
-  const setView = (nextView: "home" | "project" | "connectors" | "settings" | "news") => navigate(nextView);
+  const setView = (nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics") => navigate(nextView);
 
   useEffect(() => {
     const onPopState = () => {
@@ -122,6 +123,7 @@ function App() {
       } else if (path === "/connectors") setViewState("connectors");
       else if (path === "/settings") setViewState("settings");
       else if (path === "/news") setViewState("news");
+      else if (path === "/diagnostics") setViewState("diagnostics");
       else setViewState("home");
     };
     window.addEventListener("popstate", onPopState);
