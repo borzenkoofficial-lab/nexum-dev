@@ -25,7 +25,7 @@ test("state engine persists a project contract", async () => {
     const loaded = await readStateSpec(root);
     assert.equal(loaded.actions[0].id, "open");
     assert.equal(written.version, 1);
-    assert.ok((await readFile(resolve(root, ".nexum", "state.json"), "utf8")).includes('"open"'));
+    assert.ok((await readFile(resolve(root, ".nexum", "state-spec.json"), "utf8")).includes('"open"'));
   } finally {
     await rm(root, { recursive: true, force: true });
   }
