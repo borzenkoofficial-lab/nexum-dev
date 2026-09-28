@@ -1,4 +1,5 @@
 import type { AIOrchestratorRole } from "./orchestrator.js";
+import { extractIntent } from "./intentEngine.js";
 
 export type ExecutionMode = "simple" | "build" | "debug" | "review";
 
@@ -9,6 +10,8 @@ export interface TaskRoutingDecision {
   requiresDebugger: boolean;
   requiresVerification: boolean;
   complexity: "low" | "medium" | "high";
+  domain: ReturnType<typeof extractIntent>["domain"];
+  productType: string;
 }
 
 const BUILD = /создай|сделай|разработай|построй|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|ui|код|code|добавь|измени|поменяй|реализ/i;
@@ -19,15 +22,52 @@ const COMPLEX = /полностью|с нуля|full|production|продакш|�
 
 export function routeTask(task: string): TaskRoutingDecision {
   const text = task.trim();
-  const debugging = DEBUG.test(text) || RUNTIME.test(text);
-  const building = BUILD.test(text);
-  const review = REVIEW.test(text);
-  const complex = COMPLEX.test(text);
+  const intent = extractIntent(text);
+  const debugging = intent.mode === "debug" || DEBUG.test(text) || RUNTIME.test(text);
+  const building = BUILD.test(text) || intent.mode === "create" || intent.mode === "modify";
+  const review = intent.mode === "review" || REVIEW.test(text);
+  const complex = COMPLEX.test(text) || intent.features.length >= 3;
 
-  if (debugging) return { role: "debugger", mode: "debug", requiresBuilder: true, requiresDebugger: true, requiresVerification: true, complexity: complex ? "high" : "medium" };
-  if (review && !building) return { role: "reviewer", mode: "review", requiresBuilder: false, requiresDebugger: false, requiresVerification: true, complexity: complex ? "high" : "low" };
-  if (building) return { role: "coder", mode: "build", requiresBuilder: true, requiresDebugger: false, requiresVerification: true, complexity: complex ? "high" : "medium" };
-  return { role: "planner", mode: "simple", requiresBuilder: false, requiresDebugger: false, requiresVerification: false, complexity: complex ? "medium" : "low" };
+  if (debugging) return {
+    role: "debugger",
+    mode: "debug",
+    requiresBuilder: true,
+    requiresDebugger: true,
+    requiresVerification: true,
+    complexity: complex ? "high" : "medium",
+    domain: intent.domain,
+    productType: intent.productType,
+  };
+  if (review && !building) return {
+    role: "reviewer",
+    mode: "review",
+    requiresBuilder: false,
+    requiresDebugger: false,
+    requiresVerification: true,
+    complexity: complex ? "high" : "low",
+    domain: intent.domain,
+    productType: intent.productType,
+  };
+  if (building) return {
+    role: "coder",
+    mode: "build",
+    requiresBuilder: true,
+    requiresDebugger: false,
+    requiresVerification: true,
+    complexity: complex ? "high" : "medium",
+    domain: intent.domain,
+    productType: intent.productType,
+  };
+  return {
+    role: "planner",
+    mode: "simple",
+    requiresBuilder: false,
+    requiresDebugger: false,
+    requiresVerification: false,
+    complexity: complex ? "medium" : "low",
+    domain: intent.domain,
+    productType: intent.productType,
+  };
 }
 
 export function executionBudget(decision: TaskRoutingDecision): {
