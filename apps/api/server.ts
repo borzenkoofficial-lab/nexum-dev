@@ -331,6 +331,7 @@ app.post("/api/auth/logout", (_req, res) => {
 app.use("/api/projects", authMiddleware);
 app.use("/api/chat", authMiddleware);
 app.use("/api/agent/history", authMiddleware);
+app.use("/api/ai", authMiddleware);
 app.use("/api/agent/diagnostics", authMiddleware);
 
 app.get("/api/ai/providers", (_req, res) => {
