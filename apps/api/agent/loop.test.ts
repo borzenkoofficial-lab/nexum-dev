@@ -251,6 +251,38 @@ test("locks auto-repair requests to the automotive domain", async () => {
   assert.ok(plan.acceptanceCriteria.every((item) => !/construction|строитель/i.test(item)));
 });
 
+test("rejects a domain-drifting product plan before Builder execution", async () => {
+  const agent = new NexumAgent(gateway);
+  const aligned = (agent as any).isProductPlanAlignedWithTask("Сделай сайт строительной компании по демонтажу фасадов", {
+    goal: "Сайт строительной компании",
+    productType: "Строительная компания",
+    targetUser: "Заказчики и подрядчики",
+    pages: ["Главная", "Услуги", "Объекты", "Контакты"],
+    components: ["Форма заявки", "Карточки объектов"],
+    visualSystem: ["Графит и жёлтый"],
+    interactions: ["Заявка на расчёт"],
+    dataModel: ["заявки", "объекты"],
+    filesToInspect: ["src/App.tsx"],
+    filesToChange: ["src/App.tsx"],
+    acceptanceCriteria: ["Демонтаж фасадов представлен на странице"]
+  });
+  const drifted = (agent as any).isProductPlanAlignedWithTask("Сделай сайт строительной компании по демонтажу фасадов", {
+    goal: "Digital products studio",
+    productType: "SaaS platform",
+    targetUser: "Developers",
+    pages: ["Home", "Dashboard"],
+    components: ["AI tools"],
+    visualSystem: ["Modern SaaS"],
+    interactions: ["Generate"],
+    dataModel: ["projects"],
+    filesToInspect: ["src/App.tsx"],
+    filesToChange: ["src/App.tsx"],
+    acceptanceCriteria: ["AI studio landing page"]
+  });
+  assert.equal(aligned, true);
+  assert.equal(drifted, false);
+});
+
 test("does not let an automotive request accept a construction write plan", () => {
   const agent = new NexumAgent(gateway);
   const aligned = (agent as any).isPlanAlignedWithTask("Сделай сайт по ремонту авто", {
