@@ -150,6 +150,15 @@ export function selectContext(
       },
     };
     compactSummary = JSON.stringify(minimal);
+    if (compactSummary.length > config.maxChars) {
+      compactSummary = JSON.stringify({
+        intent: { mode: intent.mode, domain: intent.domain },
+        project: { framework: understanding.framework, health: understanding.health },
+      });
+    }
+    if (compactSummary.length > config.maxChars) {
+      compactSummary = JSON.stringify({ intent: { domain: intent.domain } });
+    }
   }
   // Keep the context structurally valid JSON even when a caller requests an
   // unusually small character budget. Never slice serialized JSON mid-token.
