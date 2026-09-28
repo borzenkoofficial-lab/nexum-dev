@@ -318,7 +318,6 @@ ${attachment.content.slice(0, 80_000)}`);
     job.steps = result.steps;
     job.productPlan = result.productPlan;
     if (result.finalResponse !== undefined) job.reply = result.finalResponse;
-    const intent = extractIntent(message);
     let successfulBuild = result.steps.some((step) =>
       step.success &&
       (step.tool === "runCommand" || step.tool === "runSandbox") &&
@@ -399,7 +398,7 @@ ${attachment.content.slice(0, 80_000)}`);
       status: finalizedPipeline.completed ? "completed" : "error",
       message: job.currentMessage,
       output: JSON.stringify({
-        preparedStage: pipeline.stage,
+        preparedStage: finalizedPipeline.stage,
         finalStage: finalizedPipeline.stage,
         buildVerified: finalizedPipeline.buildVerified,
         readyForLive: finalizedPipeline.readyForLive,
