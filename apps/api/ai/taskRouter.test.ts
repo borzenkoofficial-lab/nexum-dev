@@ -7,6 +7,8 @@ test("routes product creation to the coding specialist", () => {
   assert.equal(decision.role, "coder");
   assert.equal(decision.mode, "build");
   assert.equal(decision.requiresVerification, true);
+  assert.equal(decision.domain, "construction");
+  assert.match(decision.productType, /строитель/);
 });
 
 test("routes failures to the deep debugger", () => {
