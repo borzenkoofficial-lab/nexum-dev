@@ -57,7 +57,7 @@ class ScriptedAgent extends NexumAgent {
 
   override async planWithAI(
     _task: string,
-    previousResults: Array<{ tool: string; result: { success: boolean }; input: string }>,
+    previousResults: any[],
     options?: { role?: string },
   ): Promise<any> {
     if (options?.role === "debugger") {
