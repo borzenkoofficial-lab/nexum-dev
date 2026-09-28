@@ -491,7 +491,7 @@ app.post("/api/projects", async (req, res) => {
 
 app.get("/api/projects/:id", async (req, res) => {
   try {
-    return res.json({ success: true, project: await getProjectManager(getAuthUser(req).id).getProject(req.params.id) });
+    return res.json({ success: true, project: await getProjectManager(getAuthUser(req).id).getProject(String(req.params.id)) });
   } catch (error) {
     return sendProjectError(res, error);
   }
@@ -499,7 +499,7 @@ app.get("/api/projects/:id", async (req, res) => {
 
 app.post("/api/projects/:id/duplicate", async (req, res) => {
   try {
-    const project = await getProjectManager(getAuthUser(req).id).duplicateProject(req.params.id);
+    const project = await getProjectManager(getAuthUser(req).id).duplicateProject(String(req.params.id));
     return res.status(201).json({ success: true, project });
   } catch (error) {
     return sendProjectError(res, error);
