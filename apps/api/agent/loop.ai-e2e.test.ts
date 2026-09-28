@@ -35,17 +35,14 @@ class E2EProvider implements AIProvider {
         acceptanceCriteria: ["construction domain preserved", "Preview-ready"],
       });
     }
-    if (this.calls === 1) {
-      return JSON.stringify({ tool: "listFiles", input: "." });
+    if (/Previous tool results:/i.test(message) && /listFiles/i.test(message) && !/writeFile/i.test(message)) {
+      return JSON.stringify({ tool: "writeFile", input: JSON.stringify({
+        path: "index.html",
+        content: "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p></main></body></html>",
+      }) });
     }
-    if (this.calls === 2) {
-      return JSON.stringify({
-        tool: "writeFile",
-        input: JSON.stringify({
-          path: "index.html",
-          content: "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p></main></body></html>",
-        }),
-      });
+    if (!/Previous tool results:/i.test(message)) {
+      return JSON.stringify({ tool: "listFiles", input: "." });
     }
     return JSON.stringify({ done: true, finalResponse: "Готово: строительный сайт создан и проверен." });
   }
