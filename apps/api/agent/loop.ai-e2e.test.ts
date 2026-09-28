@@ -60,6 +60,15 @@ class ScriptedAgent extends NexumAgent {
     previousResults: any[],
     options?: { role?: string },
   ): Promise<any> {
+    if (previousResults.some((item) => item.tool === "testProject" && !item.result.success)) {
+      return {
+        tool: "writeFile",
+        input: JSON.stringify({
+          path: "index.html",
+          content: "<!doctype html><html lang=\"ru\"><body><main><h1>Демонтаж фасадов</h1><p>Строительная компания</p></main></body></html>",
+        }),
+      };
+    }
     if (options?.role === "debugger") {
       return {
         tool: "writeFile",
