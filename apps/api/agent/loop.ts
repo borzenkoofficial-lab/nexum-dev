@@ -745,7 +745,7 @@ export class AgentLoop {
       steps.push(step);
       this.onStep?.(step);
       previousResults.push({ iteration, tool: plan.tool, input: plan.input, result });
-      if (graphStep) {
+      if (builderState && graphStep) {
         const nodeComplete = result.success && (
           plan.done ||
           (graphStep.node.id === "understand" && ["listFiles", "readFile", "searchFiles"].includes(plan.tool)) ||
@@ -757,7 +757,7 @@ export class AgentLoop {
           (graphStep.node.id === "inspect" && ["listFiles", "readFile", "searchFiles"].includes(plan.tool)) ||
           (graphStep.node.id === "findings" && plan.done)
         );
-        if (builderState) recordBuilderNodeResult(builderState, graphStep.node.id, nodeComplete ?? false);
+        recordBuilderNodeResult(builderState, graphStep.node.id, nodeComplete ?? false);
       }
       const runtimeRoot = this.runtime instanceof Object && "projectRoot" in this.runtime ? (this.runtime as { projectRoot?: string }).projectRoot : undefined;
       if (runtimeRoot) {
