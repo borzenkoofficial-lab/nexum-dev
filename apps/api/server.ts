@@ -198,9 +198,7 @@ ${attachment.content.slice(0, 80_000)}`);
       projectContext,
       message,
       attachmentContext.length ? `ATTACHED FILES:\n${attachmentContext.join("\n\n")}` : "",
-    ].filter(Boolean).join("
-
-");
+    ].filter(Boolean).join("\n\n");
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const userGateway = getUserAIGateway(userId);
     const agent = new NexumAgent(userGateway, project.path);
