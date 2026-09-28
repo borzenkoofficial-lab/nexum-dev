@@ -2,6 +2,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AIGateway, GatewayGenerateOptions } from "../ai/gateway.js";
 import { AIOrchestrator } from "../ai/orchestrator.js";
+import { routeTask } from "../ai/taskRouter.js";
 import type {
   AgentModelOptions,
   AgentRuntime,
@@ -274,11 +275,8 @@ ${result.output}`
       `Previous tool results:\n${history}`,
     ].join("\n");
 
-    const role = /ошибк|error|debug|сборк|build|compile|fix|исправ/i.test(task)
-      ? "debugger"
-      : /создай|разработай|сайт|приложени|dashboard|landing|react|ui|код|code/i.test(task)
-        ? "coder"
-        : "planner";
+    const routing = routeTask(task);
+    const role = routing.role;
     const run = await this.orchestrator.run(role, prompt, options);
     console.log(JSON.stringify({ type: "ai-role", role: run.role, provider: run.provider, model: run.model, fallback: run.fallback }));
     const parsed = this.parseAIPlan(run.response);
