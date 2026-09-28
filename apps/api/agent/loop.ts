@@ -8,6 +8,7 @@ import { diagnoseError } from "./errorRecovery.js";
 import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVerificationState } from "./taskState.js";
 import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
+import { routeTask } from "../ai/taskRouter.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 import type {
   AgentModelOptions,
@@ -233,11 +234,7 @@ export class AgentLoop {
         try {
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
-          const planningRole: "planner" | "coder" | "debugger" = /ошиб|error|debug|не работает|сломал|fix|исправ/i.test(task)
-            ? "debugger"
-            : /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|ui|код|code/i.test(task)
-              ? "coder"
-              : "planner";
+          const planningRole = routeTask(task).role as "planner" | "coder" | "debugger";
           const aiOptions = aiOptionsForTask(options, planningRole);
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           modelPlan = await this.runtime.planWithAI(task, compactHistory, aiOptions as AgentModelOptions, productPlan ?? undefined);
