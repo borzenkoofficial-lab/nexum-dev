@@ -897,3 +897,105 @@
 .nexum-os-event strong{display:block;font-size:11px}.nexum-os-event span{display:block;margin-top:3px;color:#737780;font-size:10px;line-height:1.4}
 .nexum-os-event-dot{display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:#6c63d9}
 @media(max-width:760px){.nexum-os-event-center{right:10px;top:70px;width:calc(100vw - 20px)}}
+
+
+/* NEXUM OS — global polish / performance contract */
+:root{
+  --nexum-surface:rgba(255,255,255,.72);
+  --nexum-surface-strong:rgba(255,255,255,.88);
+  --nexum-border:rgba(20,22,28,.08);
+  --nexum-text:#17181c;
+  --nexum-muted:#7b8089;
+  --nexum-shadow:0 20px 60px rgba(20,22,28,.10);
+}
+html{background:#f4f5f7}
+body{overscroll-behavior:none}
+button,input,textarea,select{font:inherit}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{
+  outline:2px solid rgba(91,78,198,.42);outline-offset:2px;
+}
+::selection{background:rgba(98,86,205,.16)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(35,38,45,.16);border:3px solid transparent;background-clip:padding-box;border-radius:999px}
+::-webkit-scrollbar-thumb:hover{background:rgba(35,38,45,.25);background-clip:padding-box}
+
+/* Keep glass concentrated on system surfaces rather than content-heavy regions. */
+.nexum-os-app-strip,.nexum-os-event,.status-bar.nexum-global-menu,.os-window-shell{
+  contain:layout paint;
+}
+.nexum-os-app-strip,.status-bar.nexum-global-menu{
+  will-change:transform;
+}
+.nexum-os-event{
+  animation:nexum-event-in .18s ease-out both;
+}
+@keyframes nexum-event-in{
+  from{opacity:0;transform:translateY(-6px) scale(.985)}
+  to{opacity:1;transform:none}
+}
+
+/* Command palette as a first-class OS surface. */
+.command-palette{
+  width:min(680px,calc(100vw - 28px));
+  max-height:min(620px,calc(100dvh - 56px));
+  overflow:hidden;
+  border:1px solid rgba(20,22,28,.09)!important;
+  border-radius:24px!important;
+  background:rgba(255,255,255,.88)!important;
+  box-shadow:0 34px 100px rgba(20,22,28,.20),inset 0 1px 0 rgba(255,255,255,.96)!important;
+  backdrop-filter:blur(28px) saturate(155%);
+  -webkit-backdrop-filter:blur(28px) saturate(155%);
+}
+.palette-search{
+  min-height:58px!important;
+  padding:0 16px!important;
+  border-bottom:1px solid rgba(20,22,28,.07)!important;
+}
+.palette-search input{font-size:14px!important}
+.palette-list{padding:8px!important;max-height:520px;overflow:auto}
+.palette-item{
+  min-height:48px!important;
+  border-radius:13px!important;
+  transition:background .12s ease,transform .12s ease!important;
+}
+.palette-item.active{
+  background:rgba(91,78,198,.08)!important;
+  box-shadow:inset 0 0 0 1px rgba(91,78,198,.08);
+}
+.palette-item kbd{
+  border:1px solid rgba(20,22,28,.07);
+  border-radius:7px;
+  background:rgba(245,246,248,.9);
+}
+
+/* Safe-area aware system controls on iPhone/iPad. */
+.status-bar.nexum-global-menu{
+  bottom:max(12px,env(safe-area-inset-bottom))!important;
+}
+.nexum-os-event-center{
+  top:max(84px,calc(env(safe-area-inset-top) + 68px));
+}
+@media(max-width:760px){
+  .nexum-os-event-center{
+    top:max(68px,calc(env(safe-area-inset-top) + 56px));
+  }
+  .nexum-os-app-strip{
+    top:max(58px,calc(env(safe-area-inset-top) + 42px));
+  }
+  .app-project .nexum-os-project{
+    padding-bottom:max(92px,calc(78px + env(safe-area-inset-bottom)))!important;
+  }
+}
+
+/* Low-power / reduced-motion mode: preserve hierarchy without expensive effects. */
+@media(prefers-reduced-motion:reduce){
+  .nexum-os-event{animation:none}
+  .command-palette,.nexum-os-app-strip,.nexum-os-event{
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+  }
+}
+@media(pointer:coarse){
+  .nexum-os-app-strip,.status-bar.nexum-global-menu{backdrop-filter:blur(14px) saturate(135%);-webkit-backdrop-filter:blur(14px) saturate(135%)}
+  .palette-item{min-height:52px!important}
+}
