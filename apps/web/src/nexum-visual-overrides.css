@@ -3536,3 +3536,172 @@ html,body,#root,.app,.main{
     width:24px!important;
   }
 }
+
+
+/* NEXUM BUILD STATE / LIVE LOOP
+   Stage-aware visual feedback: Analyze → Plan → Build → Verify → Live. */
+
+.agent-panel[data-stage],
+.preview-frame-wrap[data-stage]{
+  --stage-accent:rgba(103,108,255,.72);
+  --stage-soft:rgba(103,108,255,.045);
+}
+
+/* Stage vocabulary */
+.agent-stage-analyzing,
+.agent-stage-thinking,
+.agent-stage-reading{
+  --stage-accent:rgba(103,108,255,.72)!important;
+  --stage-soft:rgba(103,108,255,.045)!important;
+}
+.agent-stage-planning{
+  --stage-accent:rgba(103,108,255,.78)!important;
+  --stage-soft:rgba(103,108,255,.05)!important;
+}
+.agent-stage-editing,
+.agent-stage-building,
+.agent-stage-running{
+  --stage-accent:rgba(103,108,255,.86)!important;
+  --stage-soft:rgba(103,108,255,.06)!important;
+}
+.agent-stage-testing{
+  --stage-accent:rgba(49,185,126,.78)!important;
+  --stage-soft:rgba(49,185,126,.045)!important;
+}
+.agent-stage-completed{
+  --stage-accent:rgba(49,185,126,.86)!important;
+  --stage-soft:rgba(49,185,126,.05)!important;
+}
+.agent-stage-error{
+  --stage-accent:rgba(171,104,104,.76)!important;
+  --stage-soft:rgba(171,104,104,.045)!important;
+}
+
+/* The hero track responds to the real stage rather than being decorative. */
+.agent-panel[data-stage] .agent-hero-mockup{
+  box-shadow:0 22px 55px rgba(17,17,19,.075),0 0 0 1px var(--stage-soft),inset 0 1px 0 #fff!important;
+}
+.agent-panel[data-stage] .agent-hero-mockup:after{
+  width:clamp(42px,16%,130px)!important;
+  background:linear-gradient(90deg,var(--stage-accent),transparent)!important;
+}
+.agent-panel[data-stage="analyzing"] .agent-hero-track span:nth-child(1),
+.agent-panel[data-stage="thinking"] .agent-hero-track span:nth-child(1),
+.agent-panel[data-stage="reading"] .agent-hero-track span:nth-child(1),
+.agent-panel[data-stage="planning"] .agent-hero-track span:nth-child(2),
+.agent-panel[data-stage="editing"] .agent-hero-track span:nth-child(3),
+.agent-panel[data-stage="building"] .agent-hero-track span:nth-child(3),
+.agent-panel[data-stage="running"] .agent-hero-track span:nth-child(3),
+.agent-panel[data-stage="testing"] .agent-hero-track span:nth-child(4),
+.agent-panel[data-stage="completed"] .agent-hero-track span:nth-child(5){
+  box-shadow:0 0 0 5px var(--stage-soft),0 0 18px var(--stage-soft)!important;
+}
+
+/* Stage labels become a compact control map. */
+.agent-panel[data-stage="analyzing"] .agent-hero-labels > *:nth-child(1),
+.agent-panel[data-stage="thinking"] .agent-hero-labels > *:nth-child(1),
+.agent-panel[data-stage="reading"] .agent-hero-labels > *:nth-child(1),
+.agent-panel[data-stage="planning"] .agent-hero-labels > *:nth-child(2),
+.agent-panel[data-stage="editing"] .agent-hero-labels > *:nth-child(3),
+.agent-panel[data-stage="building"] .agent-hero-labels > *:nth-child(3),
+.agent-panel[data-stage="running"] .agent-hero-labels > *:nth-child(3),
+.agent-panel[data-stage="testing"] .agent-hero-labels > *:nth-child(4),
+.agent-panel[data-stage="completed"] .agent-hero-labels > *:nth-child(5){
+  color:#17171b!important;
+  border-color:var(--stage-accent)!important;
+  background:#fff!important;
+}
+
+/* Current step inherits the actual orchestration state. */
+.agent-panel[data-stage] .agent-current{
+  border-left:2px solid var(--stage-accent)!important;
+  background:linear-gradient(90deg,var(--stage-soft),rgba(255,255,255,.52))!important;
+}
+.agent-panel[data-stage] .agent-current .activity-dot.working{
+  background:var(--stage-accent)!important;
+}
+
+/* Pipeline is now an operational state indicator. */
+.agent-panel[data-stage] .pipeline-step.active{
+  border-color:var(--stage-accent)!important;
+  background:var(--stage-soft)!important;
+  box-shadow:0 7px 18px rgba(17,17,19,.035),inset 0 1px 0 #fff!important;
+}
+.agent-panel[data-stage] .pipeline-step.active i{
+  border-color:var(--stage-accent)!important;
+  box-shadow:0 0 0 4px var(--stage-soft)!important;
+}
+
+/* Preview mirrors the Agent stage. */
+.preview-frame-wrap[data-stage]{
+  transition:box-shadow .3s ease,border-color .3s ease!important;
+}
+.preview-frame-wrap[data-stage="analyzing"] .preview-content,
+.preview-frame-wrap[data-stage="thinking"] .preview-content,
+.preview-frame-wrap[data-stage="planning"] .preview-content{
+  box-shadow:0 18px 48px rgba(17,17,19,.055),0 0 0 1px rgba(103,108,255,.035),inset 0 1px 0 #fff!important;
+}
+.preview-frame-wrap[data-stage="editing"] .preview-content,
+.preview-frame-wrap[data-stage="building"] .preview-content,
+.preview-frame-wrap[data-stage="running"] .preview-content{
+  box-shadow:0 20px 55px rgba(17,17,19,.07),0 0 0 1px rgba(103,108,255,.07),inset 0 1px 0 #fff!important;
+}
+.preview-frame-wrap[data-stage="testing"] .preview-content{
+  box-shadow:0 20px 55px rgba(17,17,19,.07),0 0 0 1px rgba(49,185,126,.08),inset 0 1px 0 #fff!important;
+}
+
+/* Runtime iframe: communicate updating/live state around the actual app. */
+.preview-frame-wrap[data-stage="editing"] .preview-browser-bar:after,
+.preview-frame-wrap[data-stage="building"] .preview-browser-bar:after,
+.preview-frame-wrap[data-stage="running"] .preview-browser-bar:after{
+  background:linear-gradient(90deg,rgba(103,108,255,.16),rgba(103,108,255,.035))!important;
+}
+.preview-frame-wrap[data-stage="testing"] .preview-browser-bar:after,
+.preview-frame-wrap[data-stage="completed"] .preview-browser-bar:after{
+  background:linear-gradient(90deg,rgba(49,185,126,.18),rgba(49,185,126,.035))!important;
+}
+
+/* Add a non-intrusive state label to the actual Preview shell. */
+.preview-frame-wrap[data-stage="analyzing"] .preview-address b:after{content:" · ANALYZE"}
+.preview-frame-wrap[data-stage="planning"] .preview-address b:after{content:" · PLAN"}
+.preview-frame-wrap[data-stage="editing"] .preview-address b:after,
+.preview-frame-wrap[data-stage="building"] .preview-address b:after,
+.preview-frame-wrap[data-stage="running"] .preview-address b:after{content:" · UPDATING"}
+.preview-frame-wrap[data-stage="testing"] .preview-address b:after{content:" · VERIFY"}
+.preview-frame-wrap[data-stage="completed"] .preview-address b:after{content:" · LIVE"}
+
+/* Avoid making state feedback noisy. */
+.preview-frame-wrap[data-stage="editing"] .preview-content,
+.preview-frame-wrap[data-stage="building"] .preview-content{
+  animation:nexum-build-breathe 2.8s ease-in-out infinite;
+}
+@keyframes nexum-build-breathe{
+  0%,100%{transform:translateZ(0);box-shadow:0 20px 55px rgba(17,17,19,.07),0 0 0 1px rgba(103,108,255,.045),inset 0 1px 0 #fff}
+  50%{transform:translateY(-1px);box-shadow:0 24px 62px rgba(17,17,19,.08),0 0 0 1px rgba(103,108,255,.075),inset 0 1px 0 #fff}
+}
+@media(prefers-reduced-motion:reduce){
+  .preview-frame-wrap[data-stage="editing"] .preview-content,
+  .preview-frame-wrap[data-stage="building"] .preview-content{animation:none!important}
+}
+
+/* Make the transition from build to live unmistakable but quiet. */
+.preview-frame-wrap[data-stage="completed"] .preview-address b{
+  color:#5d796c!important;
+}
+.preview-frame-wrap[data-stage="completed"]:after{
+  content:"LIVE";
+  position:absolute!important;
+  right:13px!important;
+  bottom:11px!important;
+  z-index:10!important;
+  padding:5px 7px!important;
+  border:1px solid rgba(49,185,126,.14)!important;
+  border-radius:7px!important;
+  background:rgba(247,255,251,.84)!important;
+  color:#5d796c!important;
+  font-size:6px!important;
+  font-weight:800!important;
+  letter-spacing:.12em!important;
+  box-shadow:0 7px 16px rgba(17,17,19,.05)!important;
+  pointer-events:none!important;
+}
