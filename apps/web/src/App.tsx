@@ -13,6 +13,7 @@ import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
 import { OSDesktop } from "./components/OSDesktop";
 import { OSProjectWindow } from "./components/OSProjectWindow";
+import { NexumApplicationManager } from "./components/NexumApplicationManager";
 import { TopBar } from "./components/TopBar";
 import type { AIProviderInfo, AIProviderStatus, AgentStage as АгентStage, Project as Проект } from "./components/types";
 import { diagnosticsEvent, getDiagnosticsSessionId, startDiagnostics } from "./diagnostics";
@@ -739,6 +740,16 @@ function App() {
   return (
     <div className={"app app-" + view}>
       {<Sidebar projects={projects} activeProjectId={activeПроектId} projectsLoading={projectsLoading} projectActionLoading={projectActionLoading} mobileOpen={mobileSidebarOpen} view={view} onDeleteProject={(id) => void deleteПроект(id)} onViewChange={(next) => { setMobileSidebarOpen(false); setView(next); }} onNewProject={() => { setMobileSidebarOpen(false); setModalOpen(true); }} onSelectProject={(id) => { setMobileSidebarOpen(false); openПроект(id); }} />}
+      <NexumApplicationManager
+        projectName={activeПроект?.name}
+        mode={workspaceMode}
+        running={view === "project" && runningProjectIds.includes(activeПроектId)}
+        minimized={projectWindowMinimized}
+        onSelectMode={setProjectMode}
+        onMinimize={() => { setProjectWindowMinimized(true); setOsActiveWindow("home"); }}
+        onRestore={() => { setProjectWindowMinimized(false); setOsActiveWindow("project"); setOsFocusTick((value) => value + 1); }}
+        onClose={() => { setProjectWindowMinimized(false); setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId)); setOsActiveWindow("home"); navigate("home"); }}
+      />
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
         <TopBar projectName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : view === "diagnostics" ? "Диагностика" : "NEXUM.DEV"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />
         {view === "diagnostics" ? <DiagnosticsPage /> : view === "home" ? (
