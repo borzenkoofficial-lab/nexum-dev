@@ -852,7 +852,7 @@ function App() {
           previewOnline={previewOnline}
           agentStage={agentStage}
           activeTab={rightTab}
-          onTabChange={setRightTab}
+          onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); }}
           onClose={() => navigate("home")}
           minimized={projectWindowMinimized}
           onMinimize={() => setProjectWindowMinimized(true)}
@@ -868,8 +868,8 @@ function App() {
             setNotice("Предпросмотр открыт в новой вкладке");
           }}
           onCode={() => setCodeMode(true)}
-          onAgent={() => setRightTab("agent")}
-          onFiles={() => setRightTab("files")}
+          onAgent={() => { setCodeMode(false); setRightTab("agent"); }}
+          onFiles={() => { setCodeMode(false); setRightTab("files"); }}
         >
         {codeMode ? <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} onClose={() => setCodeMode(false)} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
