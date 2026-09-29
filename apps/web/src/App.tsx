@@ -44,6 +44,12 @@ function App() {
   const [workspaceMode, setWorkspaceMode] = useState<"preview" | "agent" | "files" | "code">("preview");
   const [codeMode, setCodeMode] = useState(false);
   const [projectWindowMinimized, setProjectWindowMinimized] = useState(false);
+  const [runningProjectIds, setRunningProjectIds] = useState<string[]>(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem("nexum:os:running-windows") || "[]");
+      return Array.isArray(saved) ? saved.filter((id): id is string => typeof id === "string") : [];
+    } catch { return []; }
+  });
   const [notice, setNotice] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [previewOnline, setПредпросмотрOnline] = useState(false);
@@ -88,6 +94,10 @@ function App() {
   useEffect(() => { document.documentElement.dataset.motion=uiSettings.animations?"on":"off"; document.documentElement.dataset.compact=uiSettings.compact?"on":"off"; document.documentElement.dataset.glow=uiSettings.glow?"on":"off"; document.documentElement.dataset.uiScale=String(uiSettings.scale); }, [uiSettings]);
 
   const activeПроект = projects.find((project) => project.id === activeПроектId);
+  const minimizedProjectIds = projectWindowMinimized && view === "project" ? [activeПроектId] : [];
+  useEffect(() => {
+    try { sessionStorage.setItem("nexum:os:running-windows", JSON.stringify(runningProjectIds)); } catch {}
+  }, [runningProjectIds]);
   useEffect(() => {
     diagnosticsEvent({
       type: "workspace-context",
@@ -307,6 +317,7 @@ function App() {
     const project = projects.find((item) => item.id === projectId);
     if (project) {
       setActiveПроектId(projectId);
+      setRunningProjectIds((items) => items.includes(projectId) ? items : [...items, projectId]);
       setReply("");
       setАгентStage(null);
       setCodeMode(false);
@@ -707,6 +718,9 @@ function App() {
             onNewProject={() => setModalOpen(true)}
             onOpenProject={(id, tab) => openПроект(id, tab)}
             onOpenView={(next) => setView(next)}
+            runningProjectIds={runningProjectIds}
+            minimizedProjectIds={minimizedProjectIds}
+            onRestoreProject={(id) => openПроект(id, "agent")}
           />
         ) : view === "news" ? (
           <NewsPage />
@@ -868,10 +882,18 @@ function App() {
           agentStage={agentStage}
           activeTab={rightTab}
           onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); setWorkspaceMode(tab); }}
-          onClose={() => { document.documentElement.classList.remove("nexum-os-maximized"); setProjectWindowMinimized(false); navigate("home"); }}
+          onClose={() => {
+            document.documentElement.classList.remove("nexum-os-maximized");
+            setProjectWindowMinimized(false);
+            setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId));
+            navigate("home");
+          }}
           minimized={projectWindowMinimized}
           onMinimize={() => setProjectWindowMinimized(true)}
-          onRestore={() => setProjectWindowMinimized(false)}
+          onRestore={() => {
+            setProjectWindowMinimized(false);
+            setRunningProjectIds((items) => items.includes(activeПроектId) ? items : [...items, activeПроектId]);
+          }}
           onConnect={() => setConnectorModal("Интеграция проекта")}
           onShare={async () => {
             const url = window.location.origin + "/api/preview/" + activeПроектId + "/index.html";
