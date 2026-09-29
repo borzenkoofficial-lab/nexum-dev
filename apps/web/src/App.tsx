@@ -382,7 +382,13 @@ function App() {
       if (!response.ok) throw new Error(`API создания проекта: HTTP ${response.status}`);
       const responseData = (await response.json()) as { project: Проект };
       await selectПроект(responseData.project.id);
-      setView("project");
+      setActiveПроектId(responseData.project.id);
+      setViewState("project");
+      setRightTab("agent");
+      setWorkspaceMode("agent");
+      setCodeMode(false);
+      setProjectWindowMinimized(false);
+      navigate("project", responseData.project.id);
       const buildBrief = [
         `Создай новый проект типа «${responseData.project.type ?? data.type}».`,
         data.description.trim()
