@@ -68,7 +68,14 @@ export function StatusBar({
           <button
             key={key}
             type="button"
-            className={`status-menu-item status-tone-${tone} ${activeView === key || (key !== "home" && key !== "projects" && activeView === "project" && key === "preview") ? "active" : ""}`}
+            className={`status-menu-item status-tone-${tone} ${
+              (key === "home" && activeView === "home") ||
+              (key === "projects" && (activeView === "home" || activeView === "project")) ||
+              (key === "preview" && activeView === "project") ||
+              (key !== "home" && key !== "projects" && key !== "preview" && activeView === key)
+                ? "active"
+                : ""
+            }`}
             onClick={actions[key]}
             title={label}
             aria-label={label}
