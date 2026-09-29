@@ -55,6 +55,11 @@ function App() {
   const [projectWindowMinimized, setProjectWindowMinimized] = useState(false);
   const [osActiveWindow, setOsActiveWindow] = useState<"project" | "home">("home");
   const [osFocusTick, setOsFocusTick] = useState(0);
+  const [osBooted, setOsBooted] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setOsBooted(true), 180);
+    return () => window.clearTimeout(timer);
+  }, []);
   const [runningProjectIds, setRunningProjectIds] = useState<string[]>(() => {
     try {
       const saved = JSON.parse(sessionStorage.getItem("nexum:os:running-windows") || "[]");
@@ -734,7 +739,7 @@ function App() {
   return (
     <div className={"app app-" + view}>
       {<Sidebar projects={projects} activeProjectId={activeПроектId} projectsLoading={projectsLoading} projectActionLoading={projectActionLoading} mobileOpen={mobileSidebarOpen} view={view} onDeleteProject={(id) => void deleteПроект(id)} onViewChange={(next) => { setMobileSidebarOpen(false); setView(next); }} onNewProject={() => { setMobileSidebarOpen(false); setModalOpen(true); }} onSelectProject={(id) => { setMobileSidebarOpen(false); openПроект(id); }} />}
-      <main className="main">
+      <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
         <TopBar projectName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : view === "diagnostics" ? "Диагностика" : "NEXUM.DEV"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />
         {view === "diagnostics" ? <DiagnosticsPage /> : view === "home" ? (
           <OSDesktop
