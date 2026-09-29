@@ -3155,3 +3155,201 @@ html,body,#root,.app,.main{
     display:none!important;
   }
 }
+
+
+/* NEXUM PREVIEW / GENERATED PRODUCT PRESENTATION
+   The preview is treated as a product specimen, not an empty browser frame. */
+
+.preview-frame-wrap{
+  position:relative!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.92),rgba(247,247,249,.78))!important;
+}
+.preview-frame-wrap:before{
+  content:"LIVE PRODUCT";
+  position:absolute!important;
+  top:9px!important;
+  right:14px!important;
+  z-index:8!important;
+  padding:4px 7px!important;
+  border:1px solid rgba(17,17,19,.06)!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.72)!important;
+  backdrop-filter:blur(12px)!important;
+  color:#85858d!important;
+  font-size:7px!important;
+  font-weight:800!important;
+  letter-spacing:.12em!important;
+  pointer-events:none!important;
+}
+.preview-viewport{
+  position:relative!important;
+  background:
+    radial-gradient(500px 260px at 50% 0%,rgba(103,108,255,.045),transparent 70%),
+    #f7f7f8!important;
+}
+
+/* A subtle "generated app" shell inside the browser. */
+.preview-content{
+  position:relative!important;
+  overflow:hidden!important;
+  border:1px solid rgba(17,17,19,.06)!important;
+  background:#fff!important;
+  box-shadow:0 18px 50px rgba(17,17,19,.07),inset 0 1px 0 #fff!important;
+}
+.preview-content:before{
+  content:"NEXUM BUILD";
+  position:absolute!important;
+  top:12px!important;
+  left:14px!important;
+  z-index:4!important;
+  font-size:7px!important;
+  font-weight:800!important;
+  letter-spacing:.14em!important;
+  color:rgba(17,17,19,.32)!important;
+  pointer-events:none!important;
+}
+
+/* Editorial app navigation. */
+.preview-content .preview-editorial-browser{
+  position:relative!important;
+}
+.preview-content .preview-editorial-canvas{
+  position:relative!important;
+}
+.preview-editorial-browser:before{
+  content:"";
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  top:0!important;
+  height:1px!important;
+  background:linear-gradient(90deg,rgba(103,108,255,.5),rgba(103,108,255,0))!important;
+  z-index:3!important;
+}
+
+/* Product/device specimen: make it feel like the output of a builder. */
+.preview-editorial-device{
+  border:1px solid rgba(17,17,19,.075)!important;
+  background:linear-gradient(180deg,#fff,#f6f6f8)!important;
+  box-shadow:
+    0 24px 55px rgba(17,17,19,.13),
+    0 4px 10px rgba(17,17,19,.04),
+    inset 0 1px 0 #fff!important;
+}
+.preview-editorial-device:before{
+  content:"";
+  position:absolute!important;
+  top:0!important;
+  left:0!important;
+  right:0!important;
+  height:28px!important;
+  border-bottom:1px solid rgba(17,17,19,.055)!important;
+  background:rgba(250,250,251,.8)!important;
+}
+.preview-editorial-device:after{
+  content:"●  ●  ●";
+  position:absolute!important;
+  top:8px!important;
+  left:11px!important;
+  z-index:2!important;
+  color:#b8b8bf!important;
+  font-size:6px!important;
+  letter-spacing:2px!important;
+}
+
+/* Give the generated product a convincing dashboard composition. */
+.preview-editorial-copy{
+  position:relative!important;
+  z-index:3!important;
+}
+.preview-editorial-copy strong{
+  display:block!important;
+  max-width:520px!important;
+  font-size:clamp(24px,3vw,48px)!important;
+  line-height:.94!important;
+}
+.preview-editorial-copy p{
+  max-width:420px!important;
+}
+.preview-editorial-copy:after{
+  content:"GENERATED WITH NEXUM";
+  display:inline-flex!important;
+  margin-top:18px!important;
+  padding:6px 9px!important;
+  border:1px solid rgba(17,17,19,.07)!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.66)!important;
+  color:#9999a1!important;
+  font-size:7px!important;
+  font-weight:800!important;
+  letter-spacing:.12em!important;
+}
+
+/* Live/update status rail — visual feedback without fake loading noise. */
+.preview-content:has(.preview-editorial-device):after{
+  content:"LIVE  ·  BUILD READY";
+  position:absolute!important;
+  right:14px!important;
+  bottom:12px!important;
+  z-index:6!important;
+  padding:6px 8px!important;
+  border:1px solid rgba(17,17,19,.06)!important;
+  border-radius:8px!important;
+  background:rgba(255,255,255,.78)!important;
+  backdrop-filter:blur(12px)!important;
+  color:#777780!important;
+  font-size:7px!important;
+  font-weight:800!important;
+  letter-spacing:.09em!important;
+  box-shadow:0 8px 20px rgba(17,17,19,.06)!important;
+  pointer-events:none!important;
+}
+
+/* Browser controls stay secondary to the product itself. */
+.preview-browser-dots{
+  opacity:.72!important;
+}
+.preview-browser-reload,
+.preview-expand{
+  transition:transform .16s ease,background .16s ease!important;
+}
+.preview-browser-reload:hover,
+.preview-expand:hover{
+  transform:translateY(-1px)!important;
+  background:rgba(17,17,19,.045)!important;
+}
+
+/* When preview is an actual runtime surface, let it dominate. */
+.preview-frame-wrap:focus-within .preview-content,
+.preview-frame-wrap:hover .preview-content{
+  box-shadow:
+    0 25px 65px rgba(17,17,19,.095),
+    0 0 0 1px rgba(103,108,255,.055),
+    inset 0 1px 0 #fff!important;
+}
+
+/* Compact screens: preserve the specimen metaphor. */
+@media(max-width:760px){
+  .preview-frame-wrap:before{
+    top:8px!important;
+    right:10px!important;
+    font-size:6px!important;
+  }
+  .preview-content:before{
+    top:9px!important;
+    left:10px!important;
+  }
+  .preview-editorial-copy strong{
+    font-size:30px!important;
+  }
+  .preview-editorial-copy:after{
+    margin-top:12px!important;
+  }
+  .preview-content:has(.preview-editorial-device):after{
+    right:9px!important;
+    bottom:9px!important;
+  }
+}
