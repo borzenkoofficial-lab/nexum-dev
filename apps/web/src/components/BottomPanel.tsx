@@ -36,7 +36,7 @@ export function BottomPanel({ jobId, stage, activitySteps, activityEvents, curre
   const order = ["analyzing", "planning", "editing", "testing", "completed"];
   const stageIndex = order.indexOf(stage ?? "");
   const effectiveIndex = stage === "thinking" || stage === "reading" || stage === "running" || stage === "building" ? Math.max(stageIndex, 0) : stageIndex;
-  return <div className="agent-panel">
+  return <div className={`agent-panel agent-stage-${stage ?? "idle"}`} data-stage={stage ?? "idle"}>
     <div className="agent-panel-header">
       <div><span className="eyebrow">ИИ-АГЕНТ</span><h2>{live ? "Агент работает" : stage === "completed" ? "Работа завершена" : stage === "error" ? "Агент остановлен" : "Агент готов"}</h2></div>
       <span className={`agent-status-pill ${live ? "live" : stage === "error" ? "error" : "done"}`}><i />{labels[stage ?? ""] ?? "Готов"}</span>
