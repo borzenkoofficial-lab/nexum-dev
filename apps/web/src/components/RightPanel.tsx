@@ -39,7 +39,44 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   const [saving, setSaving] = useState(false);
   const [editorError, setEditorError] = useState("");
   const [previewError, setPreviewError] = useState("");
-  const previewFrameRef = useRef<HTMLIFrameElement | null>(null);\n  const touchStartX = useRef<number | null>(null);\n\n  function handleTouchStart(event: React.TouchEvent<HTMLElement>) {\n    touchStartX.current = event.touches[0]?.clientX ?? null;\n  }\n\n  function handleTouchEnd(event: React.TouchEvent<HTMLElement>) {\n    const start = touchStartX.current;\n    touchStartX.current = null;\n    const end = event.changedTouches[0]?.clientX;\n    if (start == null || end == null) return;\n    const delta = end - start;\n    if (Math.abs(delta) < 64) return;\n    const tabs = ["agent", "preview", "files"] as const;\n    const index = tabs.indexOf(tab);\n    if (delta < 0) onTabChange(tabs[(index + 1) % tabs.length]);\n    else if (delta > 0) onTabChange(tabs[(index - 1 + tabs.length) % tabs.length]);\n  }
+  const previewFrameRef = useRef<HTMLIFrameElement | null>(null);\n  const touchStartX = useRef<number | null>(null);\n  const touchDeltaX = useRef(0);\n  const swipeSurfaceRef = useRef<HTMLElement | null>(null);\n\n  function handleTouchStart(event: React.TouchEvent<HTMLElement>) {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+    touchDeltaX.current = 0;
+    swipeSurfaceRef.current = event.currentTarget;
+    event.currentTarget.classList.add("mobile-swipe-active");
+  }
+
+  function handleTouchMove(event: React.TouchEvent<HTMLElement>) {
+    const start = touchStartX.current;
+    const surface = swipeSurfaceRef.current;
+    const point = event.touches[0];
+    if (start == null || !surface || !point) return;
+    const raw = point.clientX - start;
+    const delta = Math.max(-120, Math.min(120, raw * 0.72));
+    touchDeltaX.current = raw;
+    surface.style.setProperty("--mobile-swipe-delta", `${delta}px`);
+    surface.style.setProperty("--mobile-swipe-progress", String(Math.min(1, Math.abs(raw) / 180)));
+    surface.classList.add("mobile-swipe-dragging");
+  }
+
+  function handleTouchEnd(event: React.TouchEvent<HTMLElement>) {
+    const start = touchStartX.current;
+    const surface = swipeSurfaceRef.current;
+    const end = event.changedTouches[0]?.clientX;
+    const delta = end != null && start != null ? end - start : touchDeltaX.current;
+    touchStartX.current = null;
+    touchDeltaX.current = 0;
+    if (surface) {
+      surface.classList.remove("mobile-swipe-active", "mobile-swipe-dragging");
+      surface.style.removeProperty("--mobile-swipe-delta");
+      surface.style.removeProperty("--mobile-swipe-progress");
+    }
+    if (Math.abs(delta) < 64) return;
+    const tabs = ["agent", "preview", "files"] as const;
+    const index = tabs.indexOf(tab);
+    if (delta < 0) onTabChange(tabs[(index + 1) % tabs.length]);
+    else onTabChange(tabs[(index - 1 + tabs.length) % tabs.length]);
+  }
 
   useEffect(() => {
     if (tab !== "files" || !projectId) return;
@@ -181,7 +218,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   }
 
   return (
-    <aside className={`right-panel mobile-mode-${tab}`} aria-label="Инструменты проекта" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <aside className={`right-panel mobile-mode-${tab}`} aria-label="Инструменты проекта" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchEnd}>
       <div className="panel-tabs" role="tablist">
         <button className={tab === "preview" ? "active" : ""} type="button" onClick={() => onTabChange("preview")}>Предпросмотр</button>
         <button className={tab === "files" ? "active" : ""} type="button" onClick={() => onTabChange("files")}>Файлы</button>
