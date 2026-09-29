@@ -10,11 +10,14 @@ interface OSProjectWindowProps {
   onTabChange: (tab: "preview" | "files" | "agent") => void;
   onClose: () => void;
   onMinimize: () => void;
+  onRestore: () => void;
+  minimized: boolean;
   onConnect: () => void;
   onShare: () => void;
   onOpenPreview: () => void;
   onCode: () => void;
   onAgent: () => void;
+  onFiles: () => void;
   children: ReactNode;
 }
 
@@ -27,11 +30,14 @@ export function OSProjectWindow({
   onTabChange,
   onClose,
   onMinimize,
+  onRestore,
+  minimized,
   onConnect,
   onShare,
   onOpenPreview,
   onCode,
   onAgent,
+  onFiles,
   children,
 }: OSProjectWindowProps) {
   const busy = Boolean(agentStage && !["completed", "error"].includes(agentStage));
