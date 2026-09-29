@@ -7,6 +7,7 @@ interface OSProjectWindowProps {
   previewOnline: boolean;
   agentStage: AgentStage;
   activeTab: "preview" | "files" | "agent";
+  workspaceMode: "preview" | "agent" | "files" | "code";
   onTabChange: (tab: "preview" | "files" | "agent") => void;
   onClose: () => void;
   onMinimize: () => void;
@@ -27,6 +28,7 @@ export function OSProjectWindow({
   previewOnline,
   agentStage,
   activeTab,
+  workspaceMode,
   onTabChange,
   onClose,
   onMinimize,
@@ -87,7 +89,7 @@ export function OSProjectWindow({
             <button type="button" className={activeTab === "files" ? "active" : ""} onClick={onFiles}>
               <span>□</span> Files
             </button>
-            <button type="button" className="os-window-code" onClick={onCode}>
+            <button type="button" className={"os-window-code" + (workspaceMode === "code" ? " active" : "")} onClick={onCode}>
               <span>{"{ }"}</span> Code
             </button>
           </div>
@@ -109,7 +111,7 @@ export function OSProjectWindow({
           </div>
           <div>
             <span>MODE</span>
-            <strong>OS Workspace</strong>
+            <strong>{workspaceMode === "code" ? "Code" : workspaceMode === "agent" ? "AI Agent" : workspaceMode === "files" ? "Files" : "Preview"}</strong>
           </div>
           <div className="os-context-right">
             <kbd>⌘</kbd><kbd>K</kbd><span>Command Center</span>
