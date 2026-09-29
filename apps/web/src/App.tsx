@@ -42,6 +42,7 @@ function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"preview" | "files" | "agent">("preview");
   const [codeMode, setCodeMode] = useState(false);
+  const [projectWindowMinimized, setProjectWindowMinimized] = useState(false);
   const [notice, setNotice] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [previewOnline, setПредпросмотрOnline] = useState(false);
@@ -308,6 +309,7 @@ function App() {
       setReply("");
       setАгентStage(null);
       setViewState("project");
+      setProjectWindowMinimized(false);
       navigate("project", projectId);
     }
     void selectПроект(projectId);
@@ -852,7 +854,9 @@ function App() {
           activeTab={rightTab}
           onTabChange={setRightTab}
           onClose={() => navigate("home")}
-          onMinimize={() => setNotice("Окно свернуто в Dock")}
+          minimized={projectWindowMinimized}
+          onMinimize={() => setProjectWindowMinimized(true)}
+          onRestore={() => setProjectWindowMinimized(false)}
           onConnect={() => setConnectorModal("Интеграция проекта")}
           onShare={async () => {
             const url = window.location.origin + "/api/preview/" + activeПроектId + "/index.html";
@@ -865,6 +869,7 @@ function App() {
           }}
           onCode={() => setCodeMode(true)}
           onAgent={() => setRightTab("agent")}
+          onFiles={() => setRightTab("files")}
         >
         {codeMode ? <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} onClose={() => setCodeMode(false)} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
