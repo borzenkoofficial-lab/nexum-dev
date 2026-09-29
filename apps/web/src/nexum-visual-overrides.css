@@ -1856,3 +1856,217 @@ html,body,#root,.app,.main{
   .nexum-home .overview-workflow-preview{border-radius:19px!important}
   .nexum-home .overview-workflow-preview:after{display:none!important}
 }
+
+
+/* NEXUM.DEV / EDITORIAL PRODUCT COMPOSITION 06 */
+.nexum-home .home-hero{
+  grid-template-columns:minmax(280px,.78fr) minmax(520px,1.22fr)!important;
+  gap:clamp(28px,5vw,76px)!important;
+  align-items:center!important;
+}
+.nexum-home .home-hero>div:first-child{
+  position:relative!important;
+  z-index:8!important;
+}
+.nexum-home .home-hero>div:first-child:after{
+  content:"01 / PRODUCT SYSTEM";
+  display:block!important;
+  margin-top:28px!important;
+  color:#aaaab1!important;
+  font-size:7px!important;
+  letter-spacing:.15em!important;
+}
+.nexum-home .home-hero h1{
+  max-width:650px!important;
+  font-size:clamp(46px,5.6vw,82px)!important;
+  line-height:.92!important;
+  letter-spacing:-.075em!important;
+}
+.nexum-home .home-hero h1 em{
+  position:relative!important;
+  font-style:normal!important;
+}
+.nexum-home .home-hero h1 em:after{
+  content:"";
+  position:absolute!important;
+  left:3px!important;right:10%!important;bottom:-5px!important;
+  height:1px!important;
+  background:linear-gradient(90deg,rgba(93,99,255,.55),transparent)!important;
+}
+.nexum-home .home-hero>div:first-child p{
+  max-width:510px!important;
+  font-size:14px!important;
+  line-height:1.65!important;
+  color:#77777f!important;
+}
+.nexum-home .home-hero-actions{
+  overflow:visible!important;
+  padding:24px 10px 34px 0!important;
+}
+.nexum-home .home-hero-product{
+  box-sizing:border-box!important;
+  max-width:640px!important;
+}
+
+/* Floating status capsules make the mockup read like a product launch render. */
+.nexum-home .home-hero-product .hero-product-top:after{
+  content:"AI / 04 TOOLS";
+  position:absolute!important;
+  right:22px!important;
+  bottom:18px!important;
+  z-index:8!important;
+  padding:7px 9px!important;
+  border:1px solid rgba(255,255,255,.88)!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.55)!important;
+  color:#8b8b93!important;
+  font-size:7px!important;
+  letter-spacing:.11em!important;
+  box-shadow:0 10px 22px rgba(17,17,19,.055),inset 0 1px 0 #fff!important;
+  backdrop-filter:blur(16px)!important;
+}
+
+/* Give the inner UI more of a real application hierarchy. */
+.nexum-home .hero-agent-card{
+  position:relative!important;
+  overflow:hidden!important;
+}
+.nexum-home .hero-agent-card:before{
+  content:"";
+  position:absolute!important;
+  width:170px!important;height:170px!important;
+  right:-80px!important;top:-70px!important;
+  border-radius:50%!important;
+  background:radial-gradient(circle,rgba(93,99,255,.15),transparent 68%)!important;
+}
+.nexum-home .hero-agent-card:after{
+  content:"RUNNING";
+  position:absolute!important;
+  right:13px!important;top:13px!important;
+  padding:5px 7px!important;
+  border-radius:999px!important;
+  background:rgba(236,249,242,.82)!important;
+  color:#3b9869!important;
+  font-size:6px!important;
+  letter-spacing:.1em!important;
+}
+.nexum-home .hero-preview-card{
+  position:relative!important;
+  overflow:hidden!important;
+}
+.nexum-home .hero-preview-card:after{
+  content:"PREVIEW / 1280 × 800";
+  position:absolute!important;
+  right:13px!important;
+  bottom:12px!important;
+  color:#a0a0a7!important;
+  font-size:6px!important;
+  letter-spacing:.08em!important;
+}
+
+/* Project gallery: featured card gets a magazine-style asymmetry. */
+.nexum-home .project-window.is-featured{
+  position:relative!important;
+  min-height:470px!important;
+  transform:translateY(-2px)!important;
+}
+.nexum-home .project-window.is-featured:after{
+  content:"FEATURED WORKSPACE";
+  position:absolute!important;
+  right:18px!important;
+  top:10px!important;
+  z-index:8!important;
+  padding:5px 8px!important;
+  border:1px solid rgba(255,255,255,.8)!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.52)!important;
+  color:#85858d!important;
+  font-size:6px!important;
+  letter-spacing:.12em!important;
+  backdrop-filter:blur(12px)!important;
+}
+.nexum-home .project-window:not(.is-featured){
+  transform:translateY(8px)!important;
+}
+.nexum-home .project-window:not(.is-featured):hover{
+  transform:translateY(1px)!important;
+}
+
+/* Editorial section dividers. */
+.nexum-home .home-section-title{
+  position:relative!important;
+  padding-top:26px!important;
+}
+.nexum-home .home-section-title:before{
+  content:"";
+  position:absolute!important;
+  left:0!important;right:0!important;top:0!important;
+  height:1px!important;
+  background:linear-gradient(90deg,#d9d9df,rgba(217,217,223,.18),transparent)!important;
+}
+.nexum-home .overview-command-strip{
+  border:1px solid rgba(255,255,255,.82)!important;
+  background:rgba(255,255,255,.48)!important;
+  box-shadow:0 15px 45px rgba(17,17,19,.045),inset 0 1px 0 #fff!important;
+  backdrop-filter:blur(20px)!important;
+}
+
+/* Product flow becomes a horizontal glass timeline. */
+.nexum-home .workflow-line span{
+  position:relative!important;
+  min-width:82px!important;
+}
+.nexum-home .workflow-line span:after{
+  content:"";
+  position:absolute!important;
+  left:50%!important;bottom:-9px!important;
+  width:3px!important;height:3px!important;
+  border-radius:50%!important;
+  background:var(--nxd-blue)!important;
+  box-shadow:0 0 0 3px rgba(93,99,255,.08)!important;
+}
+.nexum-home .workflow-line i{
+  color:#b5b5bc!important;
+  font-size:11px!important;
+}
+
+/* Reduce decorative intensity when motion is disabled. */
+@media(prefers-reduced-motion:reduce){
+  .nexum-home .home-hero-product,
+  .nexum-home .project-window,
+  .nexum-home .project-window:hover{
+    transform:none!important;
+    transition:none!important;
+  }
+}
+@media(max-width:1100px){
+  .nexum-home .home-hero{
+    grid-template-columns:1fr!important;
+  }
+  .nexum-home .home-hero-actions{
+    align-items:center!important;
+  }
+  .nexum-home .home-hero-product{
+    width:min(100%,720px)!important;
+  }
+  .nexum-home .home-hero>div:first-child:after{display:none!important}
+}
+@media(max-width:600px){
+  .nexum-home .home-hero{
+    gap:24px!important;
+  }
+  .nexum-home .home-hero h1{
+    font-size:clamp(43px,13vw,62px)!important;
+  }
+  .nexum-home .home-hero-actions{
+    padding:0!important;
+  }
+  .nexum-home .project-window.is-featured,
+  .nexum-home .project-window:not(.is-featured){
+    transform:none!important;
+  }
+  .nexum-home .project-window.is-featured:after,
+  .nexum-home .home-hero-product .hero-product-top:after{
+    display:none!important;
+  }
+}
