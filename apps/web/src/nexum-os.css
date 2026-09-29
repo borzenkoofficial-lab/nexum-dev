@@ -757,3 +757,34 @@
 @media(pointer:coarse){
   .os-running-item:hover{transform:none}
 }
+
+
+/* NEXUM OS 3.0 — system window focus */
+.nexum-os-project{position:relative;z-index:10}
+.nexum-os-project:focus-within .os-window-shell{
+  box-shadow:0 30px 90px rgba(20,22,28,.14),0 0 0 1px rgba(255,255,255,.72),inset 0 1px 0 rgba(255,255,255,.9);
+}
+.os-window-shell{isolation:isolate}
+.os-window-titlebar,.os-window-toolbar{position:relative;z-index:3}
+.status-runtime-focus{
+  display:inline-flex;
+  align-items:center;
+  min-height:22px;
+  padding:0 7px;
+  border:1px solid rgba(20,22,28,.07);
+  border-radius:999px;
+  background:rgba(255,255,255,.52);
+  color:#666b75;
+  font-size:9px;
+  font-weight:750;
+  letter-spacing:.02em;
+}
+.status-bar.nexum-global-menu[data-os-window="project"] .status-runtime-focus{
+  color:#4e4b87;
+  background:rgba(239,237,255,.72);
+  border-color:rgba(112,98,210,.12);
+}
+@media(max-width:1180px){.status-runtime-focus{display:none!important}}
+@media(max-width:760px){
+  .nexum-os-project:focus-within .os-window-shell{box-shadow:none}
+}
