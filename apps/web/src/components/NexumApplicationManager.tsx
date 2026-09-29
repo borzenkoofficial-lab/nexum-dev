@@ -4,6 +4,8 @@ export type NexumOSWindowMode = "preview" | "agent" | "files" | "code";
 
 interface Props {
   projectName?: string;
+  projects?: Array<{ id: string; name: string; active?: boolean; minimized?: boolean }>;
+  onSelectProject?: (id: string) => void;
   mode: NexumOSWindowMode;
   running: boolean;
   minimized: boolean;
@@ -20,9 +22,10 @@ const apps = [
   { id: "code" as const, label: "Code", glyph: "{ }" },
 ];
 
-export function NexumApplicationManager({ projectName, mode, running, minimized, onSelectMode, onMinimize, onRestore, onClose }: Props) {
+export function NexumApplicationManager({ projectName, projects, running, minimized, mode, onSelectMode, onMinimize, onRestore, onClose, onSelectProject }: Props) {
   const [open, setOpen] = useState(false);
   const windows = useMemo(() => apps, []);
+  const projectItems = projects ?? (projectName ? [{ id: "active", name: projectName, active: true, minimized }] : []);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -51,6 +54,11 @@ export function NexumApplicationManager({ projectName, mode, running, minimized,
     {open && <div className="nexum-os-switcher-backdrop" role="dialog" aria-modal="true" aria-label="Application Manager" onMouseDown={() => setOpen(false)}>
       <div className="nexum-os-switcher" onMouseDown={(event) => event.stopPropagation()}>
         <div className="nexum-os-switcher-head"><span>APPLICATION MANAGER</span><small>{projectName ?? "NEXUM"} · {windows.length} windows</small></div>
+        <div className="nexum-os-switcher-projects" aria-label="Running projects">
+          {projectItems.map((project) => <button key={project.id} type="button" className={"nexum-os-project-chip" + (project.active ? " active" : "")} onClick={() => onSelectProject?.(project.id)}>
+            <span>{project.name.slice(0, 1).toUpperCase()}</span><strong>{project.name}</strong><small>{project.minimized ? "Minimized" : project.active ? "Active project" : "Running"}</small>
+          </button>)}
+        </div>
         <div className="nexum-os-switcher-grid">
           {windows.map((item) => <button key={item.id} type="button" className={"nexum-os-switcher-card" + (mode === item.id && !minimized ? " active" : "")} onClick={() => { onRestore(); onSelectMode(item.id); setOpen(false); }}>
             <span className="nexum-os-switcher-icon">{item.glyph}</span><strong>{item.label}</strong><small>{mode === item.id && !minimized ? "Active window" : "Open window"}</small>
