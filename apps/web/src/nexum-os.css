@@ -203,3 +203,106 @@
 @media(max-width:900px){
   .app-project .nexum-os-project{padding-top:0}
 }
+
+
+/* Global glass quick menu — persistent on every NEXUM view */
+.status-bar.nexum-global-menu{
+  position:fixed!important;
+  left:50%!important;
+  bottom:14px!important;
+  transform:translateX(-50%)!important;
+  z-index:2000!important;
+  width:min(1180px,calc(100vw - 28px))!important;
+  min-height:68px!important;
+  margin:0!important;
+  padding:7px 9px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  border:1px solid rgba(255,255,255,.82)!important;
+  border-radius:24px!important;
+  background:rgba(255,255,255,.62)!important;
+  backdrop-filter:blur(30px) saturate(175%)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(175%)!important;
+  box-shadow:0 26px 65px rgba(17,18,22,.18),0 3px 10px rgba(17,18,22,.07),inset 0 1px 0 rgba(255,255,255,.96)!important;
+  color:#17181c!important;
+}
+.status-quick-menu{display:flex;align-items:center;gap:4px;min-width:0}
+.status-menu-item{
+  position:relative!important;
+  width:58px!important;
+  height:54px!important;
+  flex:0 0 auto!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:3px!important;
+  border:1px solid transparent!important;
+  border-radius:16px!important;
+  background:transparent!important;
+  color:#686d76!important;
+  cursor:pointer!important;
+  transition:transform .18s ease,background .18s ease,box-shadow .18s ease,color .18s ease!important;
+}
+.status-menu-item:hover{transform:translateY(-3px)!important;background:rgba(255,255,255,.58)!important;color:#17181c!important}
+.status-menu-item.active{background:rgba(255,255,255,.76)!important;border-color:rgba(255,255,255,.9)!important;box-shadow:0 8px 20px rgba(17,18,22,.09),inset 0 1px 0 rgba(255,255,255,.98)!important;color:#17181c!important}
+.status-menu-icon{
+  width:34px!important;height:34px!important;display:grid!important;place-items:center!important;
+  border-radius:11px!important;
+  border:1px solid rgba(255,255,255,.92)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(220,223,229,.78))!important;
+  box-shadow:0 7px 15px rgba(17,18,22,.11),inset 0 1px 0 rgba(255,255,255,.98)!important;
+  font-size:16px!important;font-weight:750!important;line-height:1!important;
+}
+.status-menu-label{font-size:8px!important;line-height:1!important;font-weight:650!important;white-space:nowrap!important;opacity:.8}
+.status-tone-home .status-menu-icon{background:linear-gradient(145deg,#f4f7ff,#dce6ff)!important;color:#3867d6!important}
+.status-tone-projects .status-menu-icon{background:linear-gradient(145deg,#f2f0ff,#ddd9ff)!important;color:#6955d9!important}
+.status-tone-agent .status-menu-icon{background:linear-gradient(145deg,#fff0f7,#ffd7e9)!important;color:#d63f7b!important}
+.status-tone-code .status-menu-icon{background:linear-gradient(145deg,#edf9ff,#d4efff)!important;color:#1477b8!important;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px!important}
+.status-tone-preview .status-menu-icon{background:linear-gradient(145deg,#edfff5,#cff5df)!important;color:#15945a!important}
+.status-tone-connectors .status-menu-icon{background:linear-gradient(145deg,#fff8e9,#ffe8b3)!important;color:#b87500!important}
+.status-tone-diagnostics .status-menu-icon{background:linear-gradient(145deg,#fff1ed,#ffd8ce)!important;color:#c95038!important}
+.status-tone-news .status-menu-icon{background:linear-gradient(145deg,#f3f1ff,#dedaff)!important;color:#7059c7!important}
+.status-tone-settings .status-menu-icon{background:linear-gradient(145deg,#f1f2f5,#dcdee4)!important;color:#525761!important}
+.status-tone-new .status-menu-icon{background:linear-gradient(145deg,#202126,#50535c)!important;color:#fff!important}
+.status-menu-divider{width:1px;height:36px;background:rgba(18,18,22,.1);margin:0 4px;flex:0 0 auto}
+.status-runtime{display:flex;align-items:center;gap:7px;padding:0 10px 0 7px;white-space:nowrap;color:#777c85;font-size:9px}
+.status-runtime-project{max-width:130px;overflow:hidden;text-overflow:ellipsis;color:#383b42;font-weight:700}
+.status-runtime-dot{width:6px;height:6px;border-radius:50%;background:#b8bec7;box-shadow:0 0 0 3px rgba(184,190,199,.14)}
+.status-runtime-dot.online{background:#22a06b;box-shadow:0 0 0 3px rgba(34,160,107,.12)}
+.status-runtime-preview{padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.55);border:1px solid rgba(18,18,22,.06);font-weight:700}
+.status-runtime-preview.online{color:#168654}
+.status-runtime-preview.offline{color:#a05a4d}
+
+/* The quick menu replaces the legacy desktop dock and remains above all OS windows. */
+.os-dock{display:none!important}
+.app-home .status-bar.nexum-global-menu,
+.app-project .status-bar.nexum-global-menu{display:flex!important}
+.app-home .main{padding-bottom:108px!important}
+.app-project .main{padding-bottom:84px!important}
+.nexum-os-project{padding-bottom:112px!important}
+.nexum-os-project-minimized{padding-bottom:122px!important}
+
+@media(max-width:900px){
+  .status-bar.nexum-global-menu{bottom:8px!important;width:calc(100vw - 14px)!important;min-height:62px!important;border-radius:20px!important;overflow:hidden!important}
+  .status-quick-menu{width:100%;overflow-x:auto;scrollbar-width:none}
+  .status-quick-menu::-webkit-scrollbar{display:none}
+  .status-menu-item{width:50px!important;height:50px!important}
+  .status-menu-icon{width:31px!important;height:31px!important;border-radius:10px!important;font-size:14px!important}
+  .status-menu-label{display:none!important}
+  .status-menu-divider{height:30px}
+  .status-runtime{margin-left:auto;padding-right:5px}
+  .status-runtime-project{display:none}
+  .status-runtime>span:not(.status-runtime-dot):not(.status-runtime-preview){display:none}
+  .status-runtime-preview{font-size:8px}
+  .app-home .main{padding-bottom:88px!important}
+  .app-project .main{padding-bottom:74px!important}
+}
+@media(max-width:620px){
+  .status-bar.nexum-global-menu{min-height:58px!important;padding:5px 6px!important}
+  .status-menu-item{width:46px!important;height:48px!important}
+  .status-menu-icon{width:30px!important;height:30px!important}
+  .status-menu-divider{margin:0 1px}
+}
