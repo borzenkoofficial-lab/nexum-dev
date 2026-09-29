@@ -39,7 +39,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   const [saving, setSaving] = useState(false);
   const [editorError, setEditorError] = useState("");
   const [previewError, setPreviewError] = useState("");
-  const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
+  const previewFrameRef = useRef<HTMLIFrameElement | null>(null);\n  const touchStartX = useRef<number | null>(null);\n\n  function handleTouchStart(event: React.TouchEvent<HTMLElement>) {\n    touchStartX.current = event.touches[0]?.clientX ?? null;\n  }\n\n  function handleTouchEnd(event: React.TouchEvent<HTMLElement>) {\n    const start = touchStartX.current;\n    touchStartX.current = null;\n    const end = event.changedTouches[0]?.clientX;\n    if (start == null || end == null) return;\n    const delta = end - start;\n    if (Math.abs(delta) < 64) return;\n    const tabs = ["agent", "preview", "files"] as const;\n    const index = tabs.indexOf(tab);\n    if (delta < 0) onTabChange(tabs[(index + 1) % tabs.length]);\n    else if (delta > 0) onTabChange(tabs[(index - 1 + tabs.length) % tabs.length]);\n  }
 
   useEffect(() => {
     if (tab !== "files" || !projectId) return;
@@ -181,7 +181,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   }
 
   return (
-    <aside className="right-panel" aria-label="Инструменты проекта">
+    <aside className="right-panel" aria-label="Инструменты проекта" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <div className="panel-tabs" role="tablist">
         <button className={tab === "preview" ? "active" : ""} type="button" onClick={() => onTabChange("preview")}>Предпросмотр</button>
         <button className={tab === "files" ? "active" : ""} type="button" onClick={() => onTabChange("files")}>Файлы</button>
