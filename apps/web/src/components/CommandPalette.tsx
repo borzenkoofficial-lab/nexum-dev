@@ -15,14 +15,24 @@ interface CommandPaletteProps {
 export function CommandPalette({ open, onClose, actions }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
-  const filteredActions = actions.filter((action) => action.label.toLowerCase().includes(query.toLowerCase()));
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredActions = actions.filter((action) => !normalizedQuery || `${action.label} ${action.hint}`.toLowerCase().includes(normalizedQuery));
 
   useEffect(() => {
     if (!open) return;
+    setQuery("");
+    setActiveIndex(0);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    setActiveIndex((index) => Math.min(index, Math.max(filteredActions.length - 1, 0)));
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-      if (event.key === "ArrowDown") { event.preventDefault(); setActiveIndex((index) => Math.min(index + 1, Math.max(filteredActions.length - 1, 0))); }
-      if (event.key === "ArrowUp") { event.preventDefault(); setActiveIndex((index) => Math.max(index - 1, 0)); }
+      if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
+      if (event.key === "ArrowDown") { event.preventDefault(); setActiveIndex((index) => Math.min(index + 1, Math.max(filteredActions.length - 1, 0))); return; }
+      if (event.key === "ArrowUp") { event.preventDefault(); setActiveIndex((index) => Math.max(index - 1, 0)); return; }
+      if (event.key === "Home") { event.preventDefault(); setActiveIndex(0); return; }
+      if (event.key === "End") { event.preventDefault(); setActiveIndex(Math.max(filteredActions.length - 1, 0)); return; }
       if (event.key === "Enter" && filteredActions[activeIndex]) { event.preventDefault(); filteredActions[activeIndex].run(); onClose(); }
     }
     window.addEventListener("keydown", handleKeyDown);
