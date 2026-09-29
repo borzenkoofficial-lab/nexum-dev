@@ -302,12 +302,14 @@ function App() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [modalOpen]);
 
-  function openПроект(projectId: string) {
+  function openПроект(projectId: string, workspaceTab: "preview" | "files" | "agent" = "preview") {
     const project = projects.find((item) => item.id === projectId);
     if (project) {
       setActiveПроектId(projectId);
       setReply("");
       setАгентStage(null);
+      setCodeMode(false);
+      setRightTab(workspaceTab);
       setViewState("project");
       setProjectWindowMinimized(false);
       navigate("project", projectId);
@@ -690,7 +692,7 @@ function App() {
           <OSDesktop
             projects={projects}
             onNewProject={() => setModalOpen(true)}
-            onOpenProject={openПроект}
+            onOpenProject={(id, tab) => openПроект(id, tab)}
             onOpenView={(next) => setView(next)}
           />
         ) : view === "news" ? (
