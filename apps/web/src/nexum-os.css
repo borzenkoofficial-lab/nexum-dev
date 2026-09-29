@@ -804,3 +804,41 @@
   .nexum-os-runtime.os-booting{opacity:1;transform:none}
   .nexum-os-runtime.os-booted{transition:none}
 }
+
+
+/* NEXUM OS 4.0 — Application Manager */
+.nexum-os-app-strip{
+  position:fixed;top:72px;left:50%;transform:translateX(-50%);
+  z-index:1800;display:flex;align-items:center;gap:6px;
+  max-width:min(760px,calc(100vw - 32px));padding:6px 7px;
+  border:1px solid rgba(20,22,28,.08);border-radius:18px;
+  background:rgba(255,255,255,.64);backdrop-filter:blur(22px) saturate(155%);
+  -webkit-backdrop-filter:blur(22px) saturate(155%);
+  box-shadow:0 14px 42px rgba(20,22,28,.09),inset 0 1px 0 rgba(255,255,255,.95);
+}
+.nexum-os-app-strip-title{padding:0 7px;color:#8a8e96;font-size:8px;font-weight:800;letter-spacing:.12em}
+.nexum-os-app-chip,.nexum-os-app-more{
+  display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;
+  border:1px solid transparent;border-radius:11px;background:rgba(255,255,255,.44);
+  color:#626770;font-size:10px;font-weight:700;cursor:pointer;
+}
+.nexum-os-app-chip i{font-style:normal;width:22px;height:22px;display:grid;place-items:center;border-radius:7px;background:rgba(255,255,255,.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}
+.nexum-os-app-chip.active{background:#fff;color:#18191d;border-color:rgba(20,22,28,.07);box-shadow:0 5px 16px rgba(20,22,28,.08)}
+.nexum-os-app-more{margin-left:2px;font-size:12px}
+.nexum-os-switcher-backdrop{position:fixed;inset:0;z-index:2500;display:grid;place-items:center;padding:24px;background:rgba(235,237,241,.34);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.nexum-os-switcher{width:min(720px,100%);padding:20px;border:1px solid rgba(20,22,28,.09);border-radius:28px;background:rgba(255,255,255,.82);box-shadow:0 30px 90px rgba(20,22,28,.18),inset 0 1px 0 rgba(255,255,255,.96)}
+.nexum-os-switcher-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:16px}.nexum-os-switcher-head span{font-size:10px;font-weight:850;letter-spacing:.12em}.nexum-os-switcher-head small{color:#8a8e96;font-size:10px}
+.nexum-os-switcher-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.nexum-os-switcher-card{min-height:150px;padding:16px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:7px;border:1px solid rgba(20,22,28,.07);border-radius:18px;background:rgba(248,249,251,.74);text-align:left;cursor:pointer}
+.nexum-os-switcher-card.active{background:#fff;border-color:rgba(90,75,190,.18);box-shadow:0 12px 30px rgba(20,22,28,.09)}
+.nexum-os-switcher-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:rgba(255,255,255,.9);font-size:18px;box-shadow:0 5px 16px rgba(20,22,28,.06)}
+.nexum-os-switcher-card strong{font-size:12px}.nexum-os-switcher-card small{font-size:9px;color:#858a93}
+.nexum-os-switcher-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.nexum-os-switcher-actions button{padding:9px 12px;border:1px solid rgba(20,22,28,.08);border-radius:10px;background:#fff;font-size:10px;font-weight:750;cursor:pointer}
+.nexum-os-switcher-actions .danger{color:#a33d4a}
+@media(max-width:760px){
+ .nexum-os-app-strip{top:58px;max-width:calc(100vw - 16px);overflow-x:auto;scrollbar-width:none}.nexum-os-app-strip::-webkit-scrollbar{display:none}
+ .nexum-os-app-strip-title{display:none}.nexum-os-app-chip{height:32px;padding:0 8px}.nexum-os-app-chip span{display:none}
+ .nexum-os-switcher-backdrop{padding:12px}.nexum-os-switcher{padding:14px;border-radius:22px}.nexum-os-switcher-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(prefers-reduced-motion:reduce){.nexum-os-switcher-backdrop{backdrop-filter:none;-webkit-backdrop-filter:none}}
