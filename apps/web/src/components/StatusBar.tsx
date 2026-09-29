@@ -9,6 +9,8 @@ interface StatusBarProps {
   previewOnline: boolean;
   activeView: QuickView;
   workspaceMode: "preview" | "agent" | "files" | "code";
+  osActiveWindow: "project" | "home";
+  osFocusTick: number;
   onHome: () => void;
   onProjects: () => void;
   onAgent: () => void;
@@ -40,6 +42,8 @@ export function StatusBar({
   previewOnline,
   activeView,
   workspaceMode,
+  osActiveWindow,
+  osFocusTick,
   onHome,
   onProjects,
   onAgent,
@@ -64,7 +68,7 @@ export function StatusBar({
   };
 
   return (
-    <footer className="status-bar nexum-global-menu" aria-label="NEXUM quick menu">
+    <footer className="status-bar nexum-global-menu" data-os-window={osActiveWindow} data-os-focus={osFocusTick} aria-label="NEXUM quick menu">
       <div className="status-quick-menu">
         {items.map(([key, glyph, label, tone]) => (
           <button
