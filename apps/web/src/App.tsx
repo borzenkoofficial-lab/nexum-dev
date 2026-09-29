@@ -753,6 +753,8 @@ function App() {
       <NexumOSEventCenter events={osEvents} onDismiss={(id) => setOsEvents((items) => items.filter((item) => item.id !== id))} />
       <NexumApplicationManager
         projectName={activeПроект?.name}
+        projects={runningProjectIds.map((id) => ({ id, name: projects.find((p) => p.id === id)?.name ?? id, active: id === activeПроектId && view === "project", minimized: id === activeПроектId ? projectWindowMinimized : false }))}
+        onSelectProject={(id) => openПроект(id, "agent")}
         mode={workspaceMode}
         running={view === "project" && runningProjectIds.includes(activeПроектId)}
         minimized={projectWindowMinimized}
