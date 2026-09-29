@@ -690,7 +690,6 @@ function App() {
             onOpenProject={openПроект}
             onOpenView={(next) => setView(next)}
           />
-          </section>
         ) : view === "news" ? (
           <NewsPage />
         ) : view === "connectors" ? (
