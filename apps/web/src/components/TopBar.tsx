@@ -10,16 +10,14 @@ interface TopBarProps {
   stage: AgentStage;
   onProviderChange: (id: string) => void;
   onModelChange: (model: string) => void;
-  onToggleSidebar: () => void;
 }
 
-export function TopBar({ projectName, aiStatus, stage, onToggleSidebar }: TopBarProps) {
+export function TopBar({ projectName, aiStatus, stage }: TopBarProps) {
   const stageLabel = stage === "thinking" ? "Думаю…" : stage === "analyzing" ? "Анализирую…" : stage === "planning" ? "Планирую…" : stage === "reading" ? "Читаю файлы…" : stage === "editing" ? "Изменяю…" : stage === "running" ? "Агент работает…" : stage === "building" ? "Собираю…" : stage === "testing" ? "Проверяю…" : stage === "completed" ? "Готово" : stage === "error" ? "Требуется внимание" : "Готов";
 
   return (
     <header className="header nexum-topbar">
       <div className="header-brand">
-        <button className="mobile-menu" type="button" aria-label="Открыть меню проектов" onClick={onToggleSidebar}>☰</button>
         <div className="topbar-mark" aria-hidden="true">N</div>
         <div className="topbar-copy"><div className="title">{projectName}</div><div className="subtitle">NEXUM.DEV · AI workspace</div></div>
       </div>
