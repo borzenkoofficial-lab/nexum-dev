@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 export type NexumOSWindowMode = "preview" | "agent" | "files" | "code";
 
@@ -24,7 +24,7 @@ const apps = [
 
 export function NexumApplicationManager({ projectName, projects, running, minimized, mode, onSelectMode, onMinimize, onRestore, onClose, onSelectProject }: Props) {
   const [open, setOpen] = useState(false);
-  const windows = useMemo(() => apps, []);
+  const windows = apps;
   const projectItems = projects ?? (projectName ? [{ id: "active", name: projectName, active: true, minimized }] : []);
 
   useEffect(() => {
