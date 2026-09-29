@@ -8,6 +8,7 @@ interface StatusBarProps {
   aiStatus: AIProviderStatus | null;
   previewOnline: boolean;
   activeView: QuickView;
+  workspaceMode: "preview" | "agent" | "files" | "code";
   onHome: () => void;
   onProjects: () => void;
   onAgent: () => void;
@@ -38,6 +39,7 @@ export function StatusBar({
   aiStatus,
   previewOnline,
   activeView,
+  workspaceMode,
   onHome,
   onProjects,
   onAgent,
@@ -71,8 +73,10 @@ export function StatusBar({
             className={`status-menu-item status-tone-${tone} ${
               (key === "home" && activeView === "home") ||
               (key === "projects" && (activeView === "home" || activeView === "project")) ||
-              (key === "preview" && activeView === "project") ||
-              (key !== "home" && key !== "projects" && key !== "preview" && activeView === key)
+              (key === "preview" && activeView === "project" && workspaceMode === "preview") ||
+              (key === "agent" && activeView === "project" && workspaceMode === "agent") ||
+              (key === "code" && activeView === "project" && workspaceMode === "code") ||
+              (key !== "home" && key !== "projects" && key !== "preview" && key !== "agent" && key !== "code" && activeView === key)
                 ? "active"
                 : ""
             }`}
