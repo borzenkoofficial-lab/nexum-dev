@@ -1403,3 +1403,112 @@ html,body,#root,.app,.main{background:radial-gradient(900px 500px at 78% -8%,rgb
 .connector-card,.settings-card,.agent-result-card,.agent-plan-card{border-color:var(--nxd-line)!important;border-radius:18px!important;background:rgba(255,255,255,.78)!important;box-shadow:0 12px 36px rgba(17,17,19,.045)!important;transition:transform .24s ease,box-shadow .24s ease,border-color .24s ease!important}.connector-card:hover,.settings-card:hover{transform:translateY(-3px);box-shadow:0 20px 48px rgba(17,17,19,.08)!important;border-color:rgba(93,99,255,.18)!important}.modal{background:rgba(255,255,255,.88)!important;backdrop-filter:saturate(150%) blur(26px)!important;-webkit-backdrop-filter:saturate(150%) blur(26px)!important}
 *{scrollbar-width:thin;scrollbar-color:rgba(17,17,19,.16) transparent}*::-webkit-scrollbar{width:7px;height:7px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:rgba(17,17,19,.14);border-radius:999px;border:2px solid transparent;background-clip:padding-box}
 @media(max-width:820px){.nexum-home{padding:42px 18px 64px!important}.nexum-home .home-hero{min-height:0!important;padding-bottom:0!important}.nexum-home .home-hero h1{font-size:clamp(44px,13vw,68px)!important}.nexum-home .project-window{min-height:340px!important;padding:172px 22px 22px!important}.nexum-home .project-window:after{left:22px!important;right:22px!important}.preview-viewport{padding:10px!important}}@media(max-width:560px){.nexum-home .home-hero{margin-bottom:46px!important}.nexum-home .home-hero h1{font-size:48px!important}.nexum-home .project-window{border-radius:20px!important}.nexum-home .project-window:after{top:28px!important}}@media(prefers-reduced-motion:reduce){.nexum-home .project-window,.nexum-home .project-window:after,.connector-card,.settings-card,.send-button,.home-primary{transition:none!important}}
+
+/* NEXUM.DEV / GLASS + MOCKUP PASS 04 */
+:root{
+ --nxd-glass:rgba(255,255,255,.56);
+ --nxd-glass-strong:rgba(255,255,255,.72);
+ --nxd-glass-border:rgba(255,255,255,.72);
+ --nxd-glass-shadow:0 30px 90px rgba(22,22,28,.10),0 8px 28px rgba(22,22,28,.055);
+}
+html,body,#root,.app,.main{
+ background:
+ radial-gradient(700px 420px at 72% 4%,rgba(93,99,255,.10),transparent 68%),
+ radial-gradient(600px 420px at 12% 76%,rgba(255,255,255,.9),transparent 70%),
+ #f5f5f7!important;
+}
+.header,.sidebar,.project-editor-header,.workspace-toolbar,.right-panel,.main-column{
+ background:rgba(255,255,255,.48)!important;
+ backdrop-filter:saturate(180%) blur(30px)!important;
+ -webkit-backdrop-filter:saturate(180%) blur(30px)!important;
+}
+.sidebar{box-shadow:12px 0 50px rgba(20,20,25,.035)!important}
+.header{box-shadow:0 8px 30px rgba(20,20,25,.035)!important}
+.nav-item.active,.sidebar-setting.active{
+ background:rgba(255,255,255,.62)!important;
+ border:1px solid rgba(255,255,255,.75)!important;
+ box-shadow:0 8px 24px rgba(20,20,25,.055),inset 0 1px 0 rgba(255,255,255,.9)!important;
+}
+.new-project{
+ background:rgba(255,255,255,.62)!important;
+ border:1px solid rgba(93,99,255,.20)!important;
+ backdrop-filter:blur(18px)!important;
+}
+.nexum-home:before{
+ content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;
+ background:radial-gradient(500px 260px at 78% 16%,rgba(93,99,255,.08),transparent 70%);
+}
+.nexum-home .home-hero-product,.nexum-home .hero-product,.nexum-home .home-product{
+ filter:drop-shadow(0 35px 70px rgba(17,17,19,.14));
+ transform:perspective(1400px) rotateY(-4deg) rotateX(2deg);
+ transition:transform .5s cubic-bezier(.2,.8,.2,1),filter .5s ease;
+}
+.nexum-home .home-hero-product:hover,.nexum-home .hero-product:hover,.nexum-home .home-product:hover{
+ transform:perspective(1400px) rotateY(-1deg) rotateX(0) translateY(-8px);
+ filter:drop-shadow(0 45px 90px rgba(17,17,19,.18));
+}
+.nexum-home .project-window{
+ position:relative!important;
+ overflow:hidden!important;
+ background:linear-gradient(145deg,rgba(255,255,255,.76),rgba(255,255,255,.38))!important;
+ border:1px solid var(--nxd-glass-border)!important;
+ box-shadow:var(--nxd-glass-shadow),inset 0 1px 0 rgba(255,255,255,.92)!important;
+ backdrop-filter:blur(28px) saturate(155%)!important;
+ -webkit-backdrop-filter:blur(28px) saturate(155%)!important;
+}
+.nexum-home .project-window:before{
+ background:
+ radial-gradient(280px 150px at 75% 18%,rgba(93,99,255,.18),transparent 65%),
+ linear-gradient(135deg,rgba(255,255,255,.86),rgba(235,235,241,.58))!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.95)!important;
+}
+.nexum-home .project-window:after{
+ background:
+ linear-gradient(90deg,rgba(255,255,255,.96) 0 17%,rgba(246,246,249,.86) 17% 100%)!important;
+ border-color:rgba(255,255,255,.88)!important;
+ box-shadow:0 24px 45px rgba(17,17,19,.12),inset 0 1px 0 rgba(255,255,255,.95)!important;
+}
+.nexum-home .project-window:hover{
+ box-shadow:0 38px 105px rgba(22,22,28,.15),0 12px 32px rgba(22,22,28,.07),inset 0 1px 0 #fff!important;
+}
+.nexum-home .project-window-mark{
+ box-shadow:0 16px 32px rgba(17,17,19,.16),inset 0 1px 0 rgba(255,255,255,.2)!important;
+}
+.message-box,.connector-card,.settings-card,.agent-result-card,.agent-plan-card,.modal{
+ background:rgba(255,255,255,.58)!important;
+ border:1px solid rgba(255,255,255,.78)!important;
+ backdrop-filter:saturate(175%) blur(28px)!important;
+ -webkit-backdrop-filter:saturate(175%) blur(28px)!important;
+ box-shadow:0 24px 70px rgba(20,20,25,.09),inset 0 1px 0 rgba(255,255,255,.92)!important;
+}
+.message-box:focus-within{
+ box-shadow:0 28px 80px rgba(20,20,25,.12),0 0 0 4px rgba(93,99,255,.07),inset 0 1px 0 #fff!important;
+}
+.right-panel{box-shadow:-15px 0 60px rgba(20,20,25,.045)!important}
+.preview-viewport{
+ background:
+ radial-gradient(420px 240px at 50% 0%,rgba(93,99,255,.08),transparent 70%),
+ linear-gradient(135deg,#e9e9ed,#f5f5f7)!important;
+ padding:22px!important;
+}
+.preview-viewport iframe{
+ border:1px solid rgba(255,255,255,.85)!important;
+ border-radius:18px!important;
+ box-shadow:0 30px 70px rgba(20,20,25,.16),0 5px 18px rgba(20,20,25,.06)!important;
+}
+.preview-browser-bar{
+ border-bottom:1px solid rgba(255,255,255,.65)!important;
+ background:rgba(255,255,255,.52)!important;
+ backdrop-filter:blur(24px)!important;
+ -webkit-backdrop-filter:blur(24px)!important;
+}
+.preview-address{
+ background:rgba(255,255,255,.55)!important;
+ border:1px solid rgba(255,255,255,.8)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.9)!important;
+}
+@media(max-width:820px){
+ .nexum-home .home-hero-product,.nexum-home .hero-product,.nexum-home .home-product{transform:none!important}
+ .preview-viewport{padding:12px!important}
+ .message-box{backdrop-filter:blur(22px)!important}
+}
