@@ -1,5 +1,7 @@
 import type { Project } from "./types";
 
+type SidebarView = "home" | "project" | "connectors" | "settings" | "news" | "diagnostics";
+
 interface SidebarProps {
   projects: Project[];
   activeProjectId: string;
@@ -9,8 +11,8 @@ interface SidebarProps {
   onSelectProject: (id: string) => void;
   onDeleteProject: (id: string) => void;
   mobileOpen: boolean;
-  view: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics";
-  onViewChange: (view: "home" | "project" | "connectors" | "settings" | "news") => void;
+  view: SidebarView;
+  onViewChange: (view: SidebarView) => void;
 }
 
 export function Sidebar({
