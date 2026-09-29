@@ -2693,3 +2693,288 @@ html,body,#root,.app,.main{
 @media(prefers-reduced-motion:reduce){
   .conversation-message,.starter-grid button{transition:none!important}
 }
+
+
+/* NEXUM.DEV / WORKSPACE MICRO-INTERACTION SYSTEM 09
+   Final polish pass: hierarchy, depth, focus and responsive behavior. */
+
+:root{
+  --nxd-ink:#17171b;
+  --nxd-muted:#8f8f97;
+  --nxd-line:rgba(17,17,19,.065);
+  --nxd-glass:rgba(255,255,255,.62);
+}
+
+/* Workspace canvas: restrained editorial atmosphere. */
+.app-project{
+  background:
+    radial-gradient(700px 360px at 72% 8%,rgba(103,108,255,.055),transparent 68%),
+    radial-gradient(500px 300px at 8% 72%,rgba(255,255,255,.92),transparent 72%)!important;
+}
+.workspace-toolbar:after{
+  content:"01 / WORKSPACE";
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  transform:translate(-50%,-50%)!important;
+  color:#b1b1b8!important;
+  font-size:7px!important;
+  font-weight:700!important;
+  letter-spacing:.14em!important;
+  pointer-events:none!important;
+}
+@media(max-width:860px){
+  .workspace-toolbar:after{display:none!important}
+}
+
+/* Project header controls become tactile, not decorative. */
+.project-back,
+.project-editor-actions button,
+.workspace-actions button{
+  transition:transform .18s ease,background .18s ease,box-shadow .18s ease,border-color .18s ease!important;
+}
+.project-back:hover,
+.project-editor-actions button:hover,
+.workspace-actions button:hover{
+  transform:translateY(-1px)!important;
+}
+.project-back:active,
+.project-editor-actions button:active,
+.workspace-actions button:active{
+  transform:translateY(0)!important;
+}
+.project-editor-share:hover{
+  background:rgba(255,255,255,.9)!important;
+}
+.project-code-button:hover,
+.workspace-deploy:hover{
+  box-shadow:0 12px 28px rgba(17,17,19,.18)!important;
+}
+
+/* Make the two main surfaces feel physically connected. */
+.main-column,
+.right-panel{
+  transition:box-shadow .25s ease,border-color .25s ease,transform .25s ease!important;
+}
+.main-column:focus-within{
+  border-color:rgba(93,99,255,.13)!important;
+  box-shadow:24px 28px 80px rgba(17,17,19,.075),0 0 0 3px rgba(93,99,255,.025),inset 0 1px 0 #fff!important;
+}
+.right-panel:focus-within{
+  border-color:rgba(93,99,255,.13)!important;
+  box-shadow:-24px 28px 80px rgba(17,17,19,.075),0 0 0 3px rgba(93,99,255,.025),inset 0 1px 0 #fff!important;
+}
+
+/* Empty/idle builder: preserve the same premium silhouette as active state. */
+.builder-idle .main-column{
+  background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(248,248,250,.48))!important;
+}
+.builder-started .main-column{
+  background:linear-gradient(180deg,rgba(255,255,255,.60),rgba(247,247,250,.45))!important;
+}
+
+/* Command input: stronger focal point when the user is actually building. */
+.message-box textarea,
+.message-box input{
+  color:#1d1d22!important;
+  caret-color:#676eff!important;
+}
+.message-box textarea::placeholder,
+.message-box input::placeholder{
+  color:#a4a4ac!important;
+}
+.message-box:focus-within .send-button:not(:disabled){
+  transform:translateY(-1px) scale(1.025)!important;
+  box-shadow:0 13px 28px rgba(17,17,19,.19),0 0 0 4px rgba(93,99,255,.045)!important;
+}
+.send-button{
+  transition:transform .18s ease,box-shadow .18s ease,opacity .18s ease!important;
+}
+.send-button:active:not(:disabled){
+  transform:scale(.97)!important;
+}
+
+/* Attachments become miniature physical cards. */
+.attachment-chip{
+  border:1px solid rgba(255,255,255,.82)!important;
+  background:rgba(247,247,249,.62)!important;
+  border-radius:9px!important;
+  box-shadow:0 5px 14px rgba(17,17,19,.045),inset 0 1px 0 #fff!important;
+}
+
+/* Live agent signal: subtle movement only while work is active. */
+.agent-activity-live.active .activity-dot.working{
+  box-shadow:0 0 0 4px rgba(93,99,255,.07),0 0 16px rgba(93,99,255,.24)!important;
+}
+.agent-activity-live.active:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:linear-gradient(90deg,transparent,rgba(93,99,255,.035),transparent);
+  animation:nexum-scan 2.8s ease-in-out infinite;
+  pointer-events:none;
+}
+.agent-activity-live{
+  position:relative!important;
+  overflow:hidden!important;
+}
+@keyframes nexum-scan{
+  0%,100%{transform:translateX(-100%)}
+  50%{transform:translateX(100%)}
+}
+
+/* Browser chrome: sharpen hierarchy between shell and actual product. */
+.preview-browser-bar{
+  position:relative!important;
+}
+.preview-browser-bar:after{
+  content:"";
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  width:34%!important;
+  height:19px!important;
+  transform:translate(-50%,-50%)!important;
+  border:1px solid rgba(17,17,19,.045)!important;
+  border-radius:7px!important;
+  pointer-events:none!important;
+}
+.preview-address{
+  position:relative!important;
+  z-index:2!important;
+}
+.preview-address b{
+  letter-spacing:.08em!important;
+}
+.preview-frame{
+  background:#fff!important;
+}
+
+/* Preview empty state becomes a product launch screen. */
+.preview-editorial-copy{
+  max-width:62%!important;
+}
+.preview-editorial-copy strong{
+  letter-spacing:-.045em!important;
+}
+.preview-editorial-copy p{
+  color:#85858d!important;
+  line-height:1.55!important;
+}
+.preview-editorial-device{
+  transform:rotate(3deg) translateY(4px)!important;
+  transition:transform .3s ease,box-shadow .3s ease!important;
+}
+.preview-content:hover .preview-editorial-device{
+  transform:rotate(1deg) translateY(0)!important;
+  box-shadow:0 30px 65px rgba(17,17,19,.16),inset 0 1px 0 #fff!important;
+}
+
+/* File/editor focus states. */
+.file-row{
+  border-radius:8px!important;
+  transition:background .16s ease,transform .16s ease!important;
+}
+.file-row:hover{
+  background:rgba(255,255,255,.58)!important;
+  transform:translateX(1px)!important;
+}
+.editor-filebar button,
+.editor-save{
+  border:1px solid rgba(17,17,19,.065)!important;
+  border-radius:8px!important;
+  background:rgba(255,255,255,.65)!important;
+  box-shadow:inset 0 1px 0 #fff!important;
+}
+.editor-save:not(:disabled){
+  background:#17171b!important;
+  color:#fff!important;
+}
+
+/* Agent result actions should have a single visual primary. */
+.agent-result-actions button{
+  border:1px solid rgba(17,17,19,.065)!important;
+  border-radius:9px!important;
+  background:rgba(255,255,255,.62)!important;
+  box-shadow:inset 0 1px 0 #fff!important;
+  transition:transform .18s ease,box-shadow .18s ease,background .18s ease!important;
+}
+.agent-result-actions button:hover{
+  transform:translateY(-1px)!important;
+  background:rgba(255,255,255,.9)!important;
+  box-shadow:0 9px 20px rgba(17,17,19,.06),inset 0 1px 0 #fff!important;
+}
+.agent-result-actions .agent-result-primary{
+  background:#17171b!important;
+  color:#fff!important;
+  border-color:#17171b!important;
+}
+
+/* Keep long code lines and status content contained on smaller windows. */
+.nexum-code-brand em{
+  max-width:24vw!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.nexum-code-actions button{
+  border-radius:8px!important;
+  transition:transform .16s ease,background .16s ease!important;
+}
+.nexum-code-actions button:hover{
+  transform:translateY(-1px)!important;
+}
+
+/* Mobile: preserve the product hierarchy instead of shrinking desktop. */
+@media(max-width:760px){
+  .project-editor-title{
+    gap:7px!important;
+  }
+  .project-editor-status{
+    font-size:8px!important;
+  }
+  .project-editor-actions{
+    gap:5px!important;
+  }
+  .project-editor-actions button{
+    padding-inline:9px!important;
+  }
+  .chat-project-context{
+    border-radius:10px!important;
+  }
+  .builder-editorial-preview{
+    transform:none!important;
+  }
+  .conversation-message{
+    border-radius:13px!important;
+  }
+  .message-box{
+    border-radius:16px!important;
+  }
+  .preview-frame-wrap{
+    border-radius:16px!important;
+  }
+  .preview-browser-bar{
+    height:34px!important;
+  }
+  .preview-viewport{
+    padding:9px!important;
+  }
+  .agent-panel{
+    border-radius:16px!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .agent-activity-live.active:before{animation:none!important}
+  .preview-editorial-device,
+  .preview-content:hover .preview-editorial-device{transition:none!important;transform:none!important}
+  .project-back,
+  .project-editor-actions button,
+  .workspace-actions button,
+  .main-column,
+  .right-panel,
+  .conversation-message,
+  .starter-grid button,
+  .send-button{transition:none!important}
+}
