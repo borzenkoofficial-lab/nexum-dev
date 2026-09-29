@@ -927,7 +927,7 @@ function App() {
           onAgent={() => { setCodeMode(false); setRightTab("agent"); setProjectMode("agent"); }}
           onFiles={() => { setCodeMode(false); setRightTab("files"); setProjectMode("files"); }}
         >
-        {codeMode ? <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} onClose={() => { setCodeMode(false); setWorkspaceMode("files"); }} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
+        {codeMode ? <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} onClose={() => { setCodeMode(false); setProjectMode("files"); }} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
             <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => { setRightTab("agent"); setWorkspaceMode("agent"); }} onProviderChange={selectAIProvider} onModelChange={setAIModel} onOpenConnectors={() => setConnectorModal("Интеграция проекта")} />
 
@@ -946,9 +946,9 @@ function App() {
         workspaceMode={workspaceMode}
         onHome={() => navigate("home")}
         onProjects={() => navigate("home")}
-        onAgent={() => { if (activeПроектId) { openПроект(activeПроектId, "agent"); setWorkspaceMode("agent"); } else navigate("home"); }}
-        onCode={() => { if (activeПроектId) { openПроект(activeПроектId, "files"); setCodeMode(true); setWorkspaceMode("code"); } else navigate("home"); }}
-        onPreview={() => { if (activeПроектId) { openПроект(activeПроектId, "preview"); setWorkspaceMode("preview"); } else navigate("home"); }}
+        onAgent={() => { if (activeПроектId) { openПроект(activeПроектId, "agent"); } else navigate("home"); }}
+        onCode={() => { if (activeПроектId) { openПроект(activeПроектId, "files"); setCodeMode(true); setProjectMode("code"); } else navigate("home"); }}
+        onPreview={() => { if (activeПроектId) { openПроект(activeПроектId, "preview"); } else navigate("home"); }}
         onConnectors={() => navigate("connectors")}
         onDiagnostics={() => navigate("diagnostics")}
         onNews={() => navigate("news")}
