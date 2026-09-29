@@ -10,6 +10,7 @@ import { DiagnosticsPage } from "./components/DiagnosticsPage";
 import { RightPanel } from "./components/RightPanel";
 import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
+import { OSDesktop } from "./components/OSDesktop";
 import { TopBar } from "./components/TopBar";
 import type { AIProviderInfo, AIProviderStatus, AgentStage as АгентStage, Project as Проект } from "./components/types";
 import { diagnosticsEvent, getDiagnosticsSessionId, startDiagnostics } from "./diagnostics";
@@ -682,32 +683,12 @@ function App() {
       <main className="main">
         <TopBar projectName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : view === "diagnostics" ? "Диагностика" : "NEXUM.DEV"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />
         {view === "diagnostics" ? <DiagnosticsPage /> : view === "home" ? (
-          <section className="nexum-home nexum-overview-live">
-            <div className="home-hero"><div><div className="eyebrow">NEXUM.DEV / OVERVIEW</div><h1>Ваши проекты.<br/><em>В одном пространстве.</em></h1><p>Рабочие пространства для создания продуктов с AI Agent, Preview, файлами и проектным контекстом.</p></div><div className="home-hero-actions"><div className="home-hero-product"><div className="hero-product-chrome"><span/><span/><span/><small>NEXUM.DEV / AI WORKSPACE</small></div><div className="hero-product-body"><aside><b>N</b><span className="active"/><span/><span/><span/></aside><div className="hero-product-main"><div className="hero-product-top"><span>PROJECT / NEXUM</span><i>● READY</i></div><div className="hero-product-content"><div className="hero-agent-card"><small>AI AGENT</small><strong>Build the product.<br/>Not just the code.</strong><span>Plan · Build · Preview</span></div><div className="hero-preview-card"><div className="hero-preview-top"><span>PREVIEW</span><i>↗</i></div><div className="hero-preview-screen"><div/><div/><div/></div></div></div></div></div></div><div className="home-hero-action-row"><button className="home-primary" type="button" onClick={() => setModalOpen(true)}>+ Новый проект</button><button className="news-launch-button" type="button" onClick={() => setView("news")}><span>✦</span><span><b>NEXUM Visual 3.0</b><small>Что нового →</small></span></button></div></div></div>
-            <div className="overview-command-strip"><span><b>{projects.filter((p) => p.status === "active").length}</b> active projects</span><span><i/> Agent ready</span><span>Preview · Files · Context</span><button type="button" onClick={() => setModalOpen(true)}>Create project +</button></div>
-            <div className="home-section-title"><span>YOUR PROJECTS</span><button type="button" onClick={() => setModalOpen(true)}>Новый проект</button></div>
-            <div className="project-grid">
-              {projects.filter((project) => project.status === "active").map((project, index) => (
-                <button key={project.id} className={"project-window live-project-card " + (index === 0 ? "is-featured" : "")} type="button" onClick={() => openПроект(project.id)}>
-                  <span className="window-chrome"><i/><i/><i/><small>NEXUM / {project.name}</small></span>
-                  <span className="project-live-preview">
-                    <iframe title={"Preview " + project.name} src={"/api/preview/" + encodeURIComponent(project.id) + "/index.html"} loading="lazy" sandbox="allow-scripts" referrerPolicy="no-referrer"/>
-                    <span className="preview-overlay"><b>LIVE PREVIEW</b><small>Открыть рабочее пространство →</small></span>
-                  </span>
-                  <span className="project-card-body">
-                    <span className="project-window-mark">{project.name.slice(0, 1)}</span>
-                    <span className="project-window-head"><strong>{project.name}</strong><span className="project-type-badge">{project.type ?? "Проект"}</span></span>
-                    <span className="project-window-description">{project.description || "Проект готов к разработке. Откройте рабочее пространство и задайте первую задачу агенту."}</span>
-                    <span className="project-health"><span><i/> Workspace ready</span><span>Agent · Preview · Files</span></span>
-                    <span className="project-window-meta"><span>Обновлён {formatRelativeTime(project.updatedAt)}</span><b>Открыть →</b></span>
-                  <span className="project-live-meta"><span className={"project-agent-status " + (projectTaskMeta[project.id]?.status === "running" ? "is-running" : projectTaskMeta[project.id]?.status === "failed" ? "is-error" : "is-ready")}><i/>{projectTaskMeta[project.id]?.status === "running" ? "Agent работает" : projectTaskMeta[project.id]?.status === "failed" ? "Нужна проверка" : "Agent готов"}</span><small>{projectTaskMeta[project.id]?.task ? "Последняя задача: " + projectTaskMeta[project.id].task.slice(0, 72) + (projectTaskMeta[project.id].task.length > 72 ? "…" : "") : "Задач ещё не запускали"}</small></span>
-                  </span>
-                </button>
-              ))}
-              {projects.filter((project) => project.status === "active").length === 0 && <button className="empty-card live-empty" type="button" onClick={() => setModalOpen(true)}><span>+</span><strong>Создайте первый проект</strong><small>NEXUM создаст отдельное рабочее пространство для него.</small></button>}
-            </div>
-            <section className="overview-workflow-preview"><div><div className="eyebrow">ONE WORKSPACE</div><h2>Describe → Agent → Preview → Iterate.</h2><p>Проект остаётся в контексте. Вы возвращаетесь туда, где остановились, а не начинаете заново.</p></div><div className="workflow-line"><span><b>01</b>Describe</span><i>→</i><span><b>02</b>Agent</span><i>→</i><span><b>03</b>Build</span><i>→</i><span><b>04</b>Preview</span><i>→</i><span><b>05</b>Iterate</span></div></section>
-            <footer className="overview-footer"><strong>NEXUM.DEV</strong><span>Создавайте продукты, а не просто файлы.</span><button type="button" onClick={() => setView("news")}>Открыть Product Journal →</button></footer>
+          <OSDesktop
+            projects={projects}
+            onNewProject={() => setModalOpen(true)}
+            onOpenProject={openПроект}
+            onOpenView={(next) => setView(next)}
+          />
           </section>
         ) : view === "news" ? (
           <NewsPage />
