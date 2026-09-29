@@ -8,7 +8,6 @@ interface StatusBarProps {
   aiStatus: AIProviderStatus | null;
   previewOnline: boolean;
   activeView: QuickView;
-  workspaceMode: "preview" | "agent" | "files" | "code";
   osActiveWindow: "project" | "home";
   osFocusTick: number;
   onHome: () => void;
@@ -35,14 +34,10 @@ export function StatusBar({
   aiStatus,
   previewOnline,
   activeView,
-  workspaceMode,
   osActiveWindow,
   osFocusTick,
   onHome,
   onProjects,
-  onAgent,
-  onCode,
-  onPreview,
   onConnectors,
   onDiagnostics,
   onNews,
@@ -68,7 +63,7 @@ export function StatusBar({
             className={`status-menu-item status-tone-${tone} ${
               (key === "home" && activeView === "home") ||
               (key === "projects" && (activeView === "home" || activeView === "project")) ||
-              (key !== "home" && key !== "projects" && key !== "preview" && key !== "agent" && key !== "code" && activeView === key)
+              (key !== "home" && key !== "projects" &&key === key && activeView === key)
                 ? "active"
                 : ""
             }`}
