@@ -53,6 +53,8 @@ function App() {
   }, [projectWindowModes]);
   const [codeMode, setCodeMode] = useState(false);
   const [projectWindowMinimized, setProjectWindowMinimized] = useState(false);
+  const [osActiveWindow, setOsActiveWindow] = useState<"project" | "home">("home");
+  const [osFocusTick, setOsFocusTick] = useState(0);
   const [runningProjectIds, setRunningProjectIds] = useState<string[]>(() => {
     try {
       const saved = JSON.parse(sessionStorage.getItem("nexum:os:running-windows") || "[]");
@@ -326,6 +328,8 @@ function App() {
     const project = projects.find((item) => item.id === projectId);
     if (project) {
       setActiveПроектId(projectId);
+      setOsActiveWindow("project");
+      setOsFocusTick((value) => value + 1);
       setRunningProjectIds((items) => items.includes(projectId) ? items : [...items, projectId]);
       setReply("");
       setАгентStage(null);
@@ -344,6 +348,8 @@ function App() {
 
   function setProjectMode(mode: "preview" | "agent" | "files" | "code") {
     setWorkspaceMode(mode);
+    setOsActiveWindow("project");
+    setOsFocusTick((value) => value + 1);
     setProjectWindowModes((items) => ({ ...items, [activeПроектId]: mode }));
     if (mode !== "code") setCodeMode(false);
     if (mode === "preview" || mode === "agent" || mode === "files") setRightTab(mode);
@@ -903,14 +909,17 @@ function App() {
           onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); setProjectMode(tab); }}
           onClose={() => {
             document.documentElement.classList.remove("nexum-os-maximized");
+            setOsActiveWindow("home");
             setProjectWindowMinimized(false);
             setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId));
             navigate("home");
           }}
           minimized={projectWindowMinimized}
-          onMinimize={() => setProjectWindowMinimized(true)}
+          onMinimize={() => { setProjectWindowMinimized(true); setOsActiveWindow("home"); }}
           onRestore={() => {
             setProjectWindowMinimized(false);
+            setOsActiveWindow("project");
+            setOsFocusTick((value) => value + 1);
             setRunningProjectIds((items) => items.includes(activeПроектId) ? items : [...items, activeПроектId]);
           }}
           onConnect={() => setConnectorModal("Интеграция проекта")}
@@ -944,6 +953,8 @@ function App() {
         previewOnline={previewOnline}
         activeView={view}
         workspaceMode={workspaceMode}
+        osActiveWindow={osActiveWindow}
+        osFocusTick={osFocusTick}
         onHome={() => navigate("home")}
         onProjects={() => navigate("home")}
         onAgent={() => { if (activeПроектId) { openПроект(activeПроектId, "agent"); } else navigate("home"); }}
