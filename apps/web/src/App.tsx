@@ -931,8 +931,7 @@ function App() {
           previewOnline={previewOnline}
           agentStage={agentStage}
           activeTab={rightTab}
-          workspaceMode={workspaceMode}
-          onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); setProjectMode(tab); }}
+            onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); setProjectMode(tab); }}
           onClose={() => {
             document.documentElement.classList.remove("nexum-os-maximized");
             setOsActiveWindow("home");
