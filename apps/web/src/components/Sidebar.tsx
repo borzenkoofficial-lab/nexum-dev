@@ -29,7 +29,7 @@ export function Sidebar({
   };
 
   return (
-    <aside className={\`sidebar \${mobileOpen ? "mobile-open" : ""}\`}>
+    <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
       <div className="logo" aria-label="NEXUM.DEV">NEXUM<span>.DEV</span></div>
 
       <nav className="sidebar-nav os-primary-nav" aria-label="NEXUM OS">
@@ -78,12 +78,12 @@ export function Sidebar({
         {projectsLoading ? <div className="project-placeholder" role="status">Загрузка проектов…</div> :
           activeProjects.length === 0 ? <div className="project-placeholder">Проектов пока нет</div> :
           activeProjects.map((project) => (
-            <div className={\`project-row \${project.id === activeProjectId ? "active" : ""}\`} key={project.id}>
+            <div className={`project-row ${project.id === activeProjectId ? "active" : ""}`} key={project.id}>
               <button className="project" type="button" aria-current={project.id === activeProjectId ? "page" : undefined}
-                aria-label={\`Выбрать проект \${project.name}\`} disabled={projectActionLoading} onClick={() => onSelectProject(project.id)}>
+                aria-label={`Выбрать проект ${project.name}`} disabled={projectActionLoading} onClick={() => onSelectProject(project.id)}>
                 <span className="project-mark" aria-hidden="true">{project.name.slice(0, 1)}</span><span>{project.name}</span>
               </button>
-              {project.id !== "nexum" && <button className="project-delete" type="button" aria-label={\`Удалить проект \${project.name}\`} title="Удалить проект" disabled={projectActionLoading} onClick={() => onDeleteProject(project.id)}>×</button>}
+              {project.id !== "nexum" && <button className="project-delete" type="button" aria-label={`Удалить проект ${project.name}`} title="Удалить проект" disabled={projectActionLoading} onClick={() => onDeleteProject(project.id)}>×</button>}
             </div>
           ))}
       </div>
