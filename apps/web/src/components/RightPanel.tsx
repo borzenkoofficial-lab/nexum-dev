@@ -207,8 +207,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
           <div className="code-editor">
             {editorLoading ? <div className="editor-empty">Загрузка файла…</div> : selectedFile ? (
               <>
-                <div className="editor-gutter" aria-hidden="true">{content.split("
-").map((_, index) => <span key={index}>{index + 1}</span>)}</div>
+                <div className="editor-gutter" aria-hidden="true">{content.split("\\n").map((_, index) => <span key={index}>{index + 1}</span>)}</div>
                 <textarea spellCheck={false} value={content} onChange={(event) => setContent(event.target.value)} onKeyDown={(event) => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") { event.preventDefault(); void saveFile(); } }} aria-label={"Редактирование " + selectedFile} />
               </>
             ) : (
