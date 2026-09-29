@@ -1023,3 +1023,73 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
   .nexum-os-switcher-projects{margin-bottom:4px}
   .nexum-os-project-chip{min-width:132px}
 }
+
+
+/* NEXUM OS — system page shell */
+.app:not(.app-project) .main{
+  min-height:100dvh;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior-y:contain;
+  scrollbar-gutter:stable;
+}
+.app:not(.app-project) .nexum-topbar{
+  position:sticky;
+  top:0;
+  z-index:40;
+  backdrop-filter:blur(18px) saturate(150%);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+}
+.app:not(.app-project) .status-bar{
+  position:sticky;
+  bottom:0;
+  z-index:40;
+}
+.app:not(.app-project) .integrations-page,
+.app:not(.app-project) .diagnostics-page,
+.app:not(.app-project) .settings-page-v2,
+.app:not(.app-project) .news-page{
+  width:100%;
+  box-sizing:border-box;
+  animation:nexum-page-in .24s ease both;
+}
+.app:not(.app-project) .integrations-page > *,
+.app:not(.app-project) .diagnostics-page > *,
+.app:not(.app-project) .settings-page-v2 > *,
+.app:not(.app-project) .news-page > *{
+  scroll-margin-top:84px;
+}
+.nexum-system-page-label{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:6px 9px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:rgba(255,255,255,.72);
+  color:var(--text-3);
+  font-size:9px;
+  font-weight:750;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.nexum-system-page-label i{
+  width:5px;height:5px;border-radius:50%;background:var(--green);display:block;
+}
+@keyframes nexum-page-in{
+  from{opacity:0;transform:translateY(5px)}
+  to{opacity:1;transform:none}
+}
+@media(max-width:760px){
+  .app:not(.app-project) .nexum-topbar{
+    backdrop-filter:blur(12px) saturate(140%);
+    -webkit-backdrop-filter:blur(12px) saturate(140%);
+  }
+  .app:not(.app-project) .status-bar{position:sticky}
+}
+@media(prefers-reduced-motion:reduce){
+  .app:not(.app-project) .integrations-page,
+  .app:not(.app-project) .diagnostics-page,
+  .app:not(.app-project) .settings-page-v2,
+  .app:not(.app-project) .news-page{animation:none}
+}
