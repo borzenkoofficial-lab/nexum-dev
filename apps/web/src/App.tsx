@@ -759,7 +759,7 @@ function App() {
         onClose={() => { setProjectWindowMinimized(false); setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId)); setOsActiveWindow("home"); navigate("home"); }}
       />
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
-        <TopBar projectName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : view === "diagnostics" ? "Диагностика" : "NEXUM.DEV"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel}  />
+        <TopBar projectName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : view === "diagnostics" ? "Диагностика" : "NEXUM.DEV"} aiStatus={aiStatus} stage={agentStage}  />
         {view === "diagnostics" ? <DiagnosticsPage /> : view === "home" ? (
           <OSDesktop
             projects={projects}
