@@ -406,11 +406,13 @@ function App() {
     const task = lastMessage.trim();
     if (!task) {
       setRightTab("preview");
+      setWorkspaceMode("preview");
       return;
     }
     const repairTask = `Исправь результат последней задачи. Проверь Preview, найди ошибки и внеси необходимые исправления: ${task}`;
     setMessage(repairTask);
     setRightTab("agent");
+    setWorkspaceMode("agent");
     window.setTimeout(() => void sendMessage(repairTask), 0);
   }
 
@@ -421,6 +423,7 @@ function App() {
     setProjectTaskMeta((items) => ({ ...items, [targetПроектId]: { task: task.trim(), timestamp: Date.now(), status: "queued" } }));
     setBuilderStarted(true);
     setRightTab("agent");
+    setWorkspaceMode("agent");
     setАгентStage("thinking");
     setReply("");
     setApiError("");
@@ -530,6 +533,7 @@ function App() {
           setReply(data?.job?.reply ?? "");
           if (data?.job?.reply) setConversation((items) => [...items, { id: `assistant-${Date.now()}`, role: "assistant", content: data.job!.reply!, timestamp: Date.now() }]);
           setRightTab("preview");
+          setWorkspaceMode("preview");
 
           // The agent can finish immediately after the build while the filesystem
           // and preview status endpoint are still settling. Wait briefly for the
@@ -673,13 +677,13 @@ function App() {
     { label: "New Проект", hint: "N", run: () => setModalOpen(true) },
     { label: "Open Проект", hint: "O", run: openПроектPicker },
     { label: "Поиск файлов", hint: "S", run: () => focusTask("Найди ") },
-    { label: "Open Агент Activity", hint: "A", run: () => setRightTab("agent") },
+    { label: "Open Агент Activity", hint: "A", run: () => { setRightTab("agent"); setWorkspaceMode("agent"); } },
     { label: "Запустить тесты", hint: "T", run: () => runTask("Запусти тесты в изолированной среде") },
     { label: "Запустить сборку", hint: "B", run: () => runTask("Проверь сборку проекта") },
     { label: "Статус Git", hint: "G", run: () => runTask("Покажи статус Git") },
     { label: "Изменения Git", hint: "D", run: () => runTask("Что изменилось?") },
-    { label: "Открыть предпросмотр", hint: "P", run: () => { setRightTab("preview"); setПредпросмотрKey((key) => key + 1); setNotice("Предпросмотр обновлён"); } },
-    { label: "Перезапустить предпросмотр", hint: "R", run: () => { setRightTab("preview"); setПредпросмотрKey((key) => key + 1); setNotice("Предпросмотр перезапущен"); } },
+    { label: "Открыть предпросмотр", hint: "P", run: () => { setRightTab("preview"); setWorkspaceMode("preview"); setПредпросмотрKey((key) => key + 1); setNotice("Предпросмотр обновлён"); } },
+    { label: "Перезапустить предпросмотр", hint: "R", run: () => { setRightTab("preview"); setWorkspaceMode("preview"); setПредпросмотрKey((key) => key + 1); setNotice("Предпросмотр перезапущен"); } },
     { label: "Ask ИИ", hint: "A", run: () => focusTask() },
     { label: "Сменить модель", hint: "M", run: () => document.querySelector<HTMLButtonElement>(".composer-model-button")?.click() },
     { label: "Диагностика Agent", hint: "D", run: () => setView("diagnostics") },
@@ -876,9 +880,9 @@ function App() {
           onAgent={() => { setCodeMode(false); setRightTab("agent"); setWorkspaceMode("agent"); }}
           onFiles={() => { setCodeMode(false); setRightTab("files"); setWorkspaceMode("files"); }}
         >
-        {codeMode ? <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} onClose={() => setCodeMode(false)} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
+        {codeMode ? <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} onClose={() => { setCodeMode(false); setWorkspaceMode("files"); }} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
-            <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => setRightTab("agent")} onProviderChange={selectAIProvider} onModelChange={setAIModel} onOpenConnectors={() => setConnectorModal("Интеграция проекта")} />
+            <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => { setRightTab("agent"); setWorkspaceMode("agent"); }} onProviderChange={selectAIProvider} onModelChange={setAIModel} onOpenConnectors={() => setConnectorModal("Интеграция проекта")} />
 
           </div>
           <RightPanel tab={rightTab} onTabChange={setRightTab} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onRepair={repairLastTask} />
