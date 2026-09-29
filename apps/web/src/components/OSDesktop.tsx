@@ -5,6 +5,9 @@ interface OSDesktopProps {
   onNewProject: () => void;
   onOpenProject: (id: string, tab?: "preview" | "files" | "agent") => void;
   onOpenView: (view: "connectors" | "diagnostics" | "settings" | "news") => void;
+  runningProjectIds?: string[];
+  minimizedProjectIds?: string[];
+  onRestoreProject?: (id: string) => void;
 }
 
 const apps = [
@@ -17,7 +20,7 @@ const apps = [
   { id: "settings", label: "Settings", icon: "⚙", tone: "light" },
 ];
 
-export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView }: OSDesktopProps) {
+export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, runningProjectIds = [], minimizedProjectIds = [], onRestoreProject }: OSDesktopProps) {
   const active = projects.filter((project) => project.status === "active");
   const launch = (id: string) => {
     if (id === "projects" || id === "agent" || id === "code" || id === "preview") {
@@ -50,6 +53,25 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView }:
           <button type="button" className="os-app-icon" onClick={() => onOpenView("news")}><span className="os-app-glyph journal">✦</span><b>Journal</b></button>
         </div>
         <div className="os-projects">
+          {runningProjectIds.length > 0 && (
+            <div className="os-running-bar" aria-label="Running windows">
+              <div className="os-section-head"><span>RUNNING</span><small>{runningProjectIds.length} window{runningProjectIds.length === 1 ? "" : "s"}</small></div>
+              <div className="os-running-list">
+                {runningProjectIds.map((id) => {
+                  const project = active.find((item) => item.id === id);
+                  if (!project) return null;
+                  const minimized = minimizedProjectIds.includes(id);
+                  return (
+                    <button key={id} type="button" className={"os-running-item" + (minimized ? " minimized" : "")} onClick={() => onRestoreProject?.(id)}>
+                      <span className="os-running-mark">{project.name.slice(0, 1).toUpperCase()}</span>
+                      <span><b>{project.name}</b><small>{minimized ? "Minimized" : "Workspace open"}</small></span>
+                      <i />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div className="os-section-head"><span>RECENT PROJECTS</span><small>{active.length} active</small></div>
           {active.length ? <div className="os-project-grid">{active.slice(0, 6).map((project) => (
             <button key={project.id} className="os-project-card" type="button" onClick={() => onOpenProject(project.id)}>
