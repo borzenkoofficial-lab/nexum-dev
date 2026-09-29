@@ -63,7 +63,7 @@ export function StatusBar({
             className={`status-menu-item status-tone-${tone} ${
               (key === "home" && activeView === "home") ||
               (key === "projects" && (activeView === "home" || activeView === "project")) ||
-              (key !== "home" && key !== "projects" &&key === key && activeView === key)
+              (key !== "home" && key !== "projects" && activeView === key)
                 ? "active"
                 : ""
             }`}
