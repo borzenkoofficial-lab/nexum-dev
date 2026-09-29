@@ -4673,3 +4673,153 @@ button:not(:disabled):active{transform:translateY(0) scale(.985)!important}
   .panel-tabs{gap:3px!important}
   .panel-tabs>*{font-size:10px!important;padding-inline:5px!important}
 }
+
+\n/* NEXUM / MOBILE WORKSPACE MODES 09 */
+/* Mobile workspace: make the active tool feel like a native app mode. */
+@media(max-width:600px){
+  .app-project .workspace{
+    position:relative!important;
+    display:flex!important;
+    flex-direction:column!important;
+    gap:0!important;
+  }
+  .main-column{
+    order:1!important;
+  }
+  .right-panel{
+    order:2!important;
+    position:relative!important;
+  }
+
+  /* Keep the conversation visually dominant. */
+  .chat{
+    min-height:calc(100svh - 150px)!important;
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  .chat-history{
+    flex:1 1 auto!important;
+    min-height:280px!important;
+    overscroll-behavior-y:contain!important;
+  }
+
+  /* Compact project chrome: title first, secondary actions subordinate. */
+  .project-editor-header{
+    position:sticky!important;
+    top:48px!important;
+    z-index:35!important;
+    background:rgba(255,255,255,.82)!important;
+    backdrop-filter:blur(22px)!important;
+    -webkit-backdrop-filter:blur(22px)!important;
+    border-bottom:1px solid rgba(17,17,19,.055)!important;
+  }
+  .project-editor-mark{flex:0 0 auto!important}
+  .project-editor-status{flex:0 0 auto!important}
+  .project-editor-actions{margin-left:auto!important}
+
+  /* Mode cards: the panel below the chat behaves like a native bottom sheet. */
+  .right-panel{
+    margin-top:6px!important;
+    padding:0 8px 10px!important;
+    border:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  .right-panel .panel-tabs{
+    margin-bottom:8px!important;
+  }
+  .right-panel > *{
+    max-width:100%!important;
+  }
+
+  /* Give the three modes a consistent animated entry without touching React logic. */
+  .right-panel .preview-frame-wrap,
+  .right-panel .nexum-code,
+  .right-panel .agent-panel{
+    animation:nexumMobileModeIn .28s cubic-bezier(.2,.8,.2,1) both!important;
+    transform-origin:50% 0!important;
+  }
+  @keyframes nexumMobileModeIn{
+    from{opacity:0;transform:translateY(10px) scale(.992)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+
+  /* Agent mode is the primary orchestration surface. */
+  .agent-panel{
+    border:1px solid rgba(17,17,19,.065)!important;
+    border-radius:18px!important;
+    background:rgba(255,255,255,.76)!important;
+    box-shadow:0 18px 50px rgba(17,17,19,.07),inset 0 1px 0 #fff!important;
+    backdrop-filter:blur(24px)!important;
+    -webkit-backdrop-filter:blur(24px)!important;
+    overflow:hidden!important;
+  }
+  .agent-panel-header{
+    padding:12px 13px!important;
+    min-height:48px!important;
+  }
+  .agent-hero-mockup{
+    border-radius:14px!important;
+    margin:0 10px 10px!important;
+    overflow:hidden!important;
+  }
+  .agent-result-card,.agent-plan-card{
+    margin-inline:10px!important;
+    border-radius:14px!important;
+  }
+
+  /* Preview mode: maximize visual area and reduce browser chrome. */
+  .preview-frame-wrap{
+    min-height:300px!important;
+    border-radius:18px!important;
+    overflow:hidden!important;
+  }
+  .preview-browser-bar{
+    background:rgba(248,248,250,.82)!important;
+  }
+  .preview-viewport{
+    min-height:260px!important;
+    max-height:calc(100svh - 250px)!important;
+  }
+
+  /* Code mode: editor becomes a contained technical surface. */
+  .nexum-code{
+    min-height:330px!important;
+    border-radius:18px!important;
+    overflow:hidden!important;
+    border:1px solid rgba(17,17,19,.065)!important;
+    box-shadow:0 18px 50px rgba(17,17,19,.07)!important;
+  }
+  .nexum-code-topbar{
+    min-height:44px!important;
+    height:44px!important;
+  }
+  .nexum-code-status{
+    min-height:32px!important;
+  }
+
+  /* Avoid accidental page-wide horizontal movement. */
+  .workspace,
+  .main-column,
+  .right-panel,
+  .chat,
+  .chat-history{
+    overflow-x:clip!important;
+  }
+
+  /* Touch targets: never make primary controls smaller than comfortable. */
+  .send-button,.attach-button,.preview-browser-reload,.preview-expand,
+  .project-back,.project-code-button{
+    min-width:40px!important;
+    min-height:40px!important;
+  }
+
+  /* Reduce motion when the device requests it. */
+  @media(prefers-reduced-motion:reduce){
+    .right-panel .preview-frame-wrap,
+    .right-panel .nexum-code,
+    .right-panel .agent-panel{
+      animation:none!important;
+    }
+  }
+}
