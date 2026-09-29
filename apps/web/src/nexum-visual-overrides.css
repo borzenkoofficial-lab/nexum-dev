@@ -4932,3 +4932,33 @@ button:not(:disabled):active{transform:translateY(0) scale(.985)!important}
     }
   }
 }
+
+\n/* NEXUM / MOBILE DRAG FOLLOW 11 */
+@media(max-width:600px){
+  .right-panel.mobile-swipe-dragging{
+    transition:none!important;
+  }
+  .right-panel.mobile-swipe-dragging .agent-panel,
+  .right-panel.mobile-swipe-dragging .preview-frame-wrap,
+  .right-panel.mobile-swipe-dragging .editor-shell,
+  .right-panel.mobile-swipe-dragging .nexum-code{
+    transform:translate3d(var(--mobile-swipe-delta,0px),0,0) scale(calc(1 - (var(--mobile-swipe-progress,0) * .018)))!important;
+    opacity:calc(1 - (var(--mobile-swipe-progress,0) * .12))!important;
+    transition:none!important;
+  }
+  .right-panel.mobile-swipe-dragging::after{
+    content:"";
+    position:absolute;
+    z-index:20;
+    top:48px;
+    bottom:12px;
+    width:44px;
+    border-radius:22px;
+    pointer-events:none;
+    opacity:calc(var(--mobile-swipe-progress,0) * .45);
+    filter:blur(10px);
+    background:rgba(255,255,255,.85);
+    left:calc(50% + (var(--mobile-swipe-delta,0px) * .28));
+    transform:translateX(-50%);
+  }
+}
