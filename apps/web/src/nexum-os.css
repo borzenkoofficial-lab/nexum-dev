@@ -192,3 +192,14 @@
   .nexum-os-project *,
   .nexum-os-desktop *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
 }
+
+
+/* Project workspace owns the full viewport; legacy chrome stays available in non-OS views. */
+.app-project .sidebar,
+.app-project .nexum-topbar,
+.app-project .status-bar{display:none!important}
+.app-project .main{margin-left:0!important;width:100%!important;padding:0!important}
+.app-project .nexum-os-project{min-height:100vh;padding-top:20px}
+@media(max-width:900px){
+  .app-project .nexum-os-project{padding-top:0}
+}
