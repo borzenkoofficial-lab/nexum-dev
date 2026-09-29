@@ -3353,3 +3353,186 @@ html,body,#root,.app,.main{
     bottom:9px!important;
   }
 }
+
+
+/* NEXUM FLOW / AGENT → CODE → PREVIEW
+   A single visual language for the build loop. */
+
+.workspace{
+  --nxd-accent:rgba(103,108,255,.72);
+  --nxd-accent-soft:rgba(103,108,255,.055);
+}
+
+/* Shared "signal" vocabulary across the three surfaces. */
+.agent-panel,
+.nexum-code,
+.right-panel{
+  position:relative!important;
+}
+.agent-panel:after,
+.nexum-code:after,
+.right-panel:after{
+  content:"";
+  position:absolute!important;
+  top:0!important;
+  left:0!important;
+  width:34px!important;
+  height:1px!important;
+  background:linear-gradient(90deg,var(--nxd-accent),transparent)!important;
+  opacity:.72!important;
+  pointer-events:none!important;
+}
+
+/* Agent = intent. */
+.agent-panel .agent-hero-mockup{
+  border-color:rgba(103,108,255,.11)!important;
+}
+.agent-panel .agent-status-pill{
+  background:rgba(103,108,255,.045)!important;
+  border-color:rgba(103,108,255,.11)!important;
+}
+
+/* Code = transformation. */
+.nexum-code{
+  background:
+    radial-gradient(320px 180px at 50% 0%,rgba(103,108,255,.028),transparent 72%),
+    linear-gradient(180deg,rgba(255,255,255,.72),rgba(247,247,249,.65))!important;
+}
+.nexum-code-topbar{
+  position:relative!important;
+}
+.nexum-code-topbar:after{
+  content:"BUILD OUTPUT";
+  position:absolute!important;
+  right:14px!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  color:#aaaab1!important;
+  font-size:6px!important;
+  font-weight:800!important;
+  letter-spacing:.14em!important;
+  pointer-events:none!important;
+}
+.nexum-code-status{
+  background:rgba(255,255,255,.68)!important;
+  border-top:1px solid rgba(17,17,19,.055)!important;
+}
+
+/* Preview = result. */
+.right-panel:after{
+  background:linear-gradient(90deg,rgba(49,185,126,.72),transparent)!important;
+}
+.preview-frame-wrap:before{
+  color:#6d8a7d!important;
+  border-color:rgba(49,185,126,.12)!important;
+  background:rgba(247,255,251,.78)!important;
+}
+
+/* A subtle visual "handoff" between panels. */
+.main-column{
+  position:relative!important;
+}
+.main-column:after{
+  content:"";
+  position:absolute!important;
+  right:-18px!important;
+  top:50%!important;
+  width:36px!important;
+  height:1px!important;
+  background:linear-gradient(90deg,rgba(103,108,255,.22),rgba(49,185,126,.18))!important;
+  z-index:12!important;
+  pointer-events:none!important;
+}
+@media(max-width:1050px){
+  .main-column:after{display:none!important}
+}
+
+/* Code tabs behave like a build stream. */
+.nexum-code-tabs{
+  position:relative!important;
+}
+.nexum-code-tabs:before{
+  content:"";
+  position:absolute!important;
+  left:0!important;
+  bottom:0!important;
+  height:1px!important;
+  width:100%!important;
+  background:rgba(17,17,19,.05)!important;
+}
+.nexum-code-tabs > *{
+  transition:color .16s ease,background .16s ease,transform .16s ease!important;
+}
+.nexum-code-tabs > *:hover{
+  background:rgba(255,255,255,.6)!important;
+  transform:translateY(-1px)!important;
+}
+
+/* File changes are visually subordinate, but readable. */
+.file-row[data-modified="true"],
+.file-row.modified{
+  background:rgba(103,108,255,.035)!important;
+}
+.file-row[data-modified="true"]:before,
+.file-row.modified:before{
+  content:"";
+  position:absolute!important;
+  left:0!important;
+  top:6px!important;
+  bottom:6px!important;
+  width:2px!important;
+  border-radius:2px!important;
+  background:rgba(103,108,255,.62)!important;
+}
+
+/* Build status vocabulary. */
+.nexum-code-status:has(.success),
+.nexum-code-status.success{
+  color:#5d796c!important;
+}
+.nexum-code-status:has(.error),
+.nexum-code-status.error{
+  color:#8d6c6c!important;
+}
+
+/* Preview refresh becomes a state transition control. */
+.preview-browser-reload{
+  border-radius:7px!important;
+}
+.preview-browser-reload:active{
+  transform:rotate(-35deg) scale(.94)!important;
+}
+
+/* Agent timeline active event gets the same accent as code mutation. */
+.agent-event.active,
+.agent-event[data-active="true"]{
+  background:rgba(103,108,255,.035)!important;
+  border-color:rgba(103,108,255,.10)!important;
+}
+.agent-event.active .activity-dot,
+.agent-event[data-active="true"] .activity-dot{
+  box-shadow:0 0 0 4px rgba(103,108,255,.055),0 0 14px rgba(103,108,255,.18)!important;
+}
+
+/* If the workspace is busy, make the build loop feel continuous without flashing. */
+.workspace:has(.agent-activity-live.active) .nexum-code{
+  box-shadow:0 20px 55px rgba(17,17,19,.06),0 0 0 1px rgba(103,108,255,.035),inset 0 1px 0 #fff!important;
+}
+.workspace:has(.agent-activity-live.active) .preview-frame-wrap{
+  box-shadow:0 20px 55px rgba(17,17,19,.055),0 0 0 1px rgba(49,185,126,.035),inset 0 1px 0 #fff!important;
+}
+
+/* Responsive: turn the three-part flow into a clear vertical narrative. */
+@media(max-width:760px){
+  .nexum-code-topbar:after{
+    display:none!important;
+  }
+  .main-column:after{
+    display:none!important;
+  }
+  .agent-panel:after,
+  .nexum-code:after,
+  .right-panel:after{
+    width:24px!important;
+  }
+}
