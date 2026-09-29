@@ -41,6 +41,7 @@ function App() {
   const [aiStatus, setAIStatus] = useState<AIProviderStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"preview" | "files" | "agent">("preview");
+  const [workspaceMode, setWorkspaceMode] = useState<"preview" | "agent" | "files" | "code">("preview");
   const [codeMode, setCodeMode] = useState(false);
   const [projectWindowMinimized, setProjectWindowMinimized] = useState(false);
   const [notice, setNotice] = useState("");
@@ -310,6 +311,7 @@ function App() {
       setАгентStage(null);
       setCodeMode(false);
       setRightTab(workspaceTab);
+      setWorkspaceMode(workspaceTab === "files" ? "files" : workspaceTab);
       setViewState("project");
       setProjectWindowMinimized(false);
       document.documentElement.classList.remove("nexum-os-maximized");
@@ -855,7 +857,7 @@ function App() {
           previewOnline={previewOnline}
           agentStage={agentStage}
           activeTab={rightTab}
-          onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); }}
+          onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); setWorkspaceMode(tab); }}
           onClose={() => { document.documentElement.classList.remove("nexum-os-maximized"); setProjectWindowMinimized(false); navigate("home"); }}
           minimized={projectWindowMinimized}
           onMinimize={() => setProjectWindowMinimized(true)}
@@ -870,9 +872,9 @@ function App() {
             window.open(url, "_blank", "noopener,noreferrer");
             setNotice("Предпросмотр открыт в новой вкладке");
           }}
-          onCode={() => setCodeMode(true)}
-          onAgent={() => { setCodeMode(false); setRightTab("agent"); }}
-          onFiles={() => { setCodeMode(false); setRightTab("files"); }}
+          onCode={() => { setCodeMode(true); setWorkspaceMode("code"); }}
+          onAgent={() => { setCodeMode(false); setRightTab("agent"); setWorkspaceMode("agent"); }}
+          onFiles={() => { setCodeMode(false); setRightTab("files"); setWorkspaceMode("files"); }}
         >
         {codeMode ? <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} onClose={() => setCodeMode(false)} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
@@ -890,11 +892,12 @@ function App() {
         aiStatus={aiStatus}
         previewOnline={previewOnline}
         activeView={view}
+        workspaceMode={workspaceMode}
         onHome={() => navigate("home")}
         onProjects={() => navigate("home")}
-        onAgent={() => activeПроектId ? openПроект(activeПроектId, "agent") : navigate("home")}
-        onCode={() => { if (activeПроектId) { openПроект(activeПроектId, "files"); setCodeMode(true); } else navigate("home"); }}
-        onPreview={() => activeПроектId ? openПроект(activeПроектId, "preview") : navigate("home")}
+        onAgent={() => { if (activeПроектId) { openПроект(activeПроектId, "agent"); setWorkspaceMode("agent"); } else navigate("home"); }}
+        onCode={() => { if (activeПроектId) { openПроект(activeПроектId, "files"); setCodeMode(true); setWorkspaceMode("code"); } else navigate("home"); }}
+        onPreview={() => { if (activeПроектId) { openПроект(activeПроектId, "preview"); setWorkspaceMode("preview"); } else navigate("home"); }}
         onConnectors={() => navigate("connectors")}
         onDiagnostics={() => navigate("diagnostics")}
         onNews={() => navigate("news")}
