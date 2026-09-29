@@ -339,3 +339,358 @@
     transition: none !important;
   }
 }
+
+
+/* NEXUM OS 2.0 — global workspace composition */
+.app-project .nexum-os-project{
+  box-sizing:border-box;
+  padding:18px 18px 118px!important;
+  min-height:100dvh!important;
+}
+.app-project .os-window-shell{
+  width:100%;
+  max-width:1680px;
+  margin:0 auto;
+  overflow:hidden;
+  border:1px solid rgba(20,22,28,.10);
+  border-radius:26px;
+  background:rgba(255,255,255,.78);
+  box-shadow:0 28px 90px rgba(16,18,24,.13),0 4px 16px rgba(16,18,24,.06);
+}
+.app-project .os-window-titlebar{
+  min-height:58px;
+  padding:0 18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(247,248,250,.82));
+  border-bottom:1px solid rgba(20,22,28,.08);
+}
+.app-project .os-window-toolbar{
+  min-height:58px;
+  padding:8px 14px;
+  gap:12px;
+  background:rgba(250,251,252,.78);
+  border-bottom:1px solid rgba(20,22,28,.07);
+}
+.app-project .os-window-apps{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  padding:4px;
+  border:1px solid rgba(20,22,28,.07);
+  border-radius:14px;
+  background:rgba(255,255,255,.68);
+}
+.app-project .os-window-apps button{
+  min-height:36px;
+  padding:0 12px;
+  border-radius:10px;
+  color:#666b74;
+  font-weight:650;
+}
+.app-project .os-window-apps button:hover,
+.app-project .os-window-apps button.active{
+  background:rgba(255,255,255,.95);
+  color:#17181c;
+  box-shadow:0 5px 14px rgba(20,22,28,.08);
+}
+.app-project .os-window-actions{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.app-project .os-window-actions button{
+  min-height:36px;
+  padding:0 12px;
+  border:1px solid rgba(20,22,28,.08);
+  border-radius:10px;
+  background:rgba(255,255,255,.72);
+}
+.app-project .os-window-actions button.primary{
+  border-color:#17181c;
+  background:#17181c;
+  color:#fff;
+}
+.app-project .os-window-context{
+  min-height:44px;
+  padding:7px 16px;
+  background:rgba(247,248,250,.72);
+  border-bottom:1px solid rgba(20,22,28,.06);
+}
+.app-project .os-window-body{
+  min-height:calc(100dvh - 250px);
+  background:#f6f7f8;
+}
+.app-project .os-window-body>.workspace,
+.app-project .os-window-body>.code-panel{
+  min-height:calc(100dvh - 250px);
+}
+.app-project .workspace{
+  background:rgba(247,248,250,.96)!important;
+}
+.app-project .main-column{
+  background:linear-gradient(180deg,#fafbfc,#f5f6f7)!important;
+}
+.app-project .chat{
+  background:transparent!important;
+}
+.app-project .chat-history{
+  padding-top:30px!important;
+}
+.app-project .chat-project-context{
+  max-width:760px;
+  margin-bottom:26px;
+  padding:10px 12px;
+  border:1px solid rgba(20,22,28,.07);
+  border-radius:14px;
+  background:rgba(255,255,255,.58);
+}
+.app-project .welcome{
+  max-width:760px;
+  margin:0 auto;
+  padding:24px 0 18px;
+}
+.app-project .welcome h1{
+  font-size:clamp(34px,4vw,56px)!important;
+  letter-spacing:-.055em;
+}
+.app-project .message-form{
+  width:min(780px,calc(100% - 72px))!important;
+  padding-bottom:12px!important;
+}
+.app-project .message-box{
+  border-radius:20px!important;
+  border-color:rgba(20,22,28,.12)!important;
+  background:rgba(255,255,255,.92)!important;
+  box-shadow:0 14px 38px rgba(20,22,28,.08)!important;
+}
+.app-project .send-button{
+  border-radius:15px!important;
+  box-shadow:0 10px 22px rgba(99,91,255,.20)!important;
+}
+.app-project .right-panel{
+  background:rgba(250,251,252,.82)!important;
+  border-left:1px solid rgba(20,22,28,.08)!important;
+}
+.app-project .panel-tabs{
+  padding:7px 10px!important;
+  background:rgba(255,255,255,.70)!important;
+}
+.app-project .panel-tabs>button:not(.preview-refresh):not(.preview-expand){
+  min-width:88px;
+  border-radius:10px;
+  font-size:11px!important;
+}
+.app-project .agent-panel{
+  padding:24px 24px 42px!important;
+  background:linear-gradient(180deg,#fbfbfc,#f5f6f8)!important;
+}
+.app-project .agent-panel-header{
+  padding:4px 0 18px!important;
+  border-bottom:1px solid rgba(20,22,28,.08)!important;
+}
+.app-project .agent-panel-header h2{
+  font-size:26px!important;
+  letter-spacing:-.045em!important;
+}
+.app-project .agent-status-pill{
+  padding:7px 10px!important;
+  font-size:10px!important;
+  background:rgba(255,255,255,.75)!important;
+}
+.app-project .agent-current,
+.app-project .agent-result-card,
+.app-project .agent-plan-card,
+.app-project .agent-timeline{
+  border-color:rgba(20,22,28,.08)!important;
+  border-radius:16px!important;
+  background:rgba(255,255,255,.82)!important;
+  box-shadow:0 8px 24px rgba(20,22,28,.045)!important;
+}
+.app-project .agent-current{
+  padding:16px!important;
+}
+.app-project .agent-current strong{
+  font-size:13px!important;
+}
+.app-project .agent-current p{
+  font-size:11px!important;
+}
+.app-project .agent-pipeline{
+  margin:20px 0!important;
+}
+.app-project .pipeline-step i{
+  width:30px!important;
+  height:30px!important;
+  background:rgba(255,255,255,.88)!important;
+}
+.app-project .agent-result-card,
+.app-project .agent-plan-card,
+.app-project .agent-timeline{
+  padding:16px!important;
+}
+.app-project .agent-result-head strong{
+  font-size:15px!important;
+}
+.app-project .agent-event{
+  padding:11px 0!important;
+}
+.app-project .preview-frame-wrap{
+  padding:16px!important;
+  background:#f2f3f5!important;
+}
+.app-project .preview-browser-bar{
+  border:1px solid rgba(20,22,28,.08)!important;
+  border-bottom:0!important;
+  background:rgba(255,255,255,.88)!important;
+}
+.app-project .preview-viewport{
+  border-color:rgba(20,22,28,.08)!important;
+  box-shadow:0 12px 34px rgba(20,22,28,.07)!important;
+}
+.app-project .editor-shell{
+  background:#f5f6f8!important;
+}
+.app-project .os-window-context .os-context-right{
+  opacity:.8;
+}
+
+/* Quick Menu: never allow labels/runtime to force text outside the glass shell. */
+.status-bar.nexum-global-menu{
+  overflow:hidden!important;
+}
+.status-quick-menu{
+  min-width:0!important;
+  max-width:100%;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  scrollbar-width:none;
+  flex:1 1 auto;
+}
+.status-quick-menu::-webkit-scrollbar{display:none}
+.status-runtime{
+  flex:0 0 auto!important;
+  max-width:250px;
+  overflow:hidden;
+}
+.status-runtime>span{
+  min-width:0;
+}
+@media(max-width:1180px){
+  .status-bar.nexum-global-menu{
+    width:calc(100vw - 20px)!important;
+  }
+  .status-menu-label{display:none!important}
+  .status-menu-item{width:50px!important;height:50px!important}
+  .status-runtime{
+    max-width:150px;
+    padding-right:5px;
+  }
+  .status-runtime-project{max-width:70px}
+}
+@media(max-width:760px){
+  .app-project .nexum-os-project{
+    padding:0 0 82px!important;
+  }
+  .app-project .os-window-shell{
+    border-radius:0!important;
+    border-left:0!important;
+    border-right:0!important;
+    box-shadow:none!important;
+  }
+  .app-project .os-window-titlebar{
+    min-height:50px;
+    padding:0 10px;
+  }
+  .app-project .os-window-toolbar{
+    min-height:52px;
+    padding:6px 8px;
+    overflow-x:auto;
+  }
+  .app-project .os-window-context{
+    display:none;
+  }
+  .app-project .os-window-actions{
+    display:none;
+  }
+  .app-project .os-window-body,
+  .app-project .os-window-body>.workspace,
+  .app-project .os-window-body>.code-panel{
+    min-height:calc(100dvh - 102px)!important;
+  }
+  .app-project .os-window-apps{
+    width:max-content;
+  }
+  .app-project .workspace{
+    position:relative;
+    display:block!important;
+  }
+  .app-project .workspace>.chat{
+    min-height:calc(100dvh - 102px)!important;
+  }
+  .app-project .right-panel.mobile-mode-agent,
+  .app-project .right-panel.mobile-mode-preview,
+  .app-project .right-panel.mobile-mode-files{
+    display:flex!important;
+    position:absolute!important;
+    inset:0!important;
+    z-index:25!important;
+  }
+  .app-project .agent-panel{
+    padding:18px 16px 96px!important;
+  }
+  .app-project .message-form{
+    width:calc(100% - 24px)!important;
+  }
+}
+@media(max-width:520px){
+  .status-bar.nexum-global-menu{
+    bottom:6px!important;
+    width:calc(100vw - 12px)!important;
+    min-height:54px!important;
+    padding:4px!important;
+    border-radius:18px!important;
+  }
+  .status-menu-item{
+    width:44px!important;
+    height:44px!important;
+  }
+  .status-menu-icon{
+    width:29px!important;
+    height:29px!important;
+    border-radius:9px!important;
+  }
+  .status-runtime{
+    display:none!important;
+  }
+  .app-project .os-window-apps button{
+    min-height:34px;
+    padding:0 10px;
+  }
+}
+
+/* Build mode: chat is the primary surface, Agent is a companion system panel. */
+.app-project .workspace.builder-idle .main-column,
+.app-project .workspace.builder-started .main-column{
+  position:relative;
+}
+.app-project .workspace.builder-idle .chat:before{
+  content:"BUILD / AI WORKSPACE";
+  display:block;
+  position:absolute;
+  top:12px;
+  right:18px;
+  z-index:2;
+  padding:5px 8px;
+  border:1px solid rgba(20,22,28,.07);
+  border-radius:999px;
+  background:rgba(255,255,255,.62);
+  color:#777b84;
+  font-size:8px;
+  font-weight:750;
+  letter-spacing:.08em;
+  pointer-events:none;
+}
+@media(max-width:760px){
+  .app-project .workspace.builder-idle .chat:before{display:none}
+}
