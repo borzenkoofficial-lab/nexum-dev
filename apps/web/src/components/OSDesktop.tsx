@@ -3,7 +3,7 @@ import type { Project } from "./types";
 interface OSDesktopProps {
   projects: Project[];
   onNewProject: () => void;
-  onOpenProject: (id: string) => void;
+  onOpenProject: (id: string, tab?: "preview" | "files" | "agent") => void;
   onOpenView: (view: "connectors" | "diagnostics" | "settings" | "news") => void;
 }
 
@@ -21,7 +21,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView }:
   const active = projects.filter((project) => project.status === "active");
   const launch = (id: string) => {
     if (id === "projects" || id === "agent" || id === "code" || id === "preview") {
-      if (active[0]) onOpenProject(active[0].id);
+      if (active[0]) onOpenProject(active[0].id, id === "agent" ? "agent" : id === "code" ? "files" : "preview");
       return;
     }
     onOpenView(id as "connectors" | "diagnostics" | "settings" | "news");
