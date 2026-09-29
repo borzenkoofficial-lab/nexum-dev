@@ -788,3 +788,19 @@
 @media(max-width:760px){
   .nexum-os-project:focus-within .os-window-shell{box-shadow:none}
 }
+
+
+/* NEXUM OS 3.1 — restrained system boot */
+.nexum-os-runtime.os-booting{
+  opacity:.94;
+  transform:translateY(4px);
+}
+.nexum-os-runtime.os-booted{
+  opacity:1;
+  transform:translateY(0);
+  transition:opacity .22s ease,transform .22s ease;
+}
+@media(prefers-reduced-motion:reduce){
+  .nexum-os-runtime.os-booting{opacity:1;transform:none}
+  .nexum-os-runtime.os-booted{transition:none}
+}
