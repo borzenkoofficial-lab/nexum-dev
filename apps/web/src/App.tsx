@@ -312,6 +312,7 @@ function App() {
       setRightTab(workspaceTab);
       setViewState("project");
       setProjectWindowMinimized(false);
+      document.documentElement.classList.remove("nexum-os-maximized");
       navigate("project", projectId);
     }
     void selectПроект(projectId);
@@ -855,7 +856,7 @@ function App() {
           agentStage={agentStage}
           activeTab={rightTab}
           onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); }}
-          onClose={() => navigate("home")}
+          onClose={() => { document.documentElement.classList.remove("nexum-os-maximized"); setProjectWindowMinimized(false); navigate("home"); }}
           minimized={projectWindowMinimized}
           onMinimize={() => setProjectWindowMinimized(true)}
           onRestore={() => setProjectWindowMinimized(false)}
