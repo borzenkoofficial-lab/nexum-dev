@@ -14,6 +14,7 @@ import { StatusBar } from "./components/StatusBar";
 import { OSDesktop } from "./components/OSDesktop";
 import { OSProjectWindow } from "./components/OSProjectWindow";
 import { NexumApplicationManager } from "./components/NexumApplicationManager";
+import { NexumOSEventCenter, type NexumOSEventItem } from "./components/NexumOSEventCenter";
 import { TopBar } from "./components/TopBar";
 import type { AIProviderInfo, AIProviderStatus, AgentStage as АгентStage, Project as Проект } from "./components/types";
 import { diagnosticsEvent, getDiagnosticsSessionId, startDiagnostics } from "./diagnostics";
@@ -68,6 +69,12 @@ function App() {
     } catch { return []; }
   });
   const [notice, setNotice] = useState("");
+  const [osEvents, setOsEvents] = useState<NexumOSEventItem[]>([]);
+  const osEventSeq = useRef(0);
+  const pushOSEvent = (kind: NexumOSEventItem["kind"], title: string, eventMessage: string) => {
+    const id = Date.now() + osEventSeq.current++;
+    setOsEvents((items) => [...items.slice(-2), { id, kind, title, message: eventMessage }]);
+  };
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [previewOnline, setПредпросмотрOnline] = useState(false);
   const [previewKey, setПредпросмотрKey] = useState(0);
@@ -477,6 +484,7 @@ function App() {
     setActivitySteps([]);
     setActivityEvents([]);
     setCurrentActivity("Отправляю задачу ИИ-агенту…");
+    pushOSEvent("info", "Agent started", `Запущена задача: ${task.trim().slice(0, 90)}`);
     setProblems([]);
     setProductPlan(null);
 
@@ -569,6 +577,7 @@ function App() {
           setActivitySteps(data?.job?.steps ?? []);
           setActivityEvents(data?.job?.events ?? []);
           setCurrentActivity(data?.job?.currentMessage ?? "Готово.");
+          pushOSEvent("success", "Build completed", "Agent завершил задачу. Preview готовится.");
           setProblems(data?.job?.problems ?? []);
           if (data?.job?.productPlan) setProductPlan({
             goal: data.job.productPlan.goal ?? "",
@@ -740,6 +749,7 @@ function App() {
   return (
     <div className={"app app-" + view}>
       {<Sidebar projects={projects} activeProjectId={activeПроектId} projectsLoading={projectsLoading} projectActionLoading={projectActionLoading} mobileOpen={mobileSidebarOpen} view={view} onDeleteProject={(id) => void deleteПроект(id)} onViewChange={(next) => { setMobileSidebarOpen(false); setView(next); }} onNewProject={() => { setMobileSidebarOpen(false); setModalOpen(true); }} onSelectProject={(id) => { setMobileSidebarOpen(false); openПроект(id); }} />}
+      <NexumOSEventCenter events={osEvents} onDismiss={(id) => setOsEvents((items) => items.filter((item) => item.id !== id))} />
       <NexumApplicationManager
         projectName={activeПроект?.name}
         mode={workspaceMode}
