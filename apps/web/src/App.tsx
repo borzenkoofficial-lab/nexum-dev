@@ -644,6 +644,7 @@ function App() {
         console.error("[Nexum] Chat job polling failed:", error);
         setApiError(error instanceof Error ? error.message : "Ошибка получения статуса задачи чата");
         setАгентStage("error");
+        pushOSEvent("error", "Agent error", error instanceof Error ? error.message : "Не удалось получить статус задачи");
         setChatJobId(null);
       }
     }
