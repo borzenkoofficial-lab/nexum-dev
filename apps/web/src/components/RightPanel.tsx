@@ -39,7 +39,12 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   const [saving, setSaving] = useState(false);
   const [editorError, setEditorError] = useState("");
   const [previewError, setPreviewError] = useState("");
-  const previewFrameRef = useRef<HTMLIFrameElement | null>(null);\n  const touchStartX = useRef<number | null>(null);\n  const touchDeltaX = useRef(0);\n  const swipeSurfaceRef = useRef<HTMLElement | null>(null);\n\n  function handleTouchStart(event: React.TouchEvent<HTMLElement>) {
+  const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
+  const touchStartX = useRef<number | null>(null);
+  const touchDeltaX = useRef(0);
+  const swipeSurfaceRef = useRef<HTMLElement | null>(null);
+
+  function handleTouchStart(event: React.TouchEvent<HTMLElement>) {
     touchStartX.current = event.touches[0]?.clientX ?? null;
     touchDeltaX.current = 0;
     swipeSurfaceRef.current = event.currentTarget;
@@ -202,7 +207,8 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
           <div className="code-editor">
             {editorLoading ? <div className="editor-empty">Загрузка файла…</div> : selectedFile ? (
               <>
-                <div className="editor-gutter" aria-hidden="true">{content.split("\n").map((_, index) => <span key={index}>{index + 1}</span>)}</div>
+                <div className="editor-gutter" aria-hidden="true">{content.split("
+").map((_, index) => <span key={index}>{index + 1}</span>)}</div>
                 <textarea spellCheck={false} value={content} onChange={(event) => setContent(event.target.value)} onKeyDown={(event) => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") { event.preventDefault(); void saveFile(); } }} aria-label={"Редактирование " + selectedFile} />
               </>
             ) : (
