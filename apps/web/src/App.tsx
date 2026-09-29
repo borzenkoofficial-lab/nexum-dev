@@ -11,6 +11,7 @@ import { RightPanel } from "./components/RightPanel";
 import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
 import { OSDesktop } from "./components/OSDesktop";
+import { OSProjectWindow } from "./components/OSProjectWindow";
 import { TopBar } from "./components/TopBar";
 import type { AIProviderInfo, AIProviderStatus, AgentStage as АгентStage, Project as Проект } from "./components/types";
 import { diagnosticsEvent, getDiagnosticsSessionId, startDiagnostics } from "./diagnostics";
@@ -843,51 +844,35 @@ function App() {
             </div>
           </section>
         ) : (
-        <>
-        <div className="workspace-toolbar">
-          <div className="workspace-breadcrumb"><span>Проекты</span><b>/</b><strong>{activeПроект?.name ?? "NEXUM"}</strong></div>
-          <div className="workspace-actions">
-            <button type="button" onClick={() => setConnectorModal("Интеграция проекта")}>◇ Подключить</button>
-            <button type="button" onClick={async () => { const url = `${window.location.origin}/api/preview/${activeПроектId}/index.html`; try { await navigator.clipboard.writeText(url); setNotice("Ссылка на предпросмотр скопирована"); } catch { setNotice(url); } }}>Поделиться</button>
-            <button className="workspace-deploy" type="button" onClick={() => { const url = `/api/preview/${activeПроектId}/index.html`; window.open(url, "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }}>Открыть</button>
-            <button className="workspace-more" type="button" aria-label="Меню проекта" onClick={() => setWorkspaceMenuOpen((open) => !open)}>•••</button>
-            {workspaceMenuOpen && <div className="workspace-menu"><button type="button" onClick={() => { setWorkspaceMenuOpen(false); setView("settings"); }}>Настройки проекта</button><button type="button" onClick={async () => {
-                setWorkspaceMenuOpen(false);
-                try {
-                  const response = await fetch(`/api/projects/${encodeURIComponent(activeПроектId)}/duplicate`, { method: "POST" });
-                  const data = await response.json() as { project?: Проект; error?: string };
-                  if (!response.ok || !data.project) throw new Error(data.error || "Не удалось дублировать проект");
-                  await loadПроектs(data.project.id);
-                  setActiveПроектId(data.project.id);
-                  setNotice("Проект дублирован");
-                } catch (error) { setApiError(error instanceof Error ? error.message : "Не удалось дублировать проект"); }
-              }}>Дублировать проект</button><button type="button" onClick={() => {
-                setWorkspaceMenuOpen(false);
-                void deleteПроект(activeПроектId);
-              }}>Удалить проект</button></div>}
-          </div>
-        </div>
-        <div className="project-editor-header">
-          <button className="project-back" type="button" onClick={() => navigate("home")} aria-label="Вернуться к проектам">← <span>Проекты</span></button>
-          <div className="project-editor-title">
-            <span className="project-editor-mark">{(activeПроект?.name ?? "N").slice(0, 1)}</span>
-            <div><strong>{activeПроект?.name ?? "NEXUM"}</strong><span>Проект</span></div>
-          </div>
-          <div className="project-editor-status"><span className={previewOnline ? "status-dot online" : "status-dot"} />{agentStage && !["completed","error"].includes(agentStage) ? "Агент работает" : previewOnline ? "Предпросмотр готов" : "Готов к работе"}</div>
-          <div className="project-editor-actions">
-            <button type="button" onClick={() => setRightTab("preview")}>Предпросмотр</button>
-            <button type="button" className="project-code-button" onClick={() => setCodeMode(true)}>Код</button>
-            <button type="button" onClick={() => setRightTab("agent")}>Агент</button>
-            <button className="project-editor-share" type="button" onClick={() => { const url = window.location.origin + "/api/preview/" + activeПроектId + "/index.html"; void navigator.clipboard.writeText(url).then(() => setNotice("Ссылка скопирована")).catch(() => setNotice(url)); }}>Поделиться</button>
-          </div>
-        </div>
+        <OSProjectWindow
+          projectName={activeПроект?.name ?? "NEXUM"}
+          projectId={activeПроектId}
+          previewOnline={previewOnline}
+          agentStage={agentStage}
+          activeTab={rightTab}
+          onTabChange={setRightTab}
+          onClose={() => navigate("home")}
+          onMinimize={() => setNotice("Окно свернуто в Dock")}
+          onConnect={() => setConnectorModal("Интеграция проекта")}
+          onShare={async () => {
+            const url = window.location.origin + "/api/preview/" + activeПроектId + "/index.html";
+            try { await navigator.clipboard.writeText(url); setNotice("Ссылка на предпросмотр скопирована"); } catch { setNotice(url); }
+          }}
+          onOpenPreview={() => {
+            const url = "/api/preview/" + activeПроектId + "/index.html";
+            window.open(url, "_blank", "noopener,noreferrer");
+            setNotice("Предпросмотр открыт в новой вкладке");
+          }}
+          onCode={() => setCodeMode(true)}
+          onAgent={() => setRightTab("agent")}
+        >
         {codeMode ? <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} onClose={() => setCodeMode(false)} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
             <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => setRightTab("agent")} onProviderChange={selectAIProvider} onModelChange={setAIModel} onOpenConnectors={() => setConnectorModal("Интеграция проекта")} />
 
           </div>
           <RightPanel tab={rightTab} onTabChange={setRightTab} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onRepair={repairLastTask} />
-        </div>}
+        </OSProjectWindow>
         </>
         )}
       </main>
