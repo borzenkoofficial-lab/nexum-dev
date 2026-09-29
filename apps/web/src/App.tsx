@@ -42,6 +42,15 @@ function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"preview" | "files" | "agent">("preview");
   const [workspaceMode, setWorkspaceMode] = useState<"preview" | "agent" | "files" | "code">("preview");
+  const [projectWindowModes, setProjectWindowModes] = useState<Record<string, "preview" | "agent" | "files" | "code">>(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem("nexum:os:window-modes") || "{}");
+      return saved && typeof saved === "object" ? saved : {};
+    } catch { return {}; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem("nexum:os:window-modes", JSON.stringify(projectWindowModes)); } catch {}
+  }, [projectWindowModes]);
   const [codeMode, setCodeMode] = useState(false);
   const [projectWindowMinimized, setProjectWindowMinimized] = useState(false);
   const [runningProjectIds, setRunningProjectIds] = useState<string[]>(() => {
@@ -321,14 +330,23 @@ function App() {
       setReply("");
       setАгентStage(null);
       setCodeMode(false);
+      const mode = workspaceTab === "files" ? "files" : workspaceTab;
       setRightTab(workspaceTab);
-      setWorkspaceMode(workspaceTab === "files" ? "files" : workspaceTab);
+      setWorkspaceMode(projectWindowModes[projectId] ?? mode);
+      if (!projectWindowModes[projectId]) setProjectWindowModes((items) => ({ ...items, [projectId]: mode }));
       setViewState("project");
       setProjectWindowMinimized(false);
       document.documentElement.classList.remove("nexum-os-maximized");
       navigate("project", projectId);
     }
     void selectПроект(projectId);
+  }
+
+  function setProjectMode(mode: "preview" | "agent" | "files" | "code") {
+    setWorkspaceMode(mode);
+    setProjectWindowModes((items) => ({ ...items, [activeПроектId]: mode }));
+    if (mode !== "code") setCodeMode(false);
+    if (mode === "preview" || mode === "agent" || mode === "files") setRightTab(mode);
   }
 
   async function selectПроект(projectId: string) {
@@ -881,7 +899,8 @@ function App() {
           previewOnline={previewOnline}
           agentStage={agentStage}
           activeTab={rightTab}
-          onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); setWorkspaceMode(tab); }}
+          workspaceMode={workspaceMode}
+          onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); setProjectMode(tab); }}
           onClose={() => {
             document.documentElement.classList.remove("nexum-os-maximized");
             setProjectWindowMinimized(false);
@@ -904,9 +923,9 @@ function App() {
             window.open(url, "_blank", "noopener,noreferrer");
             setNotice("Предпросмотр открыт в новой вкладке");
           }}
-          onCode={() => { setCodeMode(true); setWorkspaceMode("code"); }}
-          onAgent={() => { setCodeMode(false); setRightTab("agent"); setWorkspaceMode("agent"); }}
-          onFiles={() => { setCodeMode(false); setRightTab("files"); setWorkspaceMode("files"); }}
+          onCode={() => { setCodeMode(true); setProjectMode("code"); }}
+          onAgent={() => { setCodeMode(false); setRightTab("agent"); setProjectMode("agent"); }}
+          onFiles={() => { setCodeMode(false); setRightTab("files"); setProjectMode("files"); }}
         >
         {codeMode ? <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} onClose={() => { setCodeMode(false); setWorkspaceMode("files"); }} /> : <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
           <div className="main-column">
