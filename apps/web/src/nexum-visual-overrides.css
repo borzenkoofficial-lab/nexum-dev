@@ -694,3 +694,107 @@ button,.nav-item,.project,.connector-card,.project-window{transition:background-
   .chat-history{padding:24px 14px 14px!important}
   .welcome h1{font-size:clamp(30px,8vw,40px)!important}
 }
+
+
+/* NEXUM DIGITAL SYSTEM — ported visual language for NEXUM.DEV */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --digital-ink:#18181b;--digital-muted:#6f7078;--digital-subtle:#96969e;
+  --digital-line:#e6e6eb;--digital-line-strong:#d7d7de;
+  --digital-canvas:#f6f6f8;--digital-panel:#fff;--digital-soft:#fbfbfc;
+  --digital-hover:#f1f1f4;--digital-accent:#635bff;--digital-accent-soft:#f0efff;
+  --digital-radius:12px;--digital-radius-lg:16px;
+}
+html,body,#root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif!important}
+body{background:
+  radial-gradient(900px 500px at 82% -10%,rgba(99,91,255,.065),transparent 58%),
+  var(--digital-canvas)!important}
+.app{background:transparent!important}
+.main{background:transparent!important}
+.header{
+  height:64px!important;padding:0 28px!important;
+  background:rgba(255,255,255,.86)!important;
+  backdrop-filter:blur(16px) saturate(1.15)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(1.15)!important;
+  border-bottom:1px solid var(--digital-line)!important;
+}
+.nexum-home{padding:clamp(34px,6vw,74px) 5vw 54px!important}
+.home-hero{
+  min-height:min(68vh,700px)!important;
+  padding:72px 0 64px!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr) minmax(300px,42%)!important;
+  gap:6vw!important;align-items:end!important;
+}
+.home-hero .eyebrow{font-size:10px!important;letter-spacing:.12em!important;color:var(--digital-subtle)!important}
+.home-hero h1{
+  font-size:clamp(48px,6.2vw,88px)!important;line-height:.98!important;
+  letter-spacing:-.065em!important;font-weight:500!important;margin:22px 0 32px!important;
+}
+.home-hero h1 em{font-style:normal;color:#777880!important}
+.home-hero p{font-size:13px!important;line-height:1.65!important;color:var(--digital-muted)!important;max-width:470px!important}
+.home-hero-actions{justify-self:end;align-self:end!important}
+.home-primary{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  background:var(--digital-ink)!important;color:#fff!important;border-radius:10px!important;
+  padding:11px 15px!important;font-size:12px!important;
+  box-shadow:none!important;transition:transform .18s ease,box-shadow .18s ease!important;
+}
+.home-primary:hover{transform:translateY(-1px)!important;box-shadow:0 8px 22px rgba(0,0,0,.12)!important}
+.overview-command-strip{
+  border-top:1px solid var(--digital-line)!important;border-bottom:1px solid var(--digital-line)!important;
+  background:rgba(255,255,255,.5)!important;backdrop-filter:blur(12px)!important;
+}
+.home-section-title{margin-top:56px!important}
+.home-section-title span,.overview-command-strip,.project-type-badge,.project-health,.project-window-meta{
+  letter-spacing:.08em!important
+}
+.project-grid{gap:14px!important}
+.project-window{
+  position:relative!important;overflow:hidden!important;border-radius:16px!important;
+  border:1px solid var(--digital-line)!important;
+  background:rgba(255,255,255,.76)!important;
+  box-shadow:0 12px 35px rgba(0,0,0,.045)!important;
+  backdrop-filter:blur(16px)!important;
+}
+.project-window:hover{transform:translateY(-3px)!important;box-shadow:0 20px 50px rgba(0,0,0,.09)!important;border-color:var(--digital-line-strong)!important}
+.window-chrome{
+  height:30px!important;background:#fafafa!important;border-bottom:1px solid var(--digital-line)!important;
+}
+.project-live-preview{
+  margin:12px!important;border-radius:12px!important;overflow:hidden!important;
+  background:#efeff2!important;border:1px solid var(--digital-line)!important;
+  box-shadow:0 14px 38px rgba(0,0,0,.065)!important;
+}
+.project-live-preview iframe{background:#fff!important}
+.preview-overlay{background:linear-gradient(180deg,transparent 35%,rgba(24,24,27,.72))!important}
+.project-card-body{padding:16px!important}
+.project-window-mark{border-radius:9px!important;background:var(--digital-accent-soft)!important;color:#5149bd!important}
+.project-window-head strong{letter-spacing:-.03em!important}
+.overview-workflow-preview{
+  margin-top:72px!important;padding:52px 0!important;
+  border-top:1px solid var(--digital-line)!important;border-bottom:1px solid var(--digital-line)!important;
+  background:rgba(255,255,255,.38)!important;
+}
+.overview-workflow-preview h2{
+  font-size:clamp(34px,4.5vw,62px)!important;line-height:.98!important;
+  letter-spacing:-.06em!important;font-weight:500!important;
+}
+.workflow-line span{border:1px solid var(--digital-line)!important;background:rgba(255,255,255,.7)!important;border-radius:999px!important}
+.workflow-line b{color:var(--digital-accent)!important}
+.modal-backdrop{background:rgba(20,20,24,.18)!important;backdrop-filter:blur(12px)!important}
+.modal,.connector-modal{
+  border:1px solid rgba(215,215,222,.9)!important;border-radius:18px!important;
+  background:rgba(255,255,255,.86)!important;backdrop-filter:blur(28px)!important;
+  box-shadow:0 35px 100px rgba(0,0,0,.16)!important;
+}
+@media(max-width:900px){
+  .home-hero{grid-template-columns:1fr!important;min-height:auto!important;padding:48px 0!important}
+  .home-hero-actions{justify-self:start!important}
+}
+@media(max-width:600px){
+  .nexum-home{padding:28px 5vw 42px!important}
+  .home-hero{padding:36px 0 42px!important}
+  .home-hero h1{font-size:clamp(42px,12vw,58px)!important}
+  .project-grid{grid-template-columns:1fr!important}
+  .overview-workflow-preview{padding:36px 0!important}
+}
