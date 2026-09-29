@@ -466,7 +466,7 @@ function App() {
     const repairTask = `Исправь результат последней задачи. Проверь Preview, найди ошибки и внеси необходимые исправления: ${task}`;
     setMessage(repairTask);
     setRightTab("agent");
-    setWorkspaceMode("agent");
+    setProjectMode("agent");
     window.setTimeout(() => void sendMessage(repairTask), 0);
   }
 
@@ -589,7 +589,7 @@ function App() {
           setReply(data?.job?.reply ?? "");
           if (data?.job?.reply) setConversation((items) => [...items, { id: `assistant-${Date.now()}`, role: "assistant", content: data.job!.reply!, timestamp: Date.now() }]);
           setRightTab("preview");
-          setWorkspaceMode("preview");
+          setProjectMode("preview");
 
           // The agent can finish immediately after the build while the filesystem
           // and preview status endpoint are still settling. Wait briefly for the
