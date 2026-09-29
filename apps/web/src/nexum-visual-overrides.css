@@ -4211,3 +4211,113 @@ button:not(:disabled):active{transform:translateY(0) scale(.985)!important}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important}
 }
+
+/* NEXUM MODEL SWITCHER — editorial hardware / model cockpit
+   Visual-only layer. Keeps the existing select and model logic intact. */
+
+.ai-controls{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  padding:3px!important;
+  border:1px solid rgba(17,17,19,.07)!important;
+  border-radius:13px!important;
+  background:rgba(255,255,255,.68)!important;
+  box-shadow:0 8px 24px rgba(17,17,19,.035),inset 0 1px 0 #fff!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+}
+
+.ai-controls:before{
+  content:"ENGINE";
+  display:flex!important;
+  align-items:center!important;
+  height:30px!important;
+  padding:0 8px!important;
+  border-right:1px solid rgba(17,17,19,.06)!important;
+  color:#a0a0a8!important;
+  font-size:7px!important;
+  line-height:1!important;
+  font-weight:800!important;
+  letter-spacing:.14em!important;
+}
+
+.ai-controls:after{
+  content:"";
+  position:absolute!important;
+  left:9px!important;
+  bottom:3px!important;
+  width:22px!important;
+  height:1px!important;
+  background:linear-gradient(90deg,rgba(103,108,255,.8),transparent)!important;
+  pointer-events:none!important;
+}
+
+.ai-controls select{
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  min-width:132px!important;
+  height:30px!important;
+  padding:0 28px 0 10px!important;
+  border:1px solid transparent!important;
+  border-radius:9px!important;
+  outline:none!important;
+  color:#17171b!important;
+  background:
+    linear-gradient(45deg,transparent 50%,#777780 50%) calc(100% - 12px) 13px/5px 5px no-repeat,
+    linear-gradient(135deg,#777780 50%,transparent 50%) calc(100% - 8px) 13px/5px 5px no-repeat,
+    rgba(248,248,250,.8)!important;
+  font-size:11px!important;
+  font-weight:650!important;
+  letter-spacing:-.01em!important;
+  cursor:pointer!important;
+  box-shadow:inset 0 1px 0 #fff!important;
+  transition:border-color .18s ease,background .18s ease,box-shadow .18s ease,transform .18s ease!important;
+}
+
+.ai-controls select:hover{
+  background:
+    linear-gradient(45deg,transparent 50%,#5f5f68 50%) calc(100% - 12px) 13px/5px 5px no-repeat,
+    linear-gradient(135deg,#5f5f68 50%,transparent 50%) calc(100% - 8px) 13px/5px 5px no-repeat,
+    #fff!important;
+  border-color:rgba(103,108,255,.14)!important;
+  box-shadow:0 6px 18px rgba(17,17,19,.045),inset 0 1px 0 #fff!important;
+  transform:translateY(-1px)!important;
+}
+
+.ai-controls select:focus{
+  border-color:rgba(103,108,255,.28)!important;
+  box-shadow:0 0 0 3px rgba(103,108,255,.06),inset 0 1px 0 #fff!important;
+}
+
+.ai-controls select option{
+  background:#fff!important;
+  color:#17171b!important;
+}
+
+/* The selector becomes a tiny piece of product hardware on narrow screens. */
+@media(max-width:1100px){
+  .ai-controls{
+    padding:2px!important;
+    border-radius:11px!important;
+  }
+  .ai-controls:before{display:none!important}
+  .ai-controls:after{left:7px!important}
+  .ai-controls select{
+    min-width:116px!important;
+    height:30px!important;
+  }
+}
+
+@media(max-width:620px){
+  .ai-controls{
+    max-width:150px!important;
+  }
+  .ai-controls select{
+    min-width:100px!important;
+    max-width:118px!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+}
