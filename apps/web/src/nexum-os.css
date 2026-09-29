@@ -999,3 +999,27 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
   .nexum-os-app-strip,.status-bar.nexum-global-menu{backdrop-filter:blur(14px) saturate(135%);-webkit-backdrop-filter:blur(14px) saturate(135%)}
   .palette-item{min-height:52px!important}
 }
+
+
+/* NEXUM OS — multi-project manager */
+.nexum-os-switcher-projects{
+  display:flex;gap:8px;overflow-x:auto;padding:2px 2px 14px;margin-bottom:2px;
+  scrollbar-width:none;
+}
+.nexum-os-switcher-projects::-webkit-scrollbar{display:none}
+.nexum-os-project-chip{
+  flex:0 0 auto;min-width:150px;display:grid;grid-template-columns:30px 1fr;grid-template-rows:auto auto;
+  column-gap:8px;padding:9px 11px;border:1px solid rgba(20,22,28,.07);border-radius:13px;
+  background:rgba(248,249,251,.74);text-align:left;cursor:pointer;
+}
+.nexum-os-project-chip>span{
+  grid-row:1 / span 2;width:30px;height:30px;display:grid;place-items:center;border-radius:9px;
+  background:#fff;box-shadow:0 4px 12px rgba(20,22,28,.06);font-size:11px;font-weight:850;
+}
+.nexum-os-project-chip strong{font-size:10px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nexum-os-project-chip small{margin-top:3px;color:#858a93;font-size:8px}
+.nexum-os-project-chip.active{background:#fff;border-color:rgba(91,78,198,.16);box-shadow:0 8px 22px rgba(20,22,28,.07)}
+@media(max-width:760px){
+  .nexum-os-switcher-projects{margin-bottom:4px}
+  .nexum-os-project-chip{min-width:132px}
+}
