@@ -43,6 +43,18 @@ export function OSProjectWindow({
   const busy = Boolean(agentStage && !["completed", "error"].includes(agentStage));
   const status = busy ? "Agent working" : previewOnline ? "Preview ready" : "Ready";
 
+  if (minimized) {
+    return (
+      <section className="nexum-os-project nexum-os-project-minimized" aria-label={"NEXUM OS project " + projectName + " minimized"}>
+        <div className="os-minimized-card" role="button" tabIndex={0} onClick={onRestore} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onRestore(); }}>
+          <span className="os-window-project-mark">{projectName.slice(0, 1).toUpperCase()}</span>
+          <div><strong>{projectName}</strong><small>Workspace свернут в Dock</small></div>
+          <button type="button" onClick={(event) => { event.stopPropagation(); onRestore(); }}>Открыть</button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="nexum-os-project" aria-label={"NEXUM OS project " + projectName}>
       <div className="os-window-shell">
