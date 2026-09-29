@@ -151,3 +151,44 @@
   .os-window-body{min-height:calc(100vh - 210px)}
   .os-window-body>.workspace,.os-window-body>.code-panel{min-height:calc(100vh - 210px)}
 }
+
+
+/* NEXUM OS — final shell polish */
+.app-home .nexum-topbar,
+.app-home .status-bar{display:none!important}
+.app-home .main{padding:0!important}
+.nexum-os-project-minimized{min-height:calc(100vh - 64px);display:flex;align-items:flex-end;justify-content:center;padding:28px 28px 108px}
+.os-minimized-card{display:flex;align-items:center;gap:13px;width:min(460px,calc(100vw - 28px));padding:12px 13px;border:1px solid rgba(255,255,255,.82);border-radius:18px;background:rgba(255,255,255,.7);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);box-shadow:0 24px 60px rgba(15,23,42,.15),inset 0 1px 0 rgba(255,255,255,.95);cursor:pointer}
+.os-minimized-card .os-window-project-mark{flex:0 0 auto}
+.os-minimized-card div{min-width:0;display:flex;flex-direction:column;gap:3px}
+.os-minimized-card strong{font-size:12px;color:#171a1f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.os-minimized-card small{font-size:10px;color:#7a828d}
+.os-minimized-card button{margin-left:auto;flex:0 0 auto;border:0;border-radius:10px;background:#171a1f;color:#fff;padding:9px 12px;font-size:11px;font-weight:650;cursor:pointer}
+.os-window-apps{flex-wrap:wrap}
+.os-window-code{background:rgba(255,255,255,.35)!important}
+.os-window-actions{flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:900px){
+  .nexum-os-project{padding:0 0 76px;min-height:calc(100vh - 46px)}
+  .os-window-shell{border-radius:0;border-left:0;border-right:0;min-height:calc(100vh - 122px)}
+  .os-window-toolbar{min-height:54px;gap:8px}
+  .os-window-apps{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .os-window-apps::-webkit-scrollbar{display:none}
+  .os-window-apps button{padding:0 10px;white-space:nowrap}
+  .os-window-actions{display:none}
+  .os-window-context{min-height:38px;padding:0 12px}
+  .os-window-body{min-height:calc(100vh - 188px)}
+  .os-window-body>.workspace,.os-window-body>.code-panel{min-height:calc(100vh - 188px)}
+}
+@media(max-width:620px){
+  .os-menubar{height:44px}
+  .os-brand strong{display:none}
+  .os-system b{display:none}
+  .os-desktop-content{padding-top:24px}
+  .nexum-os-project-minimized{min-height:calc(100vh - 44px);padding:18px 10px 86px}
+  .os-minimized-card{width:100%}
+  .os-window-titlebar{grid-template-columns:70px 1fr 70px}
+}
+@media(prefers-reduced-motion:reduce){
+  .nexum-os-project *,
+  .nexum-os-desktop *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
