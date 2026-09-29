@@ -694,3 +694,66 @@
 @media(max-width:760px){
   .app-project .workspace.builder-idle .chat:before{display:none}
 }
+
+
+/* NEXUM OS 2.1 — running window manager surface */
+.os-running-bar{
+  margin:0 0 24px;
+  padding:16px;
+  border:1px solid rgba(20,22,28,.08);
+  border-radius:20px;
+  background:rgba(255,255,255,.58);
+  box-shadow:0 12px 34px rgba(20,22,28,.06),inset 0 1px 0 rgba(255,255,255,.92);
+  backdrop-filter:blur(18px) saturate(150%);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+}
+.os-running-list{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding-top:10px;
+  scrollbar-width:none;
+}
+.os-running-list::-webkit-scrollbar{display:none}
+.os-running-item{
+  min-width:210px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 11px;
+  border:1px solid rgba(20,22,28,.07);
+  border-radius:14px;
+  background:rgba(255,255,255,.78);
+  color:#17181c;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:0 5px 16px rgba(20,22,28,.05);
+  transition:transform .18s ease,box-shadow .18s ease,background .18s ease;
+}
+.os-running-item:hover{
+  transform:translateY(-2px);
+  background:rgba(255,255,255,.94);
+  box-shadow:0 10px 24px rgba(20,22,28,.09);
+}
+.os-running-item.minimized{background:rgba(245,246,249,.82)}
+.os-running-mark{
+  width:32px;height:32px;display:grid;place-items:center;flex:0 0 auto;
+  border-radius:10px;
+  background:linear-gradient(145deg,#f0edff,#dcd6ff);
+  color:#6654c8;font-size:12px;font-weight:800;
+}
+.os-running-item>span:nth-child(2){min-width:0;display:flex;flex-direction:column;gap:2px}
+.os-running-item b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.os-running-item small{font-size:9px;color:#7b8089}
+.os-running-item i{
+  width:6px;height:6px;flex:0 0 auto;margin-left:auto;border-radius:50%;
+  background:#22a06b;box-shadow:0 0 0 3px rgba(34,160,107,.10);
+}
+.os-running-item.minimized i{background:#a6adb8;box-shadow:0 0 0 3px rgba(166,173,184,.10)}
+@media(max-width:760px){
+  .os-running-bar{margin:0 0 16px;padding:12px;border-radius:16px}
+  .os-running-item{min-width:190px}
+}
+@media(pointer:coarse){
+  .os-running-item:hover{transform:none}
+}
