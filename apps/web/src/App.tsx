@@ -84,7 +84,6 @@ function App() {
     return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : path === "/diagnostics" ? "diagnostics" : "home";
   });
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
-  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [connectedConnectors, setConnectedConnectors] = useState<string[]>([]);
   const [activitySteps, setActivitySteps] = useState<Array<{ iteration: number; tool: string; success: boolean }>>([]);
   const [activityEvents, setActivityEvents] = useState<Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>>([]);
@@ -722,7 +721,6 @@ function App() {
 
   function openПроектPicker() {
     navigate("home");
-    setMobileSidebarOpen(true);
     setNotice("Выберите проект из списка");
     window.setTimeout(() => setNotice(""), 3200);
   }
