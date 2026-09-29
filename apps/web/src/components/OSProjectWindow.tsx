@@ -1,0 +1,102 @@
+import type { ReactNode } from "react";
+import type { AgentStage } from "./types";
+
+interface OSProjectWindowProps {
+  projectName: string;
+  projectId: string;
+  previewOnline: boolean;
+  agentStage: AgentStage;
+  activeTab: "preview" | "files" | "agent";
+  onTabChange: (tab: "preview" | "files" | "agent") => void;
+  onClose: () => void;
+  onMinimize: () => void;
+  onConnect: () => void;
+  onShare: () => void;
+  onOpenPreview: () => void;
+  onCode: () => void;
+  onAgent: () => void;
+  children: ReactNode;
+}
+
+export function OSProjectWindow({
+  projectName,
+  projectId,
+  previewOnline,
+  agentStage,
+  activeTab,
+  onTabChange,
+  onClose,
+  onMinimize,
+  onConnect,
+  onShare,
+  onOpenPreview,
+  onCode,
+  onAgent,
+  children,
+}: OSProjectWindowProps) {
+  const busy = Boolean(agentStage && !["completed", "error"].includes(agentStage));
+  const status = busy ? "Agent working" : previewOnline ? "Preview ready" : "Ready";
+
+  return (
+    <section className="nexum-os-project" aria-label={"NEXUM OS project " + projectName}>
+      <div className="os-window-shell">
+        <header className="os-window-titlebar">
+          <div className="os-window-controls" aria-label="Window controls">
+            <button type="button" className="os-window-dot close" aria-label="Close project" onClick={onClose} />
+            <button type="button" className="os-window-dot minimize" aria-label="Minimize project" onClick={onMinimize} />
+            <button type="button" className="os-window-dot maximize" aria-label="Maximize project" onClick={() => document.documentElement.classList.toggle("nexum-os-maximized")} />
+          </div>
+          <div className="os-window-title">
+            <span className="os-window-project-mark">{projectName.slice(0, 1).toUpperCase()}</span>
+            <strong>{projectName}</strong>
+            <span className="os-window-separator">/</span>
+            <span>Workspace</span>
+          </div>
+          <div className="os-window-status">
+            <span className={"os-status-pulse " + (previewOnline || busy ? "active" : "")} />
+            {status}
+          </div>
+        </header>
+
+        <div className="os-window-toolbar">
+          <div className="os-window-apps" role="tablist" aria-label="Workspace applications">
+            <button type="button" className={activeTab === "preview" ? "active" : ""} onClick={() => onTabChange("preview")}>
+              <span>◫</span> Preview
+            </button>
+            <button type="button" className={activeTab === "agent" ? "active" : ""} onClick={onAgent}>
+              <span>✦</span> AI Agent
+            </button>
+            <button type="button" className="os-window-code" onClick={onCode}>
+              <span>{"{ }"}</span> Code
+            </button>
+          </div>
+          <div className="os-window-actions">
+            <button type="button" onClick={onConnect}>◇ Connect</button>
+            <button type="button" onClick={onShare}>Share</button>
+            <button type="button" className="primary" onClick={onOpenPreview}>Open ↗</button>
+          </div>
+        </div>
+
+        <div className="os-window-context">
+          <div>
+            <span>PROJECT</span>
+            <strong>{projectName}</strong>
+          </div>
+          <div>
+            <span>ID</span>
+            <strong>{projectId}</strong>
+          </div>
+          <div>
+            <span>MODE</span>
+            <strong>OS Workspace</strong>
+          </div>
+          <div className="os-context-right">
+            <kbd>⌘</kbd><kbd>K</kbd><span>Command Center</span>
+          </div>
+        </div>
+
+        <div className="os-window-body">{children}</div>
+      </div>
+    </section>
+  );
+}
