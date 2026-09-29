@@ -181,7 +181,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   }
 
   return (
-    <aside className="right-panel" aria-label="Инструменты проекта" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <aside className={`right-panel mobile-mode-${tab}`} aria-label="Инструменты проекта" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <div className="panel-tabs" role="tablist">
         <button className={tab === "preview" ? "active" : ""} type="button" onClick={() => onTabChange("preview")}>Предпросмотр</button>
         <button className={tab === "files" ? "active" : ""} type="button" onClick={() => onTabChange("files")}>Файлы</button>
