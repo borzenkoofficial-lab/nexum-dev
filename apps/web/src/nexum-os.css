@@ -306,3 +306,36 @@
   .status-menu-icon{width:30px!important;height:30px!important}
   .status-menu-divider{margin:0 1px}
 }
+
+
+/* NEXUM OS — performance guardrails */
+@media (max-width: 900px) {
+  .os-window-shell,
+  .status-bar.nexum-global-menu,
+  .os-minimized-card {
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+  }
+}
+
+@media (pointer: coarse) {
+  .os-window-shell {
+    box-shadow: 0 18px 48px rgba(15,23,42,.11), 0 2px 8px rgba(15,23,42,.04);
+  }
+
+  .status-menu-item:hover,
+  .os-app-icon:hover .os-app-glyph,
+  .os-project-card:hover,
+  .os-empty-project:hover {
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-bar.nexum-global-menu *,
+  .os-window-shell *,
+  .os-dock * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
