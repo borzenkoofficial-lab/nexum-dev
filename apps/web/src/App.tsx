@@ -9,7 +9,6 @@ import { NewsPage } from "./components/NewsPage";
 import { IntegrationPage } from "./components/IntegrationPage";
 import { DiagnosticsPage } from "./components/DiagnosticsPage";
 import { RightPanel } from "./components/RightPanel";
-import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
 import { OSDesktop } from "./components/OSDesktop";
 import { OSProjectWindow } from "./components/OSProjectWindow";
@@ -75,7 +74,6 @@ function App() {
     const id = Date.now() + osEventSeq.current++;
     setOsEvents((items) => [...items.slice(-2), { id, kind, title, message: eventMessage }]);
   };
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [previewOnline, setПредпросмотрOnline] = useState(false);
   const [previewKey, setПредпросмотрKey] = useState(0);
   const [builderStarted, setBuilderStarted] = useState(false);
@@ -749,7 +747,6 @@ function App() {
 
   return (
     <div className={"app app-" + view}>
-      {<Sidebar projects={projects} activeProjectId={activeПроектId} projectsLoading={projectsLoading} projectActionLoading={projectActionLoading} mobileOpen={mobileSidebarOpen} view={view} onDeleteProject={(id) => void deleteПроект(id)} onViewChange={(next) => { setMobileSidebarOpen(false); setView(next); }} onNewProject={() => { setMobileSidebarOpen(false); setModalOpen(true); }} onSelectProject={(id) => { setMobileSidebarOpen(false); openПроект(id); }} />}
       <NexumOSEventCenter events={osEvents} onDismiss={(id) => setOsEvents((items) => items.filter((item) => item.id !== id))} />
       <NexumApplicationManager
         projectName={activeПроект?.name}
@@ -764,7 +761,7 @@ function App() {
         onClose={() => { setProjectWindowMinimized(false); setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId)); setOsActiveWindow("home"); navigate("home"); }}
       />
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
-        <TopBar projectName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : view === "diagnostics" ? "Диагностика" : "NEXUM.DEV"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel} onToggleSidebar={() => setMobileSidebarOpen((open) => !open)} />
+        <TopBar projectName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : view === "diagnostics" ? "Диагностика" : "NEXUM.DEV"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} stage={agentStage} onProviderChange={selectAIProvider} onModelChange={setAIModel}  />
         {view === "diagnostics" ? <DiagnosticsPage /> : view === "home" ? (
           <OSDesktop
             projects={projects}
@@ -986,9 +983,6 @@ function App() {
         osFocusTick={osFocusTick}
         onHome={() => navigate("home")}
         onProjects={() => navigate("home")}
-        onAgent={() => { if (activeПроектId) { openПроект(activeПроектId, "agent"); } else navigate("home"); }}
-        onCode={() => { if (activeПроектId) { openПроект(activeПроектId, "files"); setCodeMode(true); setProjectMode("code"); } else navigate("home"); }}
-        onPreview={() => { if (activeПроектId) { openПроект(activeПроектId, "preview"); } else navigate("home"); }}
         onConnectors={() => navigate("connectors")}
         onDiagnostics={() => navigate("diagnostics")}
         onNews={() => navigate("news")}
