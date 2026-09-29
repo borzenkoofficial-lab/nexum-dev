@@ -1,15 +1,9 @@
-import type { AIProviderInfo, AIProviderStatus, AgentStage } from "./types";
+import type { AIProviderStatus, AgentStage } from "./types";
 
 interface TopBarProps {
   projectName: string;
-  providers: AIProviderInfo[];
-  models: string[];
-  provider: string;
-  model: string;
   aiStatus: AIProviderStatus | null;
   stage: AgentStage;
-  onProviderChange: (id: string) => void;
-  onModelChange: (model: string) => void;
 }
 
 export function TopBar({ projectName, aiStatus, stage }: TopBarProps) {
