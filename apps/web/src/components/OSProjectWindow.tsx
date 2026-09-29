@@ -84,6 +84,9 @@ export function OSProjectWindow({
             <button type="button" className={activeTab === "agent" ? "active" : ""} onClick={onAgent}>
               <span>✦</span> AI Agent
             </button>
+            <button type="button" className={activeTab === "files" ? "active" : ""} onClick={onFiles}>
+              <span>□</span> Files
+            </button>
             <button type="button" className="os-window-code" onClick={onCode}>
               <span>{"{ }"}</span> Code
             </button>
