@@ -121,7 +121,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   let panelContent: ReactNode;
   if (tab === "preview") {
     panelContent = previewOnline ? (
-      <div className="preview-frame-wrap">
+      <div className={`preview-frame-wrap preview-stage-${stage ?? "idle"}`} data-stage={stage ?? "idle"}>
         <div className="preview-browser-bar" aria-label="Панель предпросмотра">
           <div className="preview-browser-dots" aria-hidden="true"><i /><i /><i /></div>
           <div className="preview-address"><span className="preview-address-lock">⌁</span><span>/preview/{projectId}</span><b>{previewOnline ? "LIVE" : "OFFLINE"}</b></div>
