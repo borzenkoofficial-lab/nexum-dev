@@ -28,7 +28,7 @@ export function ChatPanel({
   message, reply, stage, apiError, messages, attachments, onMessageChange, onSubmit, onRetry,
   onQuickTask, onFilesSelected, onRemoveAttachment, onOpenAgent, projectName,
 }: ChatPanelProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);\n  const touchStartX = useRef<number | null>(null);\n\n  function handleTouchStart(event: React.TouchEvent<HTMLElement>) {\n    touchStartX.current = event.touches[0]?.clientX ?? null;\n  }\n\n  function handleTouchEnd(event: React.TouchEvent<HTMLElement>) {\n    const start = touchStartX.current;\n    touchStartX.current = null;\n    const end = event.changedTouches[0]?.clientX;\n    if (start == null || end == null) return;\n    if (start - end > 64) onOpenAgent();\n  }
   const [sendingText, setSendingText] = useState("");
   const busy = Boolean(stage && !["completed", "error"].includes(stage));
   const stageLabel =
@@ -50,7 +50,7 @@ export function ChatPanel({
   }
 
   return (
-    <section className="chat" aria-label="Чат NEXUM">
+    <section className="chat" aria-label="Чат NEXUM" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <div className="chat-history">
         <div className="chat-project-context">
           <span className="context-dot" />
