@@ -668,3 +668,29 @@ button,input,textarea,select{font-family:inherit!important}
  .news-page-editorial .journal-art{overflow:hidden}
  .news-page-editorial .journal-art .news-mock-browser{width:100%;max-width:100%;transform:none!important}
 }
+
+
+/* NEXUM DIGITAL visual language — glass, editorial surfaces, restrained product polish */
+html{background:#f6f6f8!important;color-scheme:light}
+body{background:radial-gradient(ellipse at 82% -10%,rgba(99,91,255,.055),transparent 34%),var(--nexum-canvas)!important;color:var(--nexum-ink)}
+.sidebar,.header,.right-panel,.agent-panel,.modal,.message-box,.project-window,.settings-card,.connector-card{
+  -webkit-backdrop-filter:blur(18px) saturate(1.25);
+  backdrop-filter:blur(18px) saturate(1.25);
+}
+.sidebar{background:rgba(250,250,252,.82)!important}
+.header{background:rgba(255,255,255,.78)!important}
+.right-panel{background:rgba(255,255,255,.82)!important}
+.message-box{background:rgba(255,255,255,.88)!important;border:1px solid rgba(214,214,226,.9)!important;box-shadow:0 14px 45px rgba(28,25,65,.07)!important}
+.project-window,.settings-card,.connector-card,.agent-result-card,.agent-plan-card{
+  border:1px solid rgba(220,220,230,.9)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(250,250,253,.86))!important;
+  box-shadow:0 12px 34px rgba(27,24,58,.045)!important;
+}
+button,.nav-item,.project,.connector-card,.project-window{transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+@media(max-width:700px){
+  .sidebar{background:rgba(250,250,252,.96)!important}
+  .message-form,.chat-footer-fixed{width:calc(100% - 24px)!important}
+  .chat-history{padding:24px 14px 14px!important}
+  .welcome h1{font-size:clamp(30px,8vw,40px)!important}
+}
