@@ -13,9 +13,6 @@ interface StatusBarProps {
   osFocusTick: number;
   onHome: () => void;
   onProjects: () => void;
-  onAgent: () => void;
-  onCode: () => void;
-  onPreview: () => void;
   onConnectors: () => void;
   onDiagnostics: () => void;
   onNews: () => void;
@@ -26,9 +23,6 @@ interface StatusBarProps {
 const items = [
   ["home", "⌂", "Домой", "home"],
   ["projects", "◈", "Проекты", "projects"],
-  ["agent", "✦", "Агент", "agent"],
-  ["code", "</>", "Code", "code"],
-  ["preview", "◫", "Preview", "preview"],
   ["connectors", "⊕", "Связи", "connectors"],
   ["diagnostics", "◌", "Диагностика", "diagnostics"],
   ["news", "◍", "Журнал", "news"],
@@ -58,9 +52,6 @@ export function StatusBar({
   const actions: Record<string, () => void> = {
     home: onHome,
     projects: onProjects,
-    agent: onAgent,
-    code: onCode,
-    preview: onPreview,
     connectors: onConnectors,
     diagnostics: onDiagnostics,
     news: onNews,
@@ -77,9 +68,6 @@ export function StatusBar({
             className={`status-menu-item status-tone-${tone} ${
               (key === "home" && activeView === "home") ||
               (key === "projects" && (activeView === "home" || activeView === "project")) ||
-              (key === "preview" && activeView === "project" && workspaceMode === "preview") ||
-              (key === "agent" && activeView === "project" && workspaceMode === "agent") ||
-              (key === "code" && activeView === "project" && workspaceMode === "code") ||
               (key !== "home" && key !== "projects" && key !== "preview" && key !== "agent" && key !== "code" && activeView === key)
                 ? "active"
                 : ""
