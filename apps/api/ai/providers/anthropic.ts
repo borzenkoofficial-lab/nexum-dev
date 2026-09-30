@@ -11,6 +11,7 @@ export class AnthropicProvider implements AIProvider {
   id = "anthropic";
   name = "Anthropic";
   model: string;
+  capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: false, reasoning: false, contextWindow: null } as const;
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly fetchImpl: typeof fetch;
