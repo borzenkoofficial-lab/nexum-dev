@@ -37,6 +37,11 @@ export function CodePanel({ projectId, projectName, previewOnline, onRefreshPrev
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError("");
+    setFiles([]);
+    setSelectedFile("");
+    setContent("");
+    setSavedContent("");
     fetch(`/api/projects/${encodeURIComponent(projectId)}/files`)
       .then(async (response) => {
         const data = await response.json().catch(() => ({})) as { files?: string[]; error?: string };
@@ -57,6 +62,8 @@ export function CodePanel({ projectId, projectName, previewOnline, onRefreshPrev
     let cancelled = false;
     setFileLoading(true);
     setError("");
+    setContent("");
+    setSavedContent("");
     fetch(`/api/projects/${encodeURIComponent(projectId)}/file?path=${encodeURIComponent(selectedFile)}`)
       .then(async (response) => {
         const data = await response.json().catch(() => ({})) as { content?: string; error?: string };
@@ -124,11 +131,11 @@ export function CodePanel({ projectId, projectName, previewOnline, onRefreshPrev
         <aside className="nexum-code-sidebar">
           <div className="nexum-code-sidebar-title">EXPLORER <span>{files.length}</span></div>
           <div className="nexum-code-project-name">▾ {projectName}</div>
-          {loading ? <div className="nexum-code-empty">Загрузка…</div> : files.map((file) => (
+          {loading ? <div className="nexum-code-empty">Загрузка…</div> : files.length ? files.map((file) => (
             <button key={file} type="button" className={selectedFile === file ? "nexum-code-file active" : "nexum-code-file"} onClick={() => { if (dirty && !window.confirm("Есть несохранённые изменения. Открыть другой файл без сохранения?")) return; setSelectedFile(file); }}>
               <span>{fileIcon(file)}</span><b>{file}</b>{selectedFile === file && dirty && <i>●</i>}
             </button>
-          ))}
+          )) : <div className="nexum-code-empty">В проекте пока нет файлов.</div>}
         </aside>
         <main className="nexum-code-editor">
           <div className="nexum-code-tabs">{selectedFile ? <div className="nexum-code-tab active"><span>{fileIcon(selectedFile)}</span>{selectedFile}{dirty && <i>●</i>}</div> : <span>Выберите файл</span>}</div>
