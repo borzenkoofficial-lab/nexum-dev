@@ -572,3 +572,449 @@
     transition:none;
   }
 }
+
+
+/* Agent 5.0 — system panel hierarchy */
+.os-workspace-layer .agent-panel{
+  height:100%;
+  overflow:auto;
+  padding:0 20px 28px;
+  background:#fff;
+  color:#202126;
+  scrollbar-width:thin;
+}
+.os-workspace-layer .agent-panel-header{
+  position:sticky;
+  top:0;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  min-height:68px;
+  margin:0 -20px;
+  padding:0 20px;
+  background:rgba(255,255,255,.88);
+  border-bottom:1px solid rgba(20,20,24,.065);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+.os-workspace-layer .agent-panel-header h2{
+  margin:3px 0 0;
+  font-size:16px;
+  line-height:1.1;
+  letter-spacing:-.025em;
+}
+.os-workspace-layer .agent-panel-header .eyebrow{
+  color:#999aa2;
+}
+.os-workspace-layer .agent-status-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:27px;
+  padding:0 9px;
+  border:1px solid rgba(20,20,24,.07);
+  border-radius:999px;
+  background:#f7f7f9;
+  color:#74757d;
+  font-size:9px;
+  font-weight:650;
+}
+.os-workspace-layer .agent-status-pill i{
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:#a9aab1;
+}
+.os-workspace-layer .agent-status-pill.live{
+  color:#5149bd;
+  background:#f1f0ff;
+  border-color:#dedaff;
+}
+.os-workspace-layer .agent-status-pill.live i{
+  background:#5f57d9;
+  box-shadow:0 0 0 3px rgba(95,87,217,.11);
+}
+.os-workspace-layer .agent-status-pill.error{
+  color:#a04747;
+  background:#fff4f4;
+  border-color:#f0d8d8;
+}
+.os-workspace-layer .agent-status-pill.error i{background:#c85c5c}
+
+/* The hero is the one intentional visual focal point. */
+.os-workspace-layer .agent-hero-mockup{
+  margin:18px 0 14px;
+  padding:18px;
+  border:1px solid rgba(20,20,24,.075);
+  border-radius:15px;
+  background:linear-gradient(145deg,#fbfbfd,#f6f6f9);
+  box-shadow:0 10px 28px rgba(20,20,24,.035);
+}
+.os-workspace-layer .agent-hero-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:25px;
+}
+.os-workspace-layer .agent-hero-mockup > strong{
+  display:block;
+  font-size:20px;
+  line-height:1.05;
+  letter-spacing:-.045em;
+}
+.os-workspace-layer .agent-hero-mockup > p{
+  margin:8px 0 18px;
+  color:#777880;
+  font-size:11px;
+  line-height:1.55;
+}
+.os-workspace-layer .agent-hero-live,
+.os-workspace-layer .agent-hero-ready{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  color:#777880;
+  font-size:8px;
+  font-weight:750;
+  letter-spacing:.08em;
+}
+.os-workspace-layer .agent-hero-live i,
+.os-workspace-layer .agent-hero-ready i{
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:#5f57d9;
+}
+.os-workspace-layer .agent-hero-ready i{background:#aeb0b7}
+.os-workspace-layer .agent-hero-track{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:4px;
+  height:3px;
+}
+.os-workspace-layer .agent-hero-track span{
+  border-radius:3px;
+  background:#e1e1e6;
+}
+.os-workspace-layer .agent-hero-track span.is-done{background:#7773bd}
+.os-workspace-layer .agent-hero-track span.is-live{
+  background:#5f57d9;
+  box-shadow:0 0 10px rgba(95,87,217,.24);
+}
+.os-workspace-layer .agent-hero-labels{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:4px;
+  margin-top:7px;
+  color:#a0a1a8;
+  font-size:7px;
+}
+.os-workspace-layer .agent-hero-labels span:nth-child(2),
+.os-workspace-layer .agent-hero-labels span:nth-child(3){
+  color:#74757d;
+}
+
+/* Current operation becomes a compact system status row. */
+.os-workspace-layer .agent-current{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0 0 15px;
+  padding:11px 12px;
+  border:1px solid rgba(20,20,24,.065);
+  border-radius:11px;
+  background:#fff;
+}
+.os-workspace-layer .agent-current .activity-dot{
+  width:7px;
+  height:7px;
+  flex:0 0 auto;
+  border-radius:50%;
+  background:#aeb0b7;
+}
+.os-workspace-layer .agent-current .activity-dot.working{
+  background:#5f57d9;
+  box-shadow:0 0 0 4px rgba(95,87,217,.09);
+}
+.os-workspace-layer .agent-current strong{
+  display:block;
+  color:#383940;
+  font-size:10px;
+}
+.os-workspace-layer .agent-current p{
+  margin:2px 0 0;
+  color:#8c8d95;
+  font-size:9px;
+  line-height:1.4;
+}
+
+/* Pipeline is a real progress control, not five cards. */
+.os-workspace-layer .agent-pipeline{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:3px;
+  padding:0 0 15px;
+  border-bottom:1px solid rgba(20,20,24,.065);
+}
+.os-workspace-layer .pipeline-step{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+  min-height:34px;
+  padding:0 3px;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+}
+.os-workspace-layer .pipeline-step b{display:none}
+.os-workspace-layer .pipeline-step i{
+  display:grid;
+  place-items:center;
+  width:18px;
+  height:18px;
+  margin-right:5px;
+  border-radius:50%;
+  background:#ededf0;
+  color:#898a92;
+  font-style:normal;
+  font-size:8px;
+  font-weight:700;
+}
+.os-workspace-layer .pipeline-step span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#96979f;
+  font-size:8px;
+  font-weight:650;
+}
+.os-workspace-layer .pipeline-step.active{
+  background:#f3f2ff;
+  border-color:#e4e1ff;
+}
+.os-workspace-layer .pipeline-step.active i{
+  background:#5f57d9;
+  color:#fff;
+}
+.os-workspace-layer .pipeline-step.active span{color:#5b54bb}
+.os-workspace-layer .pipeline-step.done i{
+  background:#7773bd;
+  color:#fff;
+}
+.os-workspace-layer .pipeline-step.done span{color:#6e6f77}
+
+/* Problems and results share the same semantic card language. */
+.os-workspace-layer .agent-problems{
+  display:grid;
+  gap:5px;
+  margin:13px 0 0;
+}
+.os-workspace-layer .agent-problems > div{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  padding:9px 10px;
+  border:1px solid #f0d9d9;
+  border-radius:9px;
+  background:#fff7f7;
+  color:#8f4b4b;
+  font-size:9px;
+  line-height:1.45;
+}
+.os-workspace-layer .agent-problems strong{
+  display:grid;
+  place-items:center;
+  width:16px;
+  height:16px;
+  flex:0 0 auto;
+  border-radius:50%;
+  background:#f0d3d3;
+  color:#a04e4e;
+  font-size:9px;
+}
+.os-workspace-layer .agent-result-card,
+.os-workspace-layer .agent-plan-card{
+  margin-top:14px;
+  padding:15px;
+  border:1px solid rgba(20,20,24,.07);
+  border-radius:13px;
+  background:#fff;
+  box-shadow:none;
+}
+.os-workspace-layer .agent-result-head{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.os-workspace-layer .agent-result-head strong{
+  font-size:12px;
+  letter-spacing:-.015em;
+}
+.os-workspace-layer .agent-result-meta{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  margin:14px 0;
+  border:1px solid rgba(20,20,24,.055);
+  border-radius:9px;
+  overflow:hidden;
+  background:#ededf0;
+}
+.os-workspace-layer .agent-result-meta > span{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  padding:9px 7px;
+  background:#fafafd;
+}
+.os-workspace-layer .agent-result-meta b{font-size:12px;color:#303139}
+.os-workspace-layer .agent-result-meta small{font-size:7px;color:#999aa2}
+.os-workspace-layer .agent-result-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.os-workspace-layer .agent-result-actions button{
+  min-height:30px;
+  padding:0 10px;
+  border:1px solid rgba(20,20,24,.075);
+  border-radius:8px;
+  background:#f8f8fa;
+  color:#65666e;
+  font-size:9px;
+  font-weight:650;
+  cursor:pointer;
+}
+.os-workspace-layer .agent-result-actions .agent-result-primary{
+  border-color:#5f57d9;
+  background:#5f57d9;
+  color:#fff;
+}
+.os-workspace-layer .agent-result-error{
+  border-color:#efd9d9;
+  background:#fffafa;
+}
+.os-workspace-layer .agent-result-error .agent-result-primary{
+  border-color:#a24d4d;
+  background:#a24d4d;
+}
+
+/* Product plan is information-dense, so keep it compact. */
+.os-workspace-layer .agent-timeline-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:9px;
+}
+.os-workspace-layer .agent-timeline-title strong{
+  font-size:10px;
+  color:#3e3f46;
+}
+.os-workspace-layer .agent-timeline-title span{
+  color:#a0a1a8;
+  font-size:8px;
+}
+.os-workspace-layer .agent-plan-goal{
+  margin:0 0 12px;
+  color:#707179;
+  font-size:9px;
+  line-height:1.5;
+}
+.os-workspace-layer .agent-plan-section{
+  display:grid;
+  grid-template-columns:92px minmax(0,1fr);
+  gap:10px;
+  padding:8px 0;
+  border-top:1px solid rgba(20,20,24,.05);
+}
+.os-workspace-layer .agent-plan-section strong{
+  color:#8b8c94;
+  font-size:8px;
+}
+.os-workspace-layer .agent-plan-section span{
+  color:#5f6068;
+  font-size:8px;
+  line-height:1.45;
+}
+
+/* Timeline reads like an event stream. */
+.os-workspace-layer .agent-timeline{
+  margin-top:18px;
+  padding-top:15px;
+  border-top:1px solid rgba(20,20,24,.065);
+}
+.os-workspace-layer .agent-event{
+  display:grid;
+  grid-template-columns:20px minmax(0,1fr) auto;
+  gap:8px;
+  align-items:start;
+  padding:9px 0;
+  border-bottom:1px solid rgba(20,20,24,.045);
+}
+.os-workspace-layer .agent-event-marker{
+  display:grid;
+  place-items:center;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#f0f0f3;
+  color:#8c8d95;
+  font-size:8px;
+  font-weight:700;
+}
+.os-workspace-layer .agent-event-tool-success .agent-event-marker,
+.os-workspace-layer .agent-event-completed .agent-event-marker{
+  background:#eeedf9;
+  color:#5f57d9;
+}
+.os-workspace-layer .agent-event-tool-error .agent-event-marker,
+.os-workspace-layer .agent-event-failed .agent-event-marker{
+  background:#faeaea;
+  color:#a24d4d;
+}
+.os-workspace-layer .agent-event-copy strong{
+  display:block;
+  color:#5b5c64;
+  font-size:8px;
+  font-weight:650;
+}
+.os-workspace-layer .agent-event-copy p{
+  margin:2px 0 0;
+  color:#92939a;
+  font-size:8px;
+  line-height:1.45;
+}
+.os-workspace-layer .agent-event time{
+  padding-top:2px;
+  color:#aaaab1;
+  font-size:7px;
+  white-space:nowrap;
+}
+.os-workspace-layer .agent-empty{
+  padding:18px 0;
+  color:#a0a1a8;
+  font-size:9px;
+  text-align:center;
+}
+@media(max-width:700px){
+  .os-workspace-layer .agent-panel{padding:0 14px 24px}
+  .os-workspace-layer .agent-panel-header{margin:0 -14px;padding:0 14px}
+  .os-workspace-layer .agent-hero-mockup{margin-top:14px}
+  .os-workspace-layer .agent-pipeline{grid-template-columns:repeat(5,minmax(48px,1fr));overflow-x:auto}
+  .os-workspace-layer .pipeline-step{justify-content:flex-start}
+  .os-workspace-layer .agent-result-meta{grid-template-columns:repeat(2,1fr)}
+  .os-workspace-layer .agent-event{grid-template-columns:20px minmax(0,1fr)}
+  .os-workspace-layer .agent-event time{display:none}
+}
+@media(max-width:420px){
+  .os-workspace-layer .agent-hero-mockup > strong{font-size:18px}
+  .os-workspace-layer .agent-pipeline{gap:2px}
+  .os-workspace-layer .pipeline-step span{font-size:7px}
+  .os-workspace-layer .agent-plan-section{grid-template-columns:78px minmax(0,1fr)}
+}
