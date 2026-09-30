@@ -37,6 +37,7 @@ class FailingFirstModelProvider implements AIProvider {
   id = "openrouter";
   name = "Failing first model";
   model = "openrouter/free";
+  capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: true, reasoning: false, contextWindow: 32768 };
   calls: string[] = [];
   async generate(_message: string, model?: string): Promise<string> {
     const selected = model ?? "";
