@@ -944,7 +944,7 @@ function App() {
           onClose={() => {
             document.documentElement.classList.remove("nexum-os-maximized");
             setOsActiveWindow("home");
-            setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false }));
+            setProjectWindowMinimizedByProject((items) => { const next = { ...items }; delete next[activeПроектId]; return next; });
             setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId));
             navigate("home");
           }}
