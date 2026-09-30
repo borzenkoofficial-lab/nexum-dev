@@ -49,7 +49,7 @@ test("does not silently fall back from an explicitly selected string provider", 
   const fallback = new StubProvider("fallback", "fallback-model");
   const gateway = new AIGateway([primary, fallback], "primary", { fallbackProviderId: "fallback" });
 
-  await assert.rejects(() => gateway.generate("test", "primary"), /429 rate limit/);
+  await assert.rejects(() => gateway.generate("test", "primary"), (error: any) => error?.code === "PROVIDER_ERROR" && error?.technicalDetails === "429 rate limit");
   assert.equal(primary.calls, 1);
   assert.equal(fallback.calls, 0);
 });
@@ -69,7 +69,7 @@ test("never falls back for authentication failures", async () => {
   const fallback = new StubProvider("fallback", "fallback-model");
   const gateway = new AIGateway([primary, fallback], "primary", { fallbackProviderId: "fallback" });
 
-  await assert.rejects(() => gateway.generate("test"), /401 unauthorized/);
+  await assert.rejects(() => gateway.generate("test"), (error: any) => error?.code === "AUTH_ERROR" && error?.technicalDetails === "401 unauthorized");
   assert.equal(fallback.calls, 0);
 });
 
@@ -81,7 +81,7 @@ test("does not silently fall back from an explicitly selected model", async () =
 
   await assert.rejects(
     () => gateway.generate("test", { model: "primary-model" }),
-    /503 service unavailable/,
+    (error: any) => error?.code === "NETWORK_ERROR" && error?.technicalDetails === "503 service unavailable",
   );
   assert.equal(primary.calls, 1);
   assert.equal(fallback.calls, 0);
