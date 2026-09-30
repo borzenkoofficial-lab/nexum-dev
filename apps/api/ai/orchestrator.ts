@@ -1,14 +1,8 @@
 import type { AIGateway, GatewayGenerateOptions } from "./gateway.js";
+import { AIModelRegistry, type AIModelRequirement } from "./modelRegistry.js";
 
 export type AIOrchestratorRole =
-  | "planner"
-  | "coder"
-  | "reviewer"
-  | "debugger"
-  | "tester"
-  | "finalizer"
-  | "general"
-  | "director";
+  | "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" | "director";
 
 export interface AIOrchestratorRun {
   role: AIOrchestratorRole;
@@ -18,115 +12,77 @@ export interface AIOrchestratorRun {
   fallback: boolean;
 }
 
-const ROLE_MODELS: Record<AIOrchestratorRole, string[]> = {
-  director: [],
-  planner: [
-    "nvidia/nemotron-3-ultra-550b-a55b:free",
-    "nvidia/nemotron-3.5-lightning:free",
-    "qwen/qwen3.8-27b:free",
-    "dots-studio/dots3-note-preview:free",
-  ],
-  coder: [
-    "cohere/north-mini-code:free",
-    "poolside/laguna-s-2.1:free",
-    "poolside/laguna-xs-2.1:free",
-    "qwen/qwen3.8-27b:free",
-  ],
-  reviewer: [
-    "qwen/qwen3.8-27b:free",
-    "dots-studio/dots3-note-preview:free",
-    "nvidia/nemotron-3.5-lightning:free",
-  ],
-  debugger: [
-    "cohere/north-mini-code:free",
-    "poolside/laguna-s-2.1:free",
-    "qwen/qwen3.8-27b:free",
-  ],
-  tester: [
-    "cohere/north-mini-code:free",
-    "qwen/qwen3.8-27b:free",
-  ],
-  finalizer: [
-    "qwen/qwen3.8-27b:free",
-    "nvidia/nemotron-3.5-lightning:free",
-  ],
-  general: [
-    "qwen/qwen3.8-27b:free",
-    "nvidia/nemotron-3.5-lightning:free",
-  ],
+const ROLE_REQUIREMENTS: Record<AIOrchestratorRole, AIModelRequirement> = {
+  director: { text: true },
+  planner: { text: true },
+  coder: { text: true, code: true },
+  reviewer: { text: true, code: true },
+  debugger: { text: true, code: true },
+  tester: { text: true, code: true },
+  finalizer: { text: true },
+  general: { text: true },
 };
 
 export class AIOrchestrator {
-  constructor(private readonly gateway: AIGateway) {}
+  private readonly registry: AIModelRegistry;
 
-  async run(
-    role: AIOrchestratorRole,
-    prompt: string,
-    options?: GatewayGenerateOptions,
-  ): Promise<AIOrchestratorRun> {
-    const requested = options?.model?.trim();
-    const explicitProvider = options?.provider?.trim();
-    const activeProvider = explicitProvider || this.gateway.getDefaultProviderId();
-    // For concrete providers, the configured provider model is authoritative
-    // unless the user explicitly selected another model. Role-specific model
-    // catalogs are only used by OpenRouter, whose purpose here is model routing.
-    const providerDefault = activeProvider !== "openrouter" && activeProvider !== "mock"
-      ? this.gateway.getDefaultModel(activeProvider)
-      : undefined;
-    const candidates = ROLE_MODELS[role];
-    const models = requested
-      ? [requested]
-      : providerDefault
-        ? [providerDefault]
-        : candidates.length
-          ? candidates
-          : ["openrouter/free"];
-    let lastError: unknown;
-
-    // If the caller selected a concrete model, make exactly one request. For the
-    // automatic router, fail over across the role's compatible models instead of
-    // repeatedly asking one rate-limited endpoint. A 429 from one model therefore
-    // does not immediately collapse the whole Builder session.
-    for (const model of models) {
-      try {
-        const generation = await this.gateway.generateWithMetadata(
-          this.decoratePrompt(role, prompt),
-          {
-            ...options,
-            model,
-            maxTokens: Math.min(
-              options?.maxTokens && options.maxTokens > 0 ? options.maxTokens : this.maxTokensFor(role),
-              this.maxTokensFor(role),
-            ),
-          },
-        );
-        return {
-          role,
-          provider: generation.provider,
-          model: generation.model,
-          response: generation.response,
-          fallback: generation.fallback,
-        };
-      } catch (error) {
-        lastError = error;
-        const message = error instanceof Error ? error.message : String(error);
-        console.warn(`[agent] ${role} model ${model} failed: ${message}`);
-        if (requested || !this.shouldTryNextModel(message)) break;
-      }
-    }
-
-    throw lastError instanceof Error ? lastError : new Error(`No AI model available for role ${role}`);
+  constructor(private readonly gateway: AIGateway) {
+    this.registry = new AIModelRegistry(gateway);
   }
 
-  private shouldTryNextModel(message: string): boolean {
-    return /(?:429|rate.?limit|too many requests|temporar|timeout|timed out|5\d{2})/i.test(message);
+  async run(role: AIOrchestratorRole, prompt: string, options?: GatewayGenerateOptions): Promise<AIOrchestratorRun> {
+    const requested = options?.model?.trim();
+    const explicitProvider = options?.provider?.trim();
+    const selected = await this.registry.select(ROLE_REQUIREMENTS[role], {
+      ...(explicitProvider ? { provider: explicitProvider } : {}),
+      ...(requested ? { model: requested } : {}),
+    });
+
+    if (requested && !selected) {
+      throw new Error(`Selected model does not satisfy the ${role} capability contract: ${requested}`);
+    }
+    if (!selected) {
+      throw new Error(`No configured AI model satisfies the ${role} capability contract`);
+    }
+
+    const maxTokens = Math.min(
+      options?.maxTokens && options.maxTokens > 0 ? options.maxTokens : this.maxTokensFor(role),
+      this.maxTokensFor(role),
+    );
+
+    const generation = await this.gateway.generateWithMetadata(this.decoratePrompt(role, prompt), {
+      ...options,
+      provider: selected.provider,
+      model: selected.model,
+      maxTokens,
+    });
+
+    return {
+      role,
+      provider: generation.provider,
+      model: generation.model,
+      response: generation.response,
+      fallback: generation.fallback,
+    };
+  }
+
+  modelFor(_role: AIOrchestratorRole): string {
+    return this.gateway.getDefaultModel();
+  }
+
+  async getRoleModel(role: AIOrchestratorRole, provider?: string): Promise<string | null> {
+    const selected = await this.registry.select(ROLE_REQUIREMENTS[role], provider ? { provider } : {});
+    return selected?.model ?? null;
+  }
+
+  getRoleRequirements(): Record<AIOrchestratorRole, AIModelRequirement> {
+    return Object.fromEntries(Object.entries(ROLE_REQUIREMENTS).map(([role, requirement]) => [role, { ...requirement }])) as Record<AIOrchestratorRole, AIModelRequirement>;
   }
 
   private maxTokensFor(role: AIOrchestratorRole): number {
     switch (role) {
       case "director":
       case "planner":
-        return 1_200;
       case "reviewer":
       case "tester":
         return 1_200;
@@ -134,21 +90,9 @@ export class AIOrchestrator {
         return 3_000;
       case "coder":
         return 5_000;
-      case "finalizer":
-      case "general":
       default:
         return 900;
     }
-  }
-
-  modelFor(role: AIOrchestratorRole): string {
-    return ROLE_MODELS[role].at(0) ?? "openrouter/free";
-  }
-
-  getRoleModels(): Record<AIOrchestratorRole, string[]> {
-    return Object.fromEntries(
-      Object.entries(ROLE_MODELS).map(([role, models]) => [role, [...models]]),
-    ) as Record<AIOrchestratorRole, string[]>;
   }
 
   private decoratePrompt(role: AIOrchestratorRole, prompt: string): string {
@@ -162,11 +106,6 @@ export class AIOrchestrator {
       director: "You are the NEXUM director. Decompose the task, assign roles, control budget and escalation, and do not write project code.",
       general: "You are a general NEXUM.DEV assistant. Be concise and technically precise.",
     };
-    return [
-      `NEXUM.DEV AI role: ${role}`,
-      roleInstruction[role],
-      "Do not expose internal chain-of-thought. Return only the requested result.",
-      prompt,
-    ].join("\n");
+    return [`NEXUM.DEV AI role: ${role}`, roleInstruction[role], "Do not expose internal chain-of-thought. Return only the requested result.", prompt].join("\n");
   }
 }
