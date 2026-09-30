@@ -42,6 +42,7 @@ function App() {
   const [aiStatus, setAIStatus] = useState<AIProviderStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"preview" | "files" | "agent">("preview");
+  const [mobileToolOpen, setMobileToolOpen] = useState(false);
   const [workspaceMode, setWorkspaceMode] = useState<"preview" | "agent" | "files" | "code">("preview");
   const [projectWindowModes, setProjectWindowModes] = useState<Record<string, "preview" | "agent" | "files" | "code">>(() => {
     try {
@@ -350,6 +351,7 @@ function App() {
       const mode = projectWindowModes[projectId] ?? (workspaceTab === "files" ? "files" : workspaceTab);
       setCodeMode(mode === "code");
       setRightTab(mode === "code" ? "files" : mode);
+      setMobileToolOpen(mode !== "code");
       setWorkspaceMode(mode);
       if (!projectWindowModes[projectId]) setProjectWindowModes((items) => ({ ...items, [projectId]: mode }));
       setViewState("project");
@@ -363,7 +365,7 @@ function App() {
     setWorkspaceMode(mode);
     setProjectWindowModes((items) => ({ ...items, [activeПроектId]: mode }));
     if (mode !== "code") setCodeMode(false);
-    if (mode === "preview" || mode === "agent" || mode === "files") setRightTab(mode);
+    if (mode === "preview" || mode === "agent" || mode === "files") { setRightTab(mode); setMobileToolOpen(true); }
   }
 
   async function selectПроект(projectId: string): Promise<boolean> {
@@ -401,6 +403,7 @@ function App() {
       if (!selected) throw new Error("Проект создан, но рабочее пространство не удалось открыть.");
       setViewState("project");
       setRightTab("agent");
+      setMobileToolOpen(true);
       setWorkspaceMode("agent");
       setCodeMode(false);
       setProjectWindowMinimizedByProject((items) => ({ ...items, [responseData.project.id]: false }));
@@ -906,7 +909,7 @@ function App() {
           previewOnline={previewOnline}
           agentStage={agentStage}
           activeTab={rightTab}
-            onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); setProjectMode(tab); }}
+            onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); setMobileToolOpen(true); setProjectMode(tab); }}
           onClose={() => {
             setProjectWindowMinimizedByProject((items) => { const next = { ...items }; delete next[activeПроектId]; return next; });
             setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId));
@@ -929,16 +932,16 @@ function App() {
             setNotice("Предпросмотр открыт в новой вкладке");
           }}
           onCode={() => { setCodeMode(true); setProjectMode("code"); }}
-          onAgent={() => { setCodeMode(false); setRightTab("agent"); setProjectMode("agent"); }}
-          onFiles={() => { setCodeMode(false); setRightTab("files"); setProjectMode("files"); }}
+          onAgent={() => { setCodeMode(false); setRightTab("agent"); setMobileToolOpen(true); setProjectMode("agent"); }}
+          onFiles={() => { setCodeMode(false); setRightTab("files"); setMobileToolOpen(true); setProjectMode("files"); }}
         >
         <div className={`os-workspace-stage ${codeMode ? "is-code" : "is-builder"}`}>
           <div className="os-workspace-layer" aria-hidden={codeMode}>
-            <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}`}>
+            <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}${mobileToolOpen ? " mobile-tool-open" : " mobile-chat-open"}`}>
               <div className="main-column">
-                <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => { setRightTab("agent"); setWorkspaceMode("agent"); }} onProviderChange={selectAIProvider} onModelChange={setAIModel} onOpenConnectors={() => setConnectorModal("Интеграция проекта")} />
+                <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => { setRightTab("agent"); setMobileToolOpen(true); setWorkspaceMode("agent"); }} onProviderChange={selectAIProvider} onModelChange={setAIModel} onOpenConnectors={() => setConnectorModal("Интеграция проекта")} />
               </div>
-              <RightPanel tab={rightTab} onTabChange={(tab) => { setRightTab(tab); setWorkspaceMode(tab); }} onOpenChat={() => setWorkspaceMode("preview")} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onRepair={repairLastTask} />
+              <RightPanel tab={rightTab} onTabChange={(tab) => { setRightTab(tab); setMobileToolOpen(true); setWorkspaceMode(tab); }} onOpenChat={() => setMobileToolOpen(false)} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onRepair={repairLastTask} />
             </div>
           </div>
           <div className="os-workspace-layer os-workspace-code" aria-hidden={!codeMode}>
