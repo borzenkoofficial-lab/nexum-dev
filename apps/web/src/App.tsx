@@ -248,14 +248,6 @@ function App() {
   }, [activeПроектId]);
 
   useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("nexum:connectors") || "[]");
-      if (Array.isArray(saved)) setConnectedConnectors(saved.filter((item): item is string => typeof item === "string"));
-    } catch {}
-  }, []);
-  useEffect(() => { try { localStorage.setItem("nexum:connectors", JSON.stringify(connectedConnectors)); } catch {} }, [connectedConnectors]);
-
-  useEffect(() => {
     if (!activeПроектId) return;
     fetch(`/api/projects/${encodeURIComponent(activeПроектId)}/preview/status`).then(async (response) => {
       if (!response.ok) return;
@@ -276,8 +268,14 @@ function App() {
       const fallback = nextПроектs.find((project) => project.id === "nexum" && project.status === "active")
         ?? nextПроектs.find((project) => project.status === "active");
       setПроектs(nextПроектs);
-      setActiveПроектId(preferred?.id ?? fallback?.id ?? "nexum");
+      const nextActiveId = preferred?.id ?? fallback?.id ?? "nexum";
+      setActiveПроектId(nextActiveId);
       setApiError("");
+      const pathSegments = window.location.pathname.split("/").filter(Boolean);
+      const requestedProjectId = pathSegments[0] === "projects" && pathSegments[1] ? decodeURIComponent(pathSegments[1]) : null;
+      if (requestedProjectId && !preferred && nextActiveId && requestedProjectId !== nextActiveId) {
+        window.history.replaceState({ view: "project", projectId: nextActiveId }, "", "/projects/" + encodeURIComponent(nextActiveId));
+      }
     } catch (error) {
       console.error("[Nexum] API projects request failed:", error);
       setApiError(error instanceof Error ? error.message : "Не удалось связаться с API");
