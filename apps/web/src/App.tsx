@@ -442,7 +442,7 @@ function App() {
       setRightTab("agent");
       setWorkspaceMode("agent");
       setCodeMode(false);
-      setProjectWindowMinimized(false);
+      setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false }));
       navigate("project", responseData.project.id);
       const buildBrief = [
         `Создай новый проект типа «${responseData.project.type ?? data.type}».`,
@@ -765,9 +765,9 @@ function App() {
         running={view === "project" && runningProjectIds.includes(activeПроектId)}
         minimized={projectWindowMinimized}
         onSelectMode={setProjectMode}
-        onMinimize={() => { setProjectWindowMinimized(true); setOsActiveWindow("home"); }}
-        onRestore={() => { setProjectWindowMinimized(false); setOsActiveWindow("project"); setOsFocusTick((value) => value + 1); }}
-        onClose={() => { setProjectWindowMinimized(false); setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId)); setOsActiveWindow("home"); navigate("home"); }}
+        onMinimize={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: true })); setOsActiveWindow("home"); }}
+        onRestore={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false })); setOsActiveWindow("project"); setOsFocusTick((value) => value + 1); }}
+        onClose={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false })); setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId)); setOsActiveWindow("home"); navigate("home"); }}
       />
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
         <TopBar projectName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : view === "diagnostics" ? "Диагностика" : "NEXUM.DEV"} aiStatus={aiStatus} stage={agentStage}  />
@@ -944,14 +944,14 @@ function App() {
           onClose={() => {
             document.documentElement.classList.remove("nexum-os-maximized");
             setOsActiveWindow("home");
-            setProjectWindowMinimized(false);
+            setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false }));
             setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId));
             navigate("home");
           }}
           minimized={projectWindowMinimized}
-          onMinimize={() => { setProjectWindowMinimized(true); setOsActiveWindow("home"); }}
+          onMinimize={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: true })); setOsActiveWindow("home"); }}
           onRestore={() => {
-            setProjectWindowMinimized(false);
+            setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false }));
             setOsActiveWindow("project");
             setOsFocusTick((value) => value + 1);
             setRunningProjectIds((items) => items.includes(activeПроектId) ? items : [...items, activeПроектId]);
