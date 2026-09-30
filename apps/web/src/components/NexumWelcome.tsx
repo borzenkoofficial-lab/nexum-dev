@@ -69,7 +69,7 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
   const sceneClass = `nexum-welcome-scene scene-${intro}`;
   return <main className={"nexum-welcome " + sceneClass}>
     <div className="nexum-welcome-orb orb-a"/><div className="nexum-welcome-orb orb-b"/><div className="nexum-welcome-orb orb-c"/>
-    <div className="nexum-liquid-rings" aria-hidden="true"><span/><span/><span/></div><div className="nexum-welcome-particles" aria-hidden="true">{Array.from({ length: 22 }, (_, i) => <i key={i} style={{ "--i": i } as React.CSSProperties}/>)}</div><div className="nexum-welcome-grain"/>
+    <div className="nexum-liquid-rings" aria-hidden="true"><span/><span/><span/></div><div className="nexum-welcome-particles" aria-hidden="true">{Array.from({ length: 22 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties}/>)}</div><div className="nexum-welcome-grain"/>
     <header className="nexum-welcome-nav"><div className="nexum-brand"><span className="nexum-logo-mark small"><span>N</span></span><b>NEXUM</b><em>OS</em></div><span className="nexum-version">NEXUM OS · 1.0</span></header>
     <section className="nexum-welcome-stage">
       <div className="nexum-welcome-copy"><div className="nexum-core-orb"><div className="nexum-core-halo"/><div className="nexum-core-glass"><span>N</span></div></div><span className="nexum-hello">HELLO</span><h1>{title}</h1><p>A new kind of workspace for building with AI.</p><div className="nexum-system-pills"><span>AI CORE</span><span>AGENT</span><span>PREVIEW</span></div><div className="nexum-scene-meta"><span>FIRST LAUNCH</span><span>● NEXUM CORE ONLINE</span></div></div>
