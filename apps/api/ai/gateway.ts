@@ -1,4 +1,4 @@
-import type { AIProvider, AIProviderStatus } from "./types.js";
+import type { AIProvider, AIProviderStatus, AIModelCapabilities } from "./types.js";
 
 export interface GatewayGenerateOptions {
   provider?: string;
@@ -102,6 +102,12 @@ export class AIGateway {
 
   getDefaultProviderId(): string {
     return this.defaultProviderId;
+  }
+
+  getCapabilities(providerId = this.defaultProviderId, model?: string): AIModelCapabilities {
+    const provider = this.providers.get(providerId);
+    if (!provider) throw new Error(`Unknown provider: ${providerId}`);
+    return provider.getCapabilities ? provider.getCapabilities(model) : provider.capabilities;
   }
 
   getDefaultModel(providerId = this.defaultProviderId): string {
