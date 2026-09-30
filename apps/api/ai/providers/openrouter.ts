@@ -65,8 +65,9 @@ export class OpenRouterProvider implements AIProvider {
     return Boolean(this.runtimeApiKey);
   }
 
-  async generate(message: string, model = this.selectModel(message), options: AIGenerateOptions = {}): Promise<string> {
-    const candidates = this.buildCandidates(model, message);
+  async generate(message: string, model?: string, options: AIGenerateOptions = {}): Promise<string> {
+    const selectedModel = model?.trim() || this.selectModel(message);
+    const candidates = this.buildCandidates(selectedModel, message, Boolean(model));
     let lastError: unknown;
 
     for (const candidate of candidates) {
@@ -109,13 +110,13 @@ export class OpenRouterProvider implements AIProvider {
     return this.models.find((model) => model.includes("qwen")) ?? this.models[0]!;
   }
 
-  private buildCandidates(model: string, message: string): string[] {
+  private buildCandidates(model: string, message: string, explicit = false): string[] {
     const selected = this.validateModel(model);
 
     // An explicit model is a strict contract. Automatic model routing is only
     // allowed when the provider itself was asked to route (openrouter/free) or
     // when no concrete model was supplied by the caller.
-    if (selected !== this.model || selected === "openrouter/free") {
+    if (explicit || selected === "openrouter/free") {
       return [selected];
     }
 
