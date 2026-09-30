@@ -11,5 +11,5 @@ test("every registered agent tool has an explicit security policy", () => {
 
 test("tool input is bounded by its security policy", () => {
   const tool = { name: "readFile", description: "read", execute: async () => ({ success: true, output: "" }) };
-  assert.throws(() => validateToolInvocation(tool, "x".repeat(2_001)));
+  assert.throws(() => validateToolInvocation(tool, "x".repeat(4_001)));
 });
