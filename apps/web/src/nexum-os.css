@@ -2784,3 +2784,41 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 @media(prefers-reduced-motion:reduce){
   .nexum-os-switcher-card:hover,.nexum-os-project-chip:hover,.os-window-actions button.primary:hover{transform:none}
 }
+
+
+/* Application Manager — vector icon language */
+.nexum-os-window-icon{
+  display:grid!important;
+  place-items:center!important;
+  flex:0 0 23px;
+  width:23px!important;
+  height:23px!important;
+  border-radius:7px!important;
+  border:1px solid rgba(255,255,255,.82)!important;
+  background:rgba(248,249,252,.76)!important;
+  color:#5b50d7!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 4px 10px rgba(20,22,28,.04)!important;
+}
+.nexum-os-window-icon svg{width:13px;height:13px;display:block}
+.nexum-os-window-icon.agent{color:#6658dc;background:rgba(239,237,255,.78)!important}
+.nexum-os-window-icon.preview{color:#087e9b;background:rgba(218,244,248,.78)!important}
+.nexum-os-window-icon.files{color:#16805e;background:rgba(232,249,241,.78)!important}
+.nexum-os-window-icon.code{color:#c47b08;background:rgba(255,242,214,.78)!important}
+.nexum-os-switcher-icon{
+  display:grid!important;
+  place-items:center!important;
+}
+.nexum-os-switcher-icon svg{width:17px;height:17px}
+.nexum-os-switcher-icon.agent{color:#6658dc!important}
+.nexum-os-switcher-icon.preview{color:#087e9b!important}
+.nexum-os-switcher-icon.files{color:#16805e!important}
+.nexum-os-switcher-icon.code{color:#c47b08!important}
+.nexum-os-project-chip small{
+  max-width:190px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+@media(max-width:640px){
+  .nexum-os-project-chip small{max-width:150px}
+}
