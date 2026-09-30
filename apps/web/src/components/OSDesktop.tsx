@@ -12,6 +12,7 @@ interface OSDesktopProps {
   onOpenView: (view: "connectors" | "diagnostics" | "settings" | "news") => void;
   osEnabled?: boolean;
   onToggleOS?: () => void;
+  onLaunchWelcome?: () => void;
   runningProjectIds?: string[];
   minimizedProjectIds?: string[];
   onRestoreProject?: (id: string) => void;
@@ -42,7 +43,7 @@ function AppIcon({ name }: { name: string }) {
   return <svg {...common}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>;
 }
 
-export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, runningProjectIds = [], minimizedProjectIds = [], onRestoreProject, osEnabled = true, onToggleOS }: OSDesktopProps) {
+export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, runningProjectIds = [], minimizedProjectIds = [], onRestoreProject, osEnabled = true, onToggleOS, onLaunchWelcome }: OSDesktopProps) {
   const active = projects.filter((project) => project.status === "active");
   const [now, setNow] = useState(() => new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -127,6 +128,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
           </button>
           <button type="button" className="os-control-center" onClick={() => setControlCenterOpen((v) => !v)} aria-expanded={controlCenterOpen}>•••</button>
           <button type="button" className="os-search-button" onClick={() => setLauncherOpen(true)} aria-label="Open NEXUM Search">⌕</button>
+          {onLaunchWelcome && <button type="button" className="os-welcome-button" onClick={(event) => { event.stopPropagation(); onLaunchWelcome(); }} aria-label="Запустить приветствие NEXUM OS" title="Запустить приветствие NEXUM OS"><span>✦</span><small>Hello</small></button>}
           {onToggleOS && <button type="button" className={"os-power-button" + (osEnabled ? " on" : "")} onClick={(event) => { event.stopPropagation(); onToggleOS(); }} aria-label={osEnabled ? "Выключить NEXUM OS" : "Включить NEXUM OS"} title={osEnabled ? "Выключить NEXUM OS" : "Включить NEXUM OS"}><span>⏻</span></button>}
         </div>
         {controlCenterOpen && (
