@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";\nimport type { CSSProperties, MouseEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import type { Project } from "./types";
 import "../nexum-desktop-v3.css";
 import "../nexum-desktop-v4.css";
@@ -44,6 +45,8 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
   const [now, setNow] = useState(() => new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [controlCenterOpen, setControlCenterOpen] = useState(false);
+  const [desktopMenu, setDesktopMenu] = useState<{ x: number; y: number } | null>(null);
+  const [launcherOpen, setLauncherOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -79,6 +82,29 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
   const dateLabel = now.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
   const capitalDate = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setDesktopMenu(null);
+        setLauncherOpen(false);
+        setCalendarOpen(false);
+        setControlCenterOpen(false);
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setLauncherOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const handleDesktopContextMenu = (event: MouseEvent<HTMLElement>) => {
+    if ((event.target as HTMLElement).closest("button")) return;
+    event.preventDefault();
+    setDesktopMenu({ x: event.clientX, y: event.clientY });
+  };
+
   const handlePointerMove = (event: MouseEvent<HTMLElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
@@ -88,7 +114,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
   };
 
   return (
-    <section className="nexum-os-desktop" aria-label="NEXUM OS Desktop" onMouseMove={handlePointerMove}>
+    <section className="nexum-os-desktop" aria-label="NEXUM OS Desktop" onMouseMove={handlePointerMove} onContextMenu={handleDesktopContextMenu} onClick={() => desktopMenu && setDesktopMenu(null)}>
       <div className="os-menubar">
         <div className="os-brand"><span>N</span><strong>NEXUM OS</strong></div>
         <div className="os-menu-center"><span>Workspace</span><span>Window</span><span>Help</span></div>
@@ -98,6 +124,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
             <b>{time}</b><small>{capitalDate}</small>
           </button>
           <button type="button" className="os-control-center" onClick={() => setControlCenterOpen((v) => !v)} aria-expanded={controlCenterOpen}>•••</button>
+          <button type="button" className="os-search-button" onClick={() => setLauncherOpen(true)} aria-label="Open NEXUM Search">⌕</button>
         </div>
         {controlCenterOpen && (
           <div className="os-control-popover" role="dialog" aria-label="Control Center">
@@ -119,6 +146,51 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
           </div>
         )}
       </div>
+
+      {desktopMenu && (
+        <div
+          className="os-desktop-context"
+          role="menu"
+          style={{ left: desktopMenu.x, top: desktopMenu.y }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button type="button" onClick={() => { setDesktopMenu(null); onNewProject(); }}>＋ New Project</button>
+          <button type="button" onClick={() => { setDesktopMenu(null); setLauncherOpen(true); }}>⌕ Search Workspace</button>
+          <button type="button" onClick={() => setDesktopMenu(null)}>↻ Refresh Desktop</button>
+          <div className="os-context-divider" />
+          <button type="button" onClick={() => { setDesktopMenu(null); setCalendarOpen(true); }}>◷ Calendar</button>
+          <button type="button" onClick={() => { setDesktopMenu(null); setControlCenterOpen(true); }}>◉ Control Center</button>
+        </div>
+      )}
+
+      {launcherOpen && (
+        <div className="os-launcher-layer" role="dialog" aria-label="NEXUM Workspace Search" onClick={() => setLauncherOpen(false)}>
+          <div className="os-launcher" onClick={(event) => event.stopPropagation()}>
+            <div className="os-launcher-search">
+              <span>⌕</span>
+              <input autoFocus placeholder="Search projects, apps and workspace…" aria-label="Search workspace" />
+              <kbd>ESC</kbd>
+            </div>
+            <div className="os-launcher-section">QUICK ACTIONS</div>
+            <div className="os-launcher-grid">
+              <button type="button" onClick={() => { setLauncherOpen(false); onNewProject(); }}><span>＋</span><b>New Project</b><small>Create workspace</small></button>
+              <button type="button" onClick={() => { setLauncherOpen(false); launch("agent"); }}><span>✦</span><b>AI Agent</b><small>Open agent</small></button>
+              <button type="button" onClick={() => { setLauncherOpen(false); launch("code"); }}><span>⌘</span><b>Code</b><small>Open editor</small></button>
+              <button type="button" onClick={() => { setLauncherOpen(false); launch("preview"); }}><span>◫</span><b>Preview</b><small>Open live preview</small></button>
+            </div>
+            <div className="os-launcher-section">RECENT PROJECTS</div>
+            <div className="os-launcher-projects">
+              {active.slice(0, 5).map((project) => (
+                <button key={project.id} type="button" onClick={() => { setLauncherOpen(false); onOpenProject(project.id); }}>
+                  <span className="os-project-mark">{project.name.slice(0, 1)}</span>
+                  <span><b>{project.name}</b><small>{project.type ?? "Project"}</small></span>
+                  <i>↵</i>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="os-desktop-content">
         <div className="os-desktop-topline">
