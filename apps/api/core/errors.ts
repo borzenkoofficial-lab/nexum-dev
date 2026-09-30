@@ -15,11 +15,25 @@ export class NexumError extends Error {
   readonly retryable: boolean;
   readonly status?: number;
   readonly technicalDetails?: string;
+  readonly userSafeMessage: string;
+  readonly requestId?: string;
+  readonly projectId?: string;
+  readonly agentRunId?: string;
+  readonly stage?: string;
 
   constructor(
     code: NexumErrorCode,
     message: string,
-    options: { retryable?: boolean; status?: number; technicalDetails?: string } = {},
+    options: {
+      retryable?: boolean;
+      status?: number;
+      technicalDetails?: string;
+      userSafeMessage?: string;
+      requestId?: string;
+      projectId?: string;
+      agentRunId?: string;
+      stage?: string;
+    } = {},
   ) {
     super(message);
     this.name = "NexumError";
@@ -27,7 +41,18 @@ export class NexumError extends Error {
     this.retryable = options.retryable ?? false;
     this.status = options.status;
     this.technicalDetails = options.technicalDetails;
+    this.userSafeMessage = options.userSafeMessage ?? message;
+    this.requestId = options.requestId;
+    this.projectId = options.projectId;
+    this.agentRunId = options.agentRunId;
+    this.stage = options.stage;
   }
+}
+
+export function toNexumError(error: unknown, fallbackCode: NexumErrorCode = "INTERNAL_ERROR", fallbackMessage = "Внутренняя ошибка NEXUM."): NexumError {
+  if (error instanceof NexumError) return error;
+  const technicalDetails = error instanceof Error ? error.message : String(error);
+  return new NexumError(fallbackCode, fallbackMessage, { technicalDetails });
 }
 
 export function classifyAIError(error: unknown): NexumError {

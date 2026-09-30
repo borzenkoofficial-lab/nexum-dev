@@ -66,6 +66,15 @@ export interface AgentStep {
   success: boolean;
 }
 
+export interface AgentErrorInfo {
+  code: "USER_ERROR" | "MODEL_ERROR" | "PROVIDER_ERROR" | "TOOL_ERROR" | "BUILD_ERROR" | "RUNTIME_ERROR" | "NETWORK_ERROR" | "AUTH_ERROR" | "CONFIG_ERROR" | "INTERNAL_ERROR";
+  message: string;
+  retryable: boolean;
+  category?: string;
+  summary?: string;
+  recoveryStrategy?: string;
+}
+
 export interface AgentLoopResult {
   phase: AgentPhase;
   success: boolean;
@@ -74,4 +83,5 @@ export interface AgentLoopResult {
   steps: AgentStep[];
   finalResponse?: string;
   error?: string;
+  errorInfo?: AgentErrorInfo;
 }

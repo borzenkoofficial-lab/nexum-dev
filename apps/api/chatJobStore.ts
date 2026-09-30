@@ -15,6 +15,14 @@ export interface ChatJob {
   currentMessage?: string;
   commandOutput?: { command: string; stdout: string; stderr: string; exitCode: number | null };
   error?: string;
+  errorCode?: string;
+  errorInfo?: {
+    code: string;
+    message: string;
+    retryable: boolean;
+    category?: string;
+    recoveryStrategy?: string;
+  };
   stage?: ChatJobStage;
   attachments?: string[];
   productPlan?: unknown;

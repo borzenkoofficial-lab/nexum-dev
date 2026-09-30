@@ -18,6 +18,7 @@ import type {
   AgentStep,
   AgentToolResult,
   AgentPhase,
+  type AgentErrorInfo,
 } from "./types.js";
 
 const DEFAULT_MAX_ITERATIONS = 12;
@@ -875,9 +876,24 @@ export class AgentLoop {
     const error = lastFailure
       ? `Tool ${lastFailure.tool} failed after recovery attempts: ${lastFailure.result.output}`
       : `Agent stopped: maximum iterations reached (${this.maxIterations})`;
+    const diagnosis = diagnoseError(lastFailure?.result.output ?? error);
+    const code: AgentErrorInfo["code"] =
+      diagnosis.category === "typescript" || diagnosis.category === "syntax" || diagnosis.category === "build" ? "BUILD_ERROR" :
+      diagnosis.category === "runtime" ? "RUNTIME_ERROR" :
+      diagnosis.category === "dependency" ? "CONFIG_ERROR" :
+      diagnosis.category === "path" || diagnosis.category === "tool" ? "TOOL_ERROR" :
+      "INTERNAL_ERROR";
+    const errorInfo: AgentErrorInfo = {
+      code,
+      message: diagnosis.summary,
+      retryable: diagnosis.priority >= 3,
+      category: diagnosis.category,
+      summary: diagnosis.summary,
+      recoveryStrategy: diagnosis.strategy,
+    };
     this.log(this.maxIterations, "loop", "error");
-    emit({ iteration: this.maxIterations, type: "failed", message: error });
-    return { phase, success: false, iterations: this.maxIterations, steps, productPlan: productPlan ?? undefined, error };
+    emit({ iteration: this.maxIterations, type: "failed", message: diagnosis.summary });
+    return { phase, success: false, iterations: this.maxIterations, steps, productPlan: productPlan ?? undefined, error, errorInfo };
   }
 
   private async finalResponse(
