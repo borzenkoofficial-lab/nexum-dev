@@ -393,6 +393,12 @@ body{margin:0;overflow-x:hidden}
 /* Mobile production correction: the builder remains navigable.
    The chat is the primary surface; the active tool panel is an overlay. */
 @media(max-width:900px){
+  .app-project .workspace.mobile-chat-open > .right-panel{
+    display:none!important;
+  }
+  .app-project .workspace.mobile-tool-open > .right-panel{
+    display:flex!important;
+  }
   .app-project .workspace > .right-panel{
     display:flex!important;
     position:absolute!important;
