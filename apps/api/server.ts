@@ -25,7 +25,7 @@ import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
 import { pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
-import { cleanupChatJobs, createChatJob, getChatJob, listChatJobs, updateChatJob, type ChatJob } from "./chatJobStore.js";
+import { acquireProjectLock, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
 
 dotenv.config();
 
@@ -142,6 +142,18 @@ async function runChatJob(
 
   try {
     const project = await getProjectManager(userId).getActiveProject(projectId);
+    const lockAcquired = await acquireProjectLock(project.id, userId, jobId);
+    if (!lockAcquired) {
+      job.status = "failed";
+      job.stage = "error";
+      job.error = "Project is already being modified by another Agent Run.";
+      await persistChatJob(job);
+      void agentHistory.record({ type: "job-rejected-lock", jobId, projectId: project.id, status: "failed", message: job.error });
+      return;
+    }
+    const heartbeat = setInterval(() => {
+      void heartbeatProjectLock(project.id, jobId).catch((error) => console.error("[Nexum] project lock heartbeat failed", error));
+    }, 60_000);
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     const checkpoint = await checkpointManager.create(project.id, project.path, `before agent job ${jobId}`);
@@ -223,14 +235,14 @@ async function runChatJob(
         }
         if (event.type === "tool-error" || event.type === "failed") job.stage = "error";
         job.updatedAt = Date.now();
-        void persistChatJob(job).catch((error) => console.error("[Nexum] job event persistence failed", error));
-        void agentHistory.record({ type: "agent-event", jobId, projectId, provider, model, iteration: event.iteration, tool: event.tool, status: event.type, message: event.message });
         if (event.type === "tool-error" || event.type === "failed") {
           job.problems = [
             ...(job.problems ?? []),
             event.tool ? { message: event.message, source: event.tool } : { message: event.message },
           ];
         }
+        void persistChatJob(job).catch((error) => console.error("[Nexum] job event persistence failed", error));
+        void agentHistory.record({ type: "agent-event", jobId, projectId, provider, model, iteration: event.iteration, tool: event.tool, status: event.type, message: event.message });
       },
       (plan) => {
         job.productPlan = plan;
@@ -286,6 +298,15 @@ async function runChatJob(
     await persistChatJob(job).catch((persistenceError) => console.error("[Nexum] failed to persist job exception", persistenceError));
     void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
     console.error("[Nexum] chat job failed", jobId, error);
+  } finally {
+    try {
+      const latest = await getChatJob(jobId, userId);
+      if (projectId && latest) {
+        await releaseProjectLock(projectId, jobId);
+      }
+    } catch (lockError) {
+      console.error("[Nexum] project lock release failed", jobId, lockError);
+    }
   }
 }
 
