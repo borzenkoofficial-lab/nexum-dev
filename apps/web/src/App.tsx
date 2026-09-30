@@ -435,6 +435,7 @@ function App() {
     const task = lastMessage.trim();
     if (!task) {
       setRightTab("preview");
+      setMobileToolOpen(true);
       setWorkspaceMode("preview");
       return;
     }
@@ -564,6 +565,7 @@ function App() {
           setReply(data?.job?.reply ?? "");
           if (data?.job?.reply) setConversation((items) => [...items, { id: `assistant-${Date.now()}`, role: "assistant", content: data.job!.reply!, timestamp: Date.now() }]);
           setRightTab("preview");
+          setMobileToolOpen(true);
           setProjectMode("preview");
 
           // The agent can finish immediately after the build while the filesystem
