@@ -3,10 +3,16 @@ import { resolve } from "node:path";
 
 export interface ActionJournalEntry {
   timestamp: string;
+  requestId?: string;
+  agentRunId?: string;
   iteration: number;
+  phase?: string;
   tool: string;
   input: string;
   success: boolean;
+  durationMs?: number;
+  errorCode?: string;
+  retryable?: boolean;
   output: string;
 }
 
@@ -21,7 +27,7 @@ export async function recordAction(root: string, entry: ActionJournalEntry): Pro
     input: entry.input.slice(0, 2000),
     output: entry.output.slice(0, 4000),
   });
-  const lines = existing.split(/\r?\n/).filter(Boolean).slice(-199);
+  const lines = existing.split(/\r?\n/).filter(Boolean).slice(-499);
   lines.push(line);
   await writeFile(path, lines.join("\n") + "\n", "utf8");
 }
