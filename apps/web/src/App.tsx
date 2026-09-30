@@ -1,5 +1,6 @@
 import "./App.css";
 import "./nexum-os.css";
+import { NexumWelcome } from "./components/NexumWelcome";
 import { useEffect, useRef, useState } from "react";
 import { ChatPanel } from "./components/ChatPanel";
 import { CommandPalette } from "./components/CommandPalette";
@@ -62,6 +63,7 @@ function App() {
   });
   const projectWindowMinimized = Boolean(projectWindowMinimizedByProject[activeПроектId]);
   const [osBooted, setOsBooted] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(() => { try { return localStorage.getItem("nexum:onboarding-complete") === "1"; } catch { return false; } });
   useEffect(() => {
     const timer = window.setTimeout(() => setOsBooted(true), 180);
     return () => window.clearTimeout(timer);
@@ -749,6 +751,10 @@ function App() {
         <div className="connector-modal-actions"><button type="button" onClick={() => setConnectorModal(null)}>Отмена</button><button className="home-primary" type="button" onClick={() => { setConnectedConnectors((items) => connected ? items.filter((item) => item !== connectorModal) : [...items, connectorModal]); setConnectorModal(null); setNotice(connectorModal + (connected ? " интеграция отключена" : " интеграция подключена")); }}>{connected ? "Отключить" : "Продолжить"}</button></div>
       </section>
     </div>;
+  }
+
+  if (!onboardingComplete) {
+    return <NexumWelcome onComplete={() => setOnboardingComplete(true)} />;
   }
 
   return (
