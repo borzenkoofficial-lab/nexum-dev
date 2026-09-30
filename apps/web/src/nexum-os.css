@@ -3542,3 +3542,379 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 @media(prefers-reduced-motion:reduce){
   .status-menu-item{transition:none}
 }
+
+
+/* NEXUM OS 5.0 — operating-system chrome */
+:root{
+  --nexum-os-ink:#17181d;
+  --nexum-os-muted:#7b7f89;
+  --nexum-os-line:rgba(20,22,28,.075);
+  --nexum-os-glass:rgba(255,255,255,.68);
+  --nexum-os-glass-strong:rgba(255,255,255,.82);
+  --nexum-os-purple:#6258d6;
+}
+
+/* Desktop becomes a real system surface rather than a marketing canvas. */
+.nexum-os-desktop{
+  isolation:isolate;
+  overflow:hidden;
+}
+.nexum-os-desktop::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:-1;
+  background:
+    radial-gradient(circle at 50% -10%,rgba(255,255,255,.92),transparent 42%),
+    radial-gradient(circle at 8% 58%,rgba(214,211,255,.24),transparent 30%),
+    radial-gradient(circle at 92% 70%,rgba(210,242,247,.20),transparent 28%);
+}
+.os-menubar{
+  position:sticky!important;
+  top:0!important;
+  z-index:200!important;
+  height:42px!important;
+  min-height:42px!important;
+  padding:0 15px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  border-bottom:1px solid rgba(20,22,28,.065)!important;
+  background:rgba(250,250,252,.62)!important;
+  backdrop-filter:blur(28px) saturate(175%)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(175%)!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.9),0 8px 24px rgba(20,22,28,.035)!important;
+}
+.os-brand{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-width:130px!important;
+}
+.os-brand>span{
+  width:23px!important;height:23px!important;
+  display:grid!important;place-items:center!important;
+  border-radius:7px!important;
+  background:linear-gradient(145deg,#202126,#6157d7)!important;
+  color:#fff!important;
+  font-size:10px!important;font-weight:850!important;
+  box-shadow:0 5px 12px rgba(43,39,120,.18),inset 0 1px 0 rgba(255,255,255,.22)!important;
+}
+.os-brand strong{
+  font-size:10px!important;
+  letter-spacing:.09em!important;
+  color:#24262b!important;
+}
+.os-menu-center{
+  position:absolute!important;
+  left:50%!important;
+  transform:translateX(-50%)!important;
+  font-size:10px!important;
+  font-weight:650!important;
+  color:#777c86!important;
+}
+.os-system{
+  display:flex!important;
+  align-items:center!important;
+  gap:9px!important;
+  min-width:130px!important;
+  justify-content:flex-end!important;
+  color:#80848d!important;
+  font-size:9px!important;
+  font-weight:650!important;
+}
+.os-system i{
+  width:5px!important;height:5px!important;
+  border-radius:50%!important;
+  background:#29a979!important;
+  box-shadow:0 0 0 3px rgba(41,169,121,.08)!important;
+}
+.os-system b{
+  padding:4px 6px!important;
+  border:1px solid rgba(20,22,28,.075)!important;
+  border-radius:6px!important;
+  background:rgba(255,255,255,.65)!important;
+  color:#777b84!important;
+  font-size:8px!important;
+  font-weight:700!important;
+}
+
+/* App icons behave like an OS launcher. */
+.os-app-icon{
+  position:relative!important;
+  user-select:none!important;
+  -webkit-tap-highlight-color:transparent!important;
+}
+.os-app-icon:active{
+  transform:scale(.96)!important;
+}
+.os-app-icon::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:6px;
+  width:4px;height:4px;
+  transform:translateX(-50%) scale(0);
+  border-radius:50%;
+  background:#6258d6;
+  transition:transform .16s ease;
+}
+.os-app-icon:focus-visible{
+  outline:2px solid rgba(98,88,214,.36)!important;
+  outline-offset:2px!important;
+}
+.os-app-icon:focus-visible::after{transform:translateX(-50%) scale(1)}
+.os-app-glyph{
+  transition:transform .18s ease,box-shadow .18s ease!important;
+}
+.os-app-icon:hover .os-app-glyph{
+  transform:translateY(-2px) scale(1.035)!important;
+  box-shadow:0 16px 30px rgba(20,22,28,.11),inset 0 1px 0 rgba(255,255,255,.98)!important;
+}
+
+/* Dock: centered, floating, persistent system launcher. */
+.os-dock{
+  position:fixed!important;
+  z-index:260!important;
+  left:50%!important;
+  bottom:max(14px,env(safe-area-inset-bottom))!important;
+  transform:translateX(-50%)!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  padding:8px!important;
+  border:1px solid rgba(255,255,255,.82)!important;
+  border-radius:21px!important;
+  background:rgba(247,248,250,.64)!important;
+  backdrop-filter:blur(30px) saturate(180%)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(180%)!important;
+  box-shadow:
+    0 22px 55px rgba(20,22,28,.17),
+    0 3px 10px rgba(20,22,28,.06),
+    inset 0 1px 0 rgba(255,255,255,.96)!important;
+}
+.os-dock-item{
+  position:relative!important;
+  width:48px!important;height:48px!important;
+  padding:3px!important;
+  display:grid!important;place-items:center!important;
+  border:0!important;
+  border-radius:14px!important;
+  background:transparent!important;
+  cursor:pointer!important;
+  transition:transform .18s ease,background .18s ease!important;
+}
+.os-dock-item:hover{
+  transform:translateY(-6px) scale(1.035)!important;
+  background:rgba(255,255,255,.55)!important;
+}
+.os-dock-item:active{transform:translateY(-1px) scale(.97)!important}
+.os-dock-item:focus-visible{
+  outline:2px solid rgba(98,88,214,.35)!important;
+  outline-offset:2px!important;
+}
+.os-dock-item .os-app-glyph{
+  width:39px!important;height:39px!important;
+  border-radius:12px!important;
+}
+.os-dock-item .os-app-glyph svg{
+  width:20px!important;height:20px!important;
+}
+.os-dock-separator{
+  width:1px!important;
+  height:28px!important;
+  margin:0 2px!important;
+  background:rgba(20,22,28,.11)!important;
+}
+
+/* Project window: stronger OS chrome and visual hierarchy. */
+.os-project-window{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 7px 18px rgba(20,22,28,.045)!important;
+}
+.os-project-card{
+  position:relative!important;
+  overflow:hidden!important;
+}
+.os-project-card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(125deg,rgba(255,255,255,.30),transparent 34%);
+  opacity:.8;
+}
+.os-running-item{
+  position:relative!important;
+  transition:transform .16s ease,box-shadow .16s ease,background .16s ease!important;
+}
+.os-running-item:hover{
+  transform:translateY(-2px)!important;
+  box-shadow:0 10px 22px rgba(20,22,28,.06)!important;
+}
+
+/* Global system surfaces: keep the app workspace visually related to Desktop. */
+.app-project .nexum-topbar,
+.app-project .header{
+  min-height:48px!important;
+  background:rgba(249,250,252,.70)!important;
+  backdrop-filter:blur(26px) saturate(165%)!important;
+  -webkit-backdrop-filter:blur(26px) saturate(165%)!important;
+  border-bottom:1px solid rgba(20,22,28,.065)!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.9),0 8px 26px rgba(20,22,28,.035)!important;
+}
+.app-project .topbar-mark{
+  width:27px!important;height:27px!important;
+  border-radius:8px!important;
+  background:linear-gradient(145deg,#25262c,#6258d6)!important;
+  box-shadow:0 6px 14px rgba(49,44,140,.17),inset 0 1px 0 rgba(255,255,255,.22)!important;
+}
+.app-project .topbar-copy .subtitle{
+  letter-spacing:.08em!important;
+  text-transform:uppercase!important;
+  font-size:7px!important;
+}
+.app-project .topbar-ai-state,
+.app-project .header .status,
+.app-project .topbar-more{
+  border:1px solid rgba(255,255,255,.82)!important;
+  background:rgba(255,255,255,.62)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95)!important;
+  backdrop-filter:blur(16px)!important;
+  -webkit-backdrop-filter:blur(16px)!important;
+}
+.app-project .topbar-more{
+  width:32px!important;height:32px!important;
+  border-radius:10px!important;
+}
+
+/* Window manager strip reads like an OS task switcher. */
+.nexum-os-app-strip{
+  position:relative!important;
+  z-index:120!important;
+  border:1px solid rgba(255,255,255,.82)!important;
+  background:rgba(249,250,252,.68)!important;
+  backdrop-filter:blur(24px) saturate(160%)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(160%)!important;
+  box-shadow:0 12px 30px rgba(20,22,28,.055),inset 0 1px 0 rgba(255,255,255,.95)!important;
+}
+.nexum-os-app-strip-title{
+  letter-spacing:.14em!important;
+  color:#969aa2!important;
+}
+.nexum-os-app-chip{
+  min-height:34px!important;
+  border-color:transparent!important;
+  background:rgba(255,255,255,.38)!important;
+}
+.nexum-os-app-chip:hover{
+  background:rgba(255,255,255,.78)!important;
+  box-shadow:0 7px 16px rgba(20,22,28,.055)!important;
+}
+.nexum-os-app-chip.active{
+  background:rgba(239,237,255,.80)!important;
+  border-color:rgba(98,88,214,.12)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.96),0 7px 16px rgba(20,22,28,.05)!important;
+}
+
+/* Command palette becomes the OS command center. */
+.palette-backdrop{
+  background:rgba(30,31,38,.20)!important;
+  backdrop-filter:blur(13px) saturate(120%)!important;
+  -webkit-backdrop-filter:blur(13px) saturate(120%)!important;
+}
+.command-palette{
+  width:min(650px,calc(100vw - 28px))!important;
+  border:1px solid rgba(255,255,255,.72)!important;
+  border-radius:22px!important;
+  background:rgba(248,249,252,.82)!important;
+  backdrop-filter:blur(34px) saturate(170%)!important;
+  -webkit-backdrop-filter:blur(34px) saturate(170%)!important;
+  box-shadow:0 34px 90px rgba(12,14,20,.24),inset 0 1px 0 rgba(255,255,255,.96)!important;
+  overflow:hidden!important;
+}
+.palette-search{
+  margin:10px!important;
+  border:1px solid rgba(20,22,28,.075)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.76)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.96),0 7px 20px rgba(20,22,28,.045)!important;
+}
+.palette-item{
+  min-height:48px!important;
+  margin:3px 8px!important;
+  border-radius:11px!important;
+}
+.palette-item.active{
+  background:rgba(232,229,255,.78)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8)!important;
+}
+
+/* Notifications behave like a native system event center. */
+.nexum-os-event-center{
+  z-index:500!important;
+  width:min(380px,calc(100vw - 24px))!important;
+  gap:8px!important;
+}
+.nexum-os-event{
+  border:1px solid rgba(255,255,255,.82)!important;
+  border-radius:16px!important;
+  background:rgba(248,249,252,.78)!important;
+  backdrop-filter:blur(28px) saturate(160%)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(160%)!important;
+  box-shadow:0 18px 42px rgba(20,22,28,.13),inset 0 1px 0 rgba(255,255,255,.96)!important;
+}
+
+/* Accessibility and low-power fallback. */
+@media(prefers-reduced-motion:reduce){
+  .os-app-icon:hover .os-app-glyph,
+  .os-dock-item:hover,
+  .os-running-item:hover{transform:none!important}
+}
+@media(pointer:coarse){
+  .os-dock-item:hover,
+  .os-running-item:hover,
+  .os-app-icon:hover .os-app-glyph{transform:none!important}
+}
+@media(max-width:760px){
+  .os-menubar{height:40px!important;min-height:40px!important}
+  .os-brand{min-width:0!important}
+  .os-brand strong{font-size:9px!important}
+  .os-system{min-width:0!important}
+  .os-dock{
+    max-width:calc(100vw - 18px)!important;
+    overflow-x:auto!important;
+    scrollbar-width:none!important;
+  }
+  .os-dock::-webkit-scrollbar{display:none!important}
+  .os-dock-item{flex:0 0 45px!important;width:45px!important;height:45px!important}
+  .os-dock-item .os-app-glyph{width:36px!important;height:36px!important}
+  .os-dock-separator{height:25px!important}
+}
+@media(max-width:520px){
+  .os-system span:first-child{display:none!important}
+  .os-system i{display:none!important}
+  .os-system b{font-size:7px!important}
+  .app-project .topbar-copy .subtitle{display:none!important}
+  .nexum-os-app-strip-title{display:none!important}
+}
+@media(prefers-reduced-transparency:reduce){
+  .os-menubar,
+  .os-dock,
+  .nexum-os-app-strip,
+  .command-palette,
+  .nexum-os-event{
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    background:#f7f8fa!important;
+  }
+}
+@media(prefers-contrast:more){
+  .os-menubar,
+  .os-dock,
+  .nexum-os-app-strip,
+  .command-palette,
+  .nexum-os-event{
+    border-color:rgba(20,22,28,.20)!important;
+  }
+}
