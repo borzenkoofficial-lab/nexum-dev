@@ -798,6 +798,7 @@ function App() {
                 <button type="button" className="home-primary" onClick={() => setOsEnabled(true)}>Включить NEXUM OS</button>
               </div>
             </section>
+          )
         ) : view === "news" ? (
           <NewsPage />
         ) : view === "connectors" ? (
