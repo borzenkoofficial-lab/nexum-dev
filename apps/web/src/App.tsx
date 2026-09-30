@@ -768,7 +768,7 @@ function App() {
         onClose={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false })); setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId)); navigate("home"); }}
       />
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
-        {view !== "home" && <TopBar projectName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : view === "diagnostics" ? "Диагностика" : "NEXUM.DEV"} aiStatus={aiStatus} stage={agentStage} />}
+        {view !== "home" && view !== "project" && <TopBar projectName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : view === "diagnostics" ? "Диагностика" : "NEXUM.DEV"} aiStatus={aiStatus} stage={agentStage} />}
         {view === "diagnostics" ? <DiagnosticsPage /> : view === "home" ? (
           <OSDesktop
             projects={projects}
