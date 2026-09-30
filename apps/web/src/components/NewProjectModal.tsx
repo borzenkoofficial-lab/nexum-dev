@@ -7,6 +7,7 @@ interface NewProjectModalProps {
   loading: boolean;
   onNameChange: (name: string) => void;
   onClose: () => void;
+  error?: string;
   onSubmit: (data: { name: string; description: string; type: string }) => void;
 }
 
@@ -19,7 +20,7 @@ const PROJECT_TYPES = [
   { id: "blank", label: "Пустой проект", hint: "Чистое рабочее пространство" },
 ] as const;
 
-export function NewProjectModal({ open, name, loading, onNameChange, onClose, onSubmit }: NewProjectModalProps) {
+export function NewProjectModal({ open, name, loading, error, onNameChange, onClose, onSubmit }: NewProjectModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -31,7 +32,7 @@ export function NewProjectModal({ open, name, loading, onNameChange, onClose, on
 
   if (!open) return null;
 
-  return <ProjectCreationForm name={name} loading={loading} onNameChange={onNameChange} onClose={onClose} onSubmit={onSubmit} />;
+  return <ProjectCreationForm name={name} loading={loading} error={error} onNameChange={onNameChange} onClose={onClose} onSubmit={onSubmit} />;
 }
 
 function ProjectCreationForm({ name, loading, onNameChange, onClose, onSubmit }: Omit<NewProjectModalProps, "open">) {
@@ -55,7 +56,7 @@ function ProjectCreationForm({ name, loading, onNameChange, onClose, onSubmit }:
           <div>
             <span className="eyebrow">НОВЫЙ ПРОЕКТ</span>
             <h2 id="new-project-title">Создать проект</h2>
-            <p className="modal-intro">Сначала задайте направление. После создания откроется отдельное рабочее пространство проекта.</p>
+            <p id="new-project-description" className="modal-intro">Сначала задайте направление. После создания откроется отдельное рабочее пространство проекта.</p>
           </div>
           <button className="icon-button" type="button" aria-label="Закрыть" onClick={onClose}>×</button>
         </div>
@@ -76,6 +77,8 @@ function ProjectCreationForm({ name, loading, onNameChange, onClose, onSubmit }:
               </label>
             ))}
           </div>
+
+          {error && <div className="project-creation-error" role="alert">{error}</div>}
 
           <div className="modal-summary">
             <span>После создания</span>
