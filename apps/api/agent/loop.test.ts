@@ -7,6 +7,28 @@ import { AgentLoop, compactAgentHistory } from "./loop.js";
 import type { AgentRuntime } from "./types.js";
 
 const gateway = new AIGateway([new MockProvider()]);
+class ProductPlanProvider implements import("../ai/types.js").AIProvider {
+  id = "test-planner";
+  name = "Test planner";
+  model = "planner-test";
+  capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: true, reasoning: false, contextWindow: 32768 };
+  async generate(): Promise<string> {
+    return JSON.stringify({
+      goal: "Создать сайт автосервиса",
+      productType: "Auto repair service website",
+      targetUser: "Владельцы автомобилей",
+      pages: ["Главная", "Услуги", "Диагностика", "Цены", "Отзывы", "Контакты"],
+      components: ["Услуги", "Отзывы", "Форма записи"],
+      visualSystem: ["Профессиональный автосервис"],
+      interactions: ["Запись на обслуживание"],
+      dataModel: ["Заявка на обслуживание"],
+      filesToInspect: ["src/App.tsx"],
+      filesToChange: ["src/App.tsx"],
+      acceptanceCriteria: ["Auto repair services and diagnostics are clearly represented"]
+    });
+  }
+}
+
 
 test("compacts large tool history while preserving actionable failures", () => {
   const large = "x".repeat(20_000);
@@ -243,7 +265,8 @@ test("recovers from a failed build after a file fix", async () => {
 
 
 test("locks auto-repair requests to the automotive domain", async () => {
-  const agent = new NexumAgent(gateway);
+  const plannerGateway = new AIGateway([new ProductPlanProvider()]);
+  const agent = new NexumAgent(plannerGateway);
   const plan = await agent.createProductPlan("Сделай сайт по ремонту авто", []);
   assert.equal(plan.productType, "Auto repair service website");
   assert.deepEqual(plan.pages, ["Главная", "Услуги", "Диагностика", "Цены", "Отзывы", "Контакты"]);
