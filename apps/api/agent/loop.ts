@@ -19,7 +19,7 @@ import type {
   AgentStep,
   AgentToolResult,
   AgentPhase,
-  type AgentErrorInfo,
+  AgentErrorInfo,
 } from "./types.js";
 
 const DEFAULT_MAX_ITERATIONS = 12;
