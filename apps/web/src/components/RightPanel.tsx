@@ -30,6 +30,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   const previewUrl = projectId ? `/api/preview/${projectId}/index.html?v=${previewKey}` : "";
   const [files, setFiles] = useState<string[]>([]);
   const [previewExpanded, setPreviewExpanded] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [filesLoading, setFilesLoading] = useState(false);
   const [fileError, setFileError] = useState("");
   const [selectedFile, setSelectedFile] = useState("");
@@ -160,18 +161,25 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
     }, 5 * 60 * 1000);
   }
 
+  const previewBuildLabel = stage === "building" || stage === "editing" ? "BUILDING" : stage === "testing" ? "VERIFYING" : previewOnline ? "LIVE" : "WAITING";
+  const previewStageLabel = stage === "building" || stage === "editing" ? "Сборка" : stage === "testing" ? "Проверка" : previewOnline ? "Онлайн" : "Ожидание";
+
   let panelContent: ReactNode;
   if (tab === "preview") {
     panelContent = previewOnline ? (
-      <div className={`preview-frame-wrap preview-stage-${stage ?? "idle"}`} data-stage={stage ?? "idle"}>
+      <div className={`preview-frame-wrap preview-stage-${stage ?? "idle"} preview-device-${previewDevice}`} data-stage={stage ?? "idle"}>
         <div className="preview-browser-bar" aria-label="Панель предпросмотра">
           <div className="preview-browser-dots" aria-hidden="true"><i /><i /><i /></div>
-          <div className="preview-address"><span className="preview-address-lock">⌁</span><span>/preview/{projectId}</span><b>{previewOnline ? "LIVE" : "OFFLINE"}</b></div>
+          <div className="preview-address"><span className="preview-address-lock" aria-hidden="true">⌁</span><span className="preview-address-url">nexum://preview/{projectId}</span><b className={`preview-build-status ${previewBuildLabel.toLowerCase()}`}>{previewBuildLabel}</b></div>
+          <span className="preview-stage-label">{previewStageLabel}</span>
           <button type="button" className="preview-browser-reload" onClick={onRefreshPreview} aria-label="Перезагрузить предпросмотр">↻</button>
+        </div>
+        <div className="preview-device-toolbar" aria-label="Размер предпросмотра">
+          {(["desktop", "tablet", "mobile"] as const).map((device) => <button key={device} type="button" className={previewDevice === device ? "active" : ""} onClick={() => setPreviewDevice(device)} aria-label={device === "desktop" ? "Десктоп" : device === "tablet" ? "Планшет" : "Телефон"}>{device === "desktop" ? "Desktop" : device === "tablet" ? "Tablet" : "Mobile"}</button>)}
         </div>
         <div className="preview-viewport">
           <iframe ref={previewFrameRef} key={previewKey} className="preview-frame" title={projectName + " live preview"} src={previewUrl} onLoad={handlePreviewLoad} sandbox="allow-scripts" referrerPolicy="no-referrer" />
-          {previewError && <div className="preview-runtime-error" role="alert">{previewError}</div>}
+          {previewError && <div className="preview-runtime-error" role="alert"><div><strong>Runtime error</strong><span>{previewError}</span></div><button type="button" onClick={() => onRepair?.()}>Исправить агентом</button></div>}
         </div>
       </div>
     ) : (
