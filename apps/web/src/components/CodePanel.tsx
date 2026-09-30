@@ -35,6 +35,16 @@ export function CodePanel({ projectId, projectName, previewOnline, onRefreshPrev
   const dirty = content !== savedContent;
 
   useEffect(() => {
+    if (!dirty) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [dirty]);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
@@ -103,6 +113,11 @@ export function CodePanel({ projectId, projectName, previewOnline, onRefreshPrev
       void saveFile();
       return;
     }
+    if (event.key === "Escape" && terminalOpen) {
+      event.preventDefault();
+      setTerminalOpen(false);
+      return;
+    }
     if (event.key === "Tab") {
       event.preventDefault();
       const target = event.currentTarget;
@@ -122,7 +137,7 @@ export function CodePanel({ projectId, projectName, previewOnline, onRefreshPrev
       <header className="nexum-code-topbar">
         <div className="nexum-code-brand"><button type="button" onClick={onClose} aria-label="Вернуться в проект">←</button><strong>NEXUM <span>CODE</span></strong><em>{projectName}</em></div>
         <div className="nexum-code-actions">
-          <button type="button" className={terminalOpen ? "active" : ""} onClick={() => setTerminalOpen((open) => !open)}>Terminal</button>
+          <button type="button" className={terminalOpen ? "active" : ""} onClick={() => setTerminalOpen((open) => !open)} aria-expanded={terminalOpen} aria-controls="nexum-code-terminal">Terminal</button>
           <button type="button" onClick={onRefreshPreview}>Preview</button>
           <button type="button" className="nexum-code-save" disabled={!dirty || saving} onClick={() => void saveFile()}>{saving ? "Saving…" : dirty ? "Save" : "Saved"}</button>
         </div>
@@ -148,7 +163,7 @@ export function CodePanel({ projectId, projectName, previewOnline, onRefreshPrev
           {error && <div className="nexum-code-error">{error}</div>}
           <footer className="nexum-code-status"><span>NEXUM CODE</span><span>{selectedFile || "No file"}</span><span>{dirty ? "Modified" : "Saved"}</span><span>{previewOnline ? "Preview: LIVE" : "Preview: OFFLINE"}</span><span className="nexum-code-status-right">UTF-8 · LF</span></footer>
         </main>
-        {terminalOpen && <aside className="nexum-code-terminal"><div className="nexum-code-terminal-head"><strong>TERMINAL</strong><button type="button" onClick={() => setTerminalOpen(false)}>×</button></div><div className="nexum-code-terminal-body">{terminalLines.map((line, index) => <div key={index}>{line}</div>)}<div className="nexum-code-terminal-note">Для запуска команд и автоматического исправления используйте Agent — он работает с тем же файловым пространством.</div></div></aside>}
+        {terminalOpen && <aside id="nexum-code-terminal" className="nexum-code-terminal"><div className="nexum-code-terminal-head"><strong>TERMINAL</strong><button type="button" onClick={() => setTerminalOpen(false)}>×</button></div><div className="nexum-code-terminal-body">{terminalLines.map((line, index) => <div key={index}>{line}</div>)}<div className="nexum-code-terminal-note">Для запуска команд и автоматического исправления используйте Agent — он работает с тем же файловым пространством.</div></div></aside>}
       </div>
     </section>
   );
