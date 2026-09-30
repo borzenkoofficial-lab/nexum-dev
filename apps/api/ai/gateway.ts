@@ -143,10 +143,13 @@ export class AIGateway {
       const normalizedError = classifyAIError(error);
       const fallbackId = this.fallbackProviderId;
       const reason = normalizedError.message;
-      const explicitProvider = typeof options === "string" || normalizedOptions.provider !== undefined;
+      const explicitSelection =
+        typeof options === "string" ||
+        normalizedOptions.provider !== undefined ||
+        normalizedOptions.model !== undefined;
       if (
         normalizedOptions.fallback === false ||
-        (!normalizedOptions.fallback && explicitProvider) ||
+        (!normalizedOptions.fallback && explicitSelection) ||
         !fallbackId ||
         fallbackId === provider.id ||
         !this.isTransientProviderError(reason)
