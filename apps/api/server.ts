@@ -58,6 +58,25 @@ function getProjectManager(userId: string): ProjectManager {
   }
   return manager;
 }
+async function getLatestProjectSourceMtime(projectRoot: string): Promise<number> {
+  let latest = 0;
+  const walk = async (dir: string): Promise<void> => {
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if ([".git", "node_modules", "dist", ".nexum"].includes(entry.name)) continue;
+      const full = resolve(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else if (entry.isFile()) {
+        const details = await stat(full);
+        latest = Math.max(latest, details.mtimeMs);
+      }
+    }
+  };
+  await walk(projectRoot);
+  return latest;
+}
+
 const agentHistory = new AgentHistory(workspaceRoot);
 const checkpointManager = new CheckpointManager();
 const projectStates = new Map<string, ProjectStateManager>();
@@ -558,7 +577,9 @@ app.use("/api/preview/:id", async (req, res) => {
     const distCandidate = resolve(distRoot, requestedPath);
     const sourceCandidate = resolve(project.path, requestedPath);
     const distIndex = resolve(distRoot, "index.html");
-    const hasBuild = await stat(distIndex).then(() => true).catch(() => false);
+    const sourceMtime = await getLatestProjectSourceMtime(project.path);
+    const distMtime = await stat(distIndex).then((details) => details.mtimeMs).catch(() => 0);
+    const hasBuild = distMtime > 0 && distMtime >= sourceMtime;
     let filePath = hasBuild ? distCandidate : sourceCandidate;
     const requestedExtension = extname(requestedPath);
 
@@ -827,7 +848,9 @@ app.get("/api/projects/:id/preview/status", async (req, res) => {
     const distIndexPath = resolve(project.path, "dist", "index.html");
     const sourceIndexPath = resolve(project.path, "index.html");
     const hasPackage = await stat(packagePath).then((details) => details.isFile()).catch(() => false);
-    const hasDist = await stat(distIndexPath).then((details) => details.isFile()).catch(() => false);
+    const sourceMtime = await getLatestProjectSourceMtime(project.path);
+    const distMtime = await stat(distIndexPath).then((details) => details.mtimeMs).catch(() => 0);
+    const hasDist = distMtime > 0 && distMtime >= sourceMtime;
     const hasSource = await stat(sourceIndexPath).then((details) => details.isFile()).catch(() => false);
 
     // React/Vite apps must have a production bundle. Static HTML projects can
