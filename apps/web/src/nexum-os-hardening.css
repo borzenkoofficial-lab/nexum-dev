@@ -805,3 +805,88 @@ body{margin:0;overflow-x:hidden}
     display:flex!important;
   }
 }
+
+
+/* Final project-shell correction: the project route has no legacy product header.
+   The OS window is the only chrome, so it owns the full viewport. */
+.app-project>.main>.nexum-topbar,
+.app-project>.main>.nexum-os-app-strip{
+  display:none!important;
+}
+.app-project>.main>.nexum-os-project{
+  height:100dvh!important;
+  min-height:0!important;
+  flex:1 1 auto!important;
+}
+.app-project>.main>.nexum-os-project>.os-window-shell{
+  height:100%!important;
+  min-height:0!important;
+}
+
+/* Final titlebar contract: controls, title and status each own a dedicated lane.
+   This prevents the macOS controls from ever entering the NEXUM/title lane. */
+.app-project .os-window-titlebar{
+  grid-template-columns:72px minmax(0,1fr) minmax(0,180px)!important;
+  min-width:0!important;
+}
+.app-project .os-window-controls{
+  width:72px!important;
+  min-width:72px!important;
+  max-width:72px!important;
+  justify-content:flex-start!important;
+}
+.app-project .os-window-title{
+  min-width:0!important;
+  max-width:100%!important;
+  justify-content:center!important;
+}
+.app-project .os-window-status{
+  min-width:0!important;
+  max-width:180px!important;
+}
+@media(max-width:700px){
+  .app-project .os-window-titlebar{
+    grid-template-columns:58px minmax(0,1fr) minmax(0,110px)!important;
+    padding-inline:10px!important;
+  }
+  .app-project .os-window-controls{
+    width:58px!important;
+    min-width:58px!important;
+    max-width:58px!important;
+    gap:6px!important;
+  }
+  .app-project .os-window-dot{
+    width:11px!important;
+    height:11px!important;
+  }
+  .app-project .os-window-title{
+    justify-content:flex-start!important;
+    padding-inline:8px!important;
+  }
+}
+@media(max-width:480px){
+  .app-project .os-window-titlebar{
+    grid-template-columns:52px minmax(0,1fr) 82px!important;
+    padding-inline:8px!important;
+  }
+  .app-project .os-window-controls{
+    width:52px!important;
+    min-width:52px!important;
+    max-width:52px!important;
+    gap:5px!important;
+  }
+  .app-project .os-window-dot{
+    width:10px!important;
+    height:10px!important;
+  }
+  .app-project .os-window-status{
+    max-width:82px!important;
+    font-size:10px!important;
+  }
+}
+
+/* One navigation surface: the OS toolbar replaces the legacy application strip
+   and the panel-level navigation on desktop. */
+.app-project .nexum-os-app-strip{
+  display:none!important;
+}
