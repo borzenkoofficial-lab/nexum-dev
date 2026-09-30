@@ -190,3 +190,153 @@ body{margin:0;overflow-x:hidden}
   .new-project-modal .modal-actions button{min-width:0}
   .new-project-modal .project-type-card{padding-inline:8px}
 }
+
+/* Final production pass: explicit scroll ownership and intrinsic sizing.
+   The workspace itself never scrolls; only the active content surface does. */
+.app-project .os-window-body > .workspace{
+  height:100%!important;
+  min-height:0!important;
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.app-project .workspace > .main-column,
+.app-project .workspace > .right-panel{
+  height:100%!important;
+  min-height:0!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+.app-project .workspace > .main-column > .chat{
+  height:100%!important;
+  min-height:0!important;
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.app-project .chat-history{
+  min-width:0!important;
+  max-width:100%!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+}
+.app-project .conversation,
+.app-project .welcome,
+.app-project .agent-activity-live,
+.app-project .reply{
+  width:min(680px,100%)!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+.app-project .conversation-message{
+  min-width:0!important;
+  max-width:88%!important;
+}
+.app-project .message-form{
+  min-width:0!important;
+  max-width:100%!important;
+}
+.app-project .message-box,
+.app-project .composer-toolbar,
+.app-project .composer-left-actions,
+.app-project .composer-right-actions{
+  min-width:0!important;
+  max-width:100%!important;
+}
+.app-project .composer-left-actions{
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+}
+.app-project .composer-left-actions::-webkit-scrollbar{display:none}
+.app-project .chat-footer-fixed{
+  min-width:0!important;
+  max-width:100%!important;
+}
+.app-project .chat-error-fixed{
+  min-width:0!important;
+  max-width:calc(100% - 24px)!important;
+}
+.app-project .right-panel{
+  overflow:hidden!important;
+}
+.app-project .right-panel > .panel-tabs{
+  min-width:0!important;
+  flex:0 0 50px;
+}
+.app-project .right-panel > .preview-frame-wrap,
+.app-project .right-panel > .editor-shell,
+.app-project .right-panel > .agent-panel{
+  min-width:0!important;
+  min-height:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+.app-project .preview-viewport,
+.app-project .code-editor,
+.app-project .editor-body,
+.app-project .agent-panel{
+  min-width:0!important;
+  min-height:0!important;
+}
+.app-project .preview-frame,
+.app-project .code-editor textarea{
+  min-width:0!important;
+  max-width:100%!important;
+}
+.app-project .os-workspace-code{
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.app-project .nexum-code{
+  height:100%!important;
+  min-height:0!important;
+}
+.app-project .nexum-code-main{
+  min-height:0!important;
+  height:calc(100% - 44px)!important;
+  overflow:hidden!important;
+}
+.app-project .nexum-code-sidebar,
+.app-project .nexum-code-editor,
+.app-project .nexum-code-terminal{
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.app-project .nexum-code-editor{
+  min-width:0!important;
+}
+.app-project .nexum-code-edit-wrap{
+  min-width:0!important;
+  min-height:0!important;
+  overflow:auto!important;
+}
+.app-project .nexum-code-textarea{
+  min-width:100%!important;
+  max-width:none!important;
+}
+
+/* Touch surfaces should not turn horizontal gestures into page-level scrolling. */
+.app-project .os-window-toolbar,
+.app-project .panel-tabs,
+.app-project .composer-left-actions{
+  overscroll-behavior-x:contain;
+}
+@media(max-width:650px){
+  .app-project .message-form{
+    width:calc(100% - 24px)!important;
+  }
+  .app-project .chat-footer-fixed{
+    width:calc(100% - 24px)!important;
+  }
+  .app-project .chat-error-fixed{
+    width:calc(100% - 24px)!important;
+  }
+  .app-project .conversation-message{
+    max-width:94%!important;
+  }
+}
+
