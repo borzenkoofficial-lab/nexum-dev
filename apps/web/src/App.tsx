@@ -30,7 +30,7 @@ function App() {
   const [reply, setReply] = useState("");
   const [lastMessage, setLastMessage] = useState("");
   const [agentStage, setАгентStage] = useState<АгентStage>(null);
-  const [projectsLoading, setПроектsLoading] = useState(true);
+  const [, setПроектsLoading] = useState(true);
   const [projectActionLoading, setПроектActionLoading] = useState(false);
   const [apiError, setApiError] = useState("");
   const [projectCreationError, setProjectCreationError] = useState("");
@@ -142,8 +142,6 @@ function App() {
 
 
   useEffect(() => { try { localStorage.setItem("nexum:project-task-meta", JSON.stringify(projectTaskMeta)); } catch {} }, [projectTaskMeta]);
-  const formatRelativeTime = (value?: string | number) => { if (!value) return "Недавно"; const delta = Math.max(0, Date.now() - new Date(value).getTime()); const minutes = Math.floor(delta / 60000); if (minutes < 1) return "только что"; if (minutes < 60) return `${minutes} мин назад`; const hours = Math.floor(minutes / 60); if (hours < 24) return `${hours} ч назад`; const days = Math.floor(hours / 24); return `${days} дн назад`; };
-
   function navigate(nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics", projectId?: string, replace = false) {
     setViewState(nextView);
     const target = nextView === "project"
@@ -388,39 +386,6 @@ function App() {
       await loadПроектs(projectId);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Не удалось выбрать проект");
-    } finally {
-      setПроектActionLoading(false);
-    }
-  }
-
-  async function deleteПроект(projectId: string) {
-    const project = projects.find((item) => item.id === projectId);
-    if (!project) return;
-    const confirmed = window.confirm(`Удалить проект «${project.name}» навсегда? Все файлы проекта будут удалены. Это действие нельзя отменить.`);
-    if (!confirmed) return;
-
-    setПроектActionLoading(true);
-    setApiError("");
-    try {
-      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, { method: "DELETE" });
-      const data = await response.json().catch(() => ({})) as { project?: Проект; error?: string };
-      if (!response.ok) throw new Error(data.error || "Не удалось удалить проект");
-      const fallbackId = projects.find((item) => item.status === "active" && item.id !== projectId)?.id ?? "nexum";
-      await loadПроектs(activeПроектId === projectId ? fallbackId : activeПроектId);
-      if (activeПроектId === projectId) {
-        setActiveПроектId(fallbackId);
-        setView("project");
-        setReply("");
-        setConversation([]);
-        setProductPlan(null);
-        setActivitySteps([]);
-        setActivityEvents([]);
-        setProblems([]);
-      }
-      setNotice(`Проект «${project.name}» удалён`);
-      window.setTimeout(() => setNotice(""), 3200);
-    } catch (error) {
-      setApiError(error instanceof Error ? error.message : "Не удалось удалить проект");
     } finally {
       setПроектActionLoading(false);
     }
@@ -943,6 +908,7 @@ function App() {
         <OSProjectWindow
           projectName={activeПроект?.name ?? "NEXUM"}
           projectId={activeПроектId}
+          workspaceMode={workspaceMode}
           previewOnline={previewOnline}
           agentStage={agentStage}
           activeTab={rightTab}
@@ -999,7 +965,6 @@ function App() {
           aiStatus={aiStatus}
           previewOnline={previewOnline}
           activeView={view}
-          workspaceMode={workspaceMode}
           osActiveWindow={osActiveWindow}
           osFocusTick={osFocusTick}
           onHome={() => navigate("home")}
