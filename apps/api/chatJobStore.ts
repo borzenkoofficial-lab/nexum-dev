@@ -39,6 +39,14 @@ async function ensureTable(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS agent_chat_jobs_user_updated_idx
         ON agent_chat_jobs(user_id, updated_at DESC);
+      CREATE TABLE IF NOT EXISTS agent_project_locks (
+        project_id UUID PRIMARY KEY,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        job_id UUID NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS agent_project_locks_expiry_idx
+        ON agent_project_locks(expires_at);
     `).then(() => undefined).catch((error) => {
       initialized = null;
       throw error;
@@ -54,6 +62,36 @@ function encode(job: ChatJob): Record<string, unknown> {
 
 function decode(row: any): ChatJob {
   return { id: row.id, userId: row.user_id, projectId: row.project_id ?? undefined, status: row.status, createdAt: Number(row.created_at), updatedAt: Number(row.updated_at), ...(row.payload ?? {}) };
+}
+
+
+export async function acquireProjectLock(projectId: string, userId: string, jobId: string, ttlMs = 15 * 60 * 1000): Promise<boolean> {
+  await ensureTable();
+  const result = await query(
+    `INSERT INTO agent_project_locks (project_id,user_id,job_id,expires_at)
+     VALUES ($1,$2,$3,$4)
+     ON CONFLICT (project_id) DO UPDATE
+       SET user_id=EXCLUDED.user_id, job_id=EXCLUDED.job_id, expires_at=EXCLUDED.expires_at
+     WHERE agent_project_locks.expires_at < NOW()
+     RETURNING project_id`,
+    [projectId, userId, jobId, new Date(Date.now() + ttlMs).toISOString()],
+  );
+  return result.rows.length > 0;
+}
+
+export async function heartbeatProjectLock(projectId: string, jobId: string, ttlMs = 15 * 60 * 1000): Promise<boolean> {
+  await ensureTable();
+  const result = await query(
+    `UPDATE agent_project_locks SET expires_at=$3
+      WHERE project_id=$1 AND job_id=$2 RETURNING project_id`,
+    [projectId, jobId, new Date(Date.now() + ttlMs).toISOString()],
+  );
+  return result.rows.length > 0;
+}
+
+export async function releaseProjectLock(projectId: string, jobId: string): Promise<void> {
+  await ensureTable();
+  await query(`DELETE FROM agent_project_locks WHERE project_id=$1 AND job_id=$2`, [projectId, jobId]);
 }
 
 export async function createChatJob(job: ChatJob): Promise<void> {
