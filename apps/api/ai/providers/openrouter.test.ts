@@ -75,3 +75,19 @@ test("routes code and planning prompts to different free-model families", async 
   assert.match(code, /north-mini-code|laguna-s-2\.1|laguna-xs-2\.1/);
   assert.match(planning, /nemotron-3-ultra|nemotron-3\.5-lightning/);
 });
+
+
+test("does not silently switch an explicitly selected model", async () => {
+  let requestedModels: string[] = [];
+  const provider = new OpenRouterProvider("https://openrouter.test", "openrouter/free", 1000, async (_input, init) => {
+    const body = JSON.parse(String(init?.body)) as { model?: string };
+    requestedModels.push(body.model ?? "");
+    return jsonResponse(200, { choices: [{ message: { content: body.model ?? "" } }] });
+  });
+  provider.setRuntimeApiKey("test-only-key");
+
+  const result = await provider.generate("write code", "qwen/example-explicit-model");
+
+  assert.equal(result, "qwen/example-explicit-model");
+  assert.deepEqual(requestedModels, ["qwen/example-explicit-model"]);
+});
