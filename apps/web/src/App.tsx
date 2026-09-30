@@ -749,6 +749,7 @@ function App() {
       <NexumApplicationManager
         projectName={activeПроект?.name}
         projects={runningProjectIds.map((id) => ({ id, name: projects.find((p) => p.id === id)?.name ?? id, active: id === activeПроектId && view === "project", minimized: id === activeПроектId ? projectWindowMinimized : false }))}
+        projectModes={projectWindowModes}
         onSelectProject={(id) => openПроект(id, projectWindowModes[id] ?? "agent")}
         mode={workspaceMode}
         running={view === "project" && runningProjectIds.includes(activeПроектId)}
