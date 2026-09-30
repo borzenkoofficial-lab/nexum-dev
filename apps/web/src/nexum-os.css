@@ -3949,7 +3949,97 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 }
 
 /* NEXUM OS 5.1 — navigation surface refinement */
-.status-bar{\n  isolation:isolate;\n  min-height:62px;\n  padding:8px 16px;\n  gap:14px;\n  background:linear-gradient(180deg,rgba(255,255,255,.66),rgba(247,248,250,.58));\n  box-shadow:0 -18px 42px rgba(20,22,28,.045),inset 0 1px 0 rgba(255,255,255,.96);\n}\n.status-quick-menu{\n  padding:3px;\n  border:1px solid rgba(255,255,255,.74);\n  border-radius:15px;\n  background:rgba(255,255,255,.34);\n  box-shadow:inset 0 1px 0 rgba(255,255,255,.9);\n}\n.status-menu-item{\n  min-height:40px;\n  padding:5px 10px 5px 7px;\n  border-radius:11px;\n}\n.status-menu-item.active{\n  color:#38318f;\n  background:linear-gradient(145deg,rgba(245,243,255,.94),rgba(231,228,255,.78));\n  border-color:rgba(98,88,214,.14);\n}\n.status-menu-item.active::after{\n  content:"";\n  position:absolute;\n  left:50%;\n  bottom:-3px;\n  width:16px;\n  height:2px;\n  transform:translateX(-50%);\n  border-radius:999px;\n  background:#6258d6;\n  box-shadow:0 0 8px rgba(98,88,214,.28);\n}\n.status-menu-icon{\n  width:31px;\n  height:31px;\n  border-radius:10px;\n  background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(232,234,238,.62));\n  box-shadow:0 4px 10px rgba(20,22,28,.045),inset 0 1px 0 rgba(255,255,255,.98);\n}\n.status-menu-icon svg{width:16px;height:16px;display:block}\n.status-tone-home .status-menu-icon{color:#6258d6}\n.status-tone-projects .status-menu-icon{color:#5369c9}\n.status-tone-connectors .status-menu-icon{color:#168b65}\n.status-tone-diagnostics .status-menu-icon{color:#b1770a}\n.status-tone-news .status-menu-icon{color:#167aa3}\n.status-tone-settings .status-menu-icon{color:#6e737d}\n.status-tone-new{\n  margin-left:2px;\n  padding-right:11px;\n  background:linear-gradient(145deg,#24252b,#6258d6);\n}\n.status-tone-new .status-menu-plus{\n  width:31px;\n  height:31px;\n  display:grid;\n  place-items:center;\n  font-size:20px;\n  line-height:1;\n}\n.status-runtime{gap:7px}\n.status-runtime-ai,.status-runtime-preview{\n  min-height:32px;\n  padding:5px 9px;\n  border-radius:10px;\n  background:rgba(255,255,255,.64);\n  border-color:rgba(255,255,255,.9);\n  box-shadow:0 4px 12px rgba(20,22,28,.035),inset 0 1px 0 rgba(255,255,255,.98);\n}\n.status-runtime-ai.online{color:#28785e}\n.status-runtime-preview.online{color:#3f6e59}\n@media(max-width:900px){\n  .status-bar{min-height:58px;padding:7px 10px}\n  .status-quick-menu{padding:2px;overflow-x:auto;scrollbar-width:none}\n  .status-quick-menu::-webkit-scrollbar{display:none}\n}\n@media(max-width:620px){\n  .status-bar{min-height:55px}\n  .status-quick-menu{max-width:calc(100vw - 132px)}\n  .status-menu-item{min-height:40px}\n  .status-menu-item.active::after{display:none}\n  .status-runtime-ai,.status-runtime-preview{min-height:32px}\n}\n@media(prefers-reduced-transparency:reduce){\n  .status-bar,.status-quick-menu,.status-runtime-ai,.status-runtime-preview{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}\n}\n
+.status-bar{
+  isolation:isolate;
+  min-height:62px;
+  padding:8px 16px;
+  gap:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.66),rgba(247,248,250,.58));
+  box-shadow:0 -18px 42px rgba(20,22,28,.045),inset 0 1px 0 rgba(255,255,255,.96);
+}
+.status-quick-menu{
+  padding:3px;
+  border:1px solid rgba(255,255,255,.74);
+  border-radius:15px;
+  background:rgba(255,255,255,.34);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+}
+.status-menu-item{
+  min-height:40px;
+  padding:5px 10px 5px 7px;
+  border-radius:11px;
+}
+.status-menu-item.active{
+  color:#38318f;
+  background:linear-gradient(145deg,rgba(245,243,255,.94),rgba(231,228,255,.78));
+  border-color:rgba(98,88,214,.14);
+}
+.status-menu-item.active::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-3px;
+  width:16px;
+  height:2px;
+  transform:translateX(-50%);
+  border-radius:999px;
+  background:#6258d6;
+  box-shadow:0 0 8px rgba(98,88,214,.28);
+}
+.status-menu-icon{
+  width:31px;
+  height:31px;
+  border-radius:10px;
+  background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(232,234,238,.62));
+  box-shadow:0 4px 10px rgba(20,22,28,.045),inset 0 1px 0 rgba(255,255,255,.98);
+}
+.status-menu-icon svg{width:16px;height:16px;display:block}
+.status-tone-home .status-menu-icon{color:#6258d6}
+.status-tone-projects .status-menu-icon{color:#5369c9}
+.status-tone-connectors .status-menu-icon{color:#168b65}
+.status-tone-diagnostics .status-menu-icon{color:#b1770a}
+.status-tone-news .status-menu-icon{color:#167aa3}
+.status-tone-settings .status-menu-icon{color:#6e737d}
+.status-tone-new{
+  margin-left:2px;
+  padding-right:11px;
+  background:linear-gradient(145deg,#24252b,#6258d6);
+}
+.status-tone-new .status-menu-plus{
+  width:31px;
+  height:31px;
+  display:grid;
+  place-items:center;
+  font-size:20px;
+  line-height:1;
+}
+.status-runtime{gap:7px}
+.status-runtime-ai,.status-runtime-preview{
+  min-height:32px;
+  padding:5px 9px;
+  border-radius:10px;
+  background:rgba(255,255,255,.64);
+  border-color:rgba(255,255,255,.9);
+  box-shadow:0 4px 12px rgba(20,22,28,.035),inset 0 1px 0 rgba(255,255,255,.98);
+}
+.status-runtime-ai.online{color:#28785e}
+.status-runtime-preview.online{color:#3f6e59}
+@media(max-width:900px){
+  .status-bar{min-height:58px;padding:7px 10px}
+  .status-quick-menu{padding:2px;overflow-x:auto;scrollbar-width:none}
+  .status-quick-menu::-webkit-scrollbar{display:none}
+}
+@media(max-width:620px){
+  .status-bar{min-height:55px}
+  .status-quick-menu{max-width:calc(100vw - 132px)}
+  .status-menu-item{min-height:40px}
+  .status-menu-item.active::after{display:none}
+  .status-runtime-ai,.status-runtime-preview{min-height:32px}
+}
+@media(prefers-reduced-transparency:reduce){
+  .status-bar,.status-quick-menu,.status-runtime-ai,.status-runtime-preview{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+}
+
 
 /* NEXUM OS 5.2 — native Command Center chrome */
 .palette-backdrop{z-index:2000!important;display:flex!important;align-items:flex-start!important;justify-content:center!important;padding:9vh 18px 24px!important;background:rgba(20,21,27,.16)!important;backdrop-filter:blur(18px) saturate(120%)!important;-webkit-backdrop-filter:blur(18px) saturate(120%)!important}
