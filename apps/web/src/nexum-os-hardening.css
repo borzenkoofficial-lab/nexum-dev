@@ -1,0 +1,83 @@
+/* NEXUM OS — global layout hardening
+   One viewport, one shell, no legacy offsets, no nested desktop windows.
+*/
+:root{--nx-shell-gap:0px}
+
+html,body,#root{width:100%;max-width:100%;min-width:320px;box-sizing:border-box}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;overflow-x:hidden}
+
+.app{width:100%;max-width:100%;min-width:0;min-height:100dvh;display:flex;flex-direction:column}
+.main.nexum-os-runtime{width:100%;max-width:100%;min-width:0;min-height:0;flex:1 1 auto;margin:0!important;padding:0!important;overflow:hidden}
+
+/* Desktop: the OS owns the entire viewport. */
+.app-home{height:100dvh;min-height:100dvh;overflow:hidden}
+.app-home>.main{height:100dvh;min-height:0}
+.app-home .nexum-os-desktop{height:100dvh;min-height:0;width:100%;max-width:none}
+.app-home .os-desktop-content{width:min(1180px,calc(100% - 48px));max-width:100%;margin-inline:auto}
+
+/* The OS desktop already has its own menubar; never stack the legacy app header. */
+.app-home .nexum-topbar,
+.app-home .nexum-os-app-strip{display:none!important}
+
+/* Project: one workspace shell, flush to the viewport. */
+.app-project{height:100dvh;min-height:100dvh;overflow:hidden}
+.app-project>.main{height:100dvh;min-height:0;display:flex;flex-direction:column}
+.app-project .nexum-topbar{flex:0 0 auto}
+.app-project .nexum-os-project{position:relative;width:100%;max-width:none;min-width:0;height:100%;min-height:0;margin:0!important;padding:0!important;overflow:hidden}
+.app-project .os-window-shell{position:relative;width:100%;max-width:none;min-width:0;height:100%;min-height:0;margin:0!important;border-radius:0;overflow:hidden}
+.app-project .os-window-body{flex:1 1 auto;min-height:0;width:100%;max-width:none;overflow:hidden}
+.app-project .os-workspace-stage{width:100%;max-width:none;height:100%;min-width:0;min-height:0;overflow:hidden}
+.app-project .os-workspace-layer{width:100%;max-width:none;min-width:0;min-height:0}
+.app-project .os-workspace-layer>.workspace{width:100%;max-width:none;min-width:0;height:100%;min-height:0}
+.app-project .os-workspace-layer>.workspace>.main-column,
+.app-project .os-workspace-layer>.workspace>.right-panel{min-width:0;max-width:100%;min-height:0;overflow:hidden}
+
+/* Never allow a legacy desktop/sidebar width to move the project shell. */
+.app-project .sidebar,
+.app-project>.sidebar,
+.app-project .status-bar{display:none!important}
+.app-project .main{margin-left:0!important;width:100%!important}
+
+/* Project creation dialog is a true viewport layer, not a child layout surface. */
+.modal-backdrop{
+  position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;
+  min-width:320px;display:grid!important;place-items:center!important;
+  margin:0!important;padding:24px!important;z-index:5000!important;
+  overflow:auto;
+}
+.new-project-modal{
+  position:relative!important;inset:auto!important;
+  width:min(620px,100%)!important;max-width:620px!important;max-height:calc(100dvh - 48px);
+  margin:0!important;overflow:auto;transform:none!important;
+}
+.new-project-modal form{min-width:0}
+.new-project-modal input,.new-project-modal textarea{max-width:100%;min-width:0}
+.project-type-grid{width:100%;max-width:100%;min-width:0}
+.project-type-card{min-width:0}
+.project-type-card span{min-width:0}
+.project-type-card small{overflow-wrap:anywhere}
+
+/* No nested window chrome over the OS desktop. */
+.app-home .os-window-shell{max-width:none}
+
+/* Responsive: collapse workspace without creating horizontal overflow. */
+@media(max-width:900px){
+  .app-project .os-window-titlebar{grid-template-columns:auto minmax(0,1fr) auto}
+  .app-project .os-window-toolbar{min-width:0;max-width:100%;overflow:hidden}
+  .app-project .os-window-apps{min-width:0;overflow-x:auto}
+  .app-project .os-window-actions{min-width:0}
+}
+@media(max-width:650px){
+  .app-project .os-window-body{overflow:hidden}
+  .app-project .os-workspace-layer>.workspace{display:block;position:relative;overflow:hidden}
+  .app-project .os-workspace-layer>.workspace>.main-column{width:100%;height:100%;max-width:100%}
+  .app-project .os-workspace-layer>.workspace>.right-panel{position:absolute;inset:0;width:100%;height:100%;max-width:100%;margin:0!important}
+  .modal-backdrop{padding:12px!important}
+  .new-project-modal{max-height:calc(100dvh - 24px)}
+}
+
+/* Reduced motion is a hard requirement for the shell. */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important}
+}
