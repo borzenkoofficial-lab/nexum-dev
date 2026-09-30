@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState } from "react";\nimport type { ReactNode } from "react";
 import type { AgentStage } from "./types";
 
 interface OSProjectWindowProps {
