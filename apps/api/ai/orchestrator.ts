@@ -80,7 +80,11 @@ export class AIOrchestrator {
     throw lastError instanceof Error ? lastError : new Error("No compatible AI model completed the request.");
   }
 
-  private matchesRole(candidate: RegisteredAIModel, role: AIOrchestratorRole): boolean {\n    return Object.entries(ROLE_REQUIREMENTS[role]).every(([key, expected]) => candidate.capabilities[key as keyof typeof candidate.capabilities] === expected);\n  }\n\n  modelFor(_role: AIOrchestratorRole): string {
+  private matchesRole(candidate: RegisteredAIModel, role: AIOrchestratorRole): boolean {
+    return Object.entries(ROLE_REQUIREMENTS[role]).every(([key, expected]) => candidate.capabilities[key as keyof typeof candidate.capabilities] === expected);
+  }
+
+  modelFor(_role: AIOrchestratorRole): string {
     return this.gateway.getDefaultModel();
   }
 
