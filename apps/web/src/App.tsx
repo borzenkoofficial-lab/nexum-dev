@@ -33,6 +33,7 @@ function App() {
   const [projectsLoading, setПроектsLoading] = useState(true);
   const [projectActionLoading, setПроектActionLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [projectCreationError, setProjectCreationError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [newПроектName, setNewПроектName] = useState("");
   const [aiProviders, setAIProviders] = useState<AIProviderInfo[]>([]);
@@ -427,6 +428,7 @@ function App() {
 
   async function createПроект(data: { name: string; description: string; type: string }) {
     if (!data.name.trim()) return;
+    setProjectCreationError("");
     setПроектActionLoading(true);
     try {
       const response = await fetch("/api/projects", {
@@ -455,9 +457,13 @@ function App() {
       setMessage("");
       setNewПроектName("");
       setModalOpen(false);
+      setProjectCreationError("");
+      setRunningProjectIds((items) => items.includes(responseData.project.id) ? items : [...items, responseData.project.id]);
       void sendMessage(buildBrief, responseData.project.id);
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : "Не удалось создать проект");
+      const message = error instanceof Error ? error.message : "Не удалось создать проект";
+      setProjectCreationError(message);
+      setApiError(message);
     } finally {
       setПроектActionLoading(false);
     }
@@ -1006,7 +1012,7 @@ function App() {
         />
       )}
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
-      <NewProjectModal open={modalOpen} name={newПроектName} loading={projectActionLoading} onNameChange={setNewПроектName} onClose={() => setModalOpen(false)} onSubmit={(data) => void createПроект(data)} />
+      <NewProjectModal open={modalOpen} name={newПроектName} loading={projectActionLoading} error={projectCreationError} onNameChange={setNewПроектName} onClose={() => { setProjectCreationError(""); setModalOpen(false); }} onSubmit={(data) => void createПроект(data)} />
       {connectorModal && <div className="modal-backdrop connector-backdrop" onMouseDown={() => setConnectorModal(null)}><section className="connector-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><div className="modal-top"><div><span className="eyebrow">ИНТЕГРАЦИЯ</span><h2>{connectorModal}</h2></div><button type="button" onClick={() => setConnectorModal(null)}>×</button></div><p>{connectedConnectors.includes(connectorModal) ? "Эта интеграция включена в интерфейсе рабочего пространства. OAuth/API-данные провайдера пока не сохраняются." : "Включить интеграцию для текущего рабочего пространства. OAuth/API-данные провайдера пока не сохраняются."}</p><div className="connector-modal-actions"><button type="button" onClick={() => setConnectorModal(null)}>Отмена</button><button className="home-primary" type="button" onClick={() => { if (!connectedConnectors.includes(connectorModal)) setConnectedConnectors((items) => [...items, connectorModal]); setConnectorModal(null); setNotice(connectorModal + " интеграция подключена"); }}>Продолжить</button></div></section></div>}
       {notice && <div className="toast" role="status">{notice}</div>}
     </div>
