@@ -24,7 +24,10 @@ export function NexumOSEventCenter({ events, onDismiss }: Props) {
 
   return <div className="nexum-os-event-center" aria-live="polite">
     {events.map((event) => <div key={event.id} className={"nexum-os-event nexum-os-event-" + event.kind}>
-      <strong><i className="nexum-os-event-dot" />{event.title}</strong>
+      <div className="nexum-os-event-head">
+        <strong><i className="nexum-os-event-dot" />{event.title}</strong>
+        <button type="button" onClick={() => onDismiss(event.id)} aria-label="Закрыть уведомление">×</button>
+      </div>
       <span>{event.message}</span>
     </div>)}
   </div>;
