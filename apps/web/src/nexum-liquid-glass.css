@@ -469,3 +469,82 @@
   .os-app-icon,.os-app-icon:nth-child(2) .os-app-glyph,.os-app-icon:nth-child(4) .os-app-glyph,
   .nexum-os-desktop::after,.os-calendar-popover,.os-control-popover,.status-live i{animation:none!important}
 }
+
+
+/* NEXUM Desktop 7.0 — spatial interactions and command launcher */
+.os-search-button{
+  width:27px;height:27px;border:1px solid rgba(255,255,255,.62);border-radius:9px;
+  background:rgba(255,255,255,.22);color:rgba(30,34,45,.68);cursor:pointer;
+  font-size:17px;line-height:1;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  transition:transform .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.os-search-button:hover{background:rgba(255,255,255,.48);transform:translateY(-1px);box-shadow:0 7px 18px rgba(30,35,55,.10)}
+
+.os-desktop-context{
+  position:fixed;z-index:300;min-width:205px;padding:6px;border-radius:15px;
+  background:rgba(245,248,255,.72);border:1px solid rgba(255,255,255,.86);
+  box-shadow:0 26px 70px rgba(25,30,50,.24),inset 0 1px 0 rgba(255,255,255,.96);
+  backdrop-filter:blur(30px) saturate(185%);-webkit-backdrop-filter:blur(30px) saturate(185%);
+  animation:nx-context-in .16s cubic-bezier(.2,.8,.2,1);
+}
+.os-desktop-context button{
+  width:100%;display:flex;align-items:center;gap:9px;padding:9px 10px;border:0;border-radius:9px;
+  background:transparent;color:rgba(31,34,45,.80);font:600 10px/1.2 inherit;text-align:left;cursor:pointer;
+}
+.os-desktop-context button:hover{background:rgba(255,255,255,.52);color:#20232d}
+.os-context-divider{height:1px;margin:5px 7px;background:rgba(45,50,65,.10)}
+@keyframes nx-context-in{from{opacity:0;transform:translateY(-4px) scale(.97)}to{opacity:1;transform:none}}
+
+.os-launcher-layer{
+  position:fixed;inset:0;z-index:250;display:flex;align-items:flex-start;justify-content:center;
+  padding-top:12vh;background:rgba(30,34,52,.12);
+  backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+  animation:nx-launcher-bg .2s ease-out;
+}
+.os-launcher{
+  width:min(640px,calc(100vw - 32px));max-height:min(620px,72vh);overflow:auto;
+  padding:14px;border-radius:23px;background:rgba(246,249,255,.70);
+  border:1px solid rgba(255,255,255,.88);
+  box-shadow:0 40px 110px rgba(20,25,45,.28),inset 0 1px 0 rgba(255,255,255,.98);
+  backdrop-filter:blur(38px) saturate(185%);-webkit-backdrop-filter:blur(38px) saturate(185%);
+  animation:nx-launcher-in .24s cubic-bezier(.18,.85,.25,1);
+}
+.os-launcher-search{
+  display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:14px;
+  background:rgba(255,255,255,.48);border:1px solid rgba(255,255,255,.72);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.86);
+}
+.os-launcher-search span{font-size:21px;color:rgba(45,48,60,.46)}
+.os-launcher-search input{
+  flex:1;border:0;outline:0;background:transparent;color:#252833;font:500 13px/1.3 inherit;
+}
+.os-launcher-search input::placeholder{color:rgba(45,48,60,.42)}
+.os-launcher-search kbd{padding:3px 6px;border:1px solid rgba(50,54,66,.10);border-radius:6px;background:rgba(255,255,255,.38);color:#777b88;font-size:8px}
+.os-launcher-section{margin:17px 4px 7px;font-size:8px;letter-spacing:.14em;font-weight:800;color:rgba(45,48,60,.42)}
+.os-launcher-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.os-launcher-grid button,.os-launcher-projects button{
+  border:1px solid rgba(255,255,255,.64);background:rgba(255,255,255,.25);cursor:pointer;
+  border-radius:13px;color:#2b2e38;text-align:left;
+}
+.os-launcher-grid button{padding:11px;display:grid;gap:4px}
+.os-launcher-grid button:hover,.os-launcher-projects button:hover{background:rgba(255,255,255,.50);transform:translateY(-1px)}
+.os-launcher-grid span{font-size:18px;color:#5d6680}
+.os-launcher-grid b,.os-launcher-projects b{font-size:10px}
+.os-launcher-grid small,.os-launcher-projects small{font-size:8px;color:#858a98}
+.os-launcher-projects{display:grid;gap:5px}
+.os-launcher-projects button{display:flex;align-items:center;gap:9px;padding:7px}
+.os-launcher-projects button .os-project-mark{flex:0 0 30px}
+.os-launcher-projects button>span:nth-child(2){display:grid;gap:2px;min-width:0}
+.os-launcher-projects button i{margin-left:auto;color:#9296a2;font-style:normal}
+@keyframes nx-launcher-bg{from{opacity:0}to{opacity:1}}
+@keyframes nx-launcher-in{from{opacity:0;transform:translateY(-14px) scale(.97)}to{opacity:1;transform:none}}
+
+@media(max-width:680px){
+  .os-launcher-grid{grid-template-columns:1fr 1fr}
+  .os-launcher{width:calc(100vw - 20px);padding:10px;border-radius:19px}
+  .os-desktop-context{min-width:185px}
+}
+@media(prefers-reduced-motion:reduce){
+  .os-desktop-context,.os-launcher-layer,.os-launcher{animation:none!important}
+  .os-search-button,.os-launcher-grid button{transition:none!important}
+}
