@@ -26,9 +26,9 @@ test("orchestrator assigns specialized free models by role", async () => {
   const reviewer = await orchestrator.run("reviewer", "review the generated code");
   const debugRun = await orchestrator.run("debugger", "fix the build error");
   assert.match(planner.model, /nemotron/);
-  assert.match(coder.model, /north-mini-code|laguna/);
-  assert.match(reviewer.model, /qwen|dots|nemotron/);
-  assert.match(debugRun.model, /north-mini-code|laguna/);
+  assert.match(coder.model, /qwen/);
+  assert.match(reviewer.model, /qwen/);
+  assert.match(debugRun.model, /qwen/);
   assert.equal(provider.calls.length, 4);
   assert.equal(planner.provider, "openrouter");
   assert.equal(planner.fallback, false);
