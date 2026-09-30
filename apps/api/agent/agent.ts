@@ -26,6 +26,7 @@ import { ValidateProjectTool } from "./tools/validateProject.js";
 import { PatchFileTool } from "./tools/patchFile.js";
 import { TestProjectTool } from "./tools/testProject.js";
 import { buildAgentContext, formatAgentContext } from "./context.js";
+import { assertCompleteToolPolicy, validateToolInvocation } from "./toolPolicy.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -53,6 +54,7 @@ export class NexumAgent implements AgentRuntime {
       new GitTool(projectRoot),
       new GitHubTool(projectRoot),
     ];
+    assertCompleteToolPolicy(tools.map((tool) => tool.name));
     this.tools = new Map(tools.map((tool) => [tool.name, tool]));
   }
 
@@ -401,6 +403,7 @@ ${result.output}`
       return { success: false, output: `Unknown tool: ${toolName}` };
     }
 
+    validateToolInvocation(tool, input);
     console.log(`[agent] tool: ${tool.name}`);
     const result = await tool.execute(input);
     console.log(`[agent] ${tool.name}: ${result.success ? "success" : "failed"}`);
