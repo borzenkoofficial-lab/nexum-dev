@@ -769,7 +769,7 @@ function App() {
             onOpenView={(next) => setView(next)}
             runningProjectIds={runningProjectIds}
             minimizedProjectIds={minimizedProjectIds}
-            onRestoreProject={(id) => openПроект(id, "agent")}
+            onRestoreProject={(id) => openПроект(id, projectWindowModes[id] ?? "agent")}
           />
         ) : view === "news" ? (
           <NewsPage />
