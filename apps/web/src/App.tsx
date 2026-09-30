@@ -89,7 +89,17 @@ function App() {
     return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : path === "/diagnostics" ? "diagnostics" : "home";
   });
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
-  const [connectedConnectors, setConnectedConnectors] = useState<string[]>([]);
+  const [connectedConnectors, setConnectedConnectors] = useState<string[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("nexum:connected-connectors") || "[]");
+      return Array.isArray(saved) ? saved.filter((item): item is string => typeof item === "string") : [];
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("nexum:connected-connectors", JSON.stringify(connectedConnectors)); } catch {}
+  }, [connectedConnectors]);
   const [activitySteps, setActivitySteps] = useState<Array<{ iteration: number; tool: string; success: boolean }>>([]);
   const [activityEvents, setActivityEvents] = useState<Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>>([]);
   const [currentActivity, setCurrentActivity] = useState("");
