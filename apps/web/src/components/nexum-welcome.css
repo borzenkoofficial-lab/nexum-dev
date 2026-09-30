@@ -188,3 +188,8 @@
 @media(prefers-reduced-motion:reduce){
   .nx-scan-beam,.nx-light-streak,.nexum-sequence-core,.nexum-core-halo,.nexum-boot-console::before{animation:none!important}
 }
+
+/* Final event-driven pulse override — no continuous ripple */
+.nx-system-pulse{display:none!important}
+.nx-system-pulse.is-active{display:block!important;animation:nx-pulse 1.45s cubic-bezier(.15,.7,.25,1) both}
+.nx-system-pulse.is-final{display:block!important;animation:nx-pulse 2.15s cubic-bezier(.1,.72,.2,1) both}
