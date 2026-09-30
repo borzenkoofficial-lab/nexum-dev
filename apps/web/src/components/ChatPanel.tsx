@@ -44,10 +44,19 @@ export function ChatPanel({
   const selectedProvider = providers.find((item) => item.id === provider);
   const modelList = models.length > 0 ? models : [model];
 
-  function handleTouchStart(event: React.TouchEvent<HTMLElement>) { touchStartX.current = event.touches[0]?.clientX ?? null; }
+  function handleTouchStart(event: React.TouchEvent<HTMLElement>) {
+    const target = event.target as HTMLElement;
+    if (target.closest("textarea, input, button, [role=\"dialog\"]")) {
+      touchStartX.current = null;
+      return;
+    }
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+  }
   function handleTouchEnd(event: React.TouchEvent<HTMLElement>) {
     const start = touchStartX.current; touchStartX.current = null;
     const end = event.changedTouches[0]?.clientX;
+    const target = event.target as HTMLElement;
+    if (target.closest("textarea, input, button, [role=\"dialog\"]")) return;
     if (start != null && end != null && start - end > 64) onOpenAgent();
   }
   function handleSubmit() { if (message.trim() && !busy) onSubmit(); }
