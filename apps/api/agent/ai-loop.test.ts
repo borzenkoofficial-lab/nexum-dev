@@ -12,6 +12,7 @@ class ScriptedProvider implements AIProvider {
   id = "openrouter";
   name = "Scripted OpenRouter";
   model = "openrouter/free";
+  capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: true, reasoning: false, contextWindow: 32768 };
   private index = 0;
 
   constructor(private readonly responses: string[]) {}
@@ -76,6 +77,7 @@ test("deterministic Builder recovery inspects an existing scaffold before editin
     id = "mock";
     name = "Mock";
     model = "mock";
+    capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: true, reasoning: false, contextWindow: 32768 };
     async generate(): Promise<string> { return "demo"; }
     async listModels(): Promise<string[]> { return ["mock"]; }
     async getStatus(model = this.model) { return { available: false, model, latencyMs: null, error: "test" }; }

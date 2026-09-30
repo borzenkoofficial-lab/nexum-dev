@@ -8,6 +8,7 @@ class RecordingProvider implements AIProvider {
   id = "openrouter";
   name = "Recording";
   model = "openrouter/free";
+  capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: true, reasoning: false, contextWindow: 32768 };
   calls: Array<{ model?: string; message: string }> = [];
   async generate(message: string, model?: string): Promise<string> {
     this.calls.push({ model, message });

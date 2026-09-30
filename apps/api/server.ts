@@ -489,7 +489,7 @@ app.get("/api/ai/models", authMiddleware, async (req, res) => {
 
 const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM_LOCAL_TEST_MODE !== "false";
 
-app.get("/api/ai/key-status", authMiddleware, (_req, res) => {
+app.get("/api/ai/key-status", authMiddleware, (req, res) => {
   const gateway = getAIGatewayForUser(getAuthUser(req).id);
   return res.json({ success: true, providers: { openai: gateway.hasOpenAIKey(), openrouter: gateway.hasOpenRouterKey(), orcarouter: gateway.hasOrcaRouterKey() } });
 });

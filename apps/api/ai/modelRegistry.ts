@@ -19,7 +19,7 @@ export class AIModelRegistry {
     const models = await this.gateway.getModels();
     const result: RegisteredAIModel[] = [];
     for (const provider of providers) {
-      const candidates = models[provider.id]?.length ? models[provider.id] : [provider.model];
+      const candidates: string[] = models[provider.id]?.length ? models[provider.id] : [provider.model];
       for (const model of candidates) {
         result.push({ provider: provider.id, model, capabilities: this.gateway.getCapabilities(provider.id, model) });
       }
