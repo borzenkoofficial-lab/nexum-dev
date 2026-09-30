@@ -27,6 +27,7 @@ function AppIcon({ name }: { name: string }) {
   if (name === "preview") return <svg {...common}><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/><path d="M8 13h4M8 16h7"/></svg>;
   if (name === "link") return <svg {...common}><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"/></svg>;
   if (name === "pulse") return <svg {...common}><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>;
+  if (name === "journal") return <svg {...common}><path d="M6 4.5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z"/><path d="M8 9h8M8 13h6"/></svg>;
   if (name === "gear") return <svg {...common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V20h-2.5v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-1.8-1.8.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H6V11.5h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1L9 6.7l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V5h2.5v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.1V13.5h-.1a1.7 1.7 0 0 0-1 1.5Z"/></svg>;
   return <svg {...common}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>;
 }
@@ -92,14 +93,14 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
         </div>
       </div>
       <div className="os-dock" aria-label="NEXUM OS Dock">
-        <button type="button" className="os-dock-item" onClick={() => launch("projects")} title="Projects"><span className="os-app-glyph light">N</span></button>
-        <button type="button" className="os-dock-item" onClick={() => launch("agent")} title="AI Agent"><span className="os-app-glyph dark">✦</span></button>
+        <button type="button" className="os-dock-item" onClick={() => launch("projects")} title="Projects"><span className="os-app-glyph light"><AppIcon name="grid" /></span></button>
+        <button type="button" className="os-dock-item" onClick={() => launch("agent")} title="AI Agent"><span className="os-app-glyph dark"><AppIcon name="spark" /></span></button>
         <span className="os-dock-separator" />
-        <button type="button" className="os-dock-item" onClick={() => launch("code")} title="Code"><span className="os-app-glyph code">{"{ }"}</span></button>
-        <button type="button" className="os-dock-item" onClick={() => launch("preview")} title="Preview"><span className="os-app-glyph preview">◫</span></button>
+        <button type="button" className="os-dock-item" onClick={() => launch("code")} title="Code"><span className="os-app-glyph code"><AppIcon name="code" /></span></button>
+        <button type="button" className="os-dock-item" onClick={() => launch("preview")} title="Preview"><span className="os-app-glyph preview"><AppIcon name="preview" /></span></button>
         <span className="os-dock-separator" />
         <button type="button" className="os-dock-item" onClick={onNewProject} title="New project"><span className="os-app-glyph new">＋</span></button>
-        <button type="button" className="os-dock-item" onClick={() => onOpenView("settings")} title="Settings"><span className="os-app-glyph light">⚙</span></button>
+        <button type="button" className="os-dock-item" onClick={() => onOpenView("settings")} title="Settings"><span className="os-app-glyph light"><AppIcon name="gear" /></span></button>
       </div>
     </section>
   );
