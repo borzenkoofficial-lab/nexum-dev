@@ -1,0 +1,172 @@
+/* NEXUM OS — project layout hardening
+   Final layout guard against legacy dashboard/sidebar rules, flex shrink,
+   viewport overflow and nested workspace sizing conflicts.
+*/
+.app,
+.app > .main,
+.main.nexum-os-runtime,
+.app-project,
+.nexum-os-project,
+.os-window-shell,
+.os-window-body,
+.os-workspace-stage,
+.os-workspace-layer,
+.os-workspace-layer > .workspace,
+.os-workspace-layer > .code-panel{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+
+.main.nexum-os-runtime{
+  flex:1 1 auto;
+  min-width:0;
+  margin-left:0!important;
+  overflow:hidden;
+}
+
+.app-project{
+  min-width:0;
+  overflow:hidden;
+}
+
+.app-project > .main{
+  min-width:0;
+  width:100%;
+  margin-left:0!important;
+}
+
+.nexum-os-project{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  margin:0;
+  padding-left:clamp(0px,2.2vw,32px);
+  padding-right:clamp(0px,2.2vw,32px);
+  box-sizing:border-box;
+  overflow:hidden;
+}
+
+.os-window-shell{
+  width:100%;
+  max-width:1480px;
+  min-width:0;
+  margin-left:auto;
+  margin-right:auto;
+  box-sizing:border-box;
+}
+
+.os-window-body{
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+
+.os-workspace-stage,
+.os-workspace-layer{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  margin:0;
+  box-sizing:border-box;
+}
+
+.os-workspace-layer > .workspace{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  margin:0;
+  box-sizing:border-box;
+}
+
+.os-workspace-layer > .workspace > .main-column,
+.os-workspace-layer > .workspace > .right-panel{
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+
+.os-workspace-layer > .workspace > .main-column{
+  overflow:hidden;
+}
+
+.os-workspace-layer > .workspace > .right-panel{
+  overflow:hidden;
+}
+
+.os-workspace-code,
+.os-workspace-code > .nexum-code,
+.nexum-code-main,
+.nexum-code-editor,
+.nexum-code-sidebar,
+.nexum-code-terminal{
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+
+.nexum-code{
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+}
+
+.nexum-topbar{
+  min-width:0;
+  width:100%;
+  box-sizing:border-box;
+}
+
+@media (max-width:900px){
+  .nexum-os-project{
+    padding-left:0;
+    padding-right:0;
+  }
+  .os-window-shell{
+    width:100%;
+    max-width:none;
+  }
+  .os-window-toolbar,
+  .os-window-apps{
+    min-width:0;
+    max-width:100%;
+  }
+}
+
+@media (max-width:650px){
+  .os-workspace-layer > .workspace{
+    display:block;
+    position:relative;
+    overflow:hidden;
+  }
+  .os-workspace-layer > .workspace > .main-column{
+    width:100%;
+    max-width:100%;
+  }
+  .os-workspace-layer > .workspace > .right-panel{
+    width:100%;
+    max-width:100%;
+    left:0!important;
+    right:0!important;
+    margin:0!important;
+  }
+}
+
+/* Never allow a legacy child to create a horizontal page offset. */
+.app-project *{
+  max-width:100%;
+}
+
+.app-project img,
+.app-project iframe,
+.app-project video,
+.app-project canvas{
+  max-width:100%;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .os-window-shell{
+    animation:none!important;
+  }
+}
