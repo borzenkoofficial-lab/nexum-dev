@@ -321,7 +321,9 @@ async function runChatJob(
     if (!result.success) {
       job.status = "failed";
       job.stage = "error";
-      job.error = result.error ?? "AI agent failed";
+      job.error = result.error ?? result.errorInfo?.message ?? "AI agent failed";
+      job.errorCode = result.errorInfo?.code;
+      job.errorInfo = result.errorInfo;
       void agentHistory.record({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
       await persistChatJob(job);
@@ -355,7 +357,10 @@ async function runChatJob(
     job.status = "failed";
     job.stage = "error";
     job.updatedAt = Date.now();
-    job.error = error instanceof Error ? error.message : "AI provider request failed";
+    const normalizedError = error instanceof NexumError ? error : new NexumError("INTERNAL_ERROR", "AI agent execution failed.", { technicalDetails: error instanceof Error ? error.message : String(error) });
+    job.error = normalizedError.userSafeMessage;
+    job.errorCode = normalizedError.code;
+    job.errorInfo = { code: normalizedError.code, message: normalizedError.userSafeMessage, retryable: normalizedError.retryable };
     await persistChatJob(job).catch((persistenceError) => console.error("[Nexum] failed to persist job exception", persistenceError));
     void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
     console.error("[Nexum] chat job failed", jobId, error);
