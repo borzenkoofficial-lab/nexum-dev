@@ -22,7 +22,6 @@ interface ChatPanelProps {
   onOpenAgent: () => void;
   onProviderChange: (id: string) => void;
   onModelChange: (model: string) => void;
-  onOpenConnectors: () => void;
   projectName: string;
 }
 
@@ -30,7 +29,7 @@ interface ChatPanelProps {
 export function ChatPanel({
   message, reply, stage, apiError, messages, attachments, providers, models, provider, model, aiStatus,
   onMessageChange, onSubmit, onRetry, onQuickTask, onFilesSelected, onRemoveAttachment, onOpenAgent,
-  onProviderChange, onModelChange, onOpenConnectors, projectName,
+  onProviderChange, onModelChange, projectName,
 }: ChatPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef<number | null>(null);
@@ -102,7 +101,6 @@ export function ChatPanel({
             <div className="composer-left-actions">
               <button type="button" className="composer-tool" disabled={busy} onClick={() => inputRef.current?.click()}><span>＋</span>Файл</button>
               <input ref={inputRef} type="file" multiple hidden onChange={(event) => { if (event.target.files) onFilesSelected([...event.target.files]); event.currentTarget.value = ""; }} />
-              <button type="button" className="composer-tool" disabled={busy} onClick={onOpenConnectors}><span>◇</span>Коннекторы</button>
               <div className="model-dock-wrap">
                 <button type="button" className={"composer-model-button " + (modelOpen ? "open" : "")} aria-haspopup="dialog" aria-expanded={modelOpen} onClick={() => setModelOpen((open) => !open)} disabled={busy}>
                   <span className="model-provider-mark">{(selectedProvider?.name ?? provider).slice(0, 1).toUpperCase()}</span>
