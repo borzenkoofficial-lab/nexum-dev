@@ -26,11 +26,6 @@ interface ChatPanelProps {
   projectName: string;
 }
 
-const STARTERS = [
-  ["Сайт", "Создай современный адаптивный сайт компании"],
-  ["Приложение", "Создай современное веб-приложение с авторизацией и личным кабинетом"],
-  ["Dashboard", "Создай административную панель с таблицами, фильтрами и аналитикой"],
-];
 
 export function ChatPanel({
   message, reply, stage, apiError, messages, attachments, providers, models, provider, model, aiStatus,
