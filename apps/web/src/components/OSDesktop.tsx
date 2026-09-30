@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Project } from "./types";
 import "../nexum-desktop-v3.css";
+import "../nexum-desktop-v4.css";
 
 interface OSDesktopProps {
   projects: Project[];
