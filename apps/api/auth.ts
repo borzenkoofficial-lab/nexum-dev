@@ -8,6 +8,10 @@ const COOKIE_NAME = "nexum_session";
 const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 const JWT_SECRET = process.env.NEXUM_AUTH_SECRET?.trim();
 const AUTH_ENABLED = process.env.NEXUM_AUTH_ENABLED === "true";
+
+if (process.env.NODE_ENV === "production" && !AUTH_ENABLED) {
+  throw new Error("NEXUM_AUTH_ENABLED must be true in production. Authentication cannot be disabled.");
+}
 const DEV_USER: AuthUser = {
   id: "00000000-0000-4000-8000-000000000001",
   email: "dev@nexum.local",
