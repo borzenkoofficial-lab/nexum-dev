@@ -716,3 +716,26 @@ body{margin:0;overflow-x:hidden}
   .diagnostics-job-main small,.diagnostics-job-status{font-size:9px!important}
   .news-feature h2{font-size:30px!important}
 }
+
+/* Project workspace navigation has one source of truth: the OS window toolbar.
+   The panel-level navigation is mobile-only; otherwise Preview/Agent/Files were
+   duplicated visually in the same workspace. */
+.app-project .right-panel > .panel-tabs{
+  display:none!important;
+}
+@media(max-width:900px){
+  .app-project .right-panel > .panel-tabs{
+    display:flex!important;
+    flex:0 0 50px!important;
+    min-height:50px!important;
+  }
+  .app-project .right-panel > .panel-tabs > button:not(.panel-chat-tab):not(.preview-refresh):not(.preview-expand){
+    display:none!important;
+  }
+}
+@media(max-width:560px){
+  .app-project .right-panel > .panel-tabs{
+    min-height:48px!important;
+    flex-basis:48px!important;
+  }
+}
