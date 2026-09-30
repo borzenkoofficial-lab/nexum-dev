@@ -53,7 +53,13 @@ function App() {
     try { sessionStorage.setItem("nexum:os:window-modes", JSON.stringify(projectWindowModes)); } catch {}
   }, [projectWindowModes]);
   const [codeMode, setCodeMode] = useState(false);
-  const [projectWindowMinimized, setProjectWindowMinimized] = useState(false);
+  const [projectWindowMinimizedByProject, setProjectWindowMinimizedByProject] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem("nexum:os:minimized-windows") || "{}");
+      return saved && typeof saved === "object" ? saved : {};
+    } catch { return {}; }
+  });
+  const projectWindowMinimized = Boolean(projectWindowMinimizedByProject[activeПроектId]);
   const [osActiveWindow, setOsActiveWindow] = useState<"project" | "home">("home");
   const [osFocusTick, setOsFocusTick] = useState(0);
   const [osBooted, setOsBooted] = useState(false);
@@ -115,7 +121,10 @@ function App() {
   useEffect(() => { document.documentElement.dataset.motion=uiSettings.animations?"on":"off"; document.documentElement.dataset.compact=uiSettings.compact?"on":"off"; document.documentElement.dataset.glow=uiSettings.glow?"on":"off"; document.documentElement.dataset.uiScale=String(uiSettings.scale); }, [uiSettings]);
 
   const activeПроект = projects.find((project) => project.id === activeПроектId);
-  const minimizedProjectIds = projectWindowMinimized && view === "project" ? [activeПроектId] : [];
+  const minimizedProjectIds = runningProjectIds.filter((id) => Boolean(projectWindowMinimizedByProject[id]));
+  useEffect(() => {
+    try { sessionStorage.setItem("nexum:os:minimized-windows", JSON.stringify(projectWindowMinimizedByProject)); } catch {}
+  }, [projectWindowMinimizedByProject]);
   useEffect(() => {
     try { sessionStorage.setItem("nexum:os:running-windows", JSON.stringify(runningProjectIds)); } catch {}
   }, [runningProjectIds]);
@@ -341,6 +350,7 @@ function App() {
       setOsActiveWindow("project");
       setOsFocusTick((value) => value + 1);
       setRunningProjectIds((items) => items.includes(projectId) ? items : [...items, projectId]);
+      setProjectWindowMinimizedByProject((items) => ({ ...items, [projectId]: false }));
       setReply("");
       setАгентStage(null);
       setCodeMode(false);
@@ -349,7 +359,7 @@ function App() {
       setWorkspaceMode(projectWindowModes[projectId] ?? mode);
       if (!projectWindowModes[projectId]) setProjectWindowModes((items) => ({ ...items, [projectId]: mode }));
       setViewState("project");
-      setProjectWindowMinimized(false);
+      setProjectWindowMinimizedByProject((items) => ({ ...items, [projectId]: false }));
       document.documentElement.classList.remove("nexum-os-maximized");
       navigate("project", projectId);
     }
@@ -748,7 +758,7 @@ function App() {
       <NexumOSEventCenter events={osEvents} onDismiss={(id) => setOsEvents((items) => items.filter((item) => item.id !== id))} />
       <NexumApplicationManager
         projectName={activeПроект?.name}
-        projects={runningProjectIds.map((id) => ({ id, name: projects.find((p) => p.id === id)?.name ?? id, active: id === activeПроектId && view === "project", minimized: id === activeПроектId ? projectWindowMinimized : false }))}
+        projects={runningProjectIds.map((id) => ({ id, name: projects.find((p) => p.id === id)?.name ?? id, active: id === activeПроектId && view === "project", minimized: Boolean(projectWindowMinimizedByProject[id]) }))}
         projectModes={projectWindowModes}
         onSelectProject={(id) => openПроект(id, projectWindowModes[id] ?? "agent")}
         mode={workspaceMode}
