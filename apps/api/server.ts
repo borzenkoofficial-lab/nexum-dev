@@ -625,7 +625,10 @@ app.use("/api/preview/:id", async (req, res) => {
     const distIndex = resolve(distRoot, "index.html");
     const sourceMtime = await getLatestProjectSourceMtime(project.path);
     const distMtime = await stat(distIndex).then((details) => details.mtimeMs).catch(() => 0);
-    const hasBuild = distMtime > 0 && distMtime >= sourceMtime;
+    const previewStateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
+    projectStates.set(project.path, previewStateManager);
+    const previewState = await previewStateManager.refresh();
+    const hasBuild = distMtime > 0 && distMtime >= sourceMtime && previewState.previewRevision === previewState.sourceRevision;
     let filePath = hasBuild ? distCandidate : sourceCandidate;
     const requestedExtension = extname(requestedPath);
 
