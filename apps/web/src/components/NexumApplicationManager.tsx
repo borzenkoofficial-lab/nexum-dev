@@ -40,13 +40,22 @@ export function NexumApplicationManager({ projectName, projects, projectModes = 
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "tab") {
         event.preventDefault();
-        setOpen(true);
+        if (open) {
+          const currentIndex = Math.max(0, windows.findIndex((item) => item.id === mode));
+          const direction = event.shiftKey ? -1 : 1;
+          const nextIndex = (currentIndex + direction + windows.length) % windows.length;
+          const nextMode = windows[nextIndex];
+          if (nextMode) onSelectMode(nextMode.id);
+          setOpen(false);
+        } else {
+          setOpen(true);
+        }
       }
       if (event.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [currentIndex, onRestore, onSelectMode, open, switchIndex, switchableWindows, windows.length]);
+  }, [mode, onSelectMode, open]);
 
   if (!running) return null;
 
