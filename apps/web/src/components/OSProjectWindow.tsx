@@ -51,7 +51,13 @@ export function OSProjectWindow({
     return () => window.removeEventListener("keydown", onKey);
   }, [maximized]);
   const busy = Boolean(agentStage && !["completed", "error"].includes(agentStage));
-  const status = busy ? "Agent working" : previewOnline ? "Preview ready" : "Ready";
+  const status = agentStage === "error"
+    ? "Agent error"
+    : busy
+      ? "Agent working"
+      : previewOnline
+        ? "Preview ready"
+        : "Ready";
 
   if (minimized) {
     return (
@@ -81,7 +87,7 @@ export function OSProjectWindow({
             <span>Workspace</span>
           </div>
           <div className="os-window-status">
-            <span className={"os-status-pulse " + (previewOnline || busy ? "active" : "")} />
+            <span className={"os-status-pulse " + (agentStage === "error" ? "error" : previewOnline || busy ? "active" : "")} />
             {status}
           </div>
         </header>
