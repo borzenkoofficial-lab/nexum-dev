@@ -113,15 +113,6 @@ ${result.output}`
       const run = await this.orchestrator.run("planner", prompt, options);
       const parsed = this.parseProductPlan(run.response);
       if (parsed) return parsed;
-
-      // A malformed response is worth one repair pass, but a provider rate-limit
-      // is not: retrying immediately only burns another request and delays the
-      // deterministic fallback. The caller will continue with a local plan.
-      if (this.isRateLimitError(run.response)) {
-        console.warn("[agent] product planner returned a rate-limit response; using deterministic plan");
-        return this.fallbackProductPlan(task, previousResults);
-      }
-
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : "AI product planning failed");
     }
@@ -268,8 +259,7 @@ ${result.output}`
     }
 
     // Do not spend a second provider request repairing a known 429 response.
-    // The deterministic planner is deliberately kept usable without a remote
-    // model so a temporary OpenRouter limit cannot corrupt the build flow.
+    // Do not synthesize a plan when the provider is unavailable.
     if (this.isRateLimitError(run.response)) {
       console.warn("[agent] AI planner returned a rate-limit response; using deterministic planner");
       // Surface the rate limit to AgentLoop so it disables remote planner calls
@@ -353,8 +343,7 @@ ${result.output}`
     // implementation action, stop/replan instead of overwriting the project with
     // fallbackApp/fallbackStyles/fallbackStatic*.
     //
-    // The fallback generators remain available for emergency/internal recovery,
-    // but they are intentionally not selected by the normal Builder route.
+    // No deterministic template generation is available in the normal Builder route.
     if (scaffolded && !previousResults.some((item) =>
       (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success
     )) {
@@ -391,12 +380,6 @@ ${result.output}`
       );
       if (unreadEntry) return { tool: "readFile", input: unreadEntry };
     }
-
-    // Provider-independent Builder fallback: if the remote planner is unavailable,
-    // keep implementing the requested site instead of returning a false completion.
-    const deterministicWrite = this.deterministicBuilderWrite(task, previousResults);
-    if (deterministicWrite) return deterministicWrite;
-
     const selection = this.selectTool(task, previousResults);
     if (!selection) return null;
 
@@ -479,104 +462,6 @@ ${result.output}`
     return null;
   }
 
-  private fallbackProductPlan(task: string, previousResults: AgentToolResult[]): ProductPlan {
-    const lower = task.toLowerCase();
-    const construction = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
-    const autoRepair = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lower);
-    if (construction) {
-      return {
-        goal: task.trim(),
-        productType: "Construction company website",
-        targetUser: "Клиенты и заказчики строительных услуг",
-        pages: ["Главная", "Услуги", "Объекты", "Процесс", "О компании", "Контакты"],
-        components: ["Construction header", "Hero with estimate CTA", "Services grid", "Project cases", "Work process", "Trust block", "Contact form"],
-        visualSystem: ["Distinct construction visual direction", "Architecture/industrial imagery", "Strong typography hierarchy", "Responsive mobile layout"],
-        interactions: ["Service navigation", "Estimate CTA", "Project browsing", "Lead form", "Mobile navigation"],
-        dataModel: ["services", "projects", "leads", "contacts"],
-        filesToInspect: ["."],
-        filesToChange: ["Application entry", "Styles", "Interaction files"],
-        acceptanceCriteria: [
-          "The site is unmistakably about the requested construction business",
-          "Services, projects, process, trust and contacts are visible",
-          "No NEXUM, SaaS, AI studio or digital-product copy remains in the site",
-          "Primary CTA requests an estimate/contact",
-          "Responsive layout works on mobile",
-          "Production build succeeds"
-        ],
-      };
-    }
-    if (autoRepair) {
-      return {
-        goal: task.trim(),
-        productType: "Auto repair service website",
-        targetUser: "Property owners, general contractors and commercial customers",
-        pages: ["Главная", "Услуги", "Диагностика", "Цены", "Отзывы", "Контакты"],
-        components: ["Автосервис header", "Hero with booking CTA", "Services grid", "Repair categories", "Advantages/trust block", "Reviews", "Booking form"],
-        visualSystem: [
-          "Choose a visual direction appropriate to an automotive service business and materially different from the current project's existing design",
-          "Possible directions: premium dark garage, clean technical service, bold motorsport-inspired, editorial automotive, or bright modern workshop",
-          "Use automotive repair, diagnostics, trust and booking as the content source",
-          "Do not reuse the current project's hero composition, card geometry, navigation pattern, typography scale, or spacing system",
-          "Responsive mobile layout",
-        ],
-        interactions: ["Service navigation", "Book service CTA", "Repair category browsing", "Booking/contact form", "Mobile navigation"],
-        dataModel: ["services", "repairCategories", "reviews", "appointments", "contacts"],
-        filesToInspect: ["."],
-        filesToChange: ["Application entry", "Styles", "Interaction files"],
-        acceptanceCriteria: [
-          "The site is unmistakably about the requested auto repair business",
-          "Services, diagnostics, repair categories, trust and contacts are visible",
-          "No NEXUM, SaaS, AI studio or digital-product copy remains in the site",
-          "Primary CTA books a repair/diagnostics appointment",
-          "Responsive layout works on mobile",
-          "Production build succeeds"
-        ],
-      };
-    }
-
-    const type = /marketplace|маркетплейс|авито|перепродаж/.test(lower)
-      ? "Marketplace"
-      : /dashboard|crm|панел/.test(lower)
-        ? "Dashboard"
-        : /магазин|shop|store|ecommerce|каталог/.test(lower)
-          ? "Commerce"
-          : /приложени|app|spa/.test(lower)
-            ? "Web application"
-            : "Website";
-    const pages = type === "Marketplace"
-      ? ["Home", "Search/results", "Listing detail", "Create listing", "Profile", "Messages"]
-      : type === "Dashboard"
-        ? ["Overview", "Records", "Details", "Settings"]
-        : ["Home", "About/Benefits", "Services or content", "Contact/CTA"];
-    const components = [
-      "Responsive header",
-      "Primary navigation",
-      "Task-specific content blocks",
-      "Interactive controls",
-      "Responsive mobile layout",
-      "Accessible focus and hover states",
-    ];
-    return {
-      goal: task.trim(),
-      productType: type,
-      targetUser: "The audience implied by the request",
-      pages,
-      components,
-      visualSystem: ["Distinct visual direction derived from the request", "Consistent typography", "Responsive spacing and hierarchy", "High-contrast interactive states"],
-      interactions: ["Primary CTA", "Navigation", "Task-specific controls", "Mobile interaction states"],
-      dataModel: type === "Marketplace" ? ["users", "listings", "categories", "messages", "favorites"] : ["content", "actions"],
-      filesToInspect: previousResults.some((item) => item.tool === "listFiles") ? ["."] : ["."],
-      filesToChange: ["The actual application entry file", "The actual stylesheet", "Supporting interaction/data files as required"],
-      acceptanceCriteria: [
-        "The requested product is visibly implemented, not a generic starter",
-        "The main user flow described by the request is interactive",
-        "The layout is responsive",
-        "The project builds successfully",
-        "No placeholder/demo NEXUM starter content remains",
-      ],
-    };
-  }
-
   private isPlanAlignedWithTask(task: string, plan: AgentPlan): boolean {
     const lower = task.toLowerCase();
     const construction = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
@@ -634,289 +519,6 @@ ${result.output}`
     return null;
   }
 
-  private fallbackApp(task: string): string {
-    const brief = task.replace(/\\s+/g, " ").trim().slice(0, 320);
-    const lower = task.toLowerCase();
-    const autoRepair = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lower);
-    const construction = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|бригада|грузчик|отделк|бетон|кровл|инженерн/.test(lower);
-
-    if (autoRepair) {
-      return `import { useState } from "react";
-
-const brief = ${JSON.stringify(brief)};
-const services = ["Диагностика автомобиля", "Ремонт двигателя", "Ремонт ходовой", "Тормозная система", "Замена масла и расходников", "Электрика и компьютерная диагностика"];
-
-export default function App() {
-  const [active, setActive] = useState("Услуги");
-  const sections = ["Услуги", "Диагностика", "Цены", "Отзывы", "Контакты"];
-
-  return (
-    <main className="auto-service-site">
-      <header className="topbar">
-        <div className="brand">AUTO<span>SERVICE</span></div>
-        <nav aria-label="Основная навигация">{sections.map((item) => <button key={item} className={active === item ? "tab active" : "tab"} onClick={() => setActive(item)}>{item}</button>)}</nav>
-        <button className="primary" onClick={() => setActive("Контакты")}>Записаться в сервис</button>
-      </header>
-      <section className="auto-hero">
-        <div>
-          <span className="kicker">АВТОСЕРВИС / ДИАГНОСТИКА / РЕМОНТ</span>
-          <h1>Ремонт автомобиля<br /><em>без лишних обещаний.</em></h1>
-          <p>{brief}</p>
-          <div className="hero-actions">
-            <button className="primary" onClick={() => setActive("Контакты")}>Записаться на диагностику</button>
-            <button className="secondary" onClick={() => setActive("Услуги")}>Услуги сервиса</button>
-          </div>
-        </div>
-        <div className="hero-facts"><div><strong>10+</strong><span>лет опыта</span></div><div><strong>01</strong><span>диагностика перед ремонтом</span></div><div><strong>100%</strong><span>согласование работ</span></div></div>
-      </section>
-      <section className="content-section"><span className="kicker">01 / УСЛУГИ</span><h2>Работы для автомобиля в одном сервисе.</h2><div className="cards">{services.map((item, index) => <article key={item}><b>0{index + 1}</b><h3>{item}</h3><p>Осмотр, диагностика, согласование работ и обслуживание автомобиля.</p></article>)}</div></section>
-      <section className="content-section"><span className="kicker">02 / ЗАПИСЬ</span><div className="contact-panel"><div><h2>Нужна диагностика или ремонт?</h2><p>Оставьте заявку — согласуем время визита и перечень работ.</p></div><button className="primary" onClick={() => setActive("Контакты")}>Оставить заявку</button></div></section>
-      <footer>Автосервис <span>Диагностика · Ремонт · Обслуживание</span></footer>
-    </main>
-  );
-}
-`;
-    }
-
-    if (construction) {
-      return `import { useState } from "react";
-
-const brief = ${JSON.stringify(brief)};
-const services = ["Демонтаж и подготовка", "Фасадные работы", "Внутренние работы", "Полы и стяжка"];
-const projects = ["Коммерческие объекты", "Жилые объекты", "Реконструкция и ремонт"];
-
-export default function App() {
-  const [active, setActive] = useState("Услуги");
-  const sections = ["Услуги", "Объекты", "О компании", "Контакты"];
-
-  return (
-    <main className="construction-site">
-      <header className="topbar">
-        <div className="brand">СТРОЙ<span>ПРОФИ</span></div>
-        <nav aria-label="Основная навигация">
-          {sections.map((item) => (
-            <button key={item} className={active === item ? "tab active" : "tab"} onClick={() => setActive(item)}>{item}</button>
-          ))}
-        </nav>
-        <button className="primary" onClick={() => setActive("Контакты")}>Рассчитать работу</button>
-      </header>
-
-      <section className="construction-hero">
-        <div>
-          <span className="kicker">СТРОИТЕЛЬНО-ПОДРЯДНАЯ КОМПАНИЯ</span>
-          <h1>Строительные работы<br /><em>под задачу объекта.</em></h1>
-          <p>{brief}</p>
-          <div className="hero-actions">
-            <button className="primary" onClick={() => setActive("Контакты")}>Получить расчёт</button>
-            <button className="secondary" onClick={() => setActive("Объекты")}>Посмотреть объекты</button>
-          </div>
-        </div>
-        <div className="hero-facts">
-          <div><strong>10+</strong><span>лет опыта</span></div>
-          <div><strong>Москва</strong><span>и область</span></div>
-          <div><strong>01</strong><span>ответственный подрядчик</span></div>
-        </div>
-      </section>
-
-      <section className="content-section">
-        <span className="kicker">01 / УСЛУГИ</span>
-        <h2>Работы, которые закрывают задачи объекта.</h2>
-        <div className="cards">{services.map((item, index) => <article key={item}><b>0{index + 1}</b><h3>{item}</h3><p>Организация работ, подготовка основания, контроль качества и сдача результата.</p></article>)}</div>
-      </section>
-
-      <section className="content-section">
-        <span className="kicker">02 / ОБЪЕКТЫ</span>
-        <h2>Опыт на разных типах объектов.</h2>
-        <div className="cards">{projects.map((item, index) => <article key={item}><b>0{index + 1}</b><h3>{item}</h3><p>Состав работ и технология подбираются после осмотра и технического задания.</p></article>)}</div>
-      </section>
-
-      <section className="content-section">
-        <span className="kicker">03 / КОНТАКТЫ</span>
-        <div className="contact-panel">
-          <div><h2>Нужен подрядчик?</h2><p>Оставьте задачу по объекту. Обсудим объём, сроки, состав работ и подготовим расчёт.</p></div>
-          <button className="primary" onClick={() => setActive("Контакты")}>Оставить заявку</button>
-        </div>
-      </section>
-
-      <footer>Строительная компания <span>Москва · Московская область</span></footer>
-    </main>
-  );
-}
-`;
-    }
-
-    const mode = /дашборд|dashboard|crm/.test(lower)
-      ? "workspace"
-      : /магазин|shop|store|marketplace|маркетплейс/.test(lower)
-        ? "catalog"
-        : /лендинг|landing|сайт|website/.test(lower)
-          ? "landing"
-          : "product";
-
-    const title = mode === "workspace" ? "Рабочее пространство" : mode === "catalog" ? "Каталог продукта" : mode === "landing" ? "Цифровой продукт" : "Новый продукт";
-    const sections = mode === "workspace" ? ["Обзор", "Рабочие данные", "Настройки"] : mode === "catalog" ? ["Каталог", "Описание", "Действие"] : ["Главный экран", "Возможности", "Следующий шаг"];
-
-    return `import { useState } from "react";
-
-const brief = ${JSON.stringify(brief)};
-const sections = ${JSON.stringify(sections)};
-
-export default function App() {
-  const [active, setActive] = useState(sections[0]);
-  return (
-    <main className="nexum-shell">
-      <header className="topbar"><div className="brand">NEXUM.DEV</div><div className="status">Preview</div></header>
-      <section className="hero-card"><span className="kicker">GENERATED FROM REQUEST</span><h1>{${JSON.stringify(title)}}</h1><p>{brief}</p><button className="primary" onClick={() => setActive(sections[1] ?? sections[0])}>Продолжить</button></section>
-      <nav className="tabs" aria-label="Разделы">{sections.map((item) => <button key={item} className={active === item ? "tab active" : "tab"} onClick={() => setActive(item)}>{item}</button>)}</nav>
-      <section className="panel"><span className="kicker">CURRENT SECTION</span><h2>{active}</h2><p>Секция создана как безопасная основа для дальнейшей реализации исходного запроса.</p></section>
-    </main>
-  );
-}
-`;
-  }
-
-  private fallbackStaticIndex(task: string): string {
-    const brief = this.escapeHtml(task.replace(/\\s+/g, " ").trim().slice(0, 260));
-    const lowerTask = task.toLowerCase();
-    const autoRepair = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lowerTask);
-    const construction = /строит|строитель|ремонт|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lowerTask);
-
-    if (autoRepair) {
-      return `<!doctype html>
-<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${brief}"><title>Автосервис — диагностика и ремонт</title><link rel="stylesheet" href="style.css"></head>
-<body>
-<header class="site-header"><a class="logo" href="#top">AUTO<span>SERVICE</span></a><nav><a href="#services">Услуги</a><a href="#diagnostics">Диагностика</a><a href="#prices">Цены</a><a href="#reviews">Отзывы</a><a href="#contact">Контакт</a></nav><a class="header-cta" href="#contact">Записаться</a></header>
-<main id="top"><section class="hero"><div class="eyebrow">АВТОСЕРВИС / ДИАГНОСТИКА / РЕМОНТ</div><h1>Ремонт автомобиля<br><em>без лишних обещаний.</em></h1><p>${brief}</p><div class="hero-actions"><a class="btn primary" href="#contact">Записаться на диагностику</a><a class="btn ghost" href="#services">Услуги сервиса</a></div></section>
-<section id="services" class="section"><div class="section-head"><span>01 / УСЛУГИ</span><h2>Основные направления ремонта.</h2></div><div class="cards"><article><b>01</b><h3>Диагностика</h3><p>Компьютерная и техническая диагностика перед ремонтом.</p></article><article><b>02</b><h3>Двигатель и ходовая</h3><p>Поиск неисправностей и ремонт основных узлов автомобиля.</p></article><article><b>03</b><h3>Тормоза и обслуживание</h3><p>Тормозная система, масла, расходники и плановое ТО.</p></article></div></section>
-<section id="diagnostics" class="section"><div class="section-head"><span>02 / ДИАГНОСТИКА</span><h2>Сначала определяем причину, затем согласовываем работы.</h2></div></section>
-<section id="prices" class="section"><div class="section-head"><span>03 / ЦЕНЫ</span><h2>Стоимость согласовывается до начала ремонта.</h2></div></section>
-<section id="reviews" class="section"><div class="section-head"><span>04 / ОТЗЫВЫ</span><h2>Отзывы клиентов и история обслуживания.</h2></div></section>
-<section id="contact" class="section"><div class="contact-panel"><div><h2>Записаться в автосервис</h2><p>Оставьте контакт и опишите проблему автомобиля.</p></div><a class="btn primary" href="tel:+70000000000">Связаться с сервисом</a></div></section></main>
-<footer>Автосервис · Диагностика · Ремонт · Обслуживание</footer></body></html>`;
-    }
-
-    if (construction) {
-      return `<!doctype html>
-<html lang="ru">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${brief}"><title>Строительная компания — подрядные работы</title><link rel="stylesheet" href="style.css"></head>
-<body>
-<header class="site-header"><a class="logo" href="#top">СТРОЙ<span>ПРОФИ</span></a><nav><a href="#services">Услуги</a><a href="#projects">Объекты</a><a href="#process">Процесс</a><a href="#contact">Контакт</a></nav><a class="header-cta" href="#contact">Получить расчёт</a></header>
-<main id="top">
-<section class="hero"><div class="eyebrow">СТРОИТЕЛЬНО-ПОДРЯДНАЯ КОМПАНИЯ / 2026</div><h1>Строительные работы<br><em>под задачу объекта.</em></h1><p>${brief}</p><div class="hero-actions"><a class="btn primary" href="#contact">Получить расчёт</a><a class="btn ghost" href="#projects">Посмотреть объекты</a></div><div class="hero-grid"><div><strong>10+</strong><span>лет опыта</span></div><div><strong>Москва</strong><span>и область</span></div><div><strong>01</strong><span>ответственный подрядчик</span></div></div></section>
-<section id="services" class="section"><div class="section-head"><span>01 / УСЛУГИ</span><h2>Основные виды строительных работ.</h2></div><div class="cards"><article><b>01</b><h3>Демонтаж</h3><p>Демонтаж конструкций, перегородок, полов и подготовка помещений к следующему этапу.</p></article><article><b>02</b><h3>Фасадные работы</h3><p>Фасадные работы и подготовка поверхностей с организацией работ на объекте.</p></article><article><b>03</b><h3>Внутренние работы</h3><p>Полы, стяжка, штукатурка, потолки, перегородки и другие работы по заданию.</p></article></div></section>
-<section id="projects" class="section"><div class="section-head"><span>02 / ОБЪЕКТЫ</span><h2>Работаем с коммерческими и жилыми объектами.</h2></div><div class="cases"><article><div class="case-no">01</div><h3>Коммерческие объекты</h3><p>Работы по подготовке, реконструкции и ремонту помещений.</p></article><article><div class="case-no">02</div><h3>Жилые объекты</h3><p>Демонтаж, подготовка и отделочные работы.</p></article><article><div class="case-no">03</div><h3>Реконструкция</h3><p>Комплекс работ под техническое задание и график объекта.</p></article></div></section>
-<section id="process" class="section"><div class="section-head"><span>03 / ПРОЦЕСС</span><h2>От задачи до сдачи работ.</h2></div><div class="process"><div><b>01</b><h3>Заявка</h3><p>Получаем задачу, площадь и адрес объекта.</p></div><div><b>02</b><h3>Расчёт</h3><p>Определяем объём работ, сроки и состав бригады.</p></div><div><b>03</b><h3>Работы</h3><p>Организуем производство и контроль на объекте.</p></div><div><b>04</b><h3>Сдача</h3><p>Закрываем этап и передаём результат заказчику.</p></div></div></section>
-<section id="contact" class="section contact"><div><span>04 / КОНТАКТ</span><h2>Нужен подрядчик на объект?</h2><p>Опишите объект и необходимый объём работ — подготовим следующий шаг по заявке.</p></div><form id="lead-form"><input name="name" required placeholder="Имя / компания"><input name="contact" required placeholder="Телефон / Telegram / email"><textarea name="task" required placeholder="Объект, площадь и требуемые работы"></textarea><button class="btn primary" type="submit">Получить расчёт</button><p id="form-state" role="status"></p></form></section>
-</main><footer>Строительная компания <span>Москва · Московская область</span></footer><script src="app.js"></script>
-</body></html>`;
-    }
-
-    return `<!doctype html>
-<html lang="ru">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${brief}"><title>NEXUM.DEV — Digital studio</title><link rel="stylesheet" href="style.css"></head>
-<body>
-<header class="site-header"><a class="logo" href="#top">NEXUM<span>.DEV</span></a><nav><a href="#services">Услуги</a><a href="#cases">Кейсы</a><a href="#process">Процесс</a><a href="#contact">Контакт</a></nav><a class="header-cta" href="#contact">Обсудить проект</a></header>
-<main id="top"><section class="hero"><div class="eyebrow">DIGITAL STUDIO / 2026</div><h1>Цифровые продукты,<br><em>которые работают.</em></h1><p>${brief}</p><div class="hero-actions"><a class="btn primary" href="#cases">Смотреть кейсы</a><a class="btn ghost" href="#contact">Обсудить проект</a></div><div class="hero-grid"><div><strong>01</strong><span>Web products</span></div><div><strong>02</strong><span>AI automation</span></div><div><strong>03</strong><span>Digital systems</span></div></div></section>
-<section id="services" class="section"><div class="section-head"><span>01 / SERVICES</span><h2>От идеи до рабочего продукта.</h2></div><div class="cards"><article><b>01</b><h3>Сайты</h3><p>Лендинги и корпоративные сайты.</p></article><article><b>02</b><h3>Веб-приложения</h3><p>Кабинеты, CRM и внутренние сервисы.</p></article><article><b>03</b><h3>AI-автоматизация</h3><p>AI-агенты и автоматизация процессов.</p></article></div></section>
-<section id="cases" class="section"><div class="section-head"><span>02 / CASES</span><h2>Продукты и интерфейсы.</h2></div><div class="cases"><article><div class="case-no">01</div><h3>NEXUM.DEV</h3><p>AI-платформа для цифровых продуктов.</p></article><article><div class="case-no">02</div><h3>GRUZLI</h3><p>Marketplace для диспетчеров, грузчиков и заказчиков.</p></article><article><div class="case-no">03</div><h3>AI SYSTEMS</h3><p>Автоматизация бизнес-процессов.</p></article></div></section>
-<section id="process" class="section"><div class="section-head"><span>03 / PROCESS</span><h2>Четыре шага до запуска.</h2></div><div class="process"><div><b>01</b><h3>Бриф</h3><p>Фиксируем задачу.</p></div><div><b>02</b><h3>Архитектура</h3><p>Проектируем структуру.</p></div><div><b>03</b><h3>Разработка</h3><p>Собираем продукт.</p></div><div><b>04</b><h3>Запуск</h3><p>Проверяем и передаём.</p></div></div></section>
-<section id="contact" class="section contact"><div><span>04 / CONTACT</span><h2>Расскажите, что нужно построить.</h2></div><form id="lead-form"><input name="name" required placeholder="Имя"><input name="contact" required placeholder="Telegram / телефон / email"><textarea name="task" required placeholder="Коротко опишите задачу"></textarea><button class="btn primary" type="submit">Отправить заявку</button><p id="form-state" role="status"></p></form></section>
-</main><footer>NEXUM.DEV <span>Digital products & AI</span></footer><script src="app.js"></script></body></html>`;
-  }
-
-  private fallbackStaticStyles(): string {
-    return `:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;background:#f6f6f3;font-synthesis:none;scroll-behavior:smooth}
-*{box-sizing:border-box}body{margin:0;min-width:320px;background:#f6f6f3}a{color:inherit;text-decoration:none}button,input,textarea{font:inherit}.site-header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 5vw;border-bottom:1px solid #ddd;background:rgba(246,246,243,.84);backdrop-filter:blur(18px)}.logo{font-weight:900;letter-spacing:-.04em}.logo span{color:#888}.site-header nav{display:flex;gap:24px;font-size:13px;color:#555}.header-cta,.btn{border-radius:999px;padding:12px 18px;border:1px solid #111}.header-cta{font-size:13px;background:#111;color:#fff}.hero,.section{width:min(1180px,90vw);margin:auto}.hero{padding:12vh 0 9vh;min-height:82vh}.eyebrow,.section-head>span{font-size:11px;font-weight:800;letter-spacing:.16em;color:#777}.hero h1{font-size:clamp(52px,9vw,122px);line-height:.9;letter-spacing:-.07em;max-width:1050px;margin:22px 0}.hero h1 em{font-style:normal;color:#777}.hero p{max-width:650px;font-size:20px;line-height:1.5;color:#555}.hero-actions{display:flex;gap:10px;margin-top:30px}.btn{display:inline-block;cursor:pointer}.primary{background:#111;color:#fff}.ghost{background:transparent}.hero-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#ddd;margin-top:80px}.hero-grid div{padding:22px;background:#f6f6f3;display:flex;justify-content:space-between}.hero-grid span{color:#777}.section{padding:100px 0;border-top:1px solid #ddd}.section-head{display:flex;justify-content:space-between;gap:30px;margin-bottom:42px}.section h2{font-size:clamp(36px,5vw,70px);line-height:.95;letter-spacing:-.06em;margin:0;max-width:760px}.cards,.cases,.process{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.cards article,.cases article,.process div{border:1px solid #ddd;background:#fff;border-radius:24px;padding:28px;min-height:220px}.cards b,.process b{color:#999}.cards h3,.cases h3,.process h3{font-size:28px;margin:60px 0 10px}.cards p,.cases p,.process p{color:#666;line-height:1.5}.cases article a{font-size:13px;font-weight:800}.process{grid-template-columns:repeat(4,1fr)}.process h3{margin-top:50px;font-size:24px}.tech-list{display:flex;flex-wrap:wrap;gap:10px}.tech-list span{padding:14px 18px;border:1px solid #ccc;border-radius:999px;background:#fff}.contact{display:grid;grid-template-columns:1fr 1fr;gap:60px}.contact form{display:grid;gap:10px}.contact input,.contact textarea{width:100%;padding:15px 16px;border:1px solid #ccc;border-radius:14px;background:#fff;outline:none}.contact textarea{min-height:150px;resize:vertical}.contact button{border:0}.contact #form-state{min-height:24px;color:#555;font-size:13px}footer{display:flex;justify-content:space-between;padding:30px 5vw;border-top:1px solid #ddd;color:#777;font-size:12px}@media(max-width:760px){.site-header nav{display:none}.header-cta{padding:10px 13px}.hero{padding-top:8vh}.hero-grid,.cards,.cases,.process,.contact{grid-template-columns:1fr}.section-head{display:block}.section-head>span{display:block;margin-bottom:18px}.hero h1{font-size:clamp(48px,15vw,80px)}.hero-actions{flex-wrap:wrap}}`;
-  }
-  private fallbackStaticJs(): string {
-    return `const form=document.querySelector("#lead-form");const state=document.querySelector("#form-state");
-form?.addEventListener("submit",(event)=>{event.preventDefault();const data=Object.fromEntries(new FormData(form).entries());localStorage.setItem("nexum:lead",JSON.stringify({...data,savedAt:new Date().toISOString()}));form.reset();if(state)state.textContent="Заявка сохранена. Мы свяжемся с вами.";});
-document.querySelectorAll('a[href^="#"]').forEach((link)=>link.addEventListener("click",(event)=>{const id=link.getAttribute("href");if(!id||id==="#")return;const target=document.querySelector(id);if(target){event.preventDefault();target.scrollIntoView({behavior:"smooth",block:"start"});}}));`;
-  }
-
-  private fallbackStyles(): string {
-    return `.construction-site{min-height:100vh;background:#f3f3f0;color:#111}.construction-site .topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 5vw;border-bottom:1px solid #ddd;background:rgba(255,255,255,.86);position:sticky;top:0;z-index:20}.construction-site .topbar nav{display:flex;gap:6px}.construction-site .brand{font-weight:900;letter-spacing:-.04em}.construction-site .brand span{color:#999}.construction-site .construction-hero,.construction-site .content-section{width:min(1180px,90vw);margin:auto}.construction-site .construction-hero{min-height:78vh;padding:10vh 0 8vh;display:flex;flex-direction:column;justify-content:space-between}.construction-site .construction-hero h1{font-size:clamp(48px,8vw,110px);line-height:.9;letter-spacing:-.07em;margin:20px 0}.construction-site .construction-hero h1 em{font-style:normal;color:#777}.construction-site .construction-hero p{max-width:720px;font-size:19px;line-height:1.55;color:#555}.construction-site .kicker{font-size:11px;font-weight:900;letter-spacing:.15em;color:#777}.construction-site .hero-actions{display:flex;gap:10px;margin-top:28px}.construction-site .hero-facts{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #ccc;margin-top:70px}.construction-site .hero-facts div{padding:20px 0;border-right:1px solid #ccc}.construction-site .hero-facts strong,.construction-site .hero-facts span{display:block}.construction-site .hero-facts strong{font-size:30px}.construction-site .hero-facts span{color:#777;font-size:13px;margin-top:6px}.construction-site .content-section{padding:90px 0;border-top:1px solid #ddd}.construction-site .content-section h2{font-size:clamp(36px,5vw,68px);line-height:.95;letter-spacing:-.06em;max-width:800px}.construction-site .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.construction-site .cards article{background:#fff;border:1px solid #ddd;border-radius:24px;padding:26px;min-height:190px}.construction-site .cards b{color:#999}.construction-site .cards h3{font-size:25px;margin-top:55px}.construction-site .cards p{color:#666;line-height:1.5}.construction-site .contact-panel{display:flex;justify-content:space-between;align-items:center;gap:30px;background:#fff;border:1px solid #ddd;border-radius:24px;padding:32px}.construction-site .primary,.construction-site .secondary,.construction-site .tab{border:0;border-radius:999px;cursor:pointer;padding:11px 16px}.construction-site .primary{background:#111;color:#fff}.construction-site .secondary{background:#e9e9e5;color:#111}.construction-site .tab{background:transparent;color:#666}.construction-site .tab.active{background:#111;color:#fff}.construction-site footer{display:flex;justify-content:space-between;padding:30px 5vw;border-top:1px solid #ddd;color:#777;font-size:12px}
-@media(max-width:760px){.construction-site .topbar nav{display:none}.construction-site .construction-hero,.construction-site .content-section{width:min(100% - 28px,1180px)}.construction-site .construction-hero{padding-top:8vh}.construction-site .hero-facts,.construction-site .cards{grid-template-columns:1fr}.construction-site .hero-facts div{border-right:0;border-bottom:1px solid #ccc}.construction-site .contact-panel{display:block}.construction-site .contact-panel .primary{margin-top:20px}}
-
-:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;background:#f3f3f0;font-synthesis:none}
-*{box-sizing:border-box}
-body{margin:0;min-width:320px;background:linear-gradient(180deg,#fafaf8 0%,#eeeeea 100%)}
-button{font:inherit}
-.nexum-shell{min-height:100vh}
-.topbar{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;border-bottom:1px solid #deded8;background:rgba(255,255,255,.72);backdrop-filter:blur(18px);position:sticky;top:0;z-index:10}
-.brand{font-size:13px;font-weight:900;letter-spacing:.14em}.brand span{margin:0 5px;color:#999}.status{font-size:12px;color:#5d5d59}
-.content{width:min(1180px,calc(100% - 36px));margin:auto;padding:36px 0 80px}
-.hero-card{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;padding:42px;border:1px solid #dddcd5;border-radius:28px;background:#fff;box-shadow:0 18px 60px rgba(0,0,0,.06)}
-.kicker{font-size:11px;font-weight:900;letter-spacing:.15em;color:#888}
-h1{max-width:760px;margin:12px 0 10px;font-size:clamp(44px,7vw,82px);line-height:.92;letter-spacing:-.06em}
-.hero-card p{max-width:680px;margin:0;color:#666;font-size:18px;line-height:1.55}
-.primary,.secondary,.tab{border:0;cursor:pointer;border-radius:14px}.primary{padding:13px 18px;background:#111;color:#fff;font-weight:800;white-space:nowrap}.secondary{padding:10px 14px;background:#f1f1ed;color:#111}
-.tabs{display:flex;gap:8px;margin:18px 0}.tab{padding:10px 14px;background:transparent;color:#777}.tab.active{background:#111;color:#fff}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.metric{padding:24px;border:1px solid #deded8;border-radius:20px;background:rgba(255,255,255,.8)}.metric span,.metric small{display:block;color:#777}.metric strong{display:block;margin:18px 0 5px;font-size:34px;letter-spacing:-.04em}
-.panel{margin-top:12px;padding:26px;border:1px solid #deded8;border-radius:24px;background:#fff}.panel-head{display:flex;align-items:center;justify-content:space-between}.panel h2{margin:7px 0 0;font-size:28px;letter-spacing:-.04em}.rows{margin-top:22px}.row{display:flex;justify-content:space-between;padding:17px 0;border-top:1px solid #ecece7}.pill{padding:5px 9px;border-radius:999px;background:#eee;color:#555;font-size:11px;font-weight:800}
-@media(max-width:720px){.topbar{padding:0 18px}.content{width:min(100% - 24px,1180px);padding-top:18px}.hero-card{padding:26px;display:block}.primary{margin-top:22px}.grid{grid-template-columns:1fr}.tabs{overflow:auto}}
-`;
-  }
-
-  private selectDeterministicImplementation(task: string, previousResults: AgentToolResult[]): { name: string; input: string } | null {
-    const normalized = task.toLowerCase();
-    const builder = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|website|landing|web app|страниц/.test(normalized);
-    if (!builder) return null;
-
-    const inspection = previousResults
-      .filter((item) => item.tool === "listFiles" && item.result.success)
-      .map((item) => item.result.output)
-      .join("\n");
-    if (!inspection) return null;
-
-    const reactApp = inspection.includes("src/App.tsx") || inspection.includes("src/App.jsx");
-    const appPath = inspection.includes("src/App.tsx") ? "src/App.tsx" : "src/App.jsx";
-    const cssPath = inspection.includes("src/App.css")
-      ? "src/App.css"
-      : inspection.includes("src/styles.css")
-        ? "src/styles.css"
-        : inspection.includes("style.css")
-          ? "style.css"
-          : reactApp ? "src/App.css" : null;
-
-    if (reactApp && cssPath) {
-      const appWritten = previousResults.some(
-        (item) => item.tool === "writeFile" && item.result.success && item.input.includes(appPath),
-      );
-      if (!appWritten) {
-        const cssImport = cssPath.startsWith("src/") ? cssPath.slice(4) : cssPath;
-        const app = this.fallbackApp(task).replace(
-          /import \{ useState \} from "react";/,
-          'import { useState } from "react";\nimport "./' + cssImport + '";',
-        );
-        return { name: "writeFile", input: JSON.stringify({ path: appPath, content: app }) };
-      }
-
-      const cssWritten = previousResults.some(
-        (item) => item.tool === "writeFile" && item.result.success && item.input.includes(cssPath),
-      );
-      if (!cssWritten) {
-        return { name: "writeFile", input: JSON.stringify({ path: cssPath, content: this.fallbackStyles() }) };
-      }
-    }
-
-    if (inspection.includes("index.html") && inspection.includes("style.css")) {
-      const indexWritten = previousResults.some(
-        (item) => item.tool === "writeFile" && item.result.success && item.input.includes("index.html"),
-      );
-      if (!indexWritten) {
-        return { name: "writeFile", input: JSON.stringify({ path: "index.html", content: this.fallbackStaticIndex(task) }) };
-      }
-      const cssWritten = previousResults.some(
-        (item) => item.tool === "writeFile" && item.result.success && item.input.includes("style.css"),
-      );
-      if (!cssWritten) {
-        return { name: "writeFile", input: JSON.stringify({ path: "style.css", content: this.fallbackStaticStyles() }) };
-      }
-    }
-
-    return null;
-  }
   private selectTool(task: string, previousResults: AgentToolResult[] = []): { name: string; input: string } | null {
     const normalizedTask = task.toLowerCase();
 
@@ -1098,18 +700,3 @@ h1{max-width:760px;margin:12px 0 10px;font-size:clamp(44px,7vw,82px);line-height
   }
 
   private extractGitHubOperation(task: string): string {
-    const normalizedTask = task.toLowerCase();
-    const pullRequestNumber = normalizedTask.match(/(?:pull request|pull|pr)\s*#?\s*(\d+)/i)?.[1];
-    const issueNumber = normalizedTask.match(/(?:issue|issues|проблем|задач)\s*#?\s*(\d+)/i)?.[1];
-    const commitIdentifier = normalizedTask.match(/(?:commit|коммит(?:е|а|ом)?)\s+([a-f0-9]{7,40})\b/i)?.[1];
-
-    if (pullRequestNumber) return `pullRequest:${pullRequestNumber}`;
-    if (issueNumber) return `issue:${issueNumber}`;
-    if (commitIdentifier) return `commit:${commitIdentifier}`;
-    if (/pull requests?|pull request|\bpr\b/.test(normalizedTask)) return "pullRequests";
-    if (/issues?|проблем|задач/.test(normalizedTask)) return "issues";
-    if (/ветк|branches?/.test(normalizedTask)) return "branches";
-    if (/коммит|commit/.test(normalizedTask)) return "commits";
-    return "repository";
-  }
-}
