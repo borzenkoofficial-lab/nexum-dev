@@ -23,7 +23,6 @@ export function TopBar({ projectName, aiStatus, stage }: TopBarProps) {
           {aiStatus?.available && aiStatus.latencyMs != null ? <small>{aiStatus.latencyMs}ms</small> : null}
         </div>
         <div className={"status " + (stage ? "status-working" : "")} role="status" aria-live="polite"><span className="status-dot" aria-hidden="true">●</span> {stageLabel}</div>
-        <button className="topbar-more" type="button" aria-label="Дополнительные действия">•••</button>
       </div>
     </header>
   );
