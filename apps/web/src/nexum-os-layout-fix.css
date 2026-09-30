@@ -153,11 +153,8 @@
   }
 }
 
-/* Never allow a legacy child to create a horizontal page offset. */
-.app-project *{
-  max-width:100%;
-}
-
+/* Media must remain contained, but interactive/layout children keep their
+   intrinsic sizing so the shell does not depend on a blanket max-width hack. */
 .app-project img,
 .app-project iframe,
 .app-project video,
