@@ -265,10 +265,11 @@ async function runChatJob(
       attachmentContext.length ? `ATTACHED FILES:\n${attachmentContext.join("\n\n")}` : "",
     ].filter(Boolean).join("\n\n");
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
-    const agent = new NexumAgent(getAIGatewayForUser(userId), project.path);
+    const userGateway = getAIGatewayForUser(userId);
+    const agent = new NexumAgent(userGateway, project.path);
     const agentLoop = new AgentLoop(
       agent,
-      aiGateway,
+      userGateway,
       undefined,
       (step) => {
         job.steps = [...(job.steps ?? []), step];
