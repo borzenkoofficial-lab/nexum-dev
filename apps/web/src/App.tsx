@@ -238,7 +238,7 @@ function App() {
       window.removeEventListener("unhandledrejection", onRejection);
       window.removeEventListener("message", onПредпросмотрMessage);
     };
-  }, []);
+  }, [activeПроектId]);
 
   useEffect(() => {
     try {
@@ -442,7 +442,7 @@ function App() {
       setRightTab("agent");
       setWorkspaceMode("agent");
       setCodeMode(false);
-      setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false }));
+      setProjectWindowMinimizedByProject((items) => ({ ...items, [responseData.project.id]: false }));
       navigate("project", responseData.project.id);
       const buildBrief = [
         `Создай новый проект типа «${responseData.project.type ?? data.type}».`,
