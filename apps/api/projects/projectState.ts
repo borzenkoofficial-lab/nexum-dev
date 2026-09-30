@@ -1,5 +1,6 @@
 import { access, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { createHash } from "node:crypto";
 import type { ProductPlan } from "../agent/types.js";
 
 export interface ProjectState {
@@ -22,6 +23,8 @@ export interface ProjectState {
   architecture: string[];
   designSystem: string[];
   routes: string[];
+  sourceRevision: string;
+  previewRevision?: string | null;
   updatedAt: string;
 }
 
@@ -70,6 +73,8 @@ export class ProjectStateManager {
       architecture: plan ? [`${plan.productType}: ${plan.pages.join(", ")}`, ...plan.components].slice(0, 50) : previous?.architecture ?? [],
       designSystem: plan?.visualSystem ?? previous?.designSystem ?? [],
       routes: plan?.pages ?? previous?.routes ?? [],
+      sourceRevision: await this.computeSourceRevision(files),
+      previewRevision: previous?.previewRevision ?? null,
       updatedAt: new Date().toISOString(),
     };
     await this.write(state);
@@ -79,6 +84,7 @@ export class ProjectStateManager {
   async markBuildSucceeded(): Promise<ProjectState> {
     const state = (await this.read()) ?? await this.refresh();
     state.lastSuccessfulBuildAt = new Date().toISOString();
+    state.previewRevision = await this.computeSourceRevision(await this.collectFiles());
     state.lastFailedTool = null;
     state.updatedAt = new Date().toISOString();
     await this.write(state);
@@ -96,6 +102,20 @@ export class ProjectStateManager {
   private async write(state: ProjectState) {
     await (await import("node:fs/promises")).mkdir(resolve(this.projectRoot, ".nexum"), { recursive: true });
     await writeFile(this.path, JSON.stringify(state, null, 2) + "\n", "utf8");
+  }
+
+  private async computeSourceRevision(files: string[]): Promise<string> {
+    const hash = createHash("sha256");
+    for (const file of files) {
+      if (file === ".nexum/state.json") continue;
+      const absolute = resolve(this.projectRoot, file);
+      const content = await readFile(absolute);
+      hash.update(file);
+      hash.update("\0");
+      hash.update(content);
+      hash.update("\0");
+    }
+    return hash.digest("hex");
   }
 
   private async exists(relativePath: string) {
