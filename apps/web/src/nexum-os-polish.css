@@ -315,3 +315,42 @@
 @media(prefers-reduced-motion:reduce){
   .os-window-status{transition:none}
 }
+
+
+/* Workspace app layers: keep Builder and Code alive while switching modes. */
+.os-workspace-stage {
+  position: relative;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.os-workspace-layer {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateZ(0);
+  transition: opacity 160ms ease, visibility 0s linear 0s;
+}
+.os-workspace-layer[aria-hidden="true"] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 120ms ease, visibility 0s linear 120ms;
+}
+.os-workspace-layer > .workspace,
+.os-workspace-layer > .code-panel {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.os-workspace-code {
+  background: var(--os-surface, rgba(255,255,255,.72));
+}
+@media (prefers-reduced-motion: reduce) {
+  .os-workspace-layer { transition: none; }
+}
