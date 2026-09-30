@@ -108,9 +108,9 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
         <div className="nexum-boot-center">
           <div className="nexum-logo-mark" aria-label="NEXUM OS"><span>N</span></div>
           <div className="nexum-boot-word">NEXUM <span>OS</span></div>
-          <p>{ready ? "Рабочее пространство создано." : "Завершаем настройку вашего пространства…"}</p>
+          <p>{ready ? "Рабочий стол готов." : "Запуск рабочего пространства…"}</p>
           <div className="nexum-boot-progress"><i style={{ width: `${bootProgress}%` }} /></div>
-          <div className="nexum-boot-status">{ready ? "ГОТОВО" : bootProgress < 40 ? "СОЗДАНИЕ ПРОФИЛЯ" : bootProgress < 78 ? "ПОДКЛЮЧЕНИЕ ПРОСТРАНСТВА" : "ЗАПУСК РАБОЧЕГО СТОЛА"}</div>
+          <div className="nexum-boot-status">{ready ? "СИСТЕМА ГОТОВА" : bootProgress < 32 ? "ЗАПУСК ЯДРА" : bootProgress < 62 ? "ЗАГРУЗКА ПРОСТРАНСТВА" : bootProgress < 90 ? "ПОДГОТОВКА РАБОЧЕГО СТОЛА" : "ПОЧТИ ГОТОВО"}</div>
         </div>
       </main>
     );
