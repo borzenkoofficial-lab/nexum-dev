@@ -41,6 +41,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   const [editorError, setEditorError] = useState("");
   const [previewError, setPreviewError] = useState("");
   const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
+  const previewListenerCleanupRef = useRef<(() => void) | null>(null);
   const touchStartX = useRef<number | null>(null);
   const touchDeltaX = useRef(0);
   const swipeSurfaceRef = useRef<HTMLElement | null>(null);
@@ -124,6 +125,10 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
 
   useEffect(() => {
     setPreviewError("");
+    return () => {
+      previewListenerCleanupRef.current?.();
+      previewListenerCleanupRef.current = null;
+    };
   }, [projectId, previewKey, previewOnline]);
 
   function handlePreviewLoad() {
@@ -153,16 +158,15 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
       }).catch(() => undefined);
     };
 
-    frameWindow.addEventListener("error", handleError);
-    frameWindow.addEventListener("unhandledrejection", handleRejection);
-
-    // The listeners belong to this iframe document. Remove them when that
-    // document is replaced by the next preview refresh/load.
+    previewListenerCleanupRef.current?.();
     const cleanup = () => {
       frameWindow.removeEventListener("error", handleError);
       frameWindow.removeEventListener("unhandledrejection", handleRejection);
+      if (previewListenerCleanupRef.current === cleanup) previewListenerCleanupRef.current = null;
     };
-    window.setTimeout(cleanup, 5 * 60 * 1000);
+    previewListenerCleanupRef.current = cleanup;
+    frameWindow.addEventListener("error", handleError);
+    frameWindow.addEventListener("unhandledrejection", handleRejection);
   }
 
   const previewBuildLabel = stage === "building" || stage === "editing" ? "BUILDING" : stage === "testing" ? "VERIFYING" : previewOnline ? "LIVE" : "WAITING";
