@@ -1,4 +1,5 @@
 import type { AIProvider, AIProviderStatus, AIModelCapabilities } from "./types.js";
+import { classifyAIError } from "../core/errors.js";
 
 export interface GatewayGenerateOptions {
   provider?: string;
@@ -139,8 +140,9 @@ export class AIGateway {
         fallback: false,
       };
     } catch (error) {
+      const normalizedError = classifyAIError(error);
       const fallbackId = this.fallbackProviderId;
-      const reason = error instanceof Error ? error.message : "AI provider request failed";
+      const reason = normalizedError.message;
       const explicitProvider = typeof options === "string" || normalizedOptions.provider !== undefined;
       if (
         normalizedOptions.fallback === false ||
@@ -149,7 +151,7 @@ export class AIGateway {
         fallbackId === provider.id ||
         !this.isTransientProviderError(reason)
       ) {
-        throw error;
+        throw normalizedError;
       }
 
       const fallback = this.providers.get(fallbackId);
@@ -164,15 +166,19 @@ export class AIGateway {
       };
       this.onFallback?.(event);
 
-      return {
-        response: await fallback.generate(localizedMessage, fallback.model, {
-          ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
-          ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
-        }),
-        provider: fallback.id,
-        model: fallback.model,
-        fallback: true,
-      };
+      try {
+        return {
+          response: await fallback.generate(localizedMessage, fallback.model, {
+            ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
+            ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
+          }),
+          provider: fallback.id,
+          model: fallback.model,
+          fallback: true,
+        };
+      } catch (fallbackError) {
+        throw classifyAIError(fallbackError);
+      }
     }
   }
 
