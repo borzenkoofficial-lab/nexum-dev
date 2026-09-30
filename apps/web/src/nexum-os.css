@@ -3326,3 +3326,38 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
   .nexum-os-project-chip,
   .nexum-os-switcher-card{transition:none}
 }
+
+
+/* NEXUM OS 4.2 — event center controls */
+.nexum-os-event-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.nexum-os-event-head strong{
+  min-width:0;
+  display:flex;
+  align-items:center;
+}
+.nexum-os-event-head button{
+  flex:0 0 auto;
+  width:24px;height:24px;
+  display:grid;place-items:center;
+  border:1px solid rgba(20,22,28,.07);
+  border-radius:8px;
+  background:rgba(255,255,255,.62);
+  color:#7b8088;
+  font-size:16px;
+  line-height:1;
+  cursor:pointer;
+}
+.nexum-os-event-head button:hover{
+  background:#fff;
+  color:#17181c;
+}
+.nexum-os-event-success .nexum-os-event-dot{background:#22a06b}
+.nexum-os-event-error .nexum-os-event-dot{background:#d45448}
+@media(pointer:coarse){
+  .nexum-os-event-head button{width:30px;height:30px}
+}
