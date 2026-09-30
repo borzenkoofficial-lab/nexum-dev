@@ -88,6 +88,7 @@ export function StatusBar({
             onClick={actions[key]}
             title={label}
             aria-label={label}
+            aria-current={((key === "home" && activeView === "home") || (key === "projects" && (activeView === "home" || activeView === "project")) || (key !== "home" && key !== "projects" && activeView === key)) ? "page" : undefined}
           >
             <span className="status-menu-icon"><MenuIcon name={icon} /></span>
             <span className="status-menu-label">{label}</span>
@@ -99,11 +100,17 @@ export function StatusBar({
           <span className="status-menu-label">Новый</span>
         </button>
       </div>
-      <div className="status-runtime">
-        <span className="status-runtime-project">{projectName}</span>
-        <span className={`status-runtime-dot ${aiStatus?.available ? "online" : "offline"}`} />
-        <span>{aiStatus?.available ? provider + " · онлайн" : provider + " · офлайн"}</span>
-        <span className={`status-runtime-preview ${previewOnline ? "online" : "offline"}`}>{previewOnline ? "Preview" : "Offline"}</span>
+      <div className="status-runtime" aria-label="Состояние системы">
+        <span className="status-runtime-project" title={projectName}>{projectName}</span>
+        <span className="status-runtime-divider" aria-hidden="true" />
+        <span className={`status-runtime-ai ${aiStatus?.available ? "online" : "offline"}`}>
+          <span className={`status-runtime-dot ${aiStatus?.available ? "online" : "offline"}`} aria-hidden="true" />
+          <span>{aiStatus?.available ? provider + " · онлайн" : provider + " · офлайн"}</span>
+        </span>
+        <span className={`status-runtime-preview ${previewOnline ? "online" : "offline"}`}>
+          <span className="status-runtime-preview-dot" aria-hidden="true" />
+          <span>{previewOnline ? "Preview" : "Offline"}</span>
+        </span>
       </div>
     </footer>
   );
