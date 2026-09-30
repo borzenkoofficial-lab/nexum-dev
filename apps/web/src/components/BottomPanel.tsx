@@ -34,8 +34,15 @@ const labels: Record<string, string> = {
 export function BottomPanel({ jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan, onOpenPreview, onBackToChat, onRepair }: BottomPanelProps) {
   const live = Boolean(jobId) && stage !== "completed" && stage !== "error";
   const order = ["analyzing", "planning", "editing", "testing", "completed"];
-  const stageIndex = order.indexOf(stage ?? "");
-  const effectiveIndex = stage === "thinking" || stage === "reading" || stage === "running" || stage === "building" ? Math.max(stageIndex, 0) : stageIndex;
+  const stageMap: Record<string, string> = {
+    thinking: "analyzing",
+    reading: "analyzing",
+    running: "planning",
+    building: "editing",
+  };
+  const normalizedStage = stageMap[stage ?? ""] ?? stage ?? "";
+  const stageIndex = order.indexOf(normalizedStage);
+  const effectiveIndex = stageIndex;
   return <div className={`agent-panel agent-stage-${stage ?? "idle"}`} data-stage={stage ?? "idle"}>
     <div className="agent-panel-header">
       <div><span className="eyebrow">ИИ-АГЕНТ</span><h2>{live ? "Агент работает" : stage === "completed" ? "Работа завершена" : stage === "error" ? "Агент остановлен" : "Агент готов"}</h2></div>
@@ -58,7 +65,7 @@ export function BottomPanel({ jobId, stage, activitySteps, activityEvents, curre
         ["completed", "Готово"],
       ] as const).map(([item, title], index) => {
         const done = stage === "completed" || (effectiveIndex >= 0 && index < effectiveIndex);
-        return <div key={item} className={`pipeline-step ${stage === item ? "active" : ""} ${done ? "done" : ""}`}><i>{done ? "✓" : index + 1}</i><span>{title}</span>{index < 4 && <b aria-hidden="true">→</b>}</div>;
+        return <div key={item} className={`pipeline-step ${normalizedStage === item ? "active" : ""} ${done ? "done" : ""}`}><i>{done ? "✓" : index + 1}</i><span>{title}</span>{index < 4 && <b aria-hidden="true">→</b>}</div>;
       })}
     </div>
     {problems.length > 0 && <div className="agent-problems">{problems.map((problem, index) => <div key={index}><strong>!</strong><span>{problem.source ? `${problem.source}: ` : ""}{problem.message}</span></div>)}</div>}
