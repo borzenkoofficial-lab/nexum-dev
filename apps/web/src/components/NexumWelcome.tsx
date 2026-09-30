@@ -40,12 +40,20 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
     return () => window.clearTimeout(timer);
   }, [phase, onComplete]);
 
+  function startDemoLogin() {
+    if (isBooting) return;
+    setError("");
+    try { localStorage.setItem("nexum:onboarding-complete", "1"); } catch {}
+    setPhase("booting");
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (isBooting) return; setError(""); setPhase("creating");
+    event.preventDefault();
+    if (mode === "login") { startDemoLogin(); return; }
+    if (isBooting) return;
+    setError(""); setPhase("creating");
     try {
-      const endpoint = mode === "register" ? "/api/auth/register" : "/api/auth/login";
-      const body = mode === "register" ? { name: name.trim(), email: email.trim(), password } : { email: email.trim(), password };
-      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
+      const response = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: name.trim(), email: email.trim(), password }) });
       const data = await response.json().catch(() => ({})) as { success?: boolean; error?: string | { message?: string } };
       if (!response.ok || !data.success) { const message = typeof data.error === "string" ? data.error : data.error?.message; throw new Error(message || "Не удалось создать сессию NEXUM."); }
       try { localStorage.setItem("nexum:onboarding-complete", "1"); } catch {}
@@ -67,7 +75,7 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
       <div className="nexum-welcome-copy"><div className="nexum-core-orb"><div className="nexum-core-glass"><span>N</span></div></div><span className="nexum-hello">HELLO</span><h1>{title}</h1><p>A new kind of workspace for building with AI.</p><div className="nexum-system-pills"><span>AI CORE</span><span>AGENT</span><span>PREVIEW</span></div></div>
       <section className="nexum-auth-card" aria-label={mode === "register" ? "Create NEXUM account" : "Sign in to NEXUM"}>
         <div className="nexum-auth-card-top"><div><span className="nexum-card-kicker">{mode === "register" ? "CREATE YOUR SPACE" : "SIGN IN"}</span><h2>{mode === "register" ? "Create your NEXUM ID" : "Enter NEXUM"}</h2></div><div className="nexum-secure-dot" title="Secure session"/></div>
-        <form onSubmit={submit}>{mode === "register" && <label><span>Name</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" autoComplete="name" required maxLength={80}/></label>}<label><span>Email</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" required/></label><label><span>Password</span><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" autoComplete={mode === "register" ? "new-password" : "current-password"} minLength={8} maxLength={128} required/></label>{error && <div className="nexum-auth-error" role="alert">{error}</div>}<button className="nexum-enter" type="submit"><span>{mode === "register" ? "Create account" : "Continue"}</span><b>→</b></button></form>
+        <form onSubmit={submit}>{mode === "register" && <label><span>Name</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" autoComplete="name" required maxLength={80}/></label>}<label><span>Email</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" required={mode === "register"}/></label><label><span>Password</span><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "login" ? "Optional for demo" : "At least 8 characters"} autoComplete={mode === "register" ? "new-password" : "current-password"} minLength={mode === "register" ? 8 : undefined} maxLength={128} required={mode === "register"}/></label>{mode === "login" && <div className="nexum-auth-note">Demo mode — you can enter without credentials.</div>}{error && <div className="nexum-auth-error" role="alert">{error}</div>}<button className="nexum-enter" type="submit"><span>{mode === "register" ? "Create account" : "Sign in"}</span><b>→</b></button></form>
         <div className="nexum-auth-switch"><span>{mode === "register" ? "Already have an account?" : "New to NEXUM?"}</span><button type="button" onClick={() => { setMode(mode === "register" ? "login" : "register"); setError(""); }}>{mode === "register" ? "Sign in" : "Create account"}</button></div><small className="nexum-auth-note">Your workspace is isolated to your NEXUM account.</small>
       </section>
     </section>
