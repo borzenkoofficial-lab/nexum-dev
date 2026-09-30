@@ -4,6 +4,7 @@ export class MockProvider implements AIProvider {
   id = "mock";
   name = "NEXUM Demo";
   model = "demo-v1";
+  capabilities = { text: true, code: false, vision: false, toolCalling: false, streaming: false, structuredOutput: false, reasoning: false, contextWindow: null } as const;
 
   async generate(message: string): Promise<string> {
     return `NEXUM Demo: ${message}`;
