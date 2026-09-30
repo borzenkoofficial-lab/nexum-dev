@@ -914,3 +914,49 @@ body{margin:0;overflow-x:hidden}
     height:calc(100dvh - 104px)!important;
   }
 }
+
+
+/* Create Project dialog: header/actions are independent layout zones and never compete with form width. */
+.new-project-modal .modal-header,
+.new-project-modal .modal-header>div,
+.new-project-modal form,
+.new-project-modal .modal-summary,
+.new-project-modal .modal-actions{
+  min-width:0!important;
+  max-width:100%!important;
+}
+.new-project-modal .modal-header{
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:16px!important;
+}
+.new-project-modal .modal-header>div{
+  flex:1 1 auto!important;
+}
+.new-project-modal .modal-header .icon-button{
+  flex:0 0 auto!important;
+}
+.new-project-modal .modal-intro{
+  max-width:620px!important;
+  overflow-wrap:anywhere!important;
+}
+.new-project-modal .modal-summary{
+  overflow-wrap:anywhere!important;
+}
+.new-project-modal .modal-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+}
+@media(max-width:420px){
+  .new-project-modal .modal-header{gap:10px!important}
+  .new-project-modal .modal-header h2{font-size:22px!important}
+  .new-project-modal .modal-actions{
+    flex-wrap:wrap!important;
+  }
+  .new-project-modal .modal-actions button{
+    min-width:0!important;
+  }
+}
