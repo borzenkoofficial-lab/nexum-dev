@@ -114,24 +114,6 @@ export function OSProjectWindow({
           </div>
         </div>
 
-        <div className="os-window-context">
-          <div>
-            <span>PROJECT</span>
-            <strong>{projectName}</strong>
-          </div>
-          <div>
-            <span>ID</span>
-            <strong>{projectId}</strong>
-          </div>
-          <div>
-            <span>MODE</span>
-            <strong>{workspaceMode === "code" ? "Code" : workspaceMode === "agent" ? "AI Agent" : workspaceMode === "files" ? "Files" : "Preview"}</strong>
-          </div>
-          <div className="os-context-right">
-            <kbd>⌘</kbd><kbd>K</kbd><span>Command Center</span>
-          </div>
-        </div>
-
         <div className="os-window-body">{children}</div>
       </div>
     </section>
