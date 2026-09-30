@@ -35,7 +35,7 @@ export function NewProjectModal({ open, name, loading, error, onNameChange, onCl
   return <ProjectCreationForm name={name} loading={loading} error={error} onNameChange={onNameChange} onClose={onClose} onSubmit={onSubmit} />;
 }
 
-function ProjectCreationForm({ name, loading, onNameChange, onClose, onSubmit }: Omit<NewProjectModalProps, "open">) {
+function ProjectCreationForm({ name, loading, error, onNameChange, onClose, onSubmit }: Omit<NewProjectModalProps, "open">) {
   const [selectedId, setSelectedId] = useState("webapp");
   const selected = PROJECT_TYPES.find((item) => item.id === selectedId) ?? PROJECT_TYPES[1];
 
