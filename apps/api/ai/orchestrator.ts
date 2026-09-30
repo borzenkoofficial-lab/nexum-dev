@@ -1,5 +1,6 @@
 import type { AIGateway, GatewayGenerateOptions } from "./gateway.js";
-import { AIModelRegistry, type AIModelRequirement } from "./modelRegistry.js";
+import { AIModelRegistry, type AIModelRequirement, type RegisteredAIModel } from "./modelRegistry.js";
+import { toNexumError } from "../core/errors.js";
 
 export type AIOrchestratorRole =
   | "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" | "director";
@@ -50,23 +51,36 @@ export class AIOrchestrator {
       this.maxTokensFor(role),
     );
 
-    const generation = await this.gateway.generateWithMetadata(this.decoratePrompt(role, prompt), {
-      ...options,
-      provider: selected.provider,
-      model: selected.model,
-      maxTokens,
-    });
+    const candidates = requested || explicitProvider
+      ? [selected]
+      : (await this.registry.list(selected.provider)).filter((candidate) => this.matchesRole(candidate, role));
 
-    return {
-      role,
-      provider: generation.provider,
-      model: generation.model,
-      response: generation.response,
-      fallback: generation.fallback,
-    };
+    let lastError: unknown;
+    for (const candidate of candidates) {
+      try {
+        const generation = await this.gateway.generateWithMetadata(this.decoratePrompt(role, prompt), {
+          ...options,
+          provider: candidate.provider,
+          model: candidate.model,
+          maxTokens,
+        });
+        return {
+          role,
+          provider: generation.provider,
+          model: generation.model,
+          response: generation.response,
+          fallback: generation.fallback,
+        };
+      } catch (error) {
+        const normalized = toNexumError(error, "PROVIDER_ERROR", "AI provider failed.");
+        lastError = normalized;
+        if (requested || explicitProvider || !normalized.retryable) throw normalized;
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error("No compatible AI model completed the request.");
   }
 
-  modelFor(_role: AIOrchestratorRole): string {
+  private matchesRole(candidate: RegisteredAIModel, role: AIOrchestratorRole): boolean {\n    return Object.entries(ROLE_REQUIREMENTS[role]).every(([key, expected]) => candidate.capabilities[key as keyof typeof candidate.capabilities] === expected);\n  }\n\n  modelFor(_role: AIOrchestratorRole): string {
     return this.gateway.getDefaultModel();
   }
 
