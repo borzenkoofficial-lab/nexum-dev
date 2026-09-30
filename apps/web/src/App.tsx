@@ -353,10 +353,10 @@ function App() {
       setProjectWindowMinimizedByProject((items) => ({ ...items, [projectId]: false }));
       setReply("");
       setАгентStage(null);
-      setCodeMode(false);
-      const mode = workspaceTab === "files" ? "files" : workspaceTab;
-      setRightTab(workspaceTab);
-      setWorkspaceMode(projectWindowModes[projectId] ?? mode);
+      const mode = projectWindowModes[projectId] ?? (workspaceTab === "files" ? "files" : workspaceTab);
+      setCodeMode(mode === "code");
+      setRightTab(mode === "code" ? "files" : mode);
+      setWorkspaceMode(mode);
       if (!projectWindowModes[projectId]) setProjectWindowModes((items) => ({ ...items, [projectId]: mode }));
       setViewState("project");
       setProjectWindowMinimizedByProject((items) => ({ ...items, [projectId]: false }));
