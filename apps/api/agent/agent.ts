@@ -89,7 +89,8 @@ ${result.output}`
     const isConstructionTask = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lowerTask);
     const isAutoRepairTask = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lowerTask);
     if (isConstructionTask || isAutoRepairTask) {
-      return this.fallbackProductPlan(task, previousResults);
+      // Product planning is an AI capability. Never synthesize a hard-coded plan
+      // when the real planner is unavailable.
     }
 
     const inspection = previousResults
@@ -122,9 +123,9 @@ ${result.output}`
       }
 
     } catch (error) {
-      console.warn("[agent] product planner failed, using deterministic plan", error);
+      throw new Error(error instanceof Error ? error.message : "AI product planning failed");
     }
-    return this.fallbackProductPlan(task, previousResults);
+    throw new Error("AI product planner returned no valid plan");
   }
 
   async reviewProduct(
@@ -154,30 +155,9 @@ ${result.output}`
       const parsed = this.parseProductReview(run.response);
       if (parsed) return parsed;
     } catch (error) {
-      console.warn("[agent] product review failed", error);
+      throw new Error(error instanceof Error ? error.message : "AI product review failed");
     }
-    const writes = previousResults.filter((item) => item.tool === "writeFile" && item.result.success).length;
-    const built = previousResults.some((item) =>
-      (item.tool === "runCommand" || item.tool === "runSandbox") &&
-      /npm run build/.test(item.input) &&
-      item.result.success,
-    );
-    const inspectedFiles = previousResults
-      .filter((item) => item.result.success)
-      .map((item) => item.result.output)
-      .join("\n");
-    const hasStaticEntry = /(?:^|\n)index\.html(?:\n|$)/.test(inspectedFiles);
-    const hasPackage = /(?:^|\n)package\.json(?:\n|$)/.test(inspectedFiles);
-    const previewReady = built || (hasStaticEntry && !hasPackage);
-    return {
-      passed: writes >= 2 && previewReady,
-      missing: writes < 2
-        ? ["Substantive implementation changes are missing."]
-        : previewReady
-          ? []
-          : ["Production build or static preview readiness was not verified."],
-      risks: [],
-    };
+    throw new Error("AI product reviewer returned no valid review");
   }
 
   async planWithAI(
@@ -426,86 +406,9 @@ ${result.output}`
     return alreadyCompleted ? null : { tool: selection.name, input: selection.input };
   }
 
-  private deterministicBuilderWrite(task: string, previousResults: AgentToolResult[]): AgentPlan | null {
-    const lower = task.toLowerCase();
-    const isAuto = /авто|автомобил|машин|сто|автосервис|ремонт.*авто|ремонт.*машин|диагностик|шиномонтаж|кузов|двигател|тормоз|масл|запчаст/.test(lower);
-    const isConstruction = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
-    const isBuilder = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|website|landing|web app|страниц/.test(lower);
-    if (!isBuilder) return null;
-
-    const writes = previousResults.filter(
-      (item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
-    ).length;
-    if (writes >= 2) return null;
-
-    const inspection = previousResults
-      .filter((item) => item.tool === "listFiles" && item.result.success)
-      .map((item) => item.result.output)
-      .join("\n");
-
-    const hasReactApp = /(?:^|[\\/])src[\\/]App\\.(?:tsx|jsx)\\b/.test(inspection);
-    const appPath = /(?:^|[\\/])src[\\/]App\\.jsx\\b/.test(inspection) ? "src/App.jsx" : "src/App.tsx";
-    const hasCss = /(?:^|[\\/])src[\\/](?:App|styles)\\.css\\b|(?:^|[\\/])style\\.css\\b/.test(inspection);
-    const cssPath = /(?:^|[\\/])src[\\/]App\\.css\\b/.test(inspection)
-      ? "src/App.css"
-      : /(?:^|[\\/])src[\\/]styles\\.css\\b/.test(inspection)
-        ? "src/styles.css"
-        : "style.css";
-    const hasStatic = /(?:^|[\\/])index\\.html\\b/.test(inspection) && /(?:^|[\\/])style\\.css\\b/.test(inspection);
-
-    if (hasReactApp && hasCss) {
-      const appWritten = previousResults.some(
-        (item) => item.tool === "writeFile" && item.result.success && item.input.includes(appPath),
-      );
-      if (!appWritten) {
-        let content = this.fallbackApp(task);
-        if (cssPath.startsWith("src/")) {
-          content = content.replace(
-            'import { useState } from "react";',
-            'import { useState } from "react";\nimport "./' + cssPath.slice(4) + '";',
-          );
-        }
-        return {
-          tool: "writeFile",
-          input: JSON.stringify({ path: appPath, content }),
-        };
-      }
-
-      const cssWritten = previousResults.some(
-        (item) => item.tool === "writeFile" && item.result.success && item.input.includes(cssPath),
-      );
-      if (!cssWritten) {
-        return {
-          tool: "writeFile",
-          input: JSON.stringify({ path: cssPath, content: this.fallbackStyles() }),
-        };
-      }
-    }
-
-    if (hasStatic) {
-      const indexWritten = previousResults.some(
-        (item) => item.tool === "writeFile" && item.result.success && item.input.includes("index.html"),
-      );
-      if (!indexWritten) {
-        return {
-          tool: "writeFile",
-          input: JSON.stringify({ path: "index.html", content: this.fallbackStaticIndex(task) }),
-        };
-      }
-
-      const cssWritten = previousResults.some(
-        (item) => item.tool === "writeFile" && item.result.success && item.input.includes("style.css"),
-      );
-      if (!cssWritten) {
-        return {
-          tool: "writeFile",
-          input: JSON.stringify({ path: "style.css", content: this.fallbackStaticStyles() }),
-        };
-      }
-    }
-
-    // If the project is not one of the recognized layouts, let the normal
-    // deterministic planner inspect it rather than overwriting unknown files.
+  private deterministicBuilderWrite(_task: string, _previousResults: AgentToolResult[]): AgentPlan | null {
+    // Deterministic code/template generation is intentionally disabled.
+    // Builder implementation must come from a real AI planning/execution path.
     return null;
   }
 
