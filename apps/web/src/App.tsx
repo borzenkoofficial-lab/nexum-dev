@@ -443,6 +443,8 @@ function App() {
     setMessage(repairTask);
     setRightTab("agent");
     setProjectMode("agent");
+    setMobileToolOpen(true);
+    setWorkspaceMode("agent");
     window.setTimeout(() => void sendMessage(repairTask), 0);
   }
 
