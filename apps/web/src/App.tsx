@@ -342,7 +342,7 @@ function App() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [modalOpen]);
 
-  function openПроект(projectId: string, workspaceTab: "preview" | "files" | "agent" = "preview") {
+  function openПроект(projectId: string, workspaceTab: "preview" | "files" | "agent" | "code" = "preview") {
     const project = projects.find((item) => item.id === projectId);
     if (project) {
       setActiveПроектId(projectId);
