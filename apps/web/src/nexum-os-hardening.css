@@ -388,3 +388,97 @@ body{margin:0;overflow-x:hidden}
   }
 }
 
+
+
+/* Mobile production correction: the builder remains navigable.
+   The chat is the primary surface; the active tool panel is an overlay. */
+@media(max-width:900px){
+  .app-project .workspace > .right-panel{
+    display:flex!important;
+    position:absolute!important;
+    inset:0!important;
+    z-index:30!important;
+    width:100%!important;
+    height:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    background:#fff!important;
+  }
+  .app-project .workspace > .main-column{
+    width:100%!important;
+    max-width:100%!important;
+  }
+  .app-project .right-panel .panel-tabs{
+    padding-inline:8px!important;
+  }
+  .app-project .right-panel .panel-tabs .panel-chat-tab{
+    display:block!important;
+    order:-1;
+    margin-right:4px;
+    border-right:1px solid var(--line);
+    color:var(--text-2);
+  }
+  .app-project .right-panel .right-panel-content{
+    min-height:0!important;
+  }
+}
+
+/* Code surface: preserve the editor on constrained widths without
+   letting the terminal or explorer force horizontal overflow. */
+.app-project .nexum-code-topbar{
+  min-width:0!important;
+}
+.app-project .nexum-code-brand,
+.app-project .nexum-code-actions{
+  min-width:0!important;
+}
+.app-project .nexum-code-actions{
+  flex:0 0 auto;
+}
+.app-project .nexum-code-main{
+  grid-template-columns:minmax(180px,235px) minmax(0,1fr) 300px!important;
+}
+.app-project .nexum-code-main.terminal-open{
+  grid-template-columns:minmax(180px,235px) minmax(0,1fr) minmax(220px,300px)!important;
+}
+@media(max-width:900px){
+  .app-project .nexum-code-topbar{
+    flex-wrap:wrap;
+    min-height:58px!important;
+    height:auto!important;
+    padding-block:8px!important;
+  }
+  .app-project .nexum-code-brand{
+    flex:1 1 auto;
+  }
+  .app-project .nexum-code-actions{
+    flex:0 0 auto;
+  }
+  .app-project .nexum-code-main,
+  .app-project .nexum-code-main.terminal-open{
+    grid-template-columns:190px minmax(0,1fr)!important;
+  }
+  .app-project .nexum-code-terminal{
+    position:absolute!important;
+    inset:0 0 0 auto!important;
+    width:min(300px,86vw)!important;
+    max-width:100%!important;
+    z-index:20!important;
+    box-shadow:-12px 0 32px rgba(0,0,0,.10);
+  }
+}
+@media(max-width:560px){
+  .app-project .nexum-code-main,
+  .app-project .nexum-code-main.terminal-open{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  .app-project .nexum-code-sidebar{
+    display:none!important;
+  }
+  .app-project .nexum-code-brand em{
+    display:none!important;
+  }
+  .app-project .nexum-code-actions button{
+    padding-inline:8px!important;
+  }
+}
