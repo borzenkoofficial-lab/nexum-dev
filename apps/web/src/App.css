@@ -931,3 +931,164 @@ html,body,#root{
 @media(prefers-reduced-motion:reduce){
   .nexum-code-topbar,.nexum-code-sidebar,.nexum-code-terminal{backdrop-filter:none;-webkit-backdrop-filter:none}
 }
+
+
+/* NEXUM surface QA — Preview / Files / Diagnostics / Connectors */
+.right-panel{
+  background:linear-gradient(145deg,#f8f8fa,#f2f3f6);
+}
+.panel-tabs{
+  position:relative;z-index:4;
+  background:rgba(255,255,255,.72);
+  backdrop-filter:blur(18px) saturate(145%);
+  -webkit-backdrop-filter:blur(18px) saturate(145%);
+}
+.panel-tabs button{
+  position:relative;
+  transition:color .16s ease,background .16s ease,border-color .16s ease;
+}
+.panel-tabs button.active{
+  background:rgba(91,85,217,.045);
+}
+.preview-frame-wrap{
+  display:flex;flex-direction:column;min-height:0;
+  background:#eef0f3;
+}
+.preview-browser-bar{
+  background:rgba(255,255,255,.72);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.preview-address{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+}
+.preview-viewport{
+  background:
+    radial-gradient(500px 240px at 50% 0%,rgba(91,85,217,.055),transparent 70%),
+    #eef0f3;
+}
+.preview-runtime-error{
+  position:absolute;left:16px;right:16px;bottom:16px;z-index:3;
+  padding:11px 13px;border:1px solid #edd5d8;border-radius:11px;
+  background:rgba(255,248,249,.95);color:var(--red);
+  box-shadow:0 12px 32px rgba(70,20,30,.09);
+  font-size:10px;line-height:1.45;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+.preview-editorial-empty{
+  display:grid;place-items:center;padding:28px;
+  background:
+    radial-gradient(420px 220px at 50% 18%,rgba(91,85,217,.08),transparent 70%),
+    #f3f4f6;
+}
+.preview-editorial-browser{
+  width:min(760px,100%);overflow:hidden;
+  border:1px solid rgba(30,32,38,.09);border-radius:18px;
+  background:rgba(255,255,255,.66);
+  box-shadow:0 22px 60px rgba(20,22,28,.09);
+}
+.preview-editorial-canvas{
+  min-height:360px;display:grid;grid-template-columns:1fr .7fr;gap:30px;
+  align-items:center;padding:42px;
+}
+.preview-editorial-copy{display:grid;gap:9px}
+.preview-editorial-copy strong{font-size:30px;letter-spacing:-.045em}
+.preview-editorial-copy p{margin:0;color:var(--text-2);font-size:12px;line-height:1.55}
+.preview-editorial-copy>div{display:flex;align-items:center;gap:7px;color:var(--text-2);font-size:9px}
+.preview-editorial-copy>div i{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.preview-editorial-device{
+  min-height:210px;border:1px solid rgba(30,32,38,.08);border-radius:22px;
+  background:linear-gradient(145deg,#fff,#f0f0f4);
+  box-shadow:0 18px 40px rgba(20,22,28,.08);
+  position:relative;
+}
+.preview-editorial-device:after{
+  content:"";position:absolute;left:18%;right:18%;top:18%;bottom:18%;
+  border:1px solid rgba(91,85,217,.12);border-radius:14px;
+  background:linear-gradient(180deg,rgba(91,85,217,.07),rgba(255,255,255,.7));
+}
+.coming-soon{color:var(--text-3);font-size:9px;text-align:center}
+.editor-shell{
+  display:flex;flex-direction:column;min-height:0;
+  background:rgba(250,250,251,.82);
+}
+.editor-filebar{
+  min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:0 12px;border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.68);
+}
+.editor-file-name{min-width:0;display:flex;align-items:center;gap:7px;color:var(--text-2);font-size:9px}
+.editor-file-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editor-file-name i{font-style:normal;color:var(--accent)}
+.editor-save{
+  height:27px;padding:0 9px;border:1px solid rgba(91,85,217,.15);border-radius:8px;
+  background:var(--accent-soft);color:#5149b8;font-size:9px;font-weight:650;
+}
+.editor-body{
+  min-height:0;flex:1;display:grid;grid-template-columns:190px minmax(0,1fr);
+}
+.editor-tree{
+  min-width:0;overflow:auto;padding:10px 7px;
+  background:rgba(255,255,255,.48);border-right:1px solid var(--line);
+}
+.file-row{
+  width:100%;min-height:31px;display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;gap:3px;
+  padding:0 7px;border:0;border-radius:7px;background:transparent;color:var(--text-2);text-align:left;
+}
+.file-row:hover{background:rgba(255,255,255,.8)}
+.file-row.selected{background:rgba(91,85,217,.075);color:#5149b8}
+.file-row span{font-size:8px;text-align:center;color:var(--accent)}
+.file-row strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;font-weight:560}
+.code-editor{
+  min-width:0;min-height:0;display:grid;grid-template-columns:45px minmax(0,1fr);
+  position:relative;overflow:hidden;background:rgba(252,252,253,.72);
+}
+.code-editor textarea{
+  width:100%;height:100%;min-height:0;resize:none;border:0;outline:0;
+  padding:12px 14px;background:transparent;color:#292b33;
+  font:11px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;
+  tab-size:2;white-space:pre;overflow:auto;
+}
+.editor-gutter{
+  overflow:hidden;padding:12px 8px 40px 0;border-right:1px solid rgba(30,32,38,.055);
+  background:rgba(30,32,38,.025);color:#a4a6ae;text-align:right;font:11px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.editor-gutter span{display:block}
+.editor-empty,.files-empty{
+  grid-column:1/-1;display:grid;place-items:center;gap:6px;min-height:120px;padding:20px;color:var(--text-3);font-size:10px;text-align:center;
+}
+.editor-empty strong{color:var(--text-2);font-size:11px}
+.error-state-inline{color:var(--red)}
+.editor-error{
+  position:absolute;left:12px;right:12px;bottom:12px;z-index:5;
+  padding:9px 11px;border:1px solid #edd5d8;border-radius:9px;background:rgba(255,247,248,.96);
+  color:var(--red);font-size:9px;box-shadow:0 10px 28px rgba(70,20,30,.08);
+}
+.diagnostics-page,.integrations-page,.settings-page-v2{
+  background:
+    radial-gradient(620px 280px at 86% 0%,rgba(91,85,217,.065),transparent 70%),
+    linear-gradient(145deg,#f8f9fb,#f3f4f7);
+}
+.diagnostics-stats>div,.diagnostics-jobs,.diagnostics-main,
+.integration-card,.engine-card,.external-card,.settings-card{
+  box-shadow:0 10px 32px rgba(20,22,28,.045),inset 0 1px 0 rgba(255,255,255,.92);
+}
+.integration-card,.engine-card,.external-card,.settings-card{
+  background:rgba(255,255,255,.68);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+}
+@media(max-width:700px){
+  .preview-editorial-canvas{grid-template-columns:1fr;padding:28px;min-height:300px}
+  .preview-editorial-device{min-height:150px}
+  .editor-body{grid-template-columns:145px minmax(0,1fr)}
+  .editor-filebar{padding:0 9px}
+}
+@media(max-width:520px){
+  .editor-body{grid-template-columns:1fr}
+  .editor-tree{max-height:34%;border-right:0;border-bottom:1px solid var(--line)}
+  .preview-editorial-empty{padding:16px}
+  .preview-editorial-copy strong{font-size:24px}
+}
+@media(prefers-reduced-motion:reduce){
+  .panel-tabs button,.preview-runtime-error,.integration-card,.engine-card,.external-card,.settings-card{backdrop-filter:none;-webkit-backdrop-filter:none;transition:none}
+}
