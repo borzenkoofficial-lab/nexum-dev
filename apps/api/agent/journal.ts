@@ -13,6 +13,10 @@ export interface ActionJournalEntry {
   durationMs?: number;
   errorCode?: string;
   retryable?: boolean;
+  provider?: string;
+  model?: string;
+  projectId?: string;
+  status?: "success" | "error";
   output: string;
 }
 
