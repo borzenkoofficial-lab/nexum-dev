@@ -890,3 +890,27 @@ body{margin:0;overflow-x:hidden}
 .app-project .nexum-os-app-strip{
   display:none!important;
 }
+
+
+/* Maximize is a shell state, not a nested desktop window. Keep it fixed to the viewport. */
+.app-project .os-window-shell.is-maximized,
+.app-project .nexum-os-maximized .os-window-shell{
+  position:fixed!important;
+  inset:0!important;
+  z-index:1000!important;
+  width:100vw!important;
+  max-width:none!important;
+  height:100dvh!important;
+  min-height:0!important;
+  border-radius:0!important;
+  margin:0!important;
+}
+.app-project .os-window-shell.is-maximized .os-window-body{
+  min-height:0!important;
+  height:calc(100dvh - 120px)!important;
+}
+@media(max-width:900px){
+  .app-project .os-window-shell.is-maximized .os-window-body{
+    height:calc(100dvh - 104px)!important;
+  }
+}
