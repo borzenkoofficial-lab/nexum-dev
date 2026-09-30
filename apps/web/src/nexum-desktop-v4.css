@@ -274,3 +274,16 @@
   .nexum-os-desktop::before{animation:none}
   .os-app-icon:hover .os-app-glyph,.os-dock-item:hover{transform:none!important}
 }
+
+/* NEXUM OS power control + disabled test state */
+.os-power-button{width:32px!important;height:32px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border:1px solid rgba(255,255,255,.62)!important;border-radius:11px!important;background:rgba(255,255,255,.28)!important;color:rgba(25,28,38,.78)!important;box-shadow:0 6px 18px rgba(35,40,60,.10),inset 0 1px 0 rgba(255,255,255,.8)!important;backdrop-filter:blur(18px) saturate(160%)!important;-webkit-backdrop-filter:blur(18px) saturate(160%)!important;cursor:pointer!important;transition:transform .18s ease,background .18s ease,box-shadow .18s ease!important}
+.os-power-button:hover{transform:translateY(-1px) scale(1.04)!important;background:rgba(255,255,255,.46)!important;box-shadow:0 9px 24px rgba(35,40,60,.16),inset 0 1px 0 rgba(255,255,255,.92)!important}
+.os-power-button.on span{filter:drop-shadow(0 0 6px rgba(50,200,150,.45))}
+.os-power-button:focus-visible{outline:2px solid rgba(40,100,255,.55);outline-offset:2px}
+.nexum-os-disabled{min-height:100vh;display:grid;place-items:center;padding:32px;background:radial-gradient(circle at 20% 20%,rgba(117,83,255,.22),transparent 32%),radial-gradient(circle at 80% 25%,rgba(30,200,255,.18),transparent 30%),radial-gradient(circle at 50% 90%,rgba(255,105,180,.16),transparent 34%),#f3f5fb}
+.nexum-os-disabled-card{width:min(560px,100%);padding:42px;text-align:center;border:1px solid rgba(255,255,255,.72);border-radius:30px;background:rgba(255,255,255,.48);box-shadow:0 30px 80px rgba(35,45,80,.16),inset 0 1px 0 rgba(255,255,255,.9);backdrop-filter:blur(32px) saturate(160%);-webkit-backdrop-filter:blur(32px) saturate(160%)}
+.nexum-os-disabled-mark{width:72px;height:72px;margin:0 auto 22px;display:grid;place-items:center;border-radius:22px;font-size:32px;font-weight:800;color:#fff;background:linear-gradient(145deg,#14151d,#414554);box-shadow:0 18px 34px rgba(20,22,35,.24)}
+.nexum-os-disabled-card .eyebrow{display:block;letter-spacing:.18em;font-size:11px;opacity:.56}
+.nexum-os-disabled-card h1{margin:8px 0;font-size:48px;letter-spacing:-.05em}
+.nexum-os-disabled-card p{margin:0 auto 28px;max-width:430px;line-height:1.55;color:rgba(25,28,38,.62)}
+@media(max-width:680px){.os-power-button{width:30px!important;height:30px!important}.nexum-os-disabled{padding:18px}.nexum-os-disabled-card{padding:30px 22px;border-radius:24px}.nexum-os-disabled-card h1{font-size:38px}}
