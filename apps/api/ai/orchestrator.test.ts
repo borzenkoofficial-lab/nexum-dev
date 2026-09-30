@@ -10,6 +10,7 @@ class RecordingProvider implements AIProvider {
   model = "openrouter/free";
   capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: true, reasoning: false, contextWindow: 32768 };
   async listModels(): Promise<string[]> { return ["nvidia/nemotron-nano-12b-v2-vl:free", "openrouter/free", "qwen/qwen3-coder:free"]; }
+  getCapabilities(model?: string) { return { ...this.capabilities, code: model !== "nvidia/nemotron-nano-12b-v2-vl:free" }; }
   calls: Array<{ model?: string; message: string }> = [];
   async generate(message: string, model?: string): Promise<string> {
     this.calls.push({ model, message });
