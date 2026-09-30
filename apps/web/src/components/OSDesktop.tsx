@@ -37,6 +37,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
   const launch = (id: string) => {
     if (id === "projects" || id === "agent" || id === "code" || id === "preview") {
       if (active[0]) onOpenProject(active[0].id, id === "agent" ? "agent" : id === "code" ? "code" : "preview");
+      else onNewProject();
       return;
     }
     onOpenView(id as "connectors" | "diagnostics" | "settings" | "news");
