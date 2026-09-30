@@ -104,3 +104,89 @@ body{margin:0;overflow-x:hidden}
   .new-project-modal .modal-actions{margin-inline:-20px;padding-inline:20px}
   .new-project-modal .project-type-grid{grid-template-columns:1fr}
 }
+
+
+/* Production QA hardening: intrinsic sizing, long-content containment and modal states. */
+.app-project .os-window-title,
+.app-project .os-window-toolbar,
+.app-project .os-window-context,
+.app-project .os-window-body,
+.app-project .os-workspace-stage,
+.app-project .workspace,
+.app-project .main-column,
+.app-project .right-panel,
+.app-project .agent-panel,
+.app-project .editor-shell,
+.app-project .preview-frame-wrap{min-width:0!important;max-width:100%!important}
+
+.app-project .os-window-title strong,
+.app-project .os-window-context strong,
+.app-project .agent-current p,
+.app-project .agent-hero-mockup p,
+.app-project .agent-plan-goal,
+.app-project .agent-plan-section span,
+.app-project .agent-event-copy,
+.app-project .agent-event-copy p,
+.app-project .agent-problems span,
+.app-project .conversation-content{overflow-wrap:anywhere;word-break:break-word}
+
+.app-project .agent-event{min-width:0}
+.app-project .agent-event-copy{min-width:0;overflow:hidden}
+.app-project .agent-event time{white-space:nowrap}
+.app-project .agent-result-card,
+.app-project .agent-plan-card,
+.app-project .agent-timeline,
+.app-project .agent-current,
+.app-project .agent-hero-mockup{min-width:0;max-width:100%;overflow:hidden}
+.app-project .agent-result-actions button{min-width:0;max-width:100%}
+
+.app-project .panel-tabs{min-width:0;overflow:hidden}
+.app-project .panel-tabs>button{min-width:0;flex:0 0 auto}
+.app-project .preview-address-url{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-project .preview-stage-label{flex:0 0 auto;white-space:nowrap}
+.app-project .editor-filebar,
+.app-project .editor-file-actions,
+.app-project .editor-file-name{min-width:0}
+.app-project .editor-file-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.app-project .editor-file-name{overflow:hidden}
+.app-project .editor-file-name>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-project .editor-body,
+.app-project .code-editor,
+.app-project .code-editor textarea{min-width:0}
+
+.new-project-modal .project-creation-error{
+  margin-top:4px;
+  padding:10px 11px;
+  border:1px solid #ead1d3;
+  border-radius:9px;
+  background:#fff8f8;
+  color:#b14f58;
+  font-size:10px;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+}
+.new-project-modal .create-button:disabled{cursor:not-allowed}
+.new-project-modal button:focus-visible,
+.new-project-modal input:focus-visible,
+.new-project-modal textarea:focus-visible{
+  outline:2px solid rgba(91,85,217,.28);
+  outline-offset:2px;
+}
+
+@media(max-width:620px){
+  .app-project .os-window-titlebar{flex:0 0 auto}
+  .app-project .os-window-toolbar{overflow-x:auto;overflow-y:hidden}
+  .app-project .os-window-apps{flex:0 0 auto;overflow:visible}
+  .app-project .os-window-actions{display:none}
+  .app-project .panel-tabs{overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+  .app-project .panel-tabs::-webkit-scrollbar{display:none}
+  .app-project .preview-browser-bar{min-width:0}
+  .app-project .preview-stage-label{display:none}
+  .app-project .editor-file-actions .editor-change-state{display:none}
+}
+
+@media(max-width:360px){
+  .new-project-modal .modal-actions{gap:7px}
+  .new-project-modal .modal-actions button{min-width:0}
+  .new-project-modal .project-type-card{padding-inline:8px}
+}
