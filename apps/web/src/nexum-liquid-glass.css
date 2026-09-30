@@ -395,3 +395,77 @@
   .nexum-os-desktop::before{animation:none!important}
   .os-dock-item:hover{transform:none!important}
 }
+
+
+/* Desktop interaction polish: magnetic icons, depth layers, ambient particles and live focus. */
+.os-desktop-icons{perspective:900px!important}
+.os-app-icon{position:relative!important;transform-style:preserve-3d!important;transition:transform .28s cubic-bezier(.2,.8,.2,1),filter .28s ease!important}
+.os-app-icon::before{
+  content:"";position:absolute;inset:-14px;border-radius:30px;opacity:0;
+  background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.42),transparent 62%);
+  filter:blur(13px);transition:opacity .25s ease;pointer-events:none;
+}
+.os-app-icon:hover{transform:translateY(-6px) rotateX(calc(var(--nx-my) * -1.5deg)) rotateY(calc(var(--nx-mx) * 1.5deg))!important;filter:saturate(1.08)}
+.os-app-icon:hover::before{opacity:1}
+.os-app-icon:active{transform:translateY(-1px) scale(.96)!important}
+.os-app-glyph{
+  overflow:hidden!important;
+  background:
+    radial-gradient(circle at 28% 16%,rgba(255,255,255,.72),transparent 30%),
+    linear-gradient(145deg,rgba(255,255,255,.44),rgba(255,255,255,.14))!important;
+}
+.os-app-glyph::before{height:42%!important;background:linear-gradient(180deg,rgba(255,255,255,.48),transparent)!important}
+.os-app-glyph::after{content:"";position:absolute;inset:1px;border-radius:inherit;border:1px solid rgba(255,255,255,.30);pointer-events:none}
+.os-app-icon:nth-child(2) .os-app-glyph{animation:nx-float 5.8s ease-in-out infinite}
+.os-app-icon:nth-child(4) .os-app-glyph{animation:nx-float 6.7s ease-in-out .7s infinite}
+@keyframes nx-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+
+/* Tiny desktop particles create spatial depth without looking like a dashboard. */
+.nexum-os-desktop::after{
+  background:
+    radial-gradient(circle at 17% 34%,rgba(255,255,255,.8) 0 1px,transparent 1.5px),
+    radial-gradient(circle at 63% 20%,rgba(255,255,255,.6) 0 1px,transparent 1.5px),
+    radial-gradient(circle at 78% 57%,rgba(255,255,255,.7) 0 1px,transparent 1.5px),
+    radial-gradient(circle at 43% 79%,rgba(255,255,255,.5) 0 1px,transparent 1.5px)!important;
+  background-size:310px 260px,420px 330px,360px 290px,500px 390px!important;
+  animation:nx-particles 18s linear infinite!important;
+}
+@keyframes nx-particles{from{background-position:0 0,0 0,0 0,0 0}to{background-position:60px -35px,-70px 55px,45px 35px,-80px -45px}}
+
+/* Desktop project stack gets a Finder-like reveal. */
+.os-project-stack{max-height:240px;overflow:hidden}
+.os-project-card:nth-child(1){z-index:5}
+.os-project-card:nth-child(2){z-index:4}
+.os-project-card:nth-child(3){z-index:3}
+.os-project-card:nth-child(4){z-index:2}
+.os-project-card:nth-child(5){z-index:1}
+.os-project-card:nth-child(n+4){opacity:.86}
+.os-project-stack:hover .os-project-card:nth-child(n+4){opacity:1}
+
+/* Dock glass reflection and active indicator. */
+.os-dock::before{
+  content:"";position:absolute;left:10%;right:10%;top:2px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);
+  pointer-events:none;
+}
+.os-dock-item{position:relative!important}
+.os-dock-item::after{
+  content:"";position:absolute!important;left:50%;bottom:-4px!important;width:4px;height:4px;border-radius:50%;
+  transform:translateX(-50%);background:rgba(45,48,60,.52);opacity:.45!important;
+  box-shadow:0 0 7px rgba(255,255,255,.6);transition:.2s ease;
+}
+.os-dock-item:hover::after{opacity:1!important;transform:translateX(-50%) scale(1.35)}
+.os-dock-separator{opacity:.65!important}
+
+/* Calendar and control-center entrance. */
+.os-calendar-popover,.os-control-popover{animation:nx-pop .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes nx-pop{from{opacity:0;transform:translateY(-8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+/* System status pulses softly instead of flashing. */
+.status-live i{animation:nx-status-pulse 2.2s ease-in-out infinite}
+@keyframes nx-status-pulse{0%,100%{box-shadow:0 0 0 2px rgba(52,183,121,.08)}50%{box-shadow:0 0 0 5px rgba(52,183,121,.14)}}
+
+@media(prefers-reduced-motion:reduce){
+  .os-app-icon,.os-app-icon:nth-child(2) .os-app-glyph,.os-app-icon:nth-child(4) .os-app-glyph,
+  .nexum-os-desktop::after,.os-calendar-popover,.os-control-popover,.status-live i{animation:none!important}
+}
