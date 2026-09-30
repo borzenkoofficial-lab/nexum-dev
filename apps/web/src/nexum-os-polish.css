@@ -1905,3 +1905,35 @@
   .os-window-apps button{padding:0 7px!important}
   .os-window-apps button{font-size:7px!important}
 }
+
+
+/* NEXUM OS 8.0 — motion system + native interaction behavior */
+.os-window-shell{animation:nx-window-in .24s var(--nx-os-ease) both;transform-origin:center top}
+.os-window-shell.is-maximized{animation:nx-window-maximize .2s var(--nx-os-ease) both}
+@keyframes nx-window-in{from{opacity:0;transform:translateY(7px) scale(.992)}to{opacity:1;transform:none}}
+@keyframes nx-window-maximize{from{opacity:.94;transform:scale(.995)}to{opacity:1;transform:none}}
+.nexum-os-switcher{animation:nx-switcher-in .2s var(--nx-os-ease) both;transform-origin:center}
+@keyframes nx-switcher-in{from{opacity:0;transform:translateY(10px) scale(.975)}to{opacity:1;transform:none}}
+.nexum-os-switcher-backdrop{animation:nx-backdrop-in .18s ease both}
+@keyframes nx-backdrop-in{from{opacity:0}to{opacity:1}}
+.nexum-os-app-chip,.nexum-os-app-more{transition:background .16s var(--nx-os-ease),border-color .16s var(--nx-os-ease),color .16s var(--nx-os-ease),transform .16s var(--nx-os-ease),box-shadow .16s var(--nx-os-ease)}
+.nexum-os-app-chip:active,.nexum-os-app-more:active{transform:scale(.97)}
+.nexum-os-switcher-card,.nexum-os-project-chip,.nexum-os-switcher-actions button{transition:transform .16s var(--nx-os-ease),background .16s var(--nx-os-ease),border-color .16s var(--nx-os-ease),box-shadow .16s var(--nx-os-ease)}
+.nexum-os-switcher-card:active,.nexum-os-project-chip:active,.nexum-os-switcher-actions button:active{transform:scale(.985)}
+/* Dock magnification without JavaScript */
+.os-dock-item{transition:transform .18s var(--nx-os-ease),background .18s,box-shadow .18s}
+.os-dock:has(.os-dock-item:hover) .os-dock-item{transform:scale(.98)}
+.os-dock:has(.os-dock-item:hover) .os-dock-item:hover{transform:translateY(-7px) scale(1.12)}
+.os-dock:has(.os-dock-item:hover) .os-dock-item:has(+ .os-dock-item:hover),
+.os-dock:has(.os-dock-item:hover) .os-dock-item:hover + .os-dock-item{transform:translateY(-4px) scale(1.06)}
+.os-dock:has(.os-dock-item:hover) .os-dock-item:hover .os-app-glyph{box-shadow:0 11px 25px rgba(20,20,24,.12)}
+.os-window-apps button{transition:background .16s var(--nx-os-ease),border-color .16s var(--nx-os-ease),color .16s var(--nx-os-ease),transform .16s var(--nx-os-ease)}
+.os-window-apps button:active{transform:scale(.98)}
+.os-window-actions button{transition:background .16s var(--nx-os-ease),border-color .16s var(--nx-os-ease),color .16s var(--nx-os-ease),transform .16s var(--nx-os-ease),box-shadow .16s var(--nx-os-ease)}
+.os-window-actions button:active{transform:scale(.97)}
+.os-minimized-card{animation:nx-minimized-in .2s var(--nx-os-ease) both}
+@keyframes nx-minimized-in{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){
+  .os-window-shell,.nexum-os-switcher,.nexum-os-switcher-backdrop,.os-minimized-card{animation:none!important}
+  .os-dock-item,.os-app-icon,.os-project-card,.os-window-apps button,.os-window-actions button,.nexum-os-app-chip,.nexum-os-switcher-card,.nexum-os-project-chip{transition:none!important}
+}
