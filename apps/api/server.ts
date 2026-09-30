@@ -186,6 +186,7 @@ async function runChatJob(
   model: string | undefined,
   attachments: Array<{ name: string; type: string; size: number; content?: string; data?: string }>,
   conversation: Array<{ role: "user" | "assistant"; content: string }>,
+  requestId?: string,
 ) {
   const job = await getChatJob(jobId, userId);
   if (!job) return;
@@ -311,6 +312,13 @@ async function runChatJob(
         job.stage = "planning";
         job.currentMessage = "Product Plan сформирован. Перехожу к реализации.";
         job.updatedAt = Date.now();
+      },
+      {
+        requestId,
+        agentRunId: jobId,
+        projectId: project.id,
+        provider,
+        model,
       },
     );
     const result = await agentLoop.run(agentMessage, {
@@ -1033,6 +1041,7 @@ app.post("/api/chat", async (req, res) => {
       model,
       normalizedAttachments,
       normalizedConversation,
+      getRequestId(req),
     );
 
     return res.status(202).json({
