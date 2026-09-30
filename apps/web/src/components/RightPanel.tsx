@@ -27,7 +27,7 @@ interface RightPanelProps {
   onRepair?: () => void;
 }
 
-export function RightPanel({ tab, onTabChange, projectName, projectId, previewOnline, previewKey, onRefreshPreview, onRepair, jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan }: RightPanelProps) {
+export function RightPanel({ tab, onTabChange, onOpenChat, projectName, projectId, previewOnline, previewKey, onRefreshPreview, onRepair, jobId, stage, activitySteps, activityEvents, currentActivity, problems, productPlan }: RightPanelProps) {
   const previewUrl = projectId ? `/api/preview/${projectId}/index.html?v=${previewKey}` : "";
   const [files, setFiles] = useState<string[]>([]);
   const [previewExpanded, setPreviewExpanded] = useState(false);
@@ -98,7 +98,8 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   }, [tab, projectId, previewKey]);
 
   async function openFile(path: string) {
-    setSelectedFile(path); setEditorLoading(true); setEditorError("");
+    if (dirty && selectedFile !== path && !window.confirm("Есть несохранённые изменения. Открыть другой файл без сохранения?")) return;
+    setSelectedFile(path); setContent(""); setSavedContent(""); setEditorLoading(true); setEditorError("");
     try {
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/file?path=${encodeURIComponent(path)}`);
       const data = await response.json() as { content?: string; error?: string };
@@ -223,7 +224,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
                 <span>{file.endsWith(".css") ? "◇" : file.endsWith(".js") || file.endsWith(".ts") || file.endsWith(".tsx") ? "ƒ" : file.endsWith(".json") ? "{}" : "□"}</span>
                 <strong>{file}</strong>
               </button>
-            ))}
+            )) : <div className="files-empty">В проекте пока нет доступных файлов.</div>}
           </div>
           <div className="code-editor">
             {editorLoading ? <div className="editor-empty">Загрузка файла…</div> : selectedFile ? (
@@ -240,7 +241,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
       </div>
     );
   } else {
-    panelContent = <AgentActivityPanel jobId={jobId} stage={stage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onOpenPreview={() => onTabChange("preview")} onBackToChat={() => onTabChange("preview")} onRepair={() => onRepair?.()} />;
+    panelContent = <AgentActivityPanel jobId={jobId} stage={stage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onOpenPreview={() => onTabChange("preview")} onBackToChat={() => onOpenChat?.()} onRepair={() => onRepair?.()} />;
   }
 
   return (
