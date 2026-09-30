@@ -94,16 +94,16 @@ export function OSProjectWindow({
 
         <div className="os-window-toolbar">
           <div className="os-window-apps" role="tablist" aria-label="Workspace applications">
-            <button type="button" className={activeTab === "preview" ? "active" : ""} onClick={() => onTabChange("preview")}>
+            <button type="button" role="tab" aria-selected={activeTab === "preview"} tabIndex={activeTab === "preview" ? 0 : -1} className={activeTab === "preview" ? "active" : ""} onClick={() => onTabChange("preview")}>
               <span>◫</span> Preview
             </button>
-            <button type="button" className={activeTab === "agent" ? "active" : ""} onClick={onAgent}>
+            <button type="button" role="tab" aria-selected={activeTab === "agent"} tabIndex={activeTab === "agent" ? 0 : -1} className={activeTab === "agent" ? "active" : ""} onClick={onAgent}>
               <span>✦</span> AI Agent
             </button>
-            <button type="button" className={activeTab === "files" ? "active" : ""} onClick={onFiles}>
+            <button type="button" role="tab" aria-selected={activeTab === "files"} tabIndex={activeTab === "files" ? 0 : -1} className={activeTab === "files" ? "active" : ""} onClick={onFiles}>
               <span>□</span> Files
             </button>
-            <button type="button" className={"os-window-code" + (workspaceMode === "code" ? " active" : "")} onClick={onCode}>
+            <button type="button" role="tab" aria-selected={workspaceMode === "code"} tabIndex={workspaceMode === "code" ? 0 : -1} className={"os-window-code" + (workspaceMode === "code" ? " active" : "")} onClick={onCode}>
               <span>{"{ }"}</span> Code
             </button>
           </div>
