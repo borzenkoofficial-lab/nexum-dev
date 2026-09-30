@@ -1018,3 +1018,357 @@
   .os-workspace-layer .pipeline-step span{font-size:7px}
   .os-workspace-layer .agent-plan-section{grid-template-columns:78px minmax(0,1fr)}
 }
+
+
+/* Preview 5.0 — embedded NEXUM Simulator */
+.os-workspace-layer .preview-frame-wrap{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  height:100%;
+  min-height:0;
+  background:#eef0f3;
+  overflow:hidden;
+}
+.os-workspace-layer .preview-browser-bar{
+  height:42px;
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 11px;
+  border-bottom:1px solid rgba(20,20,24,.08);
+  background:rgba(250,250,252,.92);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+.os-workspace-layer .preview-browser-dots{
+  display:flex;
+  gap:5px;
+  flex:0 0 auto;
+}
+.os-workspace-layer .preview-browser-dots i{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#d0d1d6;
+}
+.os-workspace-layer .preview-browser-dots i:first-child{background:#ff6258}
+.os-workspace-layer .preview-browser-dots i:nth-child(2){background:#ffbd2e}
+.os-workspace-layer .preview-browser-dots i:nth-child(3){background:#28c840}
+.os-workspace-layer .preview-address{
+  min-width:0;
+  flex:1;
+  height:26px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:0 9px;
+  border:1px solid rgba(20,20,24,.07);
+  border-radius:7px;
+  background:#f2f2f5;
+}
+.os-workspace-layer .preview-address-lock{
+  color:#92939a;
+  font-size:10px;
+}
+.os-workspace-layer .preview-address-url{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#74757d;
+  font:500 8px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.os-workspace-layer .preview-build-status{
+  margin-left:auto;
+  padding:3px 6px;
+  border-radius:5px;
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.08em;
+}
+.os-workspace-layer .preview-build-status.live{
+  color:#3d8560;
+  background:#eaf7ef;
+}
+.os-workspace-layer .preview-build-status.building,
+.os-workspace-layer .preview-build-status.verifying{
+  color:#5f57d9;
+  background:#eeecff;
+}
+.os-workspace-layer .preview-build-status.waiting{
+  color:#85868e;
+  background:#e7e7ea;
+}
+.os-workspace-layer .preview-stage-label{
+  flex:0 0 auto;
+  color:#85868e;
+  font-size:8px;
+}
+.os-workspace-layer .preview-browser-reload{
+  width:27px;
+  height:27px;
+  flex:0 0 auto;
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  color:#777981;
+  font-size:15px;
+  cursor:pointer;
+}
+.os-workspace-layer .preview-browser-reload:hover{background:#ededf0;color:#383940}
+
+/* Simulator controls sit below browser chrome, visually separate from the app. */
+.os-workspace-layer .preview-device-toolbar{
+  min-height:38px;
+  height:38px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  border-bottom:1px solid rgba(20,20,24,.065);
+  background:#f8f8fa;
+}
+.os-workspace-layer .preview-device-toolbar button{
+  height:26px;
+  padding:0 9px;
+  border:1px solid transparent;
+  border-radius:6px;
+  background:transparent;
+  color:#94959d;
+  font-size:8px;
+  font-weight:650;
+  cursor:pointer;
+}
+.os-workspace-layer .preview-device-toolbar button:hover{
+  background:#fff;
+  color:#5c5d65;
+}
+.os-workspace-layer .preview-device-toolbar button.active{
+  border-color:rgba(20,20,24,.08);
+  background:#fff;
+  color:#3f4047;
+  box-shadow:0 3px 8px rgba(20,20,24,.05);
+}
+
+/* The viewport is a neutral simulator stage. Device chrome is applied by width, not by the iframe. */
+.os-workspace-layer .preview-viewport{
+  position:relative;
+  flex:1;
+  min-height:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  overflow:auto;
+  background:
+    radial-gradient(500px 260px at 50% 0%,rgba(95,87,217,.045),transparent 70%),
+    #eef0f3;
+}
+.os-workspace-layer .preview-frame{
+  width:100%;
+  height:100%;
+  min-height:0;
+  border:0;
+  background:#fff;
+  box-shadow:0 14px 40px rgba(20,20,24,.12);
+  transition:width .24s var(--nx-os-ease),height .24s var(--nx-os-ease),border-radius .24s var(--nx-os-ease);
+}
+.os-workspace-layer .preview-device-tablet .preview-frame{
+  width:min(768px,100%);
+  height:calc(100% - 4px);
+  border-radius:14px;
+}
+.os-workspace-layer .preview-device-mobile .preview-frame{
+  width:min(390px,100%);
+  height:min(844px,100%);
+  border-radius:22px;
+  border:7px solid #202126;
+  box-shadow:0 18px 46px rgba(20,20,24,.2);
+}
+.os-workspace-layer .preview-device-mobile .preview-viewport:after{
+  content:"";
+  position:absolute;
+  top:24px;
+  left:50%;
+  width:76px;
+  height:18px;
+  transform:translateX(-50%);
+  border-radius:0 0 12px 12px;
+  background:#202126;
+  pointer-events:none;
+}
+.os-workspace-layer .preview-device-desktop .preview-frame{
+  border-radius:6px;
+}
+
+/* Runtime failure is an overlay on the simulator, never a separate page. */
+.os-workspace-layer .preview-runtime-error{
+  position:absolute;
+  left:50%;
+  bottom:24px;
+  width:min(520px,calc(100% - 36px));
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:11px 12px;
+  border:1px solid #ebcccc;
+  border-radius:11px;
+  background:rgba(255,248,248,.96);
+  box-shadow:0 16px 45px rgba(20,20,24,.14);
+  backdrop-filter:blur(18px);
+  z-index:8;
+}
+.os-workspace-layer .preview-runtime-error div{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.os-workspace-layer .preview-runtime-error strong{
+  color:#9d4b4b;
+  font-size:9px;
+}
+.os-workspace-layer .preview-runtime-error span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#8d6666;
+  font-size:8px;
+}
+.os-workspace-layer .preview-runtime-error button{
+  height:29px;
+  flex:0 0 auto;
+  padding:0 10px;
+  border:1px solid #a24d4d;
+  border-radius:7px;
+  background:#a24d4d;
+  color:#fff;
+  font-size:8px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+/* Waiting state gets the same simulator frame instead of a generic empty card. */
+.os-workspace-layer .preview-editorial-empty{
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:11px;
+  padding:24px;
+  background:#eef0f3;
+}
+.os-workspace-layer .preview-editorial-browser{
+  width:min(680px,100%);
+  overflow:hidden;
+  border:1px solid rgba(20,20,24,.1);
+  border-radius:13px;
+  background:#fff;
+  box-shadow:0 20px 55px rgba(20,20,24,.11);
+}
+.os-workspace-layer .preview-editorial-browser .preview-browser-bar{
+  border-bottom:1px solid rgba(20,20,24,.07);
+}
+.os-workspace-layer .preview-editorial-canvas{
+  min-height:350px;
+  display:grid;
+  grid-template-columns:1fr 190px;
+  gap:30px;
+  align-items:center;
+  padding:35px;
+  background:linear-gradient(145deg,#fbfbfc,#f1f2f5);
+}
+.os-workspace-layer .preview-editorial-copy{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+}
+.os-workspace-layer .preview-editorial-copy .eyebrow{
+  color:#9899a1;
+  font-size:7px;
+  letter-spacing:.12em;
+}
+.os-workspace-layer .preview-editorial-copy strong{
+  margin-top:9px;
+  color:#28292e;
+  font-size:24px;
+  line-height:1;
+  letter-spacing:-.05em;
+}
+.os-workspace-layer .preview-editorial-copy p{
+  max-width:300px;
+  margin:10px 0 17px;
+  color:#85868e;
+  font-size:9px;
+  line-height:1.55;
+}
+.os-workspace-layer .preview-editorial-copy div{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:5px;
+  color:#777981;
+  font-size:8px;
+}
+.os-workspace-layer .preview-editorial-copy div i{
+  width:5px;height:5px;border-radius:50%;background:#b0b1b8;
+}
+.os-workspace-layer .preview-editorial-device{
+  position:relative;
+  width:150px;
+  height:220px;
+  justify-self:center;
+  border:6px solid #25262b;
+  border-radius:20px;
+  background:#fff;
+  box-shadow:0 18px 40px rgba(20,20,24,.16);
+}
+.os-workspace-layer .preview-editorial-device span{
+  position:absolute;
+  left:12px;
+  right:12px;
+  height:6px;
+  border-radius:5px;
+  background:#ececef;
+}
+.os-workspace-layer .preview-editorial-device span:first-child{top:35px}
+.os-workspace-layer .preview-editorial-device span:nth-child(2){top:52px;width:70%;right:auto}
+.os-workspace-layer .preview-editorial-device span:nth-child(3){top:82px;height:70px;background:#f2f2f5}
+.os-workspace-layer .coming-soon{
+  color:#999aa2;
+  font-size:8px;
+}
+@media(max-width:700px){
+  .os-workspace-layer .preview-browser-bar{gap:7px;padding:0 8px}
+  .os-workspace-layer .preview-stage-label{display:none}
+  .os-workspace-layer .preview-address-url{font-size:7px}
+  .os-workspace-layer .preview-viewport{padding:10px}
+  .os-workspace-layer .preview-device-mobile .preview-frame{
+    width:min(390px,100%);
+    height:100%;
+  }
+  .os-workspace-layer .preview-runtime-error{
+    bottom:12px;
+    width:calc(100% - 20px);
+  }
+  .os-workspace-layer .preview-editorial-canvas{
+    grid-template-columns:1fr;
+    gap:22px;
+    padding:25px;
+  }
+  .os-workspace-layer .preview-editorial-device{
+    width:115px;
+    height:170px;
+  }
+}
+@media(max-width:420px){
+  .os-workspace-layer .preview-build-status{display:none}
+  .os-workspace-layer .preview-browser-dots{gap:3px}
+  .os-workspace-layer .preview-browser-dots i{width:6px;height:6px}
+  .os-workspace-layer .preview-editorial-copy strong{font-size:20px}
+}
