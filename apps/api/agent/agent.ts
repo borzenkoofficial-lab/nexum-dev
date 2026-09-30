@@ -703,3 +703,18 @@ ${result.output}`
   }
 
   private extractGitHubOperation(task: string): string {
+    const normalizedTask = task.toLowerCase();
+    const pullRequestNumber = normalizedTask.match(/(?:pull request|pull|pr)\s*#?\s*(\d+)/i)?.[1];
+    const issueNumber = normalizedTask.match(/(?:issue|issues|проблем|задач)\s*#?\s*(\d+)/i)?.[1];
+    const commitIdentifier = normalizedTask.match(/(?:commit|коммит(?:е|а|ом)?)\s+([a-f0-9]{7,40})\b/i)?.[1];
+
+    if (pullRequestNumber) return `pullRequest:${pullRequestNumber}`;
+    if (issueNumber) return `issue:${issueNumber}`;
+    if (commitIdentifier) return `commit:${commitIdentifier}`;
+    if (/pull requests?|pull request|\bpr\b/.test(normalizedTask)) return "pullRequests";
+    if (/issues?|проблем|задач/.test(normalizedTask)) return "issues";
+    if (/ветк|branches?/.test(normalizedTask)) return "branches";
+    if (/коммит|commit/.test(normalizedTask)) return "commits";
+    return "repository";
+  }
+}
