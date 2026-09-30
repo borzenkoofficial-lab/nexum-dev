@@ -340,3 +340,51 @@ body{margin:0;overflow-x:hidden}
   }
 }
 
+/* Production containment: the panel content wrapper owns the available
+   height. Individual surfaces own their own scrolling. */
+.app-project .right-panel > .right-panel-content{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+.app-project .right-panel > .right-panel-content > .agent-panel{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-width:100%!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+}
+.app-project .right-panel > .right-panel-content > .preview-frame-wrap,
+.app-project .right-panel > .right-panel-content > .preview-content,
+.app-project .right-panel > .right-panel-content > .editor-shell{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+.app-project .right-panel > .right-panel-content > .editor-shell .editor-body{
+  min-width:0!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.app-project .right-panel > .right-panel-content > .preview-content{
+  overflow:auto!important;
+}
+.app-project .right-panel > .right-panel-content > .preview-frame-wrap .preview-viewport{
+  min-width:0!important;
+  min-height:0!important;
+  overflow:auto!important;
+}
+@media(max-width:700px){
+  .app-project .right-panel > .right-panel-content > .agent-panel{
+    padding-bottom:28px!important;
+  }
+}
+
