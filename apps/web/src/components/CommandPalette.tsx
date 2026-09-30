@@ -43,7 +43,7 @@ export function CommandPalette({ open, onClose, actions }: CommandPaletteProps) 
 
   return (
     <div className="palette-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div className="command-palette" role="dialog" aria-modal="true" aria-label="Палитра команд">
+      <div className="command-palette" role="dialog" aria-modal="true" aria-label="Палитра команд">\n        <div className="palette-window-bar"><span className="palette-traffic traffic-close" /><span className="palette-traffic traffic-min" /><span className="palette-traffic traffic-max" /><span className="palette-window-title">Command Center</span></div>
         <div className="palette-search"><span aria-hidden="true">⌘K</span><input autoFocus value={query} onChange={(event) => { setQuery(event.target.value); setActiveIndex(0); }} placeholder="Поиск команд…" aria-label="Поиск команд" /></div>
         <div className="palette-list" role="listbox">
           {filteredActions.length === 0 ? <div className="palette-empty">Команды не найдены</div> : filteredActions.map((action, index) => (
