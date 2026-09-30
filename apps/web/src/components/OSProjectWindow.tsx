@@ -71,7 +71,7 @@ export function OSProjectWindow({
 
   return (
     <section className="nexum-os-project" aria-label={"NEXUM OS project " + projectName}>
-      <div className={"os-window-shell" + (maximized ? " is-maximized" : "")}>
+      <div className={"os-window-shell" + (maximized ? " is-maximized nexum-os-maximized" : "")}>
         <header className="os-window-titlebar" onDoubleClick={() => setMaximized((value) => !value)}>
           <div className="os-window-controls" aria-label="Window controls">
             <button type="button" className="os-window-dot close" aria-label="Close project" onClick={onClose} />
@@ -101,7 +101,7 @@ export function OSProjectWindow({
             <button type="button" role="tab" aria-selected={activeTab === "files"} tabIndex={activeTab === "files" ? 0 : -1} className={activeTab === "files" ? "active" : ""} onClick={onFiles}>
               <span>□</span> Files
             </button>
-            <button type="button" role="tab" aria-selected={workspaceMode === "code"} tabIndex={workspaceMode === "code" ? 0 : -1} className={"os-window-code" + (workspaceMode === "code" ? " active" : "")} onClick={onCode}>
+            <button type="button" aria-pressed={workspaceMode === "code"} tabIndex={workspaceMode === "code" ? 0 : -1} className={"os-window-code" + (workspaceMode === "code" ? " active" : "")} onClick={onCode}>
               <span>{"{ }"}</span> Code
             </button>
           </div>
