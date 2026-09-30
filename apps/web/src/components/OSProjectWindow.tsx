@@ -62,10 +62,10 @@ export function OSProjectWindow({
   if (minimized) {
     return (
       <section className="nexum-os-project nexum-os-project-minimized" aria-label={"NEXUM OS project " + projectName + " minimized"}>
-        <div className="os-minimized-card" role="button" tabIndex={0} onClick={onRestore} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onRestore(); }}>
+        <div className="os-minimized-card">
           <span className="os-window-project-mark">{projectName.slice(0, 1).toUpperCase()}</span>
           <div><strong>{projectName}</strong><small>Workspace свернут в Dock</small></div>
-          <button type="button" onClick={(event) => { event.stopPropagation(); onRestore(); }}>Открыть</button>
+          <button type="button" onClick={onRestore}>Открыть</button>
         </div>
       </section>
     );
