@@ -120,7 +120,7 @@ export function CodePanel({ projectId, projectName, previewOnline, onRefreshPrev
           <button type="button" className="nexum-code-save" disabled={!dirty || saving} onClick={() => void saveFile()}>{saving ? "Saving…" : dirty ? "Save" : "Saved"}</button>
         </div>
       </header>
-      <div className="nexum-code-main">
+      <div className={"nexum-code-main" + (terminalOpen ? " terminal-open" : "")}>
         <aside className="nexum-code-sidebar">
           <div className="nexum-code-sidebar-title">EXPLORER <span>{files.length}</span></div>
           <div className="nexum-code-project-name">▾ {projectName}</div>
