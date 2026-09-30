@@ -960,24 +960,6 @@ function App() {
         </OSProjectWindow>
         )}
       </main>
-      {view !== "home" && (
-        <StatusBar
-          projectName={activeПроект?.name ?? "NEXUM"}
-          provider={aiProvider}
-          aiStatus={aiStatus}
-          previewOnline={previewOnline}
-          activeView={view}
-          osActiveWindow={osActiveWindow}
-          osFocusTick={osFocusTick}
-          onHome={() => navigate("home")}
-          onProjects={() => navigate("home")}
-          onConnectors={() => navigate("connectors")}
-          onDiagnostics={() => navigate("diagnostics")}
-          onNews={() => navigate("news")}
-          onSettings={() => navigate("settings")}
-          onNewProject={() => setModalOpen(true)}
-        />
-      )}
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
       <NewProjectModal open={modalOpen} name={newПроектName} loading={projectActionLoading} error={projectCreationError} onNameChange={setNewПроектName} onClose={() => { setProjectCreationError(""); setModalOpen(false); }} onSubmit={(data) => void createПроект(data)} />
       {connectorModal && <div className="modal-backdrop connector-backdrop" onMouseDown={() => setConnectorModal(null)}><section className="connector-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><div className="modal-top"><div><span className="eyebrow">ИНТЕГРАЦИЯ</span><h2>{connectorModal}</h2></div><button type="button" onClick={() => setConnectorModal(null)}>×</button></div><p>{connectedConnectors.includes(connectorModal) ? "Эта интеграция включена в интерфейсе рабочего пространства. OAuth/API-данные провайдера пока не сохраняются." : "Включить интеграцию для текущего рабочего пространства. OAuth/API-данные провайдера пока не сохраняются."}</p><div className="connector-modal-actions"><button type="button" onClick={() => setConnectorModal(null)}>Отмена</button><button className="home-primary" type="button" onClick={() => { if (!connectedConnectors.includes(connectorModal)) setConnectedConnectors((items) => [...items, connectorModal]); setConnectorModal(null); setNotice(connectorModal + " интеграция подключена"); }}>Продолжить</button></div></section></div>}
