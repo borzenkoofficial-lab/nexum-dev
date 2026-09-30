@@ -26,7 +26,7 @@ import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAu
 import { pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { acquireProjectLock, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
-import { NexumError } from "./core/errors.js";
+import { NexumError, classifyAIError } from "./core/errors.js";
 
 dotenv.config();
 
@@ -43,9 +43,7 @@ function getRequestId(req: express.Request): string {
 function sendSafeError(res: Response, error: unknown, requestId: string, fallback = "Внутренняя ошибка NEXUM.") {
   const normalized = error instanceof NexumError
     ? error
-    : new NexumError("INTERNAL_ERROR", fallback, {
-        technicalDetails: error instanceof Error ? error.message : String(error),
-      });
+    : classifyAIError(error);
   if (normalized.status === undefined || normalized.status >= 500) {
     console.error("[Nexum] request failed", { requestId, code: normalized.code, error: normalized.technicalDetails });
   }
@@ -1135,6 +1133,12 @@ function sendProjectError(res: Response, error: unknown, req?: express.Request) 
   }
   return sendSafeError(res, error, requestId, "Project manager request failed");
 }
+
+app.use((error: unknown, req: express.Request, res: Response, next: express.NextFunction) => {
+  if (res.headersSent) return next(error);
+  const requestId = getRequestId(req);
+  return sendSafeError(res, error, requestId);
+});
 
 const PORT = Number(process.env.PORT || 3001);
 const HOST = process.env.HOST || "0.0.0.0";
