@@ -1372,3 +1372,292 @@
   .os-workspace-layer .preview-browser-dots i{width:6px;height:6px}
   .os-workspace-layer .preview-editorial-copy strong{font-size:20px}
 }
+
+
+/* Files + Code 6.0 — native project workspace */
+.os-workspace-layer .editor-shell,
+.os-workspace-layer .nexum-code{
+  height:100%;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  background:#f8f8fa;
+  color:#25262b;
+}
+.os-workspace-layer .editor-filebar,
+.os-workspace-layer .nexum-code-topbar{
+  flex:0 0 46px;
+  height:46px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:0 12px;
+  border-bottom:1px solid rgba(20,20,24,.075);
+  background:rgba(255,255,255,.88);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+.os-workspace-layer .editor-file-name,
+.os-workspace-layer .nexum-code-brand{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#5d5e66;
+  font-size:9px;
+}
+.os-workspace-layer .editor-file-name>span:last-of-type{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.os-workspace-layer .editor-file-kind,
+.os-workspace-layer .nexum-code-brand strong{
+  font-size:8px;font-weight:800;color:#5f57d9;
+}
+.os-workspace-layer .nexum-code-brand button{
+  width:27px;height:27px;border:0;border-radius:7px;background:#f1f1f4;color:#707179;cursor:pointer;
+}
+.os-workspace-layer .nexum-code-brand strong span{
+  color:#999aa2;font-weight:650;margin-left:3px;
+}
+.os-workspace-layer .nexum-code-brand em{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-style:normal;color:#8d8e96;font-size:8px;
+}
+.os-workspace-layer .editor-file-name i,
+.os-workspace-layer .nexum-code-file i,
+.os-workspace-layer .nexum-code-tab i{
+  color:#5f57d9;font-style:normal;font-size:8px;
+}
+.os-workspace-layer .editor-file-actions,
+.os-workspace-layer .nexum-code-actions{
+  display:flex;align-items:center;gap:5px;flex:0 0 auto;
+}
+.os-workspace-layer .editor-file-actions button,
+.os-workspace-layer .nexum-code-actions button{
+  height:29px;padding:0 9px;border:1px solid rgba(20,20,24,.07);border-radius:7px;background:#f7f7f9;color:#6d6e76;font-size:8px;font-weight:650;cursor:pointer;
+}
+.os-workspace-layer .editor-file-actions button:hover,
+.os-workspace-layer .nexum-code-actions button:hover{background:#fff;color:#3f4047}
+.os-workspace-layer .editor-file-actions .editor-save,
+.os-workspace-layer .nexum-code-actions .nexum-code-save{
+  background:#191a1e;color:#fff;border-color:#191a1e;
+}
+.os-workspace-layer .editor-file-actions button:disabled,
+.os-workspace-layer .nexum-code-actions button:disabled{opacity:.42;cursor:default}
+.os-workspace-layer .editor-change-state{color:#43a675;font-size:8px}
+.os-workspace-layer .editor-change-state.dirty{color:#a06b39}
+
+/* Files view: quiet tree + large editing surface */
+.os-workspace-layer .editor-body{
+  flex:1;
+  display:grid;
+  grid-template-columns:220px minmax(0,1fr);
+  min-height:0;
+  background:#fbfbfc;
+}
+.os-workspace-layer .editor-tree{
+  min-width:0;
+  overflow:auto;
+  padding:10px 7px;
+  border-right:1px solid rgba(20,20,24,.065);
+  background:#f5f5f7;
+}
+.os-workspace-layer .editor-tree:before{
+  content:"FILES";
+  display:block;
+  padding:2px 8px 8px;
+  color:#a0a1a8;
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.12em;
+}
+.os-workspace-layer .file-row{
+  width:100%;
+  min-height:30px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 8px;
+  border:1px solid transparent;
+  border-radius:7px;
+  background:transparent;
+  color:#777880;
+  text-align:left;
+  cursor:pointer;
+}
+.os-workspace-layer .file-row:hover{background:rgba(255,255,255,.72);color:#4b4c53}
+.os-workspace-layer .file-row.selected{
+  background:#fff;border-color:rgba(20,20,24,.07);color:#28292e;box-shadow:0 3px 9px rgba(20,20,24,.035);
+}
+.os-workspace-layer .file-row span{
+  width:20px;color:#8d8e96;font:700 7px ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center;
+}
+.os-workspace-layer .file-row strong{
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px;font-weight:600;
+}
+.os-workspace-layer .code-editor{
+  position:relative;
+  min-width:0;
+  min-height:0;
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr);
+  overflow:hidden;
+  background:#fff;
+}
+.os-workspace-layer .editor-gutter{
+  overflow:hidden;
+  padding:13px 8px 60px 0;
+  border-right:1px solid rgba(20,20,24,.045);
+  background:#fafafd;
+  color:#b2b3b9;
+  text-align:right;
+  font:8px/1.72 ui-monospace,SFMono-Regular,Menlo,monospace;
+  user-select:none;
+}
+.os-workspace-layer .editor-gutter span{display:block}
+.os-workspace-layer .code-editor textarea,
+.os-workspace-layer .nexum-code-textarea{
+  width:100%;
+  height:100%;
+  min-height:0;
+  resize:none;
+  border:0;
+  outline:0;
+  padding:13px 18px 60px 14px;
+  background:#fff;
+  color:#303137;
+  font:11px/1.72 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  tab-size:2;
+  white-space:pre;
+  overflow:auto;
+  caret-color:#5f57d9;
+}
+.os-workspace-layer .code-editor textarea:focus,
+.os-workspace-layer .nexum-code-textarea:focus{box-shadow:none}
+.os-workspace-layer .editor-empty,
+.os-workspace-layer .editor-loading,
+.os-workspace-layer .nexum-code-loading{
+  grid-column:1/-1;
+  display:grid;
+  place-content:center;
+  gap:6px;
+  color:#9a9ba2;
+  font-size:9px;
+  text-align:center;
+}
+.os-workspace-layer .editor-empty strong{font-size:11px;color:#5f6068}
+.os-workspace-layer .editor-empty span{font-size:8px;color:#a1a2a9}
+.os-workspace-layer .editor-error,
+.os-workspace-layer .nexum-code-error{
+  position:absolute;
+  left:12px;right:12px;bottom:36px;
+  z-index:8;
+  padding:9px 11px;
+  border:1px solid #edd1d1;
+  border-radius:8px;
+  background:rgba(255,247,247,.97);
+  color:#9b4f4f;
+  font-size:8px;
+  box-shadow:0 10px 28px rgba(20,20,24,.1);
+}
+.os-workspace-layer .editor-filebar + .editor-body + .editor-error{bottom:10px}
+
+/* Full Code app */
+.os-workspace-layer .nexum-code-main{
+  flex:1;
+  min-height:0;
+  display:grid;
+  grid-template-columns:220px minmax(0,1fr);
+  overflow:hidden;
+}
+.os-workspace-layer .nexum-code-sidebar{
+  min-width:0;
+  overflow:auto;
+  padding:11px 8px;
+  border-right:1px solid rgba(20,20,24,.065);
+  background:#f4f4f6;
+}
+.os-workspace-layer .nexum-code-sidebar-title{
+  display:flex;justify-content:space-between;
+  padding:2px 8px 9px;
+  color:#96979f;font-size:7px;font-weight:800;letter-spacing:.12em;
+}
+.os-workspace-layer .nexum-code-sidebar-title span{font-weight:650;letter-spacing:0;color:#b0b1b7}
+.os-workspace-layer .nexum-code-project-name{
+  padding:6px 8px;color:#5e5f67;font-size:8px;font-weight:700;
+}
+.os-workspace-layer .nexum-code-file{
+  width:100%;height:30px;display:flex;align-items:center;gap:8px;padding:0 8px;
+  border:1px solid transparent;border-radius:7px;background:transparent;color:#777880;text-align:left;cursor:pointer;
+}
+.os-workspace-layer .nexum-code-file:hover{background:rgba(255,255,255,.7)}
+.os-workspace-layer .nexum-code-file.active{background:#fff;border-color:rgba(20,20,24,.07);color:#2e2f35;box-shadow:0 3px 9px rgba(20,20,24,.035)}
+.os-workspace-layer .nexum-code-file>span{width:20px;color:#6f70a7;font:700 7px ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center}
+.os-workspace-layer .nexum-code-file b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px;font-weight:600}
+.os-workspace-layer .nexum-code-file i{margin-left:auto}
+.os-workspace-layer .nexum-code-editor{
+  position:relative;min-width:0;min-height:0;display:flex;flex-direction:column;background:#fff;
+}
+.os-workspace-layer .nexum-code-tabs{
+  flex:0 0 34px;height:34px;display:flex;align-items:center;gap:1px;padding:0 7px;
+  border-bottom:1px solid rgba(20,20,24,.06);background:#fafafd;color:#9b9ca3;font-size:8px;
+}
+.os-workspace-layer .nexum-code-tab{
+  height:34px;display:flex;align-items:center;gap:7px;padding:0 10px;
+  border-right:1px solid rgba(20,20,24,.055);color:#55565e;font-size:8px;
+}
+.os-workspace-layer .nexum-code-tab span{color:#6f70a7;font:700 7px ui-monospace,SFMono-Regular,Menlo,monospace}
+.os-workspace-layer .nexum-code-edit-wrap{
+  flex:1;min-height:0;display:grid;grid-template-columns:42px minmax(0,1fr);overflow:hidden;
+}
+.os-workspace-layer .nexum-code-gutter{
+  overflow:hidden;padding:13px 8px 60px 0;border-right:1px solid rgba(20,20,24,.045);
+  background:#fafafd;color:#b2b3b9;text-align:right;font:8px/1.72 ui-monospace,SFMono-Regular,Menlo,monospace;user-select:none;
+}
+.os-workspace-layer .nexum-code-gutter span{display:block}
+.os-workspace-layer .nexum-code-status{
+  position:absolute;left:0;right:0;bottom:0;height:24px;
+  display:flex;align-items:center;gap:12px;padding:0 10px;
+  border-top:1px solid rgba(20,20,24,.06);background:#f5f5f7;
+  color:#999aa2;font-size:7px;
+}
+.os-workspace-layer .nexum-code-status-right{margin-left:auto}
+.os-workspace-layer .nexum-code-terminal{
+  position:absolute;right:0;bottom:24px;z-index:15;
+  width:min(420px,52%);height:240px;
+  border:1px solid rgba(20,20,24,.1);border-radius:11px 0 0 0;
+  background:rgba(25,26,30,.97);color:#dfe0e4;
+  box-shadow:-15px -15px 45px rgba(20,20,24,.15);
+}
+.os-workspace-layer .nexum-code-terminal-head{
+  height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;
+  border-bottom:1px solid rgba(255,255,255,.08);color:#aeb0b7;font-size:7px;letter-spacing:.1em;
+}
+.os-workspace-layer .nexum-code-terminal-head button{border:0;background:transparent;color:#9b9ca3;font-size:15px;cursor:pointer}
+.os-workspace-layer .nexum-code-terminal-body{
+  height:calc(100% - 32px);overflow:auto;padding:11px;
+  font:8px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.os-workspace-layer .nexum-code-terminal-note{margin-top:14px;color:#858790;font-family:inherit}
+@media(max-width:700px){
+  .os-workspace-layer .editor-body,
+  .os-workspace-layer .nexum-code-main{grid-template-columns:165px minmax(0,1fr)}
+  .os-workspace-layer .editor-tree,
+  .os-workspace-layer .nexum-code-sidebar{padding-left:5px;padding-right:5px}
+  .os-workspace-layer .editor-gutter,
+  .os-workspace-layer .nexum-code-gutter{width:34px;padding-right:6px}
+  .os-workspace-layer .code-editor,
+  .os-workspace-layer .nexum-code-edit-wrap{grid-template-columns:34px minmax(0,1fr)}
+  .os-workspace-layer .code-editor textarea,
+  .os-workspace-layer .nexum-code-textarea{font-size:10px;padding-left:10px}
+  .os-workspace-layer .nexum-code-terminal{width:72%;height:220px}
+}
+@media(max-width:460px){
+  .os-workspace-layer .editor-body,
+  .os-workspace-layer .nexum-code-main{grid-template-columns:135px minmax(0,1fr)}
+  .os-workspace-layer .editor-file-actions .editor-change-state{display:none}
+  .os-workspace-layer .nexum-code-brand em{display:none}
+  .os-workspace-layer .nexum-code-actions button:not(.nexum-code-save){display:none}
+  .os-workspace-layer .nexum-code-terminal{width:88%}
+}
