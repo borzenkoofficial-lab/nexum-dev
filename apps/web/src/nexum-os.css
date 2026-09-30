@@ -2822,3 +2822,167 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 @media(max-width:640px){
   .nexum-os-project-chip small{max-width:150px}
 }
+
+
+/* Agent + Builder final surface polish */
+.app-project .chat{
+  position:relative;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(101,92,246,.055),transparent 34%),
+    linear-gradient(180deg,rgba(255,255,255,.48),rgba(247,248,250,.30));
+}
+.app-project .chat-history{
+  scrollbar-gutter:stable;
+}
+.app-project .chat-project-context{
+  border:1px solid rgba(255,255,255,.84)!important;
+  background:rgba(255,255,255,.62)!important;
+  box-shadow:0 10px 28px rgba(20,22,28,.055),inset 0 1px 0 rgba(255,255,255,.94)!important;
+  backdrop-filter:blur(18px) saturate(145%);
+  -webkit-backdrop-filter:blur(18px) saturate(145%);
+}
+.app-project .chat-context-state{
+  margin-left:auto;
+  display:inline-flex!important;
+  align-items:center;
+  gap:5px;
+  color:#7d828c!important;
+  font-size:8px!important;
+  letter-spacing:.04em;
+}
+.app-project .chat-context-state i{
+  width:6px;height:6px;border-radius:50%;
+  background:#24a873;
+  box-shadow:0 0 0 4px rgba(36,168,115,.08);
+}
+.app-project .welcome{
+  width:min(820px,100%);
+}
+.app-project .welcome h1{
+  letter-spacing:-.055em!important;
+}
+.app-project .welcome>p{
+  max-width:660px;
+  line-height:1.7!important;
+  color:#767b84!important;
+}
+.app-project .builder-editorial-preview{
+  border:1px solid rgba(255,255,255,.86)!important;
+  background:rgba(255,255,255,.54)!important;
+  box-shadow:0 28px 70px rgba(20,22,28,.10),inset 0 1px 0 rgba(255,255,255,.96)!important;
+  backdrop-filter:blur(20px) saturate(145%);
+  -webkit-backdrop-filter:blur(20px) saturate(145%);
+}
+.app-project .message-form{
+  position:sticky;
+  bottom:0;
+  z-index:8;
+  padding:12px max(14px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,transparent,rgba(247,248,250,.82) 24%);
+}
+.app-project .message-box{
+  border:1px solid rgba(255,255,255,.92)!important;
+  background:rgba(255,255,255,.78)!important;
+  box-shadow:0 18px 48px rgba(20,22,28,.12),inset 0 1px 0 rgba(255,255,255,.98)!important;
+  backdrop-filter:blur(24px) saturate(150%);
+  -webkit-backdrop-filter:blur(24px) saturate(150%);
+}
+.app-project .message-box:focus-within{
+  border-color:rgba(101,92,246,.22)!important;
+  box-shadow:0 20px 52px rgba(20,22,28,.13),0 0 0 3px rgba(101,92,246,.055),inset 0 1px 0 rgba(255,255,255,.98)!important;
+}
+.app-project .composer-tool{
+  border:1px solid rgba(255,255,255,.72)!important;
+  background:rgba(246,247,249,.62)!important;
+}
+.app-project .composer-tool:hover{
+  background:rgba(255,255,255,.82)!important;
+  color:#4f48c8!important;
+}
+.app-project .composer-model-button{
+  border:1px solid rgba(255,255,255,.84)!important;
+  background:rgba(239,237,255,.58)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.92)!important;
+}
+.app-project .composer-model-button:hover,
+.app-project .composer-model-button.open{
+  background:rgba(239,237,255,.82)!important;
+  border-color:rgba(101,92,246,.16)!important;
+}
+.app-project .send-button{
+  box-shadow:0 9px 20px rgba(20,22,28,.14),inset 0 1px 0 rgba(255,255,255,.18)!important;
+}
+.app-project .chat-error-fixed{
+  border:1px solid rgba(215,85,107,.16)!important;
+  background:rgba(255,244,247,.82)!important;
+  box-shadow:0 12px 30px rgba(120,30,50,.10)!important;
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+.app-project .agent-activity-live{
+  border:1px solid rgba(255,255,255,.80)!important;
+  background:rgba(255,255,255,.56)!important;
+  box-shadow:0 8px 24px rgba(20,22,28,.045),inset 0 1px 0 rgba(255,255,255,.92)!important;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.app-project .agent-activity-live.active{
+  border-color:rgba(101,92,246,.13)!important;
+  background:rgba(239,237,255,.52)!important;
+}
+.app-project .agent-panel{
+  background:
+    radial-gradient(circle at 50% 0%,rgba(101,92,246,.07),transparent 34%),
+    linear-gradient(180deg,rgba(249,250,252,.72),rgba(245,246,248,.45));
+}
+.app-project .agent-panel-header{
+  border-bottom:1px solid rgba(20,22,28,.055)!important;
+}
+.app-project .agent-status-pill{
+  border:1px solid rgba(255,255,255,.84)!important;
+  background:rgba(255,255,255,.66)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 6px 16px rgba(20,22,28,.045)!important;
+}
+.app-project .agent-hero-mockup{
+  border:1px solid rgba(255,255,255,.88)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(240,239,255,.58))!important;
+  box-shadow:0 24px 56px rgba(20,22,28,.10),inset 0 1px 0 rgba(255,255,255,.98)!important;
+}
+.app-project .agent-current,
+.app-project .agent-plan-card,
+.app-project .agent-timeline,
+.app-project .agent-result-card,
+.app-project .agent-problems{
+  border:1px solid rgba(255,255,255,.82)!important;
+  background:rgba(255,255,255,.60)!important;
+  box-shadow:0 14px 34px rgba(20,22,28,.06),inset 0 1px 0 rgba(255,255,255,.94)!important;
+  backdrop-filter:blur(18px) saturate(145%);
+  -webkit-backdrop-filter:blur(18px) saturate(145%);
+}
+.app-project .pipeline-step{
+  border-color:rgba(255,255,255,.78)!important;
+  background:rgba(255,255,255,.52)!important;
+}
+.app-project .pipeline-step.active{
+  background:rgba(239,237,255,.78)!important;
+  border-color:rgba(101,92,246,.15)!important;
+  box-shadow:0 8px 20px rgba(101,92,246,.08),inset 0 1px 0 rgba(255,255,255,.96)!important;
+}
+.app-project .pipeline-step.done i{
+  background:#5b50d7!important;
+  color:#fff!important;
+}
+.app-project .agent-event{
+  border-color:rgba(20,22,28,.055)!important;
+}
+@media(max-width:760px){
+  .app-project .message-form{padding-left:8px;padding-right:8px}
+  .app-project .composer-hint{display:none}
+  .app-project .welcome{padding-inline:6px}
+  .app-project .agent-panel{padding-inline:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .app-project .message-box,
+  .app-project .builder-editorial-preview,
+  .app-project .agent-hero-mockup{backdrop-filter:none;-webkit-backdrop-filter:none}
+}
