@@ -5,9 +5,10 @@ import { MockProvider } from "../ai/providers/mock.js";
 import { NexumAgent } from "./agent.js";
 import { AgentLoop, compactAgentHistory } from "./loop.js";
 import type { AgentRuntime } from "./types.js";
+import type { AIProvider } from "../ai/types.js";
 
 const gateway = new AIGateway([new MockProvider()]);
-class ProductPlanProvider implements import("../ai/types.js").AIProvider {
+class ProductPlanProvider implements AIProvider {
   id = "test-planner";
   name = "Test planner";
   model = "planner-test";
