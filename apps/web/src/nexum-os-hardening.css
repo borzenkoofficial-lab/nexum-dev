@@ -789,3 +789,19 @@ body{margin:0;overflow-x:hidden}
     font-size:10px!important;
   }
 }
+
+/* Desktop workspace: avoid repeating navigation already provided by the OS chrome.
+   Mobile keeps compact context/actions where the primary toolbar is condensed. */
+@media(min-width:901px){
+  .app-project .chat-project-context{
+    display:none!important;
+  }
+  .app-project .agent-activity-live > button{
+    display:none!important;
+  }
+}
+@media(max-width:900px){
+  .app-project .chat-project-context{
+    display:flex!important;
+  }
+}
