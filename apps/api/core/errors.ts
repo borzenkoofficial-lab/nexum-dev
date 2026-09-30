@@ -58,16 +58,16 @@ export function toNexumError(error: unknown, fallbackCode: NexumErrorCode = "INT
 export function classifyAIError(error: unknown): NexumError {
   const message = error instanceof Error ? error.message : String(error);
   if (/authentication failed|unauthorized|\b401\b|\b403\b/i.test(message)) {
-    return new NexumError("AUTH_ERROR", message, { retryable: false, technicalDetails: message });
+    return new NexumError("AUTH_ERROR", "Проверьте настройки авторизации AI-провайдера.", { retryable: false, technicalDetails: message });
   }
   if (/rate limit|too many requests|\b429\b/i.test(message)) {
-    return new NexumError("PROVIDER_ERROR", message, { retryable: true, technicalDetails: message });
+    return new NexumError("PROVIDER_ERROR", "AI-провайдер временно ограничил запросы. Повторите попытку позже.", { retryable: true, technicalDetails: message });
   }
   if (/timeout|timed out|network error|unavailable|fetch failed|econn/i.test(message)) {
-    return new NexumError("NETWORK_ERROR", message, { retryable: true, technicalDetails: message });
+    return new NexumError("NETWORK_ERROR", "Не удалось связаться с AI-провайдером. Проверьте соединение и повторите попытку.", { retryable: true, technicalDetails: message });
   }
   if (/invalid response|malformed|model/i.test(message)) {
-    return new NexumError("MODEL_ERROR", message, { retryable: false, technicalDetails: message });
+    return new NexumError("MODEL_ERROR", "AI-модель вернула некорректный ответ.", { retryable: false, technicalDetails: message });
   }
-  return new NexumError("PROVIDER_ERROR", message, { retryable: false, technicalDetails: message });
+  return new NexumError("PROVIDER_ERROR", "AI-провайдер не смог обработать запрос.", { retryable: false, technicalDetails: message });
 }
