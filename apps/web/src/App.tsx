@@ -933,7 +933,6 @@ function App() {
         ) : (
         <OSProjectWindow
           projectName={activeПроект?.name ?? "NEXUM"}
-          projectId={activeПроектId}
           workspaceMode={workspaceMode}
           previewOnline={previewOnline}
           agentStage={agentStage}
