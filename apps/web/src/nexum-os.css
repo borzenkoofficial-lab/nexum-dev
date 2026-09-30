@@ -3207,3 +3207,122 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 @media(prefers-reduced-motion:reduce){
   .os-primary-action:hover,.os-app-icon:hover,.os-project-card:hover{transform:none!important}
 }
+
+
+/* NEXUM OS 4.1 — navigation system finish */
+.status-menu-icon svg{
+  width:17px!important;
+  height:17px!important;
+  display:block;
+  stroke:currentColor;
+}
+.status-menu-item:focus-visible,
+.nexum-os-app-chip:focus-visible,
+.nexum-os-app-more:focus-visible,
+.nexum-os-switcher-card:focus-visible,
+.nexum-os-project-chip:focus-visible,
+.nexum-os-switcher-actions button:focus-visible{
+  outline:2px solid rgba(91,82,210,.42)!important;
+  outline-offset:2px!important;
+}
+.status-menu-item.active .status-menu-icon{
+  box-shadow:0 8px 18px rgba(17,18,22,.10),inset 0 1px 0 rgba(255,255,255,.98),0 0 0 1px rgba(255,255,255,.65);
+}
+.status-menu-plus{
+  font-size:19px!important;
+  font-weight:500!important;
+}
+.nexum-os-app-chip i svg{
+  width:14px;
+  height:14px;
+  display:block;
+}
+.nexum-os-app-chip.active i{
+  box-shadow:0 5px 12px rgba(20,22,28,.08),inset 0 1px 0 rgba(255,255,255,.98);
+}
+.nexum-os-switcher{
+  max-height:min(760px,calc(100dvh - 48px));
+  overflow:auto;
+  scrollbar-width:thin;
+}
+.nexum-os-switcher-projects{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+  margin-bottom:12px;
+}
+.nexum-os-project-chip{
+  min-width:0;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  grid-template-rows:auto auto;
+  column-gap:9px;
+  padding:10px;
+  border:1px solid rgba(20,22,28,.07);
+  border-radius:15px;
+  background:rgba(248,249,251,.70);
+  text-align:left;
+  cursor:pointer;
+  transition:transform .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.nexum-os-project-chip:hover{
+  transform:translateY(-2px);
+  background:rgba(255,255,255,.9);
+  box-shadow:0 10px 24px rgba(20,22,28,.07);
+}
+.nexum-os-project-chip.active{
+  background:rgba(255,255,255,.96);
+  border-color:rgba(91,82,210,.16);
+  box-shadow:0 8px 22px rgba(20,22,28,.07);
+}
+.nexum-os-project-chip>span{
+  grid-row:1 / span 2;
+  width:34px;height:34px;
+  display:grid;place-items:center;
+  border-radius:10px;
+  background:linear-gradient(145deg,#f0edff,#ddd8ff);
+  color:#6253c5;
+  font-size:12px;font-weight:800;
+}
+.nexum-os-project-chip strong{
+  min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:11px;color:#25272c;
+}
+.nexum-os-project-chip small{
+  min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  margin-top:2px;
+  font-size:8px;color:#858a93;
+}
+.nexum-os-switcher-card{
+  transition:transform .18s ease,background .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+.nexum-os-switcher-card:hover{
+  transform:translateY(-2px);
+  background:rgba(255,255,255,.9);
+  box-shadow:0 10px 24px rgba(20,22,28,.07);
+}
+.nexum-os-switcher-icon svg{
+  width:20px;height:20px;display:block;
+}
+.nexum-os-switcher-icon.agent{color:#c63f78;background:linear-gradient(145deg,#fff0f7,#ffd8e9)}
+.nexum-os-switcher-icon.preview{color:#178d59;background:linear-gradient(145deg,#edfff5,#d0f4df)}
+.nexum-os-switcher-icon.files{color:#b47a08;background:linear-gradient(145deg,#fff8e9,#ffe8b5)}
+.nexum-os-switcher-icon.code{color:#1476b5;background:linear-gradient(145deg,#edf9ff,#d4efff)}
+.nexum-os-switcher-actions .danger:hover{
+  background:#fff4f5;
+  border-color:rgba(163,61,74,.15);
+}
+@media(max-width:760px){
+  .nexum-os-switcher-projects{grid-template-columns:1fr}
+  .nexum-os-switcher-card{min-height:132px}
+}
+@media(pointer:coarse){
+  .nexum-os-project-chip:hover,
+  .nexum-os-switcher-card:hover{transform:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .nexum-os-project-chip,
+  .nexum-os-switcher-card{transition:none}
+}
