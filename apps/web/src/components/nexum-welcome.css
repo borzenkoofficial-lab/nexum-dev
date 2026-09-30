@@ -41,3 +41,29 @@
 @media(max-width:760px){.nexum-welcome-nav{height:62px;padding:0 18px}.nexum-os-session{display:none}.nexum-boot-sequence{display:flex;flex-direction:column;justify-content:center;gap:20px;width:calc(100% - 32px);padding:10px 0 60px;text-align:center}.nexum-sequence-core{width:110px;height:110px}.nexum-core-glass{width:92px;height:92px;border-radius:28px}.nexum-core-glass span{font-size:46px}.nexum-sequence-copy h1{font-size:48px}.nexum-sequence-copy p{font-size:13px;margin-top:14px}.nexum-boot-console{display:none}.nexum-auth-window{left:50%;right:auto;top:50%;width:min(430px,calc(100% - 24px));transform:translate(-50%,calc(-50% + 28px)) scale(.94)}.scene-auth .nexum-auth-window{transform:translate(-50%,-50%) scale(1)}.scene-auth .nexum-boot-sequence{opacity:.12}.nexum-auth-content{padding:23px}.nexum-welcome-footer{display:none}.nexum-skip-intro{right:18px;bottom:16px}}
 @media(max-width:520px){.nexum-sequence-copy h1{font-size:41px}.nexum-auth-intro h2{font-size:24px}.nexum-auth-content{padding:20px}.nexum-skip-intro{font-size:7px}}
 @media(prefers-reduced-motion:reduce){.nexum-welcome-orb,.nexum-welcome-particles i,.nexum-logo-mark,.nexum-core-glass,.nexum-core-halo,.nexum-core-orbit,.nexum-liquid-rings span,.nexum-boot-glow,.nx-live-dot{animation:none!important}.nexum-sequence-copy h1,.nexum-sequence-copy p,.nexum-boot-console{animation:none!important}.scene-auth .nexum-auth-window{animation:none}.scene-auth .nexum-boot-sequence{filter:none;transform:none}.nexum-auth-window{transition:none}}
+
+/* Minimal OS boot polish */
+@keyframes nx-text-in{0%{opacity:0;transform:translateY(12px);filter:blur(9px);letter-spacing:.015em}45%{opacity:.72}100%{opacity:1;transform:translateY(0);filter:blur(0);letter-spacing:0}}
+@keyframes nx-copy-breathe{0%,100%{opacity:.96}50%{opacity:1}}
+@keyframes nx-auth-soft-in{from{opacity:0;transform:translateY(-50%) translateY(16px) scale(.985);filter:blur(8px)}to{opacity:1;transform:translateY(-50%) scale(1);filter:blur(0)}}
+.nexum-welcome::before{background:radial-gradient(circle at 14% 12%,rgba(255,105,191,.25),transparent 25%),radial-gradient(circle at 88% 16%,rgba(80,137,255,.28),transparent 27%),radial-gradient(circle at 78% 92%,rgba(158,100,255,.18),transparent 25%),linear-gradient(135deg,#edf3ff,#f8f1f8 48%,#edf7f5)}
+.nexum-welcome::after{background:radial-gradient(circle at 50% 44%,rgba(255,255,255,.2),transparent 30%),linear-gradient(180deg,rgba(13,18,38,.5),rgba(20,26,54,.15) 58%,rgba(255,255,255,.01))}
+.nexum-welcome-orb{opacity:.25;filter:blur(24px)}
+.nexum-welcome-particles i{opacity:.35}
+.nexum-liquid-rings span{border-color:rgba(255,255,255,.18);box-shadow:none}
+.nexum-sequence-copy{animation:nx-copy-breathe 5s ease-in-out infinite}
+.nexum-sequence-copy h1{animation:nx-text-in .82s cubic-bezier(.22,.8,.24,1) both!important}
+.nexum-sequence-copy p{animation:nx-text-in .72s .08s cubic-bezier(.22,.8,.24,1) both!important}
+.nexum-sequence-eyebrow{animation:nx-text-in .55s cubic-bezier(.22,.8,.24,1) both}
+.nexum-boot-console{background:rgba(14,20,42,.18);border-color:rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 20px 55px rgba(24,33,73,.09)}
+.nexum-auth-window{box-shadow:0 32px 90px rgba(40,49,95,.16),inset 0 1px 0 rgba(255,255,255,.95)}
+.scene-auth .nexum-auth-window{animation:nx-auth-soft-in .9s cubic-bezier(.18,.82,.22,1) both,nx-window-glow 4.5s ease-in-out 1s infinite}
+.nexum-auth-intro h2{animation:nx-text-in .65s .12s both}
+.nexum-auth-intro p{animation:nx-text-in .65s .2s both}
+.nexum-auth-content form{animation:nx-text-in .7s .28s both}
+.nexum-window-chrome{color:rgba(21,24,34,.34)}
+.nexum-enter{box-shadow:0 12px 28px rgba(25,28,40,.14)}
+.nexum-enter:hover:not(:disabled){box-shadow:0 18px 38px rgba(52,67,160,.22)}
+.nexum-skip-intro{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.12);transition:opacity .3s ease,background .3s ease,transform .3s ease}
+.nexum-skip-intro:hover{background:rgba(255,255,255,.1);transform:translateY(-1px)}
+@media(prefers-reduced-motion:reduce){.nexum-sequence-copy,.nexum-sequence-copy h1,.nexum-sequence-copy p,.nexum-sequence-eyebrow,.nexum-auth-window,.nexum-auth-intro h2,.nexum-auth-intro p,.nexum-auth-content form{animation:none!important}}
