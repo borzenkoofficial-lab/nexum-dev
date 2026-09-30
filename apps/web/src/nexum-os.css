@@ -2506,3 +2506,281 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
   .nexum-os-switcher{padding:13px;border-radius:19px}
   .nexum-os-switcher-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+
+/* NEXUM VISUAL POLISH 5.2 — interaction surfaces, responsive window chrome, accessibility */
+.os-window-controls{gap:7px!important}
+.os-window-dot{width:12px!important;height:12px!important;border:1px solid rgba(20,22,28,.12)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 2px 5px rgba(20,22,28,.10)!important}
+.os-window-dot.close{background:#ff6f72!important}
+.os-window-dot.minimize{background:#ffc85a!important}
+.os-window-dot.maximize{background:#55c98b!important}
+
+.os-window-title{
+  gap:9px!important;
+}
+.os-window-title>strong{font-weight:700;letter-spacing:-.025em}
+.os-window-title>span:last-child{color:#8d9199!important}
+.os-window-status{
+  padding:6px 9px!important;
+  border:1px solid rgba(255,255,255,.78)!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.52)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 4px 12px rgba(20,22,28,.04)!important;
+}
+.os-status-pulse.active{background:var(--nx-indigo)!important;box-shadow:0 0 0 4px rgba(101,92,246,.09),0 0 10px rgba(101,92,246,.22)!important}
+
+.os-window-toolbar{
+  min-height:58px!important;
+  padding:8px 10px!important;
+  gap:12px!important;
+}
+.os-window-apps{
+  padding:4px!important;
+  border:1px solid rgba(255,255,255,.72)!important;
+  border-radius:14px!important;
+  background:rgba(245,246,249,.55)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9)!important;
+}
+.os-window-apps button{
+  min-height:34px!important;
+  padding:0 11px!important;
+  border-radius:10px!important;
+  color:#70757f!important;
+}
+.os-window-apps button:hover{background:rgba(255,255,255,.66)!important;color:#454952!important}
+.os-window-apps button span{
+  width:21px;height:21px;
+  display:inline-grid;place-items:center;
+  margin-right:4px;
+  border-radius:7px;
+  background:rgba(255,255,255,.65);
+}
+.os-window-apps button:nth-child(1) span{color:#16805e}
+.os-window-apps button:nth-child(2) span{color:#5b50dc}
+.os-window-apps button:nth-child(3) span{color:#087e9b}
+.os-window-apps button:nth-child(4) span{color:#c47b08}
+
+.os-window-actions{
+  gap:6px!important;
+}
+.os-window-actions button{
+  min-height:34px!important;
+  padding:0 11px!important;
+  border-radius:10px!important;
+  color:#656a74!important;
+}
+.os-window-actions button:hover{background:rgba(255,255,255,.78)!important;color:#30333a!important}
+.os-window-actions button.primary:hover{transform:translateY(-1px);box-shadow:0 10px 23px rgba(20,22,28,.20)!important}
+
+.os-window-context{
+  min-height:42px!important;
+  padding:6px 12px!important;
+  gap:20px!important;
+}
+.os-window-context>div{
+  min-width:0;
+}
+.os-window-context span{
+  color:#9a9ea7!important;
+  font-size:7px!important;
+  letter-spacing:.1em!important;
+}
+.os-window-context strong{
+  color:#4d515a!important;
+  font-size:9px!important;
+}
+.os-context-right{
+  margin-left:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:4px!important;
+}
+.os-context-right kbd{
+  min-width:19px;
+  height:19px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(20,22,28,.08);
+  border-bottom-color:rgba(20,22,28,.14);
+  border-radius:5px;
+  background:rgba(255,255,255,.72);
+  color:#737781;
+  font-size:8px;
+  box-shadow:0 2px 4px rgba(20,22,28,.04);
+}
+
+.nexum-os-app-strip{
+  border:1px solid rgba(255,255,255,.84)!important;
+  background:rgba(255,255,255,.58)!important;
+  box-shadow:0 16px 44px rgba(20,22,28,.13),inset 0 1px 0 rgba(255,255,255,.95)!important;
+  backdrop-filter:blur(22px) saturate(155%)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(155%)!important;
+}
+.nexum-os-app-chip{
+  border-color:rgba(255,255,255,.74)!important;
+  background:rgba(255,255,255,.44)!important;
+}
+.nexum-os-app-chip:hover{background:rgba(255,255,255,.76)!important}
+.nexum-os-app-chip i{
+  display:grid!important;
+  place-items:center!important;
+  width:23px;height:23px;
+  border-radius:7px;
+  background:rgba(239,237,255,.78);
+  color:#5a50d1;
+  font-style:normal;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+}
+.nexum-os-app-chip:nth-of-type(3) i{color:#16805e;background:rgba(232,249,241,.78)}
+.nexum-os-app-chip:nth-of-type(4) i{color:#087e9b;background:rgba(218,244,248,.78)}
+.nexum-os-app-chip:nth-of-type(5) i{color:#c47b08;background:rgba(255,242,214,.78)}
+
+.nexum-os-switcher-backdrop{
+  background:rgba(22,24,30,.16)!important;
+  backdrop-filter:blur(10px)!important;
+  -webkit-backdrop-filter:blur(10px)!important;
+}
+.nexum-os-switcher{
+  width:min(760px,calc(100vw - 28px))!important;
+  border:1px solid rgba(255,255,255,.88)!important;
+  border-radius:26px!important;
+  background:rgba(249,250,252,.78)!important;
+  box-shadow:0 34px 100px rgba(20,22,28,.25),inset 0 1px 0 rgba(255,255,255,.98)!important;
+  backdrop-filter:blur(30px) saturate(160%)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(160%)!important;
+}
+.nexum-os-switcher-head{
+  padding:18px 20px!important;
+  border-bottom:1px solid rgba(20,22,28,.055)!important;
+}
+.nexum-os-switcher-head span{color:#5a50d1!important}
+.nexum-os-project-chip,.nexum-os-switcher-card{
+  border-color:rgba(255,255,255,.78)!important;
+  background:rgba(255,255,255,.54)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 7px 18px rgba(20,22,28,.035)!important;
+}
+.nexum-os-project-chip:hover,.nexum-os-switcher-card:hover{
+  background:rgba(255,255,255,.78)!important;
+  transform:translateY(-1px);
+}
+.nexum-os-project-chip.active,.nexum-os-switcher-card.active{
+  border-color:rgba(101,92,246,.16)!important;
+  background:rgba(239,237,255,.70)!important;
+  box-shadow:0 9px 22px rgba(101,92,246,.08),inset 0 1px 0 rgba(255,255,255,.96)!important;
+}
+.nexum-os-switcher-icon{
+  border:1px solid rgba(255,255,255,.84)!important;
+  background:linear-gradient(145deg,#fff,#e5e2ff)!important;
+  color:#5b50d7!important;
+  box-shadow:0 8px 18px rgba(101,92,246,.10),inset 0 1px 0 rgba(255,255,255,.95)!important;
+}
+.nexum-os-switcher-actions{
+  border-top:1px solid rgba(20,22,28,.055)!important;
+}
+.nexum-os-switcher-actions button{
+  border-color:rgba(255,255,255,.8)!important;
+  background:rgba(255,255,255,.62)!important;
+  border-radius:10px!important;
+}
+.nexum-os-switcher-actions .danger{
+  color:#b24b5c!important;
+  background:rgba(255,242,245,.78)!important;
+}
+
+.nexum-os-event-center{
+  width:min(360px,calc(100vw - 28px));
+  gap:8px!important;
+}
+.nexum-os-event{
+  border:1px solid rgba(255,255,255,.84)!important;
+  border-radius:15px!important;
+  background:rgba(255,255,255,.70)!important;
+  box-shadow:0 15px 34px rgba(20,22,28,.12),inset 0 1px 0 rgba(255,255,255,.95)!important;
+  backdrop-filter:blur(20px) saturate(150%)!important;
+  -webkit-backdrop-filter:blur(20px) saturate(150%)!important;
+}
+.nexum-os-event-info .nexum-os-event-dot{background:#5b50dc!important}
+.nexum-os-event-success .nexum-os-event-dot{background:#22a975!important}
+.nexum-os-event-error .nexum-os-event-dot{background:#d6576b!important}
+
+.palette-backdrop{
+  background:rgba(22,24,30,.14)!important;
+  backdrop-filter:blur(10px)!important;
+  -webkit-backdrop-filter:blur(10px)!important;
+}
+.command-palette{
+  width:min(620px,calc(100vw - 28px))!important;
+  border:1px solid rgba(255,255,255,.9)!important;
+  border-radius:22px!important;
+  background:rgba(250,251,253,.80)!important;
+  box-shadow:0 35px 100px rgba(20,22,28,.24),inset 0 1px 0 rgba(255,255,255,.98)!important;
+  backdrop-filter:blur(30px) saturate(160%)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(160%)!important;
+}
+.palette-search{
+  margin:8px!important;
+  border:1px solid rgba(255,255,255,.82)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.72)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.94)!important;
+}
+.palette-search input{font-size:13px!important}
+.palette-list{padding:6px!important}
+.palette-item{
+  min-height:45px!important;
+  border-radius:11px!important;
+  color:#555a64!important;
+}
+.palette-item:hover,.palette-item.active{
+  background:rgba(239,237,255,.78)!important;
+  color:#4e47c9!important;
+}
+.palette-item kbd{
+  border:1px solid rgba(20,22,28,.07)!important;
+  background:rgba(255,255,255,.72)!important;
+  border-radius:6px!important;
+  color:#8a8e96!important;
+}
+
+.os-minimized-card{
+  border:1px solid rgba(255,255,255,.86)!important;
+  background:rgba(255,255,255,.68)!important;
+  box-shadow:0 22px 58px rgba(20,22,28,.16),inset 0 1px 0 rgba(255,255,255,.96)!important;
+  backdrop-filter:blur(24px) saturate(150%)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(150%)!important;
+}
+.os-minimized-card button{
+  border:1px solid rgba(101,92,246,.12)!important;
+  background:rgba(239,237,255,.72)!important;
+  color:#554dcb!important;
+  border-radius:9px!important;
+}
+
+/* Responsive: window chrome becomes compact rather than overflowing */
+@media(max-width:900px){
+  .os-window-actions button:not(.primary){display:none}
+  .os-window-context>div:nth-child(2){display:none}
+  .os-window-context{gap:10px!important}
+}
+@media(max-width:760px){
+  .os-window-toolbar{min-height:50px!important}
+  .os-window-apps button{padding:0 8px!important;font-size:9px}
+  .os-window-apps button span{width:19px;height:19px}
+  .os-window-actions button.primary{padding:0 9px!important;font-size:9px}
+  .os-window-context>div:nth-child(3){display:none}
+  .os-context-right span{display:none}
+  .nexum-os-app-strip{max-width:calc(100vw - 18px);overflow-x:auto;scrollbar-width:none}
+  .nexum-os-app-chip{flex:0 0 auto}
+  .nexum-os-switcher-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:480px){
+  .os-window-title>span:last-child,.os-window-separator{display:none}
+  .os-window-status{display:none}
+  .os-window-apps button{font-size:0;padding:0 7px!important}
+  .os-window-apps button span{margin:0;width:24px;height:24px}
+  .os-window-actions button.primary{font-size:0;width:34px;padding:0!important}
+  .os-window-actions button.primary:after{content:"↗";font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){
+  .nexum-os-switcher-card:hover,.nexum-os-project-chip:hover,.os-window-actions button.primary:hover{transform:none}
+}
