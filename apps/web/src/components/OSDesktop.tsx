@@ -43,6 +43,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
   const active = projects.filter((project) => project.status === "active");
   const [now, setNow] = useState(() => new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [controlCenterOpen, setControlCenterOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -78,18 +79,32 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
   const dateLabel = now.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
   const capitalDate = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
 
+  const handlePointerMove = (event: React.MouseEvent<HTMLElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+    event.currentTarget.style.setProperty("--nx-mx", `${x}`);
+    event.currentTarget.style.setProperty("--nx-my", `${y}`);
+  };
+
   return (
-    <section className="nexum-os-desktop" aria-label="NEXUM OS Desktop">
+    <section className="nexum-os-desktop" aria-label="NEXUM OS Desktop" onMouseMove={handlePointerMove}>
       <div className="os-menubar">
         <div className="os-brand"><span>N</span><strong>NEXUM OS</strong></div>
-        <div className="os-menu-center">Desktop</div>
+        <div className="os-menu-center"><span>Workspace</span><span>Window</span><span>Help</span></div>
         <div className="os-system">
           <span>{active.length} projects</span><i /><span>AI Ready</span>
           <button type="button" className="os-clock-menu" onClick={() => setCalendarOpen((value) => !value)} aria-expanded={calendarOpen}>
             <b>{time}</b><small>{capitalDate}</small>
           </button>
-          <kbd>⌘K</kbd>
+          <button type="button" className="os-control-center" onClick={() => setControlCenterOpen((v) => !v)} aria-expanded={controlCenterOpen}>•••</button>
         </div>
+        {controlCenterOpen && (
+          <div className="os-control-popover" role="dialog" aria-label="Control Center">
+            <div className="os-control-title"><b>Control Center</b><button type="button" onClick={() => setControlCenterOpen(false)}>×</button></div>
+            <div className="os-control-grid"><button type="button"><strong>AI</strong><span>Ready</span></button><button type="button"><strong>Preview</strong><span>Live</span></button><button type="button"><strong>Git</strong><span>Connected</span></button><button type="button"><strong>Agent</strong><span>Available</span></button></div>
+          </div>
+        )}
         {calendarOpen && (
           <div className="os-calendar-popover" role="dialog" aria-label="Календарь">
             <div className="os-calendar-top">
@@ -106,68 +121,53 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
       </div>
 
       <div className="os-desktop-content">
-        <div className="os-desktop-copy">
-          <span className="os-eyebrow">NEXUM OS · WORKSPACE</span>
-          <h1>Everything you build.<br /><em>One system.</em></h1>
-          <p>Проекты, Agent, Code, Preview и инструменты собраны в единой рабочей среде.</p>
-          <div className="os-desktop-actions">
-            <button className="os-primary-action" type="button" onClick={onNewProject}>＋ Новый проект</button>
-            <button className="os-secondary-action" type="button" onClick={() => active[0] ? onOpenProject(active[0].id, "agent") : onNewProject()}>✦ Open Agent</button>
-          </div>
+        <div className="os-desktop-topline">
+          <div className="os-desktop-location"><span className="os-location-dot" /> NEXUM Workspace</div>
+          <div className="os-desktop-status"><span>{active.length} projects</span><span className="status-live"><i /> AI Core Ready</span></div>
         </div>
 
-        <aside className="os-desktop-widgets" aria-label="System widgets">
-          <div className="os-clock-card">
-            <span className="widget-kicker">LOCAL TIME</span>
-            <strong>{time}<sup>{seconds}</sup></strong>
-            <span>{capitalDate}</span>
-            <i className="os-clock-orbit" aria-hidden="true" />
-          </div>
-          <button type="button" className="os-calendar-card" onClick={() => setCalendarOpen(true)}>
-            <div className="os-calendar-card-head"><span>CALENDAR</span><strong>{monthNames[now.getMonth()].slice(0, 3).toUpperCase()} {now.getFullYear()}</strong></div>
-            <div className="os-calendar-card-grid">
-              {weekDays.map((day) => <span key={day} className="weekday">{day}</span>)}
-              {calendar.slice(0, 35).map((cell, index) => <span key={index} className={(cell.outside ? "outside " : "") + (cell.today ? "today" : "")}>{cell.day}</span>)}
-            </div>
-          </button>
-        </aside>
-
-        <div className="os-app-grid" aria-label="Приложения">
+        <div className="os-desktop-icons" aria-label="Desktop applications">
           {apps.map((app) => (
             <button key={app.id} type="button" className="os-app-icon" onClick={() => launch(app.id)}>
               <span className={"os-app-glyph " + app.tone} data-icon={app.icon}><AppIcon name={app.icon} /></span><b>{app.label}</b>
             </button>
           ))}
-          <button type="button" className="os-app-icon" onClick={() => onOpenView("news")}><span className="os-app-glyph journal" data-icon="journal"><AppIcon name="journal" /></span><b>Journal</b></button>
+          <button type="button" className="os-app-icon" onClick={() => onOpenView("news")}><span className="os-app-glyph journal"><AppIcon name="journal" /></span><b>Journal</b></button>
         </div>
 
-        <div className="os-projects">
-          {runningProjectIds.length > 0 && (
-            <div className="os-running-bar" aria-label="Running windows">
-              <div className="os-section-head"><span>RUNNING</span><small>{runningProjectIds.length} window{runningProjectIds.length === 1 ? "" : "s"}</small></div>
-              <div className="os-running-list">
-                {runningProjectIds.map((id) => {
-                  const project = active.find((item) => item.id === id);
-                  if (!project) return null;
-                  const minimized = minimizedProjectIds.includes(id);
-                  return (
-                    <button key={id} type="button" className={"os-running-item" + (minimized ? " minimized" : "")} onClick={() => onRestoreProject?.(id)}>
-                      <span className="os-running-mark">{project.name.slice(0, 1).toUpperCase()}</span>
-                      <span><b>{project.name}</b><small>{minimized ? "Minimized" : "Workspace open"}</small></span>
-                      <i />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          <div className="os-section-head"><span>RECENT PROJECTS</span><small>{active.length} active</small></div>
-          {active.length ? <div className="os-project-grid">{active.slice(0, 6).map((project) => (
-            <button key={project.id} className="os-project-card" type="button" onClick={() => onOpenProject(project.id)}>
-              <span className="os-project-window"><i /><i /><i /></span><span className="os-project-mark">{project.name.slice(0, 1)}</span><strong>{project.name}</strong><small>{project.type ?? "Project"} · Open workspace →</small>
+        <aside className="os-desktop-widgets" aria-label="Desktop widgets">
+          <div className="os-widget os-clock-card">
+            <span className="widget-kicker">NEXUM TIME</span>
+            <strong>{time}<sup>{seconds}</sup></strong>
+            <span>{capitalDate}</span>
+            <i className="os-clock-orbit" aria-hidden="true" />
+          </div>
+          <button type="button" className="os-widget os-calendar-card" onClick={() => setCalendarOpen(true)}>
+            <div className="os-calendar-card-head"><span>CALENDAR</span><strong>{monthNames[now.getMonth()].slice(0, 3).toUpperCase()} {now.getFullYear()}</strong></div>
+            <div className="os-calendar-card-grid">{weekDays.map((day) => <span key={day} className="weekday">{day}</span>)}{calendar.slice(0, 35).map((cell, index) => <span key={index} className={(cell.outside ? "outside " : "") + (cell.today ? "today" : "")}>{cell.day}</span>)}</div>
+          </button>
+        </aside>
+
+        <div className="os-desktop-projects" aria-label="Recent projects">
+          <div className="os-stack-header"><span>RECENT</span><small>{active.length} projects</small></div>
+          {active.length ? <div className="os-project-stack">{active.slice(0, 5).map((project, index) => (
+            <button key={project.id} className="os-project-card" style={{"--stack-i": index} as React.CSSProperties} type="button" onClick={() => onOpenProject(project.id)}>
+              <span className="os-project-window"><i /><i /><i /></span><span className="os-project-mark">{project.name.slice(0, 1)}</span><span className="os-project-info"><strong>{project.name}</strong><small>{project.type ?? "Project"}</small></span><span className="os-project-arrow">›</span>
             </button>
           ))}</div> : <button className="os-empty-project" type="button" onClick={onNewProject}><span>＋</span><b>Create your first project</b><small>NEXUM will create a dedicated workspace.</small></button>}
         </div>
+
+        {runningProjectIds.length > 0 && (
+          <div className="os-running-bar" aria-label="Running windows">
+            <div className="os-section-head"><span>OPEN WINDOWS</span><small>{runningProjectIds.length}</small></div>
+            <div className="os-running-list">{runningProjectIds.map((id) => {
+              const project = active.find((item) => item.id === id);
+              if (!project) return null;
+              const minimized = minimizedProjectIds.includes(id);
+              return <button key={id} type="button" className={"os-running-item" + (minimized ? " minimized" : "")} onClick={() => onRestoreProject?.(id)}><span className="os-running-mark">{project.name.slice(0, 1).toUpperCase()}</span><span><b>{project.name}</b><small>{minimized ? "Minimized" : "Workspace open"}</small></span><i /></button>;
+            })}</div>
+          </div>
+        )}
       </div>
 
       <div className="os-dock" aria-label="NEXUM OS Dock">
