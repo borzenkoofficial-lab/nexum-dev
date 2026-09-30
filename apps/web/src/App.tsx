@@ -9,7 +9,6 @@ import { NewsPage } from "./components/NewsPage";
 import { IntegrationPage } from "./components/IntegrationPage";
 import { DiagnosticsPage } from "./components/DiagnosticsPage";
 import { RightPanel } from "./components/RightPanel";
-import { StatusBar } from "./components/StatusBar";
 import { OSDesktop } from "./components/OSDesktop";
 import { OSProjectWindow } from "./components/OSProjectWindow";
 import { NexumApplicationManager } from "./components/NexumApplicationManager";
@@ -61,8 +60,8 @@ function App() {
     } catch { return {}; }
   });
   const projectWindowMinimized = Boolean(projectWindowMinimizedByProject[activeПроектId]);
-  const [osActiveWindow, setOsActiveWindow] = useState<"project" | "home">("home");
-  const [osFocusTick, setOsFocusTick] = useState(0);
+  const [, setOsActiveWindow] = useState<"project" | "home">("home");
+  const [, setOsFocusTick] = useState(0);
   const [osBooted, setOsBooted] = useState(false);
   useEffect(() => {
     const timer = window.setTimeout(() => setOsBooted(true), 180);
