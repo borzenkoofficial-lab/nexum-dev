@@ -132,6 +132,8 @@ async function runChatJob(
   const job = await getChatJob(jobId, userId);
   if (!job) return;
   chatJobCache.set(jobId, job);
+  let lockedProjectId: string | undefined;
+  let lockHeartbeat: ReturnType<typeof setInterval> | undefined;
 
   job.status = "running";
   job.updatedAt = Date.now();
@@ -151,9 +153,10 @@ async function runChatJob(
       void agentHistory.record({ type: "job-rejected-lock", jobId, projectId: project.id, status: "failed", message: job.error });
       return;
     }
-    const heartbeat = setInterval(() => {
+    lockHeartbeat = setInterval(() => {
       void heartbeatProjectLock(project.id, jobId).catch((error) => console.error("[Nexum] project lock heartbeat failed", error));
     }, 60_000);
+    lockedProjectId = project.id;
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     const checkpoint = await checkpointManager.create(project.id, project.path, `before agent job ${jobId}`);
@@ -300,10 +303,8 @@ async function runChatJob(
     console.error("[Nexum] chat job failed", jobId, error);
   } finally {
     try {
-      const latest = await getChatJob(jobId, userId);
-      if (projectId && latest) {
-        await releaseProjectLock(projectId, jobId);
-      }
+      if (lockHeartbeat) clearInterval(lockHeartbeat);
+      if (lockedProjectId) await releaseProjectLock(lockedProjectId, jobId);
     } catch (lockError) {
       console.error("[Nexum] project lock release failed", jobId, lockError);
     }
