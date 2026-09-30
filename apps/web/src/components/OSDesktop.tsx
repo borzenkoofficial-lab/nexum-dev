@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";\nimport type { CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";\nimport type { CSSProperties, MouseEvent } from "react";
 import type { Project } from "./types";
 import "../nexum-desktop-v3.css";
 import "../nexum-desktop-v4.css";
@@ -79,7 +79,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
   const dateLabel = now.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
   const capitalDate = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
 
-  const handlePointerMove = (event: React.MouseEvent<HTMLElement>) => {
+  const handlePointerMove = (event: MouseEvent<HTMLElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
     const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
