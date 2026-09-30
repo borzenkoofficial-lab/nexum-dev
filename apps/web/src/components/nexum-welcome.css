@@ -145,3 +145,33 @@
 @media(prefers-reduced-motion:reduce){
   .nexum-welcome::before,.nx-cinematic-noise,.nx-cinematic-vignette,.nx-scan-beam,.nx-light-streak,.nx-system-grid,.nx-system-pulse,.nexum-sequence-core,.nexum-core-glass::before,.nexum-core-glass::after,.nexum-core-orbit::after,.nexum-boot-console::before,.scene-hello .nexum-sequence-copy h1,.scene-hello .nexum-sequence-core::after,.scene-auth .nexum-sequence-core::after,.scene-auth .nexum-auth-window::before,.nexum-enter::before,.nexum-post-auth-boot::before,.nexum-post-auth-boot .nexum-boot-glow,.nexum-post-auth-boot .nexum-boot-center::after,.nexum-post-auth-boot .nexum-boot-progress::after{animation:none!important}
 }
+
+
+/* Cinematic calm pass — remove continuous ripple/ring motion and reduce visual noise */
+.nexum-welcome::before{animation:none;background:radial-gradient(circle at 12% 18%,rgba(255,112,194,.18),transparent 24%),radial-gradient(circle at 88% 16%,rgba(92,142,255,.2),transparent 25%),radial-gradient(circle at 78% 88%,rgba(166,108,255,.13),transparent 23%),linear-gradient(135deg,#e9f0ff 0%,#f5f1f8 50%,#edf7f5 100%)}
+.nexum-welcome-orb{animation:none;opacity:.16;filter:blur(30px)}
+.nexum-welcome-particles i{animation:none;opacity:.2}
+.nexum-liquid-rings span{animation:none!important;opacity:.22;transform:scale(1)}
+.nexum-liquid-rings span:nth-child(2){inset:14px;opacity:.14}
+.nexum-liquid-rings span:nth-child(3){inset:30px;opacity:.08}
+.nx-cinematic-noise{opacity:.025;animation:none}
+.nx-cinematic-vignette{animation:none;background:radial-gradient(ellipse at center,transparent 42%,rgba(8,11,25,.1) 78%,rgba(8,11,25,.28) 100%)}
+.nx-scan-beam{opacity:.28;animation:nx-scan 11s 2s cubic-bezier(.45,0,.55,1) infinite}
+.nx-light-streak{opacity:0;filter:blur(3px)}
+.streak-a{animation:nx-streak 13s 2s ease-in-out infinite}
+.streak-b{animation:nx-streak 16s 7s ease-in-out infinite reverse}
+.streak-c{animation:nx-streak 15s 11s ease-in-out infinite}
+.nx-system-grid{opacity:.055;animation:none;transform:perspective(700px) rotateX(64deg) translateY(35px) scale(1.2)}
+.nx-system-pulse{display:none!important}
+.nexum-sequence-core{animation:nx-float 7s ease-in-out infinite}
+.nexum-core-halo{animation:nx-boot-glow 6s ease-in-out infinite;opacity:.5}
+.scene-hello .nexum-sequence-core::after,.scene-auth .nexum-sequence-core::after{animation:nx-core-burst 1.6s ease-out both}
+.nexum-core-glass{box-shadow:inset 0 1px 0 rgba(255,255,255,.62),0 30px 75px rgba(39,53,120,.18),0 0 45px rgba(101,139,255,.1)}
+.nexum-sequence-copy{animation:none}
+.nexum-boot-console::before{animation:nx-glint 10s ease-in-out infinite}
+.scene-auth .nexum-auth-window{animation:nx-auth-soft-in .9s cubic-bezier(.18,.82,.22,1) both,nx-window-glow 7s ease-in-out 1.2s infinite}
+.nexum-post-auth-boot .nexum-boot-center::after{animation:none;opacity:.18}
+
+@media(prefers-reduced-motion:reduce){
+  .nx-scan-beam,.nx-light-streak,.nexum-sequence-core,.nexum-core-halo,.nexum-boot-console::before{animation:none!important}
+}
