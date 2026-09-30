@@ -191,9 +191,13 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
       <div className="editor-shell">
         <div className="editor-filebar">
           <div className="editor-file-name">
-            {selectedFile ? <><span>{selectedFile}</span>{dirty && <i aria-label="Несохранённые изменения">●</i>}</> : "Выберите файл"}
+            <span className="editor-file-kind" aria-hidden="true">{selectedFile ? (selectedFile.endsWith(".tsx") || selectedFile.endsWith(".ts") ? "TS" : selectedFile.endsWith(".css") ? "CSS" : selectedFile.endsWith(".json") ? "{}" : "FILE") : "FILE"}</span>
+            <span>{selectedFile || "Выберите файл"}</span>{dirty && <i aria-label="Несохранённые изменения">●</i>}
           </div>
-          {selectedFile && <button className="editor-save" type="button" disabled={!dirty || saving} onClick={saveFile}>{saving ? "Сохраняю…" : "Сохранить"}</button>}
+          <div className="editor-file-actions">
+            {selectedFile && <span className={dirty ? "editor-change-state dirty" : "editor-change-state"}>{dirty ? "Изменён" : "Сохранён"}</span>}
+            {selectedFile && <button className="editor-save" type="button" disabled={!dirty || saving} onClick={saveFile}>{saving ? "Сохраняю…" : "Сохранить"}</button>}
+          </div>
         </div>
         <div className="editor-body">
           <div className="file-tree editor-tree">
