@@ -756,7 +756,7 @@ export class AgentLoop {
           status: result.success ? "success" : "error",
           durationMs: toolDurationMs,
           errorCode: result.success ? undefined : "TOOL_ERROR",
-          retryable: result.success ? undefined : errorInfo.priority >= 3,
+          retryable: result.success ? undefined : Boolean(errorInfo && errorInfo.priority >= 3),
           output: result.output,
         }).catch(() => undefined);
       }
