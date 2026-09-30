@@ -582,3 +582,52 @@ body{margin:0;overflow-x:hidden}
 @media(prefers-reduced-motion:reduce){
   .palette-item{transition:none!important}
 }
+
+/* Final cross-page containment: long diagnostic/settings content must never
+   create a wider page or hide section targets behind the persistent top bar. */
+.settings-page-v2,
+.diagnostics-page,
+.integrations-page{
+  min-width:0!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+.settings-section,
+.diagnostics-layout,
+.diagnostics-jobs,
+.diagnostics-main,
+.diagnostics-event,
+.diagnostics-event-meta,
+.diagnostics-event-tags,
+.integration-card,
+.engine-card,
+.external-card{
+  min-width:0!important;
+  max-width:100%!important;
+}
+.settings-section[id],
+.diagnostics-page [id],
+.integrations-page [id]{
+  scroll-margin-top:88px;
+}
+.diagnostics-event strong,
+.diagnostics-event-tags span,
+.integration-card strong,
+.integration-card p,
+.engine-card p,
+.external-card p{
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+}
+.diagnostics-event-tags{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:6px!important;
+}
+@media(max-width:560px){
+  .settings-section[id],
+  .diagnostics-page [id],
+  .integrations-page [id]{
+    scroll-margin-top:68px;
+  }
+}
