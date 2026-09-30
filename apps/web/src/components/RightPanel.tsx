@@ -219,7 +219,7 @@ export function RightPanel({ tab, onTabChange, onOpenChat, projectName, projectI
         </div>
         <div className="editor-body">
           <div className="file-tree editor-tree">
-            {filesLoading ? <div className="files-empty">Загрузка файлов…</div> : fileError ? <div className="files-empty error-state-inline">{fileError}</div> : files.map((file) => (
+            {filesLoading ? <div className="files-empty">Загрузка файлов…</div> : fileError ? <div className="files-empty error-state-inline">{fileError}</div> : files.length ? files.map((file) => (
               <button key={file} className={"file-row " + (selectedFile === file ? "selected" : "")} type="button" title={file} onClick={() => void openFile(file)}>
                 <span>{file.endsWith(".css") ? "◇" : file.endsWith(".js") || file.endsWith(".ts") || file.endsWith(".tsx") ? "ƒ" : file.endsWith(".json") ? "{}" : "□"}</span>
                 <strong>{file}</strong>
