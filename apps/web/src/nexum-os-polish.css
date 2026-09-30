@@ -287,3 +287,20 @@
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* Functional window state: maximize is scoped to the active workspace, not <html>. */
+.os-window-shell.is-maximized{
+  position:fixed;
+  z-index:240;
+  inset:52px 14px 14px;
+  width:auto;
+  height:auto;
+  min-height:0;
+  border-radius:16px;
+  box-shadow:0 30px 100px rgba(20,20,24,.22),0 5px 18px rgba(20,20,24,.07);
+}
+.os-window-shell.is-maximized .os-window-body{min-height:0}
+@media(max-width:650px){
+  .os-window-shell.is-maximized{inset:58px 6px max(6px,env(safe-area-inset-bottom));border-radius:14px}
+}
