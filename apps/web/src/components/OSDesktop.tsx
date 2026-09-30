@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";\nimport type { CSSProperties } from "react";
 import type { Project } from "./types";
 import "../nexum-desktop-v3.css";
 import "../nexum-desktop-v4.css";
@@ -151,7 +151,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
         <div className="os-desktop-projects" aria-label="Recent projects">
           <div className="os-stack-header"><span>RECENT</span><small>{active.length} projects</small></div>
           {active.length ? <div className="os-project-stack">{active.slice(0, 5).map((project, index) => (
-            <button key={project.id} className="os-project-card" style={{"--stack-i": index} as React.CSSProperties} type="button" onClick={() => onOpenProject(project.id)}>
+            <button key={project.id} className="os-project-card" style={{"--stack-i": index} as CSSProperties} type="button" onClick={() => onOpenProject(project.id)}>
               <span className="os-project-window"><i /><i /><i /></span><span className="os-project-mark">{project.name.slice(0, 1)}</span><span className="os-project-info"><strong>{project.name}</strong><small>{project.type ?? "Project"}</small></span><span className="os-project-arrow">›</span>
             </button>
           ))}</div> : <button className="os-empty-project" type="button" onClick={onNewProject}><span>＋</span><b>Create your first project</b><small>NEXUM will create a dedicated workspace.</small></button>}
