@@ -280,7 +280,24 @@ async function runChatJob(
 
 // Project managers are initialized lazily per authenticated user.
 
-app.use(cors());
+const configuredCorsOrigins = (process.env.NEXUM_CORS_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: process.env.NODE_ENV === "production"
+    ? (origin, callback) => {
+        if (!origin || configuredCorsOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+        callback(new Error("CORS origin is not allowed"));
+      }
+    : true,
+  credentials: true,
+}));
+
 app.use(express.json({ limit: "10mb" }));
 
 app.post("/api/diagnostics/events", (req, res) => {
