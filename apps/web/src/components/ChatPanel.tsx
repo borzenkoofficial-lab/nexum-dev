@@ -53,7 +53,23 @@ export function ChatPanel({
     if (target.closest("textarea, input, button, [role=\"dialog\"]")) return;
     if (start != null && end != null && start - end > 64) onOpenAgent();
   }
-  function handleSubmit() { if (message.trim() && !busy) onSubmit(); }
+  function handleSubmit() {
+    if (!message.trim() || busy) return;
+    setModelOpen(false);
+    onSubmit();
+  }
+
+  useEffect(() => {
+    if (!modelOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setModelOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [modelOpen]);
 
   return (
     <section className="chat" aria-label="Чат NEXUM" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
