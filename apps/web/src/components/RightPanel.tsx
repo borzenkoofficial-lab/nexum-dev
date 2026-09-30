@@ -155,10 +155,14 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
 
     frameWindow.addEventListener("error", handleError);
     frameWindow.addEventListener("unhandledrejection", handleRejection);
-    window.setTimeout(() => {
+
+    // The listeners belong to this iframe document. Remove them when that
+    // document is replaced by the next preview refresh/load.
+    const cleanup = () => {
       frameWindow.removeEventListener("error", handleError);
       frameWindow.removeEventListener("unhandledrejection", handleRejection);
-    }, 5 * 60 * 1000);
+    };
+    window.setTimeout(cleanup, 5 * 60 * 1000);
   }
 
   const previewBuildLabel = stage === "building" || stage === "editing" ? "BUILDING" : stage === "testing" ? "VERIFYING" : previewOnline ? "LIVE" : "WAITING";
@@ -245,7 +249,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
           <button className="preview-expand" type="button" onClick={() => setPreviewExpanded((open) => !open)} aria-label={previewExpanded ? "Свернуть предпросмотр" : "Развернуть предпросмотр"}>{previewExpanded ? "↙" : "↗"}</button>
         </>}
       </div>
-      <div className={previewExpanded ? "preview-expanded" : ""}>
+      <div className={previewExpanded ? "preview-expanded right-panel-content" : "right-panel-content"}>
         {panelContent}
       </div>
     </aside>
