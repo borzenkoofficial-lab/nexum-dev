@@ -60,8 +60,6 @@ function App() {
     } catch { return {}; }
   });
   const projectWindowMinimized = Boolean(projectWindowMinimizedByProject[activeПроектId]);
-  const [, setOsActiveWindow] = useState<"project" | "home">("home");
-  const [, setOsFocusTick] = useState(0);
   const [osBooted, setOsBooted] = useState(false);
   useEffect(() => {
     const timer = window.setTimeout(() => setOsBooted(true), 180);
@@ -345,8 +343,6 @@ function App() {
     const project = projects.find((item) => item.id === projectId);
     if (project) {
       setActiveПроектId(projectId);
-      setOsActiveWindow("project");
-      setOsFocusTick((value) => value + 1);
       setRunningProjectIds((items) => items.includes(projectId) ? items : [...items, projectId]);
       setProjectWindowMinimizedByProject((items) => ({ ...items, [projectId]: false }));
       setReply("");
@@ -358,7 +354,6 @@ function App() {
       if (!projectWindowModes[projectId]) setProjectWindowModes((items) => ({ ...items, [projectId]: mode }));
       setViewState("project");
       setProjectWindowMinimizedByProject((items) => ({ ...items, [projectId]: false }));
-      document.documentElement.classList.remove("nexum-os-maximized");
       navigate("project", projectId);
     }
     void selectПроект(projectId);
@@ -366,8 +361,6 @@ function App() {
 
   function setProjectMode(mode: "preview" | "agent" | "files" | "code") {
     setWorkspaceMode(mode);
-    setOsActiveWindow("project");
-    setOsFocusTick((value) => value + 1);
     setProjectWindowModes((items) => ({ ...items, [activeПроектId]: mode }));
     if (mode !== "code") setCodeMode(false);
     if (mode === "preview" || mode === "agent" || mode === "files") setRightTab(mode);
