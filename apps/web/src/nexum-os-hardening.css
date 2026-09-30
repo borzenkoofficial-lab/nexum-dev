@@ -81,3 +81,26 @@ body{margin:0;overflow-x:hidden}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important}
 }
+
+/* Second-pass structural correction: legacy header + OS project must form one vertical stack. */
+.app-project>.main{height:100dvh!important;min-height:0!important;overflow:hidden!important}
+.app-project>.main>.nexum-topbar{height:64px!important;min-height:64px!important;flex:0 0 64px!important}
+.app-project>.main>.nexum-os-project{height:calc(100dvh - 64px)!important;min-height:0!important;flex:1 1 auto!important}
+.app-project>.main>.nexum-os-project>.os-window-shell{height:100%!important;min-height:0!important}
+.modal-backdrop{position:fixed!important;inset:0!important;display:flex!important;align-items:center!important;justify-content:center!important;width:100vw!important;height:100dvh!important;padding:24px!important;overflow:auto!important;z-index:5000!important}
+.new-project-modal{position:relative!important;width:min(620px,100%)!important;max-width:620px!important;max-height:calc(100dvh - 48px)!important;margin:0!important;padding:26px!important;overflow:auto!important;transform:none!important;flex:0 1 auto}
+.new-project-modal form{display:flex;flex-direction:column;min-width:0}
+.new-project-modal input,.new-project-modal textarea{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box}
+.new-project-modal textarea{display:block;resize:vertical;min-height:100px}
+.new-project-modal .project-type-grid{width:100%;max-width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.new-project-modal .project-type-card{width:100%;min-width:0;box-sizing:border-box}
+.new-project-modal .modal-actions{position:sticky;bottom:-1px;background:rgba(255,255,255,.94);backdrop-filter:blur(14px);margin-inline:-26px;padding:14px 26px 0}
+.connector-backdrop .connector-modal{max-width:560px;max-height:calc(100dvh - 48px);overflow:auto}
+@media(max-width:650px){
+  .app-project>.main>.nexum-topbar{height:56px!important;min-height:56px!important;flex-basis:56px!important}
+  .app-project>.main>.nexum-os-project{height:calc(100dvh - 56px)!important}
+  .modal-backdrop{padding:12px!important}
+  .new-project-modal{max-height:calc(100dvh - 24px)!important;padding:20px!important}
+  .new-project-modal .modal-actions{margin-inline:-20px;padding-inline:20px}
+  .new-project-modal .project-type-grid{grid-template-columns:1fr}
+}
