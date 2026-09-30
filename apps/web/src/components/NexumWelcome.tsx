@@ -32,7 +32,8 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
   const [password, setPassword] = useState("");
   const [intro, setIntro] = useState<IntroPhase>("wake");
   const [phase, setPhase] = useState<BootPhase>("idle");
-  const [bootProgress, setBootProgress] = useState(0);\n  const [bootSignal, setBootSignal] = useState(0);
+  const [bootProgress, setBootProgress] = useState(0);
+  const [bootSignal, setBootSignal] = useState(0);
   const [error, setError] = useState("");
 
   const scene = useMemo(() => scenes[intro], [intro]);
@@ -47,9 +48,15 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
   }, [intro]);
 
   useEffect(() => {
-    if (intro !== "boot") return;\n    setBootSignal(0);
+    if (intro !== "boot") return;
+    setBootSignal(0);
     const started = Date.now();
-    const timer = window.setInterval(() => {\n      const next = Math.min(100, Math.round(((Date.now() - started) / 5000) * 100));\n      setBootProgress(next);\n      const signal = next >= 100 ? 6 : Math.min(5, Math.floor(next / 16.67));\n      setBootSignal((current) => signal > current ? signal : current);\n    }, 45);
+    const timer = window.setInterval(() => {
+      const next = Math.min(100, Math.round(((Date.now() - started) / 5000) * 100));
+      setBootProgress(next);
+      const signal = next >= 100 ? 6 : Math.min(5, Math.floor(next / 16.67));
+      setBootSignal((current) => signal > current ? signal : current);
+    }, 45);
     return () => window.clearInterval(timer);
   }, [intro]);
 
