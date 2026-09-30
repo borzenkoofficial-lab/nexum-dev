@@ -142,3 +142,21 @@ export async function cleanupChatJobs(ttlMs = 30 * 60 * 1000): Promise<void> {
     [Date.now() - ttlMs],
   );
 }
+
+
+export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promise<number> {
+  await ensureTable();
+  const result = await query(
+    `UPDATE agent_chat_jobs
+        SET status='failed',
+            updated_at=$1,
+            payload=jsonb_set(
+              jsonb_set(payload, '{stage}', '"error"'::jsonb, true),
+              '{error}', '"API process restarted while this Agent Run was active."'::jsonb, true
+            )
+      WHERE status='running' AND updated_at < $2
+      RETURNING id`,
+    [Date.now(), Date.now() - maxRunningMs],
+  );
+  return result.rows.length;
+}
