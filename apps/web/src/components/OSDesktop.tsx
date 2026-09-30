@@ -10,6 +10,8 @@ interface OSDesktopProps {
   onNewProject: () => void;
   onOpenProject: (id: string, tab?: "preview" | "files" | "agent" | "code") => void;
   onOpenView: (view: "connectors" | "diagnostics" | "settings" | "news") => void;
+  osEnabled?: boolean;
+  onToggleOS?: () => void;
   runningProjectIds?: string[];
   minimizedProjectIds?: string[];
   onRestoreProject?: (id: string) => void;
@@ -40,7 +42,7 @@ function AppIcon({ name }: { name: string }) {
   return <svg {...common}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>;
 }
 
-export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, runningProjectIds = [], minimizedProjectIds = [], onRestoreProject }: OSDesktopProps) {
+export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, runningProjectIds = [], minimizedProjectIds = [], onRestoreProject, osEnabled = true, onToggleOS }: OSDesktopProps) {
   const active = projects.filter((project) => project.status === "active");
   const [now, setNow] = useState(() => new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -125,6 +127,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
           </button>
           <button type="button" className="os-control-center" onClick={() => setControlCenterOpen((v) => !v)} aria-expanded={controlCenterOpen}>•••</button>
           <button type="button" className="os-search-button" onClick={() => setLauncherOpen(true)} aria-label="Open NEXUM Search">⌕</button>
+          {onToggleOS && <button type="button" className={"os-power-button" + (osEnabled ? " on" : "")} onClick={(event) => { event.stopPropagation(); onToggleOS(); }} aria-label={osEnabled ? "Выключить NEXUM OS" : "Включить NEXUM OS"} title={osEnabled ? "Выключить NEXUM OS" : "Включить NEXUM OS"}><span>⏻</span></button>}
         </div>
         {controlCenterOpen && (
           <div className="os-control-popover" role="dialog" aria-label="Control Center">
