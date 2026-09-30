@@ -488,3 +488,97 @@ body{margin:0;overflow-x:hidden}
     padding-inline:8px!important;
   }
 }
+
+
+/* Final interaction-surface hardening: overlays stay inside the viewport and
+   preserve usable controls at every supported width. */
+.palette-backdrop{
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  height:100dvh!important;
+  padding:16px!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
+  overflow:auto!important;
+  box-sizing:border-box!important;
+  z-index:6000!important;
+}
+.command-palette{
+  width:min(680px,100%)!important;
+  max-height:calc(100dvh - 32px)!important;
+  min-width:0!important;
+  margin-top:min(10vh,72px)!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+.command-palette .palette-list{
+  min-height:0!important;
+  max-height:none!important;
+  overflow:auto!important;
+  overscroll-behavior:contain;
+}
+.palette-item{
+  min-width:0!important;
+}
+.palette-item span{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.palette-item kbd{
+  flex:0 0 auto!important;
+  white-space:nowrap!important;
+}
+.nexum-os-event-center{
+  max-height:calc(100dvh - 96px)!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  scrollbar-width:none;
+}
+.nexum-os-event-center::-webkit-scrollbar{display:none}
+.nexum-os-event{
+  min-width:0!important;
+}
+.nexum-os-event-head{
+  min-width:0!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+}
+.nexum-os-event-head strong{
+  min-width:0!important;
+  overflow-wrap:anywhere!important;
+}
+.nexum-os-event-head button{
+  flex:0 0 auto!important;
+}
+.nexum-os-event>span{
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+}
+@media(max-width:560px){
+  .palette-backdrop{padding:10px!important}
+  .command-palette{
+    width:100%!important;
+    max-height:calc(100dvh - 20px)!important;
+    margin-top:0!important;
+    border-radius:16px!important;
+  }
+  .palette-item{
+    min-height:44px!important;
+    margin-inline:2px!important;
+  }
+  .palette-item kbd{display:none!important}
+  .nexum-os-event-center{
+    right:8px!important;
+    width:calc(100vw - 16px)!important;
+    max-height:calc(100dvh - 82px)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .palette-item{transition:none!important}
+}
