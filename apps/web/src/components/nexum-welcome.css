@@ -85,3 +85,63 @@
 .nexum-post-auth-boot .nexum-boot-status{animation:nx-handoff-in .7s .5s both;margin-top:10px;font-size:7px;letter-spacing:.22em}
 .nexum-post-auth-boot.is-ready .nexum-boot-center{animation:nx-handoff-in .65s both}
 @media(prefers-reduced-motion:reduce){.nexum-post-auth-boot .nexum-logo-mark,.nexum-post-auth-boot .nexum-boot-word,.nexum-post-auth-boot .nexum-boot-center p,.nexum-post-auth-boot .nexum-boot-progress,.nexum-post-auth-boot .nexum-boot-status{animation:none!important}}
+
+
+/* NEXUM Cinematic Boot v2 — layered system effects */
+@keyframes nx-ambient-drift{0%,100%{transform:translate3d(-2%,0,0) scale(1)}50%{transform:translate3d(2%,-1%,0) scale(1.04)}}
+@keyframes nx-grid-drift{0%{transform:perspective(700px) rotateX(64deg) translateY(0) scale(1.2)}100%{transform:perspective(700px) rotateX(64deg) translateY(90px) scale(1.2)}}
+@keyframes nx-scan{0%{transform:translateY(-120%);opacity:0}10%{opacity:.5}45%{opacity:.12}90%{opacity:.42}100%{transform:translateY(120%);opacity:0}}
+@keyframes nx-streak{0%{transform:translateX(-120%) rotate(-18deg);opacity:0}12%{opacity:.8}38%{opacity:0}100%{transform:translateX(150%) rotate(-18deg);opacity:0}}
+@keyframes nx-pulse{0%{transform:scale(.15);opacity:0}18%{opacity:.6}100%{transform:scale(4);opacity:0}}
+@keyframes nx-core-burst{0%{transform:scale(.7);opacity:0}18%{opacity:.9}42%{transform:scale(1.15);opacity:.25}100%{transform:scale(2.8);opacity:0}}
+@keyframes nx-glint{0%,55%{transform:translateX(-160%)}75%,100%{transform:translateX(160%)}}
+@keyframes nx-float{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-8px,0)}}
+@keyframes nx-flicker{0%,100%{opacity:.25}48%{opacity:.25}50%{opacity:.7}52%{opacity:.18}54%{opacity:.55}}
+@keyframes nx-dots{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@keyframes nx-boot-flash{0%,100%{opacity:0}48%{opacity:0}50%{opacity:.8}53%{opacity:0}}
+@keyframes nx-auth-bloom{0%{opacity:0;transform:scale(.94)}55%{opacity:.65}100%{opacity:0;transform:scale(1.45)}}
+
+.nexum-welcome::before{animation:nx-ambient-drift 16s ease-in-out infinite}
+.nx-cinematic-noise{position:absolute;inset:-30%;z-index:7;pointer-events:none;opacity:.075;background-image:radial-gradient(circle at 20% 30%,rgba(255,255,255,.9) 0 1px,transparent 1.2px),radial-gradient(circle at 70% 60%,rgba(255,255,255,.7) 0 1px,transparent 1.2px);background-size:7px 7px,11px 11px;mix-blend-mode:overlay;animation:nx-flicker 5s steps(1,end) infinite}
+.nx-cinematic-vignette{position:absolute;inset:0;z-index:6;pointer-events:none;background:radial-gradient(ellipse at center,transparent 35%,rgba(8,11,25,.16) 72%,rgba(8,11,25,.48) 100%);animation:nx-flicker 8s ease-in-out infinite}
+.nx-scan-beam{position:absolute;left:-10%;top:-25%;width:120%;height:18%;z-index:5;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(255,255,255,.18),rgba(112,156,255,.12),transparent);filter:blur(8px);animation:nx-scan 6.5s cubic-bezier(.45,0,.55,1) infinite}
+.nx-light-streak{position:absolute;width:48vw;height:2px;z-index:4;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),rgba(125,163,255,.35),transparent);filter:blur(2px);opacity:0}
+.streak-a{left:-45%;top:29%;animation:nx-streak 8s 1.2s ease-in-out infinite}
+.streak-b{left:-55%;top:64%;width:36vw;animation:nx-streak 11s 4.2s ease-in-out infinite reverse}
+.streak-c{left:-35%;top:43%;width:25vw;animation:nx-streak 9s 6s ease-in-out infinite}
+.nx-system-grid{position:absolute;left:-15%;right:-15%;bottom:-23%;height:52%;z-index:1;pointer-events:none;opacity:.12;background-image:linear-gradient(rgba(255,255,255,.32) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.25) 1px,transparent 1px);background-size:72px 36px;mask-image:linear-gradient(to bottom,transparent,#000 32%,#000);-webkit-mask-image:linear-gradient(to bottom,transparent,#000 32%,#000);animation:nx-grid-drift 9s linear infinite}
+.nx-system-pulse{position:absolute;z-index:3;left:50%;top:45%;width:80px;height:80px;margin:-40px;pointer-events:none;border:1px solid rgba(255,255,255,.6);border-radius:50%;box-shadow:0 0 30px rgba(111,151,255,.3);animation:nx-pulse 5.5s cubic-bezier(.15,.7,.25,1) infinite}
+.pulse-b{animation-delay:2.75s}
+.nexum-liquid-rings{z-index:4}
+.nexum-sequence-core{z-index:5;animation:nx-float 5s ease-in-out infinite}
+.nexum-core-glass{box-shadow:inset 0 1px 0 rgba(255,255,255,.62),0 35px 90px rgba(39,53,120,.25),0 0 70px rgba(101,139,255,.16)}
+.nexum-core-glass::before{content:"";position:absolute;inset:-120%;background:linear-gradient(110deg,transparent 44%,rgba(255,255,255,.55) 50%,transparent 56%);animation:nx-glint 5.5s ease-in-out infinite}
+.nexum-core-glass::after{animation:nx-shine 3.8s ease-in-out infinite,nx-boot-flash 7s steps(1,end) infinite}
+.nexum-core-orbit::after{content:"";position:absolute;width:5px;height:5px;top:50%;left:-3px;border-radius:50%;background:#fff;box-shadow:0 0 15px 4px rgba(128,164,255,.8)}
+.nexum-sequence-copy h1{text-shadow:0 0 35px rgba(151,180,255,.12)}
+.nexum-boot-console{position:relative;overflow:hidden}
+.nexum-boot-console::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 20%,rgba(255,255,255,.08) 50%,transparent 80%);transform:translateX(-120%);animation:nx-glint 6s ease-in-out infinite}
+.nexum-console-lines div{position:relative}
+.nexum-console-lines div::before{content:"";width:3px;height:3px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor;opacity:.4}
+.nexum-console-lines .online::before{animation:nx-live 1.8s ease-in-out infinite}
+.scene-hello .nexum-sequence-core::after,.scene-auth .nexum-sequence-core::after{content:"";position:absolute;inset:-35px;border-radius:50%;border:1px solid rgba(255,255,255,.4);animation:nx-core-burst 2.4s ease-out both}
+.scene-hello .nexum-sequence-copy h1{animation:nx-text-in .82s cubic-bezier(.22,.8,.24,1) both,nx-flicker 3s 1s ease-in-out infinite}
+.scene-auth .nexum-auth-window::before{content:"";position:absolute;inset:-35px;border-radius:40px;background:radial-gradient(circle,rgba(123,157,255,.22),transparent 68%);z-index:-1;animation:nx-auth-bloom 3.8s ease-out infinite}
+.scene-auth .nexum-auth-window{overflow:visible}
+.nexum-auth-content input{transition:border-color .25s,background .25s,box-shadow .25s,transform .25s}
+.nexum-auth-content input:focus{transform:translateY(-1px)}
+.nexum-enter{position:relative;overflow:hidden}
+.nexum-enter::before{content:"";position:absolute;inset:-100% 0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.22) 50%,transparent 65%);animation:nx-glint 4.5s ease-in-out infinite}
+.nexum-enter span,.nexum-enter b{position:relative;z-index:1}
+.nexum-skip-intro{transition:opacity .3s,background .3s,transform .3s,box-shadow .3s}
+.nexum-skip-intro:hover{box-shadow:0 0 25px rgba(111,151,255,.16)}
+
+.nexum-post-auth-boot::before{animation:nx-ambient-drift 13s ease-in-out infinite}
+.nexum-post-auth-boot .nexum-boot-glow{animation:nx-boot-glow 3s ease-in-out infinite,nx-flicker 7s ease-in-out infinite}
+.nexum-post-auth-boot .nexum-boot-center::after{content:"";position:absolute;width:360px;height:360px;border-radius:50%;border:1px solid rgba(255,255,255,.18);box-shadow:0 0 50px rgba(112,145,255,.12);animation:nx-pulse 4s ease-out infinite}
+.nexum-post-auth-boot .nexum-boot-progress{position:relative;overflow:hidden}
+.nexum-post-auth-boot .nexum-boot-progress::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.8),transparent);animation:nx-glint 1.8s linear infinite}
+
+@media(prefers-reduced-motion:reduce){
+  .nexum-welcome::before,.nx-cinematic-noise,.nx-cinematic-vignette,.nx-scan-beam,.nx-light-streak,.nx-system-grid,.nx-system-pulse,.nexum-sequence-core,.nexum-core-glass::before,.nexum-core-glass::after,.nexum-core-orbit::after,.nexum-boot-console::before,.scene-hello .nexum-sequence-copy h1,.scene-hello .nexum-sequence-core::after,.scene-auth .nexum-sequence-core::after,.scene-auth .nexum-auth-window::before,.nexum-enter::before,.nexum-post-auth-boot::before,.nexum-post-auth-boot .nexum-boot-glow,.nexum-post-auth-boot .nexum-boot-center::after,.nexum-post-auth-boot .nexum-boot-progress::after{animation:none!important}
+}
