@@ -1,0 +1,202 @@
+/* NEXUM Glass 5.0 — liquid-glass desktop icons + status dock */
+.nexum-os-desktop{
+  --nx-liquid:rgba(255,255,255,.22);
+  --nx-liquid-strong:rgba(255,255,255,.34);
+  --nx-edge:rgba(255,255,255,.72);
+  --nx-edge-soft:rgba(255,255,255,.38);
+}
+
+/* Liquid glass app icons: translucent body, inner highlight, refraction glow */
+.os-app-glyph{
+  position:relative!important;
+  overflow:hidden!important;
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 28% 18%,rgba(255,255,255,.92) 0,rgba(255,255,255,.38) 17%,transparent 43%),
+    radial-gradient(circle at 76% 82%,rgba(160,205,255,.24),transparent 48%),
+    linear-gradient(145deg,rgba(255,255,255,.54),rgba(255,255,255,.16))!important;
+  border:1px solid rgba(255,255,255,.82)!important;
+  box-shadow:
+    0 16px 34px rgba(31,38,64,.16),
+    0 3px 8px rgba(31,38,64,.08),
+    inset 1px 1px 0 rgba(255,255,255,.95),
+    inset -1px -1px 0 rgba(255,255,255,.20),
+    inset 0 -10px 20px rgba(92,130,180,.06)!important;
+  backdrop-filter:blur(22px) saturate(185%) contrast(105%);
+  -webkit-backdrop-filter:blur(22px) saturate(185%) contrast(105%);
+}
+.os-app-glyph::before{
+  content:"";
+  position:absolute;
+  inset:2px 2px 48% 2px;
+  border-radius:inherit;
+  background:linear-gradient(180deg,rgba(255,255,255,.78),rgba(255,255,255,0));
+  opacity:.72;
+  pointer-events:none;
+}
+.os-app-glyph::after{
+  content:"";
+  position:absolute;
+  width:22px;height:8px;
+  left:8px;top:6px;
+  border-radius:50%;
+  background:rgba(255,255,255,.62);
+  filter:blur(5px);
+  transform:rotate(-18deg);
+  opacity:.8;
+  pointer-events:none;
+}
+.os-app-glyph svg{
+  position:relative;
+  z-index:2;
+  width:25px!important;height:25px!important;
+  filter:drop-shadow(0 2px 3px rgba(25,30,50,.15));
+}
+.os-app-icon:hover .os-app-glyph{
+  transform:translateY(-7px) scale(1.1)!important;
+  box-shadow:
+    0 24px 44px rgba(31,38,64,.20),
+    0 5px 12px rgba(31,38,64,.10),
+    inset 1px 1px 0 rgba(255,255,255,1),
+    inset 0 -12px 22px rgba(100,140,210,.08)!important;
+  filter:saturate(1.12) brightness(1.035);
+}
+
+/* Individual app glass tints — still translucent, never flat blocks */
+.os-app-glyph.light{
+  background:
+    radial-gradient(circle at 25% 15%,rgba(255,255,255,.98),transparent 38%),
+    linear-gradient(145deg,rgba(255,255,255,.58),rgba(215,225,245,.20))!important;
+  color:#3b4050;
+}
+.os-app-glyph.dark{
+  background:
+    radial-gradient(circle at 28% 15%,rgba(255,255,255,.72),transparent 35%),
+    linear-gradient(145deg,rgba(68,72,91,.48),rgba(255,255,255,.12))!important;
+  color:#252837;
+}
+.os-app-glyph.code{
+  background:
+    radial-gradient(circle at 25% 15%,rgba(255,255,255,.9),transparent 36%),
+    linear-gradient(145deg,rgba(103,139,210,.30),rgba(255,255,255,.18))!important;
+  color:#344b79;
+}
+.os-app-glyph.preview{
+  background:
+    radial-gradient(circle at 25% 15%,rgba(255,255,255,.9),transparent 36%),
+    linear-gradient(145deg,rgba(103,207,196,.28),rgba(255,255,255,.18))!important;
+  color:#286f73;
+}
+.os-app-glyph.new{
+  display:grid!important;
+  place-items:center!important;
+  color:#303442;
+  font-size:24px!important;
+}
+
+/* Glass labels */
+.os-app-icon b{
+  padding:3px 7px!important;
+  border-radius:7px!important;
+  background:rgba(255,255,255,.16);
+  border:1px solid rgba(255,255,255,.22);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  color:rgba(28,32,44,.72)!important;
+}
+
+/* Bottom status bar / Dock: one continuous liquid-glass surface */
+.os-dock{
+  padding:8px 10px!important;
+  min-height:66px;
+  border-radius:25px!important;
+  background:
+    linear-gradient(135deg,rgba(255,255,255,.48),rgba(255,255,255,.19) 52%,rgba(238,244,255,.30))!important;
+  border:1px solid rgba(255,255,255,.82)!important;
+  box-shadow:
+    0 30px 80px rgba(27,34,58,.25),
+    0 8px 24px rgba(27,34,58,.12),
+    inset 0 1px 0 rgba(255,255,255,.98),
+    inset 0 -1px 0 rgba(255,255,255,.24)!important;
+  backdrop-filter:blur(34px) saturate(200%) contrast(108%);
+  -webkit-backdrop-filter:blur(34px) saturate(200%) contrast(108%);
+}
+.os-dock::before{
+  content:"";
+  position:absolute;
+  inset:1px 8%;
+  height:38%;
+  border-radius:inherit;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),transparent);
+  filter:blur(3px);
+  pointer-events:none;
+}
+.os-dock-item{
+  z-index:2;
+  padding:2px!important;
+  border-radius:17px!important;
+}
+.os-dock-item .os-app-glyph{
+  width:50px!important;height:50px!important;
+  border-radius:15px!important;
+  box-shadow:
+    0 12px 24px rgba(31,38,64,.14),
+    inset 1px 1px 0 rgba(255,255,255,.96),
+    inset 0 -8px 18px rgba(80,120,180,.06)!important;
+}
+.os-dock-item:hover .os-app-glyph{
+  transform:translateY(-5px) scale(1.12)!important;
+}
+.os-dock-separator{
+  z-index:2;
+  width:1px!important;
+  height:34px!important;
+  margin:0 5px!important;
+  border-radius:999px;
+  background:linear-gradient(180deg,transparent,rgba(50,55,72,.20),transparent)!important;
+}
+.os-dock-item::after{
+  z-index:3;
+  bottom:-5px!important;
+  width:4px!important;height:4px!important;
+  box-shadow:0 0 8px rgba(50,55,72,.20);
+}
+
+/* top status/menu bar gets the same material language */
+.os-menubar{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.48),rgba(255,255,255,.20))!important;
+  border-bottom:1px solid rgba(255,255,255,.72)!important;
+  backdrop-filter:blur(34px) saturate(195%) contrast(106%)!important;
+  -webkit-backdrop-filter:blur(34px) saturate(195%) contrast(106%)!important;
+  box-shadow:0 8px 30px rgba(32,38,60,.08),inset 0 1px 0 rgba(255,255,255,.85)!important;
+}
+.os-clock-menu{
+  background:rgba(255,255,255,.22)!important;
+  border-color:rgba(255,255,255,.52)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65);
+  backdrop-filter:blur(16px);
+}
+
+/* Calendar popover follows liquid-glass material */
+.os-calendar-popover{
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.60),rgba(255,255,255,.26))!important;
+  border:1px solid rgba(255,255,255,.78)!important;
+  box-shadow:
+    0 30px 80px rgba(28,34,56,.20),
+    inset 0 1px 0 rgba(255,255,255,.95)!important;
+  backdrop-filter:blur(36px) saturate(190%)!important;
+  -webkit-backdrop-filter:blur(36px) saturate(190%)!important;
+}
+@media(max-width:680px){
+  .os-dock{
+    min-height:58px;
+    padding:7px 8px!important;
+    border-radius:21px!important;
+  }
+  .os-dock-item .os-app-glyph{
+    width:44px!important;height:44px!important;border-radius:13px!important;
+  }
+  .os-app-glyph{backdrop-filter:blur(18px) saturate(175%);-webkit-backdrop-filter:blur(18px) saturate(175%)}
+}
