@@ -66,6 +66,7 @@ function App() {
   // OS is enabled on every fresh page load; the switch is session-only for testing.
   const [osEnabled, setOsEnabled] = useState(true);
   const [onboardingComplete, setOnboardingComplete] = useState(() => { try { return localStorage.getItem("nexum:onboarding-complete") === "1"; } catch { return false; } });
+  const [welcomeTestMode, setWelcomeTestMode] = useState(false);
   useEffect(() => {
     const timer = window.setTimeout(() => setOsBooted(true), 180);
     return () => window.clearTimeout(timer);
@@ -755,8 +756,8 @@ function App() {
     </div>;
   }
 
-  if (!onboardingComplete) {
-    return <NexumWelcome onComplete={() => setOnboardingComplete(true)} />;
+  if (!onboardingComplete || welcomeTestMode) {
+    return <NexumWelcome onComplete={() => { setOnboardingComplete(true); setWelcomeTestMode(false); }} />;
   }
 
   return (
@@ -785,6 +786,7 @@ function App() {
             onOpenView={(next) => setView(next)}
             osEnabled={osEnabled}
             onToggleOS={() => setOsEnabled((enabled) => !enabled)}
+            onLaunchWelcome={() => setWelcomeTestMode(true)}
             runningProjectIds={runningProjectIds}
             minimizedProjectIds={minimizedProjectIds}
             onRestoreProject={(id) => openПроект(id, projectWindowModes[id] ?? "agent")}
