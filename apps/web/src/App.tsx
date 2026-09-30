@@ -725,6 +725,24 @@ function App() {
     { label: "Настройки", hint: "", run: () => setView("settings") },
   ];
 
+  function ConnectorModal() {
+    const connected = connectorModal ? connectedConnectors.includes(connectorModal) : false;
+    useEffect(() => {
+      if (!connectorModal) return;
+      const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setConnectorModal(null); };
+      window.addEventListener("keydown", onKeyDown);
+      return () => window.removeEventListener("keydown", onKeyDown);
+    }, [connectorModal]);
+    if (!connectorModal) return null;
+    return <div className="modal-backdrop connector-backdrop" onMouseDown={() => setConnectorModal(null)}>
+      <section className="connector-modal" role="dialog" aria-modal="true" aria-labelledby="connector-modal-title" onMouseDown={(event) => event.stopPropagation()}>
+        <div className="modal-top"><div><span className="eyebrow">ИНТЕГРАЦИЯ</span><h2 id="connector-modal-title">{connectorModal}</h2></div><button type="button" aria-label="Закрыть" onClick={() => setConnectorModal(null)}>×</button></div>
+        <p>{connected ? "Эта интеграция включена в интерфейсе рабочего пространства. OAuth/API-данные провайдера пока не сохраняются." : "Включить интеграцию для текущего рабочего пространства. OAuth/API-данные провайдера пока не сохраняются."}</p>
+        <div className="connector-modal-actions"><button type="button" onClick={() => setConnectorModal(null)}>Отмена</button><button className="home-primary" type="button" onClick={() => { setConnectedConnectors((items) => connected ? items.filter((item) => item !== connectorModal) : [...items, connectorModal]); setConnectorModal(null); setNotice(connectorModal + (connected ? " интеграция отключена" : " интеграция подключена")); }}>{connected ? "Отключить" : "Продолжить"}</button></div>
+      </section>
+    </div>;
+  }
+
   return (
     <div className={"app app-" + view}>
       <NexumOSEventCenter events={osEvents} onDismiss={(id) => setOsEvents((items) => items.filter((item) => item.id !== id))} />
@@ -759,7 +777,6 @@ function App() {
           <IntegrationPage
             connectedConnectors={connectedConnectors}
             onToggleConnector={(name) => {
-              setConnectedConnectors((items) => items.includes(name) ? items.filter((item) => item !== name) : [...items, name]);
               setConnectorModal(name);
             }}
           />
@@ -957,7 +974,7 @@ function App() {
       </main>
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
       <NewProjectModal open={modalOpen} name={newПроектName} loading={projectActionLoading} error={projectCreationError} onNameChange={setNewПроектName} onClose={() => { setProjectCreationError(""); setModalOpen(false); }} onSubmit={(data) => void createПроект(data)} />
-      {connectorModal && <div className="modal-backdrop connector-backdrop" onMouseDown={() => setConnectorModal(null)}><section className="connector-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><div className="modal-top"><div><span className="eyebrow">ИНТЕГРАЦИЯ</span><h2>{connectorModal}</h2></div><button type="button" onClick={() => setConnectorModal(null)}>×</button></div><p>{connectedConnectors.includes(connectorModal) ? "Эта интеграция включена в интерфейсе рабочего пространства. OAuth/API-данные провайдера пока не сохраняются." : "Включить интеграцию для текущего рабочего пространства. OAuth/API-данные провайдера пока не сохраняются."}</p><div className="connector-modal-actions"><button type="button" onClick={() => setConnectorModal(null)}>Отмена</button><button className="home-primary" type="button" onClick={() => { if (!connectedConnectors.includes(connectorModal)) setConnectedConnectors((items) => [...items, connectorModal]); setConnectorModal(null); setNotice(connectorModal + " интеграция подключена"); }}>Продолжить</button></div></section></div>}
+      {connectorModal && <ConnectorModal />}
       {notice && <div className="toast" role="status">{notice}</div>}
     </div>
   );
