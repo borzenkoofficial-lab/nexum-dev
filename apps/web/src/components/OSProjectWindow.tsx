@@ -59,12 +59,12 @@ export function OSProjectWindow({
 
   return (
     <section className="nexum-os-project" aria-label={"NEXUM OS project " + projectName}>
-      <div className="os-window-shell">
+      <div className={"os-window-shell" + (maximized ? " is-maximized" : "")}>
         <header className="os-window-titlebar">
           <div className="os-window-controls" aria-label="Window controls">
             <button type="button" className="os-window-dot close" aria-label="Close project" onClick={onClose} />
             <button type="button" className="os-window-dot minimize" aria-label="Minimize project" onClick={onMinimize} />
-            <button type="button" className="os-window-dot maximize" aria-label="Maximize project" onClick={() => document.documentElement.classList.toggle("nexum-os-maximized")} />
+            <button type="button" className="os-window-dot maximize" aria-label="Maximize project" onClick={() => setMaximized((value) => !value)} />
           </div>
           <div className="os-window-title">
             <span className="os-window-project-mark">{projectName.slice(0, 1).toUpperCase()}</span>
