@@ -10,6 +10,16 @@ class StubProvider implements AIProvider {
     private readonly error?: string,
   ) {}
   get name(): string { return this.id; }
+  capabilities = {
+    text: true,
+    code: true,
+    vision: false,
+    toolCalling: false,
+    streaming: false,
+    structuredOutput: false,
+    reasoning: false,
+    contextWindow: 8192,
+  };
   calls = 0;
   async generate(): Promise<string> {
     this.calls += 1;
@@ -60,5 +70,19 @@ test("never falls back for authentication failures", async () => {
   const gateway = new AIGateway([primary, fallback], "primary", { fallbackProviderId: "fallback" });
 
   await assert.rejects(() => gateway.generate("test"), /401 unauthorized/);
+  assert.equal(fallback.calls, 0);
+});
+
+
+test("does not silently fall back from an explicitly selected model", async () => {
+  const primary = new StubProvider("primary", "primary-model", "503 service unavailable");
+  const fallback = new StubProvider("fallback", "fallback-model");
+  const gateway = new AIGateway([primary, fallback], "primary", { fallbackProviderId: "fallback" });
+
+  await assert.rejects(
+    () => gateway.generate("test", { model: "primary-model" }),
+    /503 service unavailable/,
+  );
+  assert.equal(primary.calls, 1);
   assert.equal(fallback.calls, 0);
 });
