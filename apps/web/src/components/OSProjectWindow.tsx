@@ -42,6 +42,13 @@ export function OSProjectWindow({
   onFiles,
   children,
 }: OSProjectWindowProps) {
+  const [maximized, setMaximized] = useState(false);
+  useEffect(() => {
+    if (!maximized) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setMaximized(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [maximized]);
   const busy = Boolean(agentStage && !["completed", "error"].includes(agentStage));
   const status = busy ? "Agent working" : previewOnline ? "Preview ready" : "Ready";
 
