@@ -739,3 +739,53 @@ body{margin:0;overflow-x:hidden}
     flex-basis:48px!important;
   }
 }
+
+/* Final project titlebar alignment: controls never occupy the brand/title lane. */
+.app-project .os-window-titlebar{
+  grid-template-columns:auto minmax(0,1fr) auto!important;
+  min-width:0!important;
+}
+.app-project .os-window-controls{
+  min-width:0!important;
+  justify-self:start!important;
+}
+.app-project .os-window-title{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.app-project .os-window-status{
+  min-width:0!important;
+  max-width:180px!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+}
+@media(max-width:700px){
+  .app-project .os-window-titlebar{
+    grid-template-columns:auto minmax(0,1fr) auto!important;
+    padding-inline:10px!important;
+  }
+  .app-project .os-window-title{
+    justify-content:flex-start!important;
+    gap:7px!important;
+    padding-inline:8px!important;
+  }
+  .app-project .os-window-status{
+    max-width:110px!important;
+  }
+}
+@media(max-width:480px){
+  .app-project .os-window-title{
+    font-size:11px!important;
+  }
+  .app-project .os-window-title .os-window-separator,
+  .app-project .os-window-title > span:last-child{
+    display:none!important;
+  }
+  .app-project .os-window-status{
+    max-width:82px!important;
+    font-size:10px!important;
+  }
+}
