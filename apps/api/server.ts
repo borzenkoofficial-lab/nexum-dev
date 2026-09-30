@@ -25,6 +25,7 @@ import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
 import { pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
+import { cleanupChatJobs, createChatJob, getChatJob, listChatJobs, updateChatJob, type ChatJob } from "./chatJobStore.js";
 
 dotenv.config();
 
@@ -102,35 +103,20 @@ const aiGateway = new AIGateway(
   },
 );
 
-type ChatJobStatus = "queued" | "running" | "completed" | "failed";
-interface ChatJob {
-  id: string;
-  status: ChatJobStatus;
-  createdAt: number;
-  updatedAt: number;
-  reply?: string;
-  steps?: unknown[];
-  events?: AgentEvent[];
-  problems?: Array<{ message: string; source?: string }>;
-  currentMessage?: string;
-  commandOutput?: { command: string; stdout: string; stderr: string; exitCode: number | null };
-  error?: string;
-  stage?: "queued" | "analyzing" | "planning" | "reading" | "editing" | "building" | "testing" | "completed" | "error";
-  attachments?: string[];
-  productPlan?: ProductPlan;
-  checkpointId?: string;
-  userId?: string;
-}
-const chatJobs = new Map<string, ChatJob>();
+const chatJobCache = new Map<string, ChatJob>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
 
-function cleanupChatJobs() {
-  const cutoff = Date.now() - CHAT_JOB_TTL_MS;
-  for (const [id, job] of chatJobs) {
-    if (job.updatedAt < cutoff && (job.status === "completed" || job.status === "failed")) {
-      chatJobs.delete(id);
-    }
-  }
+async function persistChatJob(job: ChatJob): Promise<void> {
+  chatJobCache.set(job.id, job);
+  await updateChatJob(job.id, job.userId, job);
+}
+
+async function loadChatJob(id: string, userId: string): Promise<ChatJob | null> {
+  const cached = chatJobCache.get(id);
+  if (cached && cached.userId === userId) return cached;
+  const persisted = await getChatJob(id, userId);
+  if (persisted) chatJobCache.set(id, persisted);
+  return persisted;
 }
 
 async function runChatJob(
@@ -143,11 +129,13 @@ async function runChatJob(
   attachments: Array<{ name: string; type: string; size: number; content?: string; data?: string }>,
   conversation: Array<{ role: "user" | "assistant"; content: string }>,
 ) {
-  const job = chatJobs.get(jobId);
+  const job = await getChatJob(jobId, userId);
   if (!job) return;
+  chatJobCache.set(jobId, job);
 
   job.status = "running";
   job.updatedAt = Date.now();
+  await persistChatJob(job);
   void agentHistory.record({ type: "job-start", jobId, projectId, provider, model, message, output: `user:${userId}` });
   job.currentMessage = "Запускаю AI-агента и начинаю выполнение задачи.";
   job.stage = "analyzing";
@@ -212,6 +200,7 @@ async function runChatJob(
       (step) => {
         job.steps = [...(job.steps ?? []), step];
         job.updatedAt = Date.now();
+        void persistChatJob(job).catch((error) => console.error("[Nexum] job persistence failed", error));
       },
       (event) => {
         job.events = [...(job.events ?? []), event].slice(-100);
@@ -234,6 +223,7 @@ async function runChatJob(
         }
         if (event.type === "tool-error" || event.type === "failed") job.stage = "error";
         job.updatedAt = Date.now();
+        void persistChatJob(job).catch((error) => console.error("[Nexum] job event persistence failed", error));
         void agentHistory.record({ type: "agent-event", jobId, projectId, provider, model, iteration: event.iteration, tool: event.tool, status: event.type, message: event.message });
         if (event.type === "tool-error" || event.type === "failed") {
           job.problems = [
@@ -261,6 +251,7 @@ async function runChatJob(
       job.error = result.error ?? "AI agent failed";
       void agentHistory.record({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
+      await persistChatJob(job);
       return;
     }
 
@@ -270,6 +261,7 @@ async function runChatJob(
     void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
     job.steps = result.steps;
     job.productPlan = result.productPlan;
+    await persistChatJob(job);
     const successfulBuild = result.steps.some((step) =>
       step.success &&
       (step.tool === "runCommand" || step.tool === "runSandbox") &&
@@ -291,6 +283,7 @@ async function runChatJob(
     job.stage = "error";
     job.updatedAt = Date.now();
     job.error = error instanceof Error ? error.message : "AI provider request failed";
+    await persistChatJob(job).catch((persistenceError) => console.error("[Nexum] failed to persist job exception", persistenceError));
     void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
     console.error("[Nexum] chat job failed", jobId, error);
   }
@@ -918,10 +911,10 @@ app.post("/api/chat", async (req, res) => {
     // still fail immediately instead of creating a job that can never run.
     await getProjectManager(getAuthUser(req).id).getActiveProject(projectId);
 
-    cleanupChatJobs();
+    await cleanupChatJobs();
     const jobId = randomUUID();
     const now = Date.now();
-    chatJobs.set(jobId, {
+    const newJob: ChatJob = {
       id: jobId,
       status: "queued",
       createdAt: now,
@@ -930,7 +923,10 @@ app.post("/api/chat", async (req, res) => {
       attachments: normalizedAttachments.map((item) => item.name),
       productPlan: undefined,
       userId: getAuthUser(req).id,
-    });
+      projectId: typeof projectId === "string" ? projectId : undefined,
+    };
+    await createChatJob(newJob);
+    chatJobCache.set(jobId, newJob);
 
     // Do not await the agent. The HTTP request returns immediately, avoiding
     // platform/proxy 504s while local Ollama or another provider is generating.
@@ -1000,7 +996,7 @@ app.get("/api/agent/diagnostics", async (req, res) => {
     aiProvider: defaultProvider,
     failureCount: failures.length,
     failures,
-    jobs: [...chatJobs.values()].slice(-20).map((job) => ({
+    jobs: (await listChatJobs(getAuthUser(req).id, 20)).map((job) => ({
       id: job.id,
       status: job.status,
       createdAt: job.createdAt,
@@ -1012,44 +1008,12 @@ app.get("/api/agent/diagnostics", async (req, res) => {
   });
 });
 
-app.get("/api/chat/jobs/:id", (req, res) => {
-  cleanupChatJobs();
-  const job = chatJobs.get(req.params.id);
-  if (!job) {
-    return res.status(404).json({
-      success: false,
-      error: "Chat job not found or expired",
-    });
-  }
-
+app.get("/api/chat/jobs/:id", async (req, res) => {
+  await cleanupChatJobs();
   const userId = getAuthUser(req).id;
-  if (!job.userId || job.userId !== userId) {
-    return res.status(404).json({
-      success: false,
-      error: "Chat job not found or expired",
-    });
-  }
-
-  return res.json({
-    success: true,
-    job: {
-      id: job.id,
-      status: job.status,
-      createdAt: job.createdAt,
-      updatedAt: job.updatedAt,
-      reply: job.reply ?? null,
-      steps: job.steps ?? [],
-      events: job.events ?? [],
-      currentMessage: job.currentMessage ?? null,
-      problems: job.problems ?? [],
-      commandOutput: job.commandOutput ?? null,
-      error: job.error ?? null,
-      stage: job.stage ?? null,
-      attachments: job.attachments ?? [],
-      productPlan: job.productPlan ?? null,
-      checkpointId: job.checkpointId ?? null,
-    },
-  });
+  const job = await loadChatJob(req.params.id, userId);
+  if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired" });
+  return res.json({ success: true, job });
 });
 
 const webDist = resolve(workspaceRoot, "apps/web/dist");
