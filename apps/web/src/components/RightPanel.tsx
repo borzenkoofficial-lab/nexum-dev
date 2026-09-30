@@ -5,6 +5,7 @@ import type { AgentStage } from "./types";
 interface RightPanelProps {
   tab: "preview" | "files" | "agent";
   onTabChange: (tab: "preview" | "files" | "agent") => void;
+  onOpenChat?: () => void;
   jobId: string | null;
   stage: AgentStage;
   activitySteps: Array<{ iteration: number; tool: string; success: boolean }>;
@@ -245,6 +246,7 @@ export function RightPanel({ tab, onTabChange, projectName, projectId, previewOn
   return (
     <aside className={`right-panel mobile-mode-${tab}`} aria-label="Инструменты проекта" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchEnd}>
       <div className="panel-tabs" role="tablist">
+        {onOpenChat && <button className="panel-chat-tab" type="button" onClick={onOpenChat} aria-label="Вернуться к чату">Чат</button>}
         <button className={tab === "preview" ? "active" : ""} type="button" onClick={() => onTabChange("preview")}>Предпросмотр</button>
         <button className={tab === "files" ? "active" : ""} type="button" onClick={() => onTabChange("files")}>Файлы</button>
         <button className={tab === "agent" ? "active" : ""} type="button" onClick={() => onTabChange("agent")}>Агент</button>
