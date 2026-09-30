@@ -119,6 +119,15 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
   const sceneClass = `nexum-welcome-scene scene-${intro}`;
   return (
     <main className={"nexum-welcome " + sceneClass}>
+      <div className="nx-cinematic-noise" aria-hidden="true" />
+      <div className="nx-cinematic-vignette" aria-hidden="true" />
+      <div className="nx-scan-beam" aria-hidden="true" />
+      <div className="nx-light-streak streak-a" aria-hidden="true" />
+      <div className="nx-light-streak streak-b" aria-hidden="true" />
+      <div className="nx-light-streak streak-c" aria-hidden="true" />
+      <div className="nx-system-grid" aria-hidden="true" />
+      <div className="nx-system-pulse pulse-a" aria-hidden="true" />
+      <div className="nx-system-pulse pulse-b" aria-hidden="true" />
       <div className="nexum-welcome-orb orb-a" /><div className="nexum-welcome-orb orb-b" /><div className="nexum-welcome-orb orb-c" />
       <div className="nexum-welcome-particles" aria-hidden="true">{Array.from({ length: 24 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}</div>
       <div className="nexum-liquid-rings" aria-hidden="true"><span /><span /><span /></div>
