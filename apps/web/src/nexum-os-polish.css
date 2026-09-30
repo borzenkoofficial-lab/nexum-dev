@@ -304,3 +304,14 @@
 @media(max-width:650px){
   .os-window-shell.is-maximized{inset:58px 6px max(6px,env(safe-area-inset-bottom));border-radius:14px}
 }
+
+
+/* Runtime state polish */
+.os-window-status{transition:color .18s ease,opacity .18s ease}
+.os-status-pulse.error{background:#ff6b61;box-shadow:0 0 0 4px rgba(255,107,97,.12)}
+.os-window-shell.is-maximized .os-window-titlebar{border-top-left-radius:16px;border-top-right-radius:16px}
+.nexum-os-project-minimized .os-minimized-card{cursor:pointer}
+.nexum-os-event{backdrop-filter:blur(22px) saturate(140%)}
+@media(prefers-reduced-motion:reduce){
+  .os-window-status{transition:none}
+}
