@@ -11,6 +11,7 @@ export function TopBar({ projectName, aiStatus, stage }: TopBarProps) {
 
   return (
     <header className="header nexum-topbar">
+      <div className="topbar-window-controls" aria-hidden="true"><i /><i /><i /></div>
       <div className="header-brand">
         <div className="topbar-mark" aria-hidden="true">N</div>
         <div className="topbar-copy"><div className="title">{projectName}</div><div className="subtitle">NEXUM.DEV · AI workspace</div></div>
