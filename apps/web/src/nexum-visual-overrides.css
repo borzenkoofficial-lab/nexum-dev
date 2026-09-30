@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 /* NEXUM.DEV — visual refinement layer
    Calm Apple/Lovable-inspired hierarchy. This file intentionally overrides
    the legacy stylesheet without changing component behavior. */
@@ -697,7 +698,7 @@ button,.nav-item,.project,.connector-card,.project-window{transition:background-
 
 
 /* NEXUM DIGITAL SYSTEM — ported visual language for NEXUM.DEV */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root{
   --digital-ink:#18181b;--digital-muted:#6f7078;--digital-subtle:#96969e;
   --digital-line:#e6e6eb;--digital-line-strong:#d7d7de;
