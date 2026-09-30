@@ -142,7 +142,7 @@ export class AIGateway {
     } catch (error) {
       const normalizedError = classifyAIError(error);
       const fallbackId = this.fallbackProviderId;
-      const reason = normalizedError.message;
+      const reason = normalizedError.technicalDetails ?? normalizedError.message;
       const explicitSelection =
         typeof options === "string" ||
         normalizedOptions.provider !== undefined ||
@@ -152,7 +152,7 @@ export class AIGateway {
         (!normalizedOptions.fallback && explicitSelection) ||
         !fallbackId ||
         fallbackId === provider.id ||
-        !this.isTransientProviderError(reason)
+        !normalizedError.retryable
       ) {
         throw normalizedError;
       }
