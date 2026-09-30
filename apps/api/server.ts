@@ -3,7 +3,6 @@ import type { Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { AIGateway, type GatewayFallbackEvent } from "./ai/gateway.js";
-import { MockProvider } from "./ai/providers/mock.js";
 import { OllamaProvider } from "./ai/providers/ollama.js";
 import { OpenRouterProvider } from "./ai/providers/openrouter.js";
 import { OpenAIProvider } from "./ai/providers/openai.js";
@@ -39,9 +38,15 @@ const defaultProvider = configuredProvider === "ollama" || configuredProvider ==
       ? "openai"
       : process.env.ANTHROPIC_API_KEY?.trim()
         ? "anthropic"
-      : process.env.OPENROUTER_API_KEY?.trim()
-        ? "openrouter"
-        : "mock";
+        : process.env.OPENROUTER_API_KEY?.trim()
+          ? "openrouter"
+          : process.env.OLLAMA_BASE_URL?.trim()
+            ? "ollama"
+            : undefined;
+
+if (!defaultProvider) {
+  throw new Error("NEXUM AI is not configured. Set AI_PROVIDER to a real provider or configure a real provider API key. Mock AI is disabled.");
+}
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const projectManagers = new Map<string, ProjectManager>();
 
@@ -60,7 +65,7 @@ const fallbackProvider = process.env.AI_FALLBACK_PROVIDER?.toLowerCase() ||
   (defaultProvider === "ollama" ? "openrouter" : defaultProvider === "orcarouter" ? "openrouter" : undefined);
 
 const aiGateway = new AIGateway(
-  [new MockProvider(), new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider()],
+  [new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider()],
   defaultProvider,
   {
     fallbackProviderId: fallbackProvider,
