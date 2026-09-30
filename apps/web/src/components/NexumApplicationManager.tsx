@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type NexumOSWindowMode = "preview" | "agent" | "files" | "code";
 
@@ -46,7 +46,7 @@ export function NexumApplicationManager({ projectName, projects, projectModes = 
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [currentIndex, onRestore, onSelectMode, open, switchIndex, switchableWindows, windows.length]);
 
   if (!running) return null;
 
@@ -54,7 +54,7 @@ export function NexumApplicationManager({ projectName, projects, projectModes = 
     <div className="nexum-os-app-strip" aria-label="Application Manager">
       <span className="nexum-os-app-strip-title">WINDOWS</span>
       {windows.map((item) => (
-        <button key={item.id} type="button" className={"nexum-os-app-chip" + (mode === item.id && !minimized ? " active" : "")} onClick={() => { if (minimized) onRestore(); onSelectMode(item.id); }}>
+        <button key={item.id} type="button" className={"nexum-os-app-chip" + (mode === item.id && !minimized ? " active" : "")} onClick={() => { if (minimized) onRestore(); onSelectMode(item.id); setOpen(false); }}>
           <i className={"nexum-os-window-icon " + item.id}><WindowIcon name={item.icon} /></i><span>{item.label}</span>
         </button>
       ))}
@@ -64,7 +64,7 @@ export function NexumApplicationManager({ projectName, projects, projectModes = 
       <div className="nexum-os-switcher" onMouseDown={(event) => event.stopPropagation()}>
         <div className="nexum-os-switcher-head"><span>APPLICATION MANAGER</span><small>{projectName ?? "NEXUM"} · {windows.length} windows</small></div>
         <div className="nexum-os-switcher-projects" aria-label="Running projects">
-          {projectItems.map((project) => <button key={project.id} type="button" className={"nexum-os-project-chip" + (project.active ? " active" : "")} onClick={() => onSelectProject?.(project.id)}>
+          {projectItems.map((project) => <button key={project.id} type="button" className={"nexum-os-project-chip" + (project.active ? " active" : "")} onClick={() => { onSelectProject?.(project.id); setOpen(false); }}>
             <span>{project.name.slice(0, 1).toUpperCase()}</span><strong>{project.name}</strong><small>{project.minimized ? "Minimized" : project.active ? "Active project" : "Running"} · {projectModes[project.id] ? projectModes[project.id].toUpperCase() : "WORKSPACE"}</small>
           </button>)}
         </div>
