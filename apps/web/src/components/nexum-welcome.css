@@ -147,7 +147,20 @@
 }
 
 
-/* Cinematic calm pass — remove continuous ripple/ring motion and reduce visual noise */
+/* Event-driven system pulse — one deliberate response per boot milestone */
+.nx-system-pulse{display:none!important;left:50%;top:45%;width:90px;height:90px;margin:-45px;border:1px solid rgba(255,255,255,.62);border-radius:50%;box-shadow:0 0 36px rgba(111,151,255,.22);pointer-events:none}
+.nx-system-pulse.is-active{display:block!important;animation:nx-pulse 1.45s cubic-bezier(.15,.7,.25,1) both}
+.nx-system-pulse.is-final{width:110px;height:110px;margin:-55px;border-color:rgba(255,255,255,.76);box-shadow:0 0 55px rgba(111,151,255,.3);animation:nx-pulse 2.15s cubic-bezier(.1,.72,.2,1) both}
+.nexum-welcome-scene.signal-1 .nexum-console-lines div:nth-child(1),
+.nexum-welcome-scene.signal-2 .nexum-console-lines div:nth-child(-n+2),
+.nexum-welcome-scene.signal-3 .nexum-console-lines div:nth-child(-n+3),
+.nexum-welcome-scene.signal-4 .nexum-console-lines div:nth-child(-n+4),
+.nexum-welcome-scene.signal-5 .nexum-console-lines div:nth-child(-n+5),
+.nexum-welcome-scene.signal-6 .nexum-console-lines div{color:rgba(255,255,255,.88)}
+.nexum-welcome-scene.signal-6 .nexum-sequence-core::after{content:"";position:absolute;inset:-58px;border-radius:50%;border:1px solid rgba(255,255,255,.42);animation:nx-core-burst 1.8s cubic-bezier(.15,.7,.25,1) both}
+.nexum-welcome-scene.scene-hello .nx-system-pulse,
+.nexum-welcome-scene.scene-auth .nx-system-pulse{display:block!important;animation:nx-pulse 2.15s cubic-bezier(.1,.72,.2,1) both}
+\n/* Cinematic calm pass — remove continuous ripple/ring motion and reduce visual noise */
 .nexum-welcome::before{animation:none;background:radial-gradient(circle at 12% 18%,rgba(255,112,194,.18),transparent 24%),radial-gradient(circle at 88% 16%,rgba(92,142,255,.2),transparent 25%),radial-gradient(circle at 78% 88%,rgba(166,108,255,.13),transparent 23%),linear-gradient(135deg,#e9f0ff 0%,#f5f1f8 50%,#edf7f5 100%)}
 .nexum-welcome-orb{animation:none;opacity:.16;filter:blur(30px)}
 .nexum-welcome-particles i{animation:none;opacity:.2}
