@@ -5,6 +5,7 @@ function phaseAfterIteration(current: AgentPhase, hasHistory: boolean): AgentPha
 
 import type { AIGateway } from "../ai/gateway.js";
 import { diagnoseError } from "./errorRecovery.js";
+import { toNexumError } from "../core/errors.js";
 import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVerificationState } from "./taskState.js";
 import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
@@ -111,6 +112,8 @@ export interface AgentEvent {
   phase: AgentPhase;
   tool?: string;
   message: string;
+  errorCode?: string;
+  retryable?: boolean;
 }
 
 export class AgentLoop {
@@ -210,7 +213,8 @@ export class AgentLoop {
           this.onPlan?.(productPlan);
           emit({ iteration, type: "thinking", message: `План готов: ${productPlan.productType}; ${productPlan.pages.length} экранов; ${productPlan.acceptanceCriteria.length} критериев проверки.` });
         } catch (error) {
-          emit({ iteration, type: "tool-error", tool: "Product Planner", message: error instanceof Error ? error.message : "Product planning failed" });
+          const normalizedError = toNexumError(error, "MODEL_ERROR", "Не удалось сформировать план проекта.");
+      emit({ iteration, type: "tool-error", tool: "Product Planner", message: normalizedError.userSafeMessage, errorCode: normalizedError.code, retryable: normalizedError.retryable });
         }
       }
       emit({ iteration, type: "thinking", message: `Шаг ${iteration}: анализирую состояние проекта и результаты предыдущего действия.` });
@@ -640,7 +644,8 @@ export class AgentLoop {
       if (!availableTools.includes((plan as AgentPlan).tool)) {
         const error = `Agent stopped: unavailable tool (${(plan as AgentPlan).tool})`;
         this.log(iteration, (plan as AgentPlan).tool, "error");
-        emit({ iteration, type: "failed", tool: (plan as AgentPlan).tool, message: error });
+        const normalizedError = toNexumError(error, "TOOL_ERROR", "Инструмент агента завершился с ошибкой.");
+        emit({ iteration, type: "failed", tool: (plan as AgentPlan).tool, message: normalizedError.userSafeMessage, errorCode: normalizedError.code, retryable: normalizedError.retryable });
         return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
       }
 
@@ -696,7 +701,8 @@ export class AgentLoop {
             } else {
               const error = "Agent stopped: repeated successful action detected (" + plan.tool + ")";
               this.log(iteration, plan.tool, "error");
-              emit({ iteration, type: "failed", tool: plan.tool, message: error });
+              const normalizedError = toNexumError(error, "TOOL_ERROR", "Инструмент агента завершился с ошибкой.");
+          emit({ iteration, type: "failed", tool: plan.tool, message: normalizedError.userSafeMessage, errorCode: normalizedError.code, retryable: normalizedError.retryable });
               return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
             }
           }
@@ -827,7 +833,8 @@ export class AgentLoop {
         for (const command of ["npm install", "npm run build"]) {
           if (!availableTools.includes("runCommand")) {
             const error = "React/Vite project was created, but runCommand is unavailable to install dependencies and build it.";
-            emit({ iteration, type: "failed", tool: "runCommand", message: error });
+            const normalizedError = toNexumError(error, "BUILD_ERROR", "Команда проекта завершилась с ошибкой.");
+      emit({ iteration, type: "failed", tool: "runCommand", message: normalizedError.userSafeMessage, errorCode: normalizedError.code, retryable: normalizedError.retryable });
             return { phase, success: false, iterations: iteration, steps, error };
           }
           const commandKey = `runCommand:${command}`;
