@@ -444,18 +444,19 @@ app.use("/api/chat", authMiddleware);
 app.use("/api/agent/history", authMiddleware);
 app.use("/api/agent/diagnostics", authMiddleware);
 
-app.get("/api/ai/providers", (_req, res) => {
-  return res.json({ success: true, providers: aiGateway.getProviders() });
+app.get("/api/ai/providers", authMiddleware, (req, res) => {
+  return res.json({ success: true, providers: getAIGatewayForUser(getAuthUser(req).id).getProviders() });
 });
 
-app.get("/api/ai/models", async (_req, res) => {
-  return res.json({ success: true, models: await aiGateway.getModels() });
+app.get("/api/ai/models", authMiddleware, async (req, res) => {
+  return res.json({ success: true, models: await getAIGatewayForUser(getAuthUser(req).id).getModels() });
 });
 
 const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM_LOCAL_TEST_MODE !== "false";
 
 app.get("/api/ai/key-status", authMiddleware, (_req, res) => {
-  return res.json({ success: true, providers: { openai: aiGateway.hasOpenAIKey(), openrouter: aiGateway.hasOpenRouterKey(), orcarouter: aiGateway.hasOrcaRouterKey() } });
+  const gateway = getAIGatewayForUser(getAuthUser(req).id);
+  return res.json({ success: true, providers: { openai: gateway.hasOpenAIKey(), openrouter: gateway.hasOpenRouterKey(), orcarouter: gateway.hasOrcaRouterKey() } });
 });
 
 app.post("/api/ai/connect-key", authMiddleware, async (req, res) => {
@@ -539,7 +540,7 @@ app.get("/api/ai/status", async (req, res) => {
   const provider = typeof req.query.provider === "string" ? req.query.provider : undefined;
   const model = typeof req.query.model === "string" ? req.query.model : undefined;
   try {
-    return res.json({ success: true, status: await aiGateway.getStatus(provider, model) });
+    return res.json({ success: true, status: await getAIGatewayForUser(getAuthUser(req).id).getStatus(provider, model) });
   } catch (error) {
     return res.status(400).json({
       success: false,
