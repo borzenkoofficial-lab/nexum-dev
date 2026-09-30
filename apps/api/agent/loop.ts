@@ -124,6 +124,7 @@ export class AgentLoop {
     private readonly onStep?: (step: AgentStep) => void,
     private readonly onEvent?: (event: AgentEvent) => void,
     private readonly onPlan?: (plan: ProductPlan) => void,
+    private readonly journalContext?: { requestId?: string; agentRunId?: string; projectId?: string; provider?: string; model?: string },
   ) {}
 
   async run(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
@@ -719,7 +720,15 @@ export class AgentLoop {
       const fingerprint = this.actionFingerprint(plan.tool, plan.input);
       actionAttempts.set(fingerprint, (actionAttempts.get(fingerprint) ?? 0) + 1);
       seenActions.add(fingerprint);
-      const result = await this.runtime.executeTool(plan.tool, plan.input);
+      const toolStartedAt = Date.now();
+      let result: AgentToolResult["result"];
+      try {
+        result = await this.runtime.executeTool(plan.tool, plan.input);
+      } catch (error) {
+        const normalized = toNexumError(error, "TOOL_ERROR", "Инструмент агента завершился с ошибкой.");
+        result = { success: false, output: normalized.userSafeMessage };
+      }
+      const toolDurationMs = Date.now() - toolStartedAt;
       const step: AgentStep = {
         iteration,
         tool: plan.tool,
@@ -731,7 +740,25 @@ export class AgentLoop {
       previousResults.push({ iteration, tool: plan.tool, input: plan.input, result });
       const runtimeRoot = this.runtime instanceof Object && "projectRoot" in this.runtime ? (this.runtime as { projectRoot?: string }).projectRoot : undefined;
       if (runtimeRoot) {
-        void recordAction(runtimeRoot, { timestamp: new Date().toISOString(), iteration, tool: plan.tool, input: plan.input, success: result.success, output: result.output }).catch(() => undefined);
+        const errorInfo = result.success ? undefined : diagnoseError(result.output);
+        void recordAction(runtimeRoot, {
+          timestamp: new Date().toISOString(),
+          requestId: this.journalContext?.requestId,
+          agentRunId: this.journalContext?.agentRunId,
+          projectId: this.journalContext?.projectId,
+          provider: this.journalContext?.provider,
+          model: this.journalContext?.model,
+          iteration,
+          phase,
+          tool: plan.tool,
+          input: plan.input,
+          success: result.success,
+          status: result.success ? "success" : "error",
+          durationMs: toolDurationMs,
+          errorCode: result.success ? undefined : "TOOL_ERROR",
+          retryable: result.success ? undefined : errorInfo.priority >= 3,
+          output: result.output,
+        }).catch(() => undefined);
       }
       if (result.success && (plan.tool === "writeFile" || plan.tool === "patchFile")) recordSuccessfulChange(taskState, plan.input);
       syncVerificationState(taskState, previousResults, productPlan);
