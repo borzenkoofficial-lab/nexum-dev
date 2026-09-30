@@ -4,7 +4,6 @@ import type { AgentStage } from "./types";
 
 interface OSProjectWindowProps {
   projectName: string;
-  projectId: string;
   previewOnline: boolean;
   agentStage: AgentStage;
   activeTab: "preview" | "files" | "agent";
@@ -25,7 +24,6 @@ interface OSProjectWindowProps {
 
 export function OSProjectWindow({
   projectName,
-  projectId,
   previewOnline,
   agentStage,
   activeTab,
