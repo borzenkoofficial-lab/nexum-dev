@@ -63,6 +63,8 @@ function App() {
   });
   const projectWindowMinimized = Boolean(projectWindowMinimizedByProject[activeПроектId]);
   const [osBooted, setOsBooted] = useState(false);
+  // OS is enabled on every fresh page load; the switch is session-only for testing.
+  const [osEnabled, setOsEnabled] = useState(true);
   const [onboardingComplete, setOnboardingComplete] = useState(() => { try { return localStorage.getItem("nexum:onboarding-complete") === "1"; } catch { return false; } });
   useEffect(() => {
     const timer = window.setTimeout(() => setOsBooted(true), 180);
@@ -776,15 +778,26 @@ function App() {
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
         {view !== "home" && view !== "project" && <TopBar projectName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : view === "diagnostics" ? "Диагностика" : "NEXUM.DEV"} aiStatus={aiStatus} stage={agentStage} />}
         {view === "diagnostics" ? <DiagnosticsPage /> : view === "home" ? (
-          <OSDesktop
+          osEnabled ? <OSDesktop
             projects={projects}
             onNewProject={() => setModalOpen(true)}
             onOpenProject={(id, tab) => openПроект(id, tab)}
             onOpenView={(next) => setView(next)}
+            osEnabled={osEnabled}
+            onToggleOS={() => setOsEnabled((enabled) => !enabled)}
             runningProjectIds={runningProjectIds}
             minimizedProjectIds={minimizedProjectIds}
             onRestoreProject={(id) => openПроект(id, projectWindowModes[id] ?? "agent")}
-          />
+          /> : (
+            <section className="nexum-os-disabled" aria-label="NEXUM OS disabled">
+              <div className="nexum-os-disabled-card">
+                <span className="nexum-os-disabled-mark">N</span>
+                <span className="eyebrow">NEXUM OS</span>
+                <h1>OS is off.</h1>
+                <p>Рабочий стол NEXUM OS временно выключен для тестирования обычного режима приложения.</p>
+                <button type="button" className="home-primary" onClick={() => setOsEnabled(true)}>Включить NEXUM OS</button>
+              </div>
+            </section>
         ) : view === "news" ? (
           <NewsPage />
         ) : view === "connectors" ? (
