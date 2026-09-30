@@ -374,7 +374,7 @@ function App() {
     if (mode === "preview" || mode === "agent" || mode === "files") setRightTab(mode);
   }
 
-  async function selectПроект(projectId: string) {
+  async function selectПроект(projectId: string): Promise<boolean> {
     setПроектActionLoading(true);
     try {
       const response = await fetch(`/api/projects/${projectId}/select`, { method: "POST" });
@@ -384,8 +384,10 @@ function App() {
       setActiveПроектId(projectId);
       setReply("");
       await loadПроектs(projectId);
+      return true;
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Не удалось выбрать проект");
+      return false;
     } finally {
       setПроектActionLoading(false);
     }
@@ -403,8 +405,8 @@ function App() {
       });
       if (!response.ok) throw new Error(`API создания проекта: HTTP ${response.status}`);
       const responseData = (await response.json()) as { project: Проект };
-      await selectПроект(responseData.project.id);
-      setActiveПроектId(responseData.project.id);
+      const selected = await selectПроект(responseData.project.id);
+      if (!selected) throw new Error("Проект создан, но рабочее пространство не удалось открыть.");
       setViewState("project");
       setRightTab("agent");
       setWorkspaceMode("agent");
