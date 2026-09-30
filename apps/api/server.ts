@@ -896,7 +896,10 @@ app.get("/api/projects/:id/preview/status", async (req, res) => {
     const hasPackage = await stat(packagePath).then((details) => details.isFile()).catch(() => false);
     const sourceMtime = await getLatestProjectSourceMtime(project.path);
     const distMtime = await stat(distIndexPath).then((details) => details.mtimeMs).catch(() => 0);
-    const hasDist = distMtime > 0 && distMtime >= sourceMtime;
+    const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
+    projectStates.set(project.path, stateManager);
+    const state = await stateManager.refresh();
+    const hasDist = distMtime > 0 && distMtime >= sourceMtime && state.previewRevision === state.sourceRevision;
     const hasSource = await stat(sourceIndexPath).then((details) => details.isFile()).catch(() => false);
 
     // React/Vite apps must have a production bundle. Static HTML projects can
