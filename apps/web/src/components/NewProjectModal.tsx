@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
 interface NewProjectModalProps {
@@ -20,6 +20,15 @@ const PROJECT_TYPES = [
 ] as const;
 
 export function NewProjectModal({ open, name, loading, onNameChange, onClose, onSubmit }: NewProjectModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); onClose(); }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return <ProjectCreationForm name={name} loading={loading} onNameChange={onNameChange} onClose={onClose} onSubmit={onSubmit} />;
@@ -41,7 +50,7 @@ function ProjectCreationForm({ name, loading, onNameChange, onClose, onSubmit }:
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div className="modal new-project-modal" role="dialog" aria-modal="true" aria-labelledby="new-project-title">
+      <div className="modal new-project-modal" role="dialog" aria-modal="true" aria-labelledby="new-project-title" aria-describedby="new-project-description">
         <div className="modal-header">
           <div>
             <span className="eyebrow">НОВЫЙ ПРОЕКТ</span>
