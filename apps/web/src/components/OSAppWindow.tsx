@@ -1,4 +1,5 @@
-import { ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 interface OSAppWindowProps {
   title: string;
@@ -26,7 +27,7 @@ export function OSAppWindow({ title, subtitle, icon = "N", status = "Готов�
 
   return (
     <section className={"nx-system-window-layer" + (maximized ? " is-maximized" : "")} onPointerDown={() => setFocused(true)}>
-      <div className={"nx-system-window" + (focused ? " is-focused" : "") + (maximized ? " is-maximized" : "")} style={minHeight ? {"--nx-window-min-height": minHeight} as React.CSSProperties : undefined}>
+      <div className={"nx-system-window" + (focused ? " is-focused" : "") + (maximized ? " is-maximized" : "")} style={minHeight ? {"--nx-window-min-height": minHeight} as CSSProperties : undefined}>
         <header className="nx-app-titlebar" onDoubleClick={() => setMaximized((value) => !value)}>
           <div className="nx-app-window-controls" aria-label={"Управление окном " + title}>
             <button type="button" className="close" aria-label="Закрыть" onClick={onClose} />
