@@ -646,3 +646,23 @@
   .editor-search{width:150px;height:34px}
   .nexum-os-event-center{top:66px;right:10px;left:10px;width:auto}
 }
+
+
+.app-home .os-app-icon{
+  position:relative;
+}
+.app-home .os-app-running{
+  position:absolute;
+  left:50%;
+  bottom:1px;
+  width:5px;height:5px;
+  transform:translateX(-50%);
+  border-radius:50%;
+  background:#20262d;
+  box-shadow:0 0 0 2px rgba(255,255,255,.72);
+}
+.app-home .os-app-icon.is-active .os-app-running{
+  width:6px;height:6px;
+  background:#6d5dfc;
+  box-shadow:0 0 0 2px rgba(255,255,255,.8),0 0 0 5px rgba(109,93,252,.10);
+}
