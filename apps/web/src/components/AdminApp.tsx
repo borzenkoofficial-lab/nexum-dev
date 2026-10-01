@@ -20,13 +20,11 @@ const demoUsers: UserRow[] = [
 function Stat({label,value,delta}:{label:string;value:string;delta:string}) {
   return <div className="admin-stat"><span>{label}</span><strong>{value}</strong><em>{delta}</em></div>;
 }
-
 function Sparkline({points}:{points:number[]}) {
   const max=Math.max(...points), min=Math.min(...points), w=420, h=110;
   const d=points.map((p,i)=>`${(i/(points.length-1))*w},${h-((p-min)/(max-min||1))*h}`).join(" ");
   return <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="admin-spark"><polyline points={d} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke"/></svg>;
 }
-
 function Dashboard() {
   return <div className="admin-page">
     <div className="admin-page-head"><div><div className="admin-eyebrow">CONTROL CENTER / OVERVIEW</div><h1>Platform overview</h1><p>Operational state across NEXUM Digital.</p></div><select defaultValue="30 days"><option>Today</option><option>7 days</option><option>30 days</option><option>3 months</option><option>12 months</option><option>Custom</option></select></div>
@@ -36,13 +34,12 @@ function Dashboard() {
       <section className="admin-card"><div className="admin-card-head"><div><strong>System status</strong><span>Live service health</span></div><b className="status-live">Operational</b></div><div className="admin-status-list"><div><span>API</span><b>99.99%</b><i className="dot ok"/></div><div><span>Database</span><b>99.98%</b><i className="dot ok"/></div><div><span>AI Gateway</span><b>99.94%</b><i className="dot ok"/></div><div><span>Marketplace</span><b>99.99%</b><i className="dot ok"/></div><div><span>Payments</span><b>99.97%</b><i className="dot ok"/></div></div></section>
     </div>
     <div className="admin-grid admin-grid-secondary">
-      <section className="admin-card"><div className="admin-card-head"><div><strong>Recent orders</strong><span>Latest marketplace activity</span></div><button>View all</button></div><div className="admin-mini-list">{["#NX-84291 · Brand identity"," #NX-84290 · AI integration"," #NX-84289 · Landing page"," #NX-84288 · 3D assets"].map((x,i)=><div key={x}><span>{x}</span><b>{["$1,240","$3,800","$920","$2,450"][i]}</b><em>{["In progress","Review","Completed","In progress"][i]}</em></div>)}</div></section>
+      <section className="admin-card"><div className="admin-card-head"><div><strong>Recent orders</strong><span>Latest marketplace activity</span></div><button>View all</button></div><div className="admin-mini-list">{["#NX-84291 · Brand identity","#NX-84290 · AI integration","#NX-84289 · Landing page","#NX-84288 · 3D assets"].map((x,i)=><div key={x}><span>{x}</span><b>{["$1,240","$3,800","$920","$2,450"][i]}</b><em>{["In progress","Review","Completed","In progress"][i]}</em></div>)}</div></section>
       <section className="admin-card"><div className="admin-card-head"><div><strong>Moderation queue</strong><span>Requires attention</span></div><b className="queue-count">18</b></div><div className="admin-queue"><div><span>Services</span><b>8</b></div><div><span>Reviews</span><b>5</b></div><div><span>Providers</span><b>3</b></div><div><span>Reports</span><b>2</b></div></div></section>
       <section className="admin-card"><div className="admin-card-head"><div><strong>Support</strong><span>Open tickets</span></div><b className="queue-count">42</b></div><div className="admin-support"><div><span>High priority</span><b>6</b></div><div><span>Waiting</span><b>14</b></div><div><span>In progress</span><b>22</b></div></div></section>
     </div>
   </div>;
 }
-
 function Users() {
   const [query,setQuery]=useState(""); const [status,setStatus]=useState("All"); const [selected,setSelected]=useState<UserRow|null>(null);
   const rows=demoUsers.filter(u=>(status==="All"||u.status===status)&&(`${u.name} ${u.email}`.toLowerCase().includes(query.toLowerCase())));
@@ -53,10 +50,9 @@ function Users() {
     {selected&&<div className="admin-drawer-backdrop" onClick={()=>setSelected(null)}><aside className="admin-drawer" onClick={e=>e.stopPropagation()}><div className="drawer-head"><div><span className="drawer-avatar">{selected.name.slice(0,2).toUpperCase()}</span><div><h2>{selected.name}</h2><p>{selected.email}</p></div></div><button onClick={()=>setSelected(null)}>×</button></div><div className="drawer-section"><span>ACCOUNT</span><div className="drawer-row"><b>Role</b><em>{selected.role}</em></div><div className="drawer-row"><b>Status</b><em>{selected.status}</em></div><div className="drawer-row"><b>Orders</b><em>{selected.orders}</em></div><div className="drawer-row"><b>Registered</b><em>{selected.createdAt}</em></div></div><div className="drawer-tabs"><button className="active">Activity</button><button>Orders</button><button>Projects</button><button>Payments</button><button>Security</button></div><div className="drawer-timeline"><div><i/>Signed in <small>2 min ago</small></div><div><i/>Order #NX-84291 opened <small>1 h ago</small></div><div><i/>Profile updated <small>Yesterday</small></div></div><div className="drawer-actions"><button>Change role</button><button className="danger">Suspend</button></div></aside></div>}
   </div>;
 }
-
 export function AdminApp() {
   const [admin,setAdmin]=useState<AdminUser|null>(null); const [loading,setLoading]=useState(true); const [active,setActive]=useState("Dashboard"); const [search,setSearch]=useState(""); const [mobileOpen,setMobileOpen]=useState(false);
-  useEffect(()=>{fetch("/api/admin/me",{credentials:"include"}).then(async r=>{if(!r.ok)throw new Error("Admin access required"); const d=await r.json(); setAdmin(d.user);}).catch(()=>setAdmin(null)).finally(()=>setLoading(false));},[]);
+  useEffect(()=>{fetch("/api/auth/me",{credentials:"include"}).then(async r=>{if(!r.ok)throw new Error("Authentication required"); const d=await r.json(); const role=d.user?.role as Role|undefined; if(!role||role==="user")throw new Error("Admin access required"); setAdmin(d.user as AdminUser);}).catch(()=>setAdmin(null)).finally(()=>setLoading(false));},[]);
   const nav=useMemo(()=>NAV.filter(([label])=>!search||label.toLowerCase().includes(search.toLowerCase())),[search]);
   if(loading)return <div className="admin-loading"><span>N</span><p>Authenticating Control Center…</p></div>;
   if(!admin)return <div className="admin-denied"><div><span>N</span><h1>Admin access required</h1><p>This area is protected by NEXUM RBAC. Sign in with an authorized administrator account.</p><button onClick={()=>window.location.href="/"}>Return to NEXUM</button></div></div>;
