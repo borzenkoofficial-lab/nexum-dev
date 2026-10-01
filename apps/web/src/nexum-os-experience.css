@@ -527,3 +527,122 @@
 @media(max-width:760px){
   .os-window-resize-handle{display:none}
 }
+
+
+/* Files application */
+.editor-toolbar{
+  min-height:54px;
+  padding:0 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border-bottom:1px solid #e4e8ec;
+  background:#fbfcfd;
+}
+.editor-breadcrumbs{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:#7a848e;
+  font-size:12px;
+}
+.editor-breadcrumbs strong{color:#242a31;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editor-search{
+  width:min(250px,42%);
+  height:36px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:0 10px;
+  border:1px solid #dfe4e9;
+  border-radius:9px;
+  background:#fff;
+  color:#7c8690;
+}
+.editor-search span{font-size:16px}
+.editor-search input{
+  width:100%;
+  min-width:0;
+  height:100%;
+  border:0!important;
+  outline:0!important;
+  padding:0!important;
+  background:transparent!important;
+  font-size:12px!important;
+  box-shadow:none!important;
+}
+.editor-tree{
+  background:#f8fafc;
+  border-right:1px solid #e3e7eb;
+}
+.editor-tree .file-row{
+  min-height:40px;
+  padding:0 12px;
+  border-radius:8px;
+  font-size:12px;
+  color:#56616d;
+}
+.editor-tree .file-row:hover{background:#eef2f6;color:#222a31}
+.editor-tree .file-row.selected{background:#ebe9ff;color:#493fc0}
+.editor-tree .file-row strong{font-size:12px;font-weight:620}
+
+/* System notification center */
+.nexum-os-event-center{
+  position:fixed;
+  top:82px;
+  right:18px;
+  z-index:2600;
+  width:min(360px,calc(100vw - 36px));
+  display:grid;
+  gap:8px;
+  pointer-events:none;
+}
+.nexum-os-event{
+  pointer-events:auto;
+  padding:13px 14px;
+  border:1px solid rgba(20,24,30,.10);
+  border-radius:14px;
+  background:rgba(255,255,255,.93);
+  box-shadow:0 18px 48px rgba(15,23,42,.15),inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+}
+.nexum-os-event-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.nexum-os-event-head strong{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-size:13px;
+  line-height:1.2;
+  font-weight:740;
+  color:#20262c;
+}
+.nexum-os-event-head button{
+  width:26px;height:26px;
+  border:1px solid #e2e6ea;border-radius:7px;
+  background:#fff;color:#76808a;cursor:pointer;
+}
+.nexum-os-event > span{
+  display:block;
+  margin-top:7px;
+  padding-left:16px;
+  font-size:12px;
+  line-height:1.45;
+  color:#5f6a75;
+}
+.nexum-os-event-dot{width:7px;height:7px;border-radius:50%;background:#6d5dfc}
+.nexum-os-event-success .nexum-os-event-dot{background:#1d9968}
+.nexum-os-event-error .nexum-os-event-dot{background:#ca4141}
+@media(max-width:760px){
+  .editor-toolbar{min-height:50px;padding:0 8px}
+  .editor-breadcrumbs{font-size:10px}
+  .editor-search{width:150px;height:34px}
+  .nexum-os-event-center{top:66px;right:10px;left:10px;width:auto}
+}
