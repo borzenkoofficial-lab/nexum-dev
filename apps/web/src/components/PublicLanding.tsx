@@ -121,6 +121,17 @@ export function PublicLanding({ projects, onCreateProject, onOpenProject, onOpen
           </div>
         </section>
 
+        <section className="landing-systems-strip" id="systems-detail">
+          <div className="section-kicker">NEXUM SYSTEMS</div>
+          <div className="systems-strip-grid">
+            <article><span>01</span><b>OS</b><p>A desktop environment for your entire digital workspace.</p></article>
+            <article><span>02</span><b>AI CORE</b><p>Model routing, memory, tools and intelligence underneath NEXUM.</p></article>
+            <article><span>03</span><b>AGENT</b><p>An autonomous execution layer that turns intent into actions.</p></article>
+            <article><span>04</span><b>BUILDER</b><p>Design, code, preview and iterate without leaving the system.</p></article>
+            <article><span>05</span><b>MARKETPLACE</b><p>Services, extensions and capabilities connected to the ecosystem.</p></article>
+          </div>
+        </section>
+
         <section className="landing-ecosystem">
           <div><div className="section-kicker">ONE ECOSYSTEM</div><h2>OS. AI. Agent.<br /><em>Builder. Marketplace.</em></h2></div>
           <p>Каждый слой NEXUM работает как самостоятельная система — вместе они образуют единое цифровое пространство для создания, запуска и развития продуктов.</p>
