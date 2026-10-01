@@ -502,3 +502,28 @@
   .nx-system-brand,
   .nx-system-icon-button{transition:none!important}
 }
+
+
+.os-window-shell{
+  position:relative;
+}
+.os-window-shell.is-focused{
+  box-shadow:0 32px 96px rgba(15,23,42,.17),0 5px 14px rgba(15,23,42,.06);
+}
+.os-window-resize-handle{
+  position:absolute;
+  right:0;
+  bottom:0;
+  z-index:6;
+  width:22px;
+  height:22px;
+  cursor:nwse-resize;
+  border-radius:8px 0 18px 0;
+  background:linear-gradient(135deg,transparent 0 44%,rgba(99,108,118,.32) 45% 49%,transparent 50% 62%,rgba(99,108,118,.25) 63% 67%,transparent 68%);
+}
+.app-project .os-window-resize-handle:hover{
+  background:linear-gradient(135deg,transparent 0 40%,rgba(70,80,90,.46) 41% 46%,transparent 47% 57%,rgba(70,80,90,.38) 58% 64%,transparent 65%);
+}
+@media(max-width:760px){
+  .os-window-resize-handle{display:none}
+}
