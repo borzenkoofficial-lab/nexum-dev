@@ -19,6 +19,7 @@ const headlines = [
 ];
 
 const systems = [
+  { label: "NEXUM DIGITAL", angle: -92 },
   { label: "NEXUM OS", angle: -68 },
   { label: "AI CORE", angle: -28 },
   { label: "AGENT", angle: 8 },
@@ -79,7 +80,7 @@ export function PublicLanding({ projects, onCreateProject, onOpenProject, onOpen
               <div className="globe-grid globe-grid-a" />
               <div className="globe-grid globe-grid-b" />
               <div className="globe-light" />
-              <div className="globe-core">N</div>
+              <div className="globe-continents"><span/><span/><span/><span/></div><div className="globe-core">N</div><div className="globe-scan" />
             </div>
             <div className="globe-caption"><span>GLOBAL SYSTEM</span><b>NEXUM / 01</b></div>
             {systems.map((system) => (
