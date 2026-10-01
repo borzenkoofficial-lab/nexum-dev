@@ -35,6 +35,7 @@ export function RightPanel({ tab, onTabChange, onOpenChat, projectName, projectI
   const [filesLoading, setFilesLoading] = useState(false);
   const [fileError, setFileError] = useState("");
   const [selectedFile, setSelectedFile] = useState("");
+  const [fileSearch, setFileSearch] = useState("");
   const [content, setContent] = useState("");
   const [savedContent, setSavedContent] = useState("");
   const [editorLoading, setEditorLoading] = useState(false);
@@ -227,14 +228,22 @@ export function RightPanel({ tab, onTabChange, onOpenChat, projectName, projectI
             {selectedFile && <button className="editor-save" type="button" disabled={!dirty || saving} onClick={saveFile}>{saving ? "Сохраняю…" : "Сохранить"}</button>}
           </div>
         </div>
+        <div className="editor-toolbar">
+          <div className="editor-breadcrumbs"><span>Проект</span><b>/</b><span>src</span>{selectedFile && <><b>/</b><strong>{selectedFile.split("/").pop()}</strong></>}</div>
+          <label className="editor-search"><span>⌕</span><input value={fileSearch} onChange={(event) => setFileSearch(event.target.value)} placeholder="Поиск файлов" aria-label="Поиск файлов" /></label>
+        </div>
         <div className="editor-body">
           <div className="file-tree editor-tree">
-            {filesLoading ? <div className="files-empty">Загрузка файлов…</div> : fileError ? <div className="files-empty error-state-inline">{fileError}</div> : files.length ? files.map((file) => (
-              <button key={file} className={"file-row " + (selectedFile === file ? "selected" : "")} type="button" title={file} onClick={() => void openFile(file)}>
-                <span>{file.endsWith(".css") ? "◇" : file.endsWith(".js") || file.endsWith(".ts") || file.endsWith(".tsx") ? "ƒ" : file.endsWith(".json") ? "{}" : "□"}</span>
-                <strong>{file}</strong>
-              </button>
-            )) : <div className="files-empty">В проекте пока нет доступных файлов.</div>}
+            {filesLoading ? <div className="files-empty">Загрузка файлов…</div> : fileError ? <div className="files-empty error-state-inline">{fileError}</div> : files.length ? (() => {
+              const query = fileSearch.trim().toLowerCase();
+              const visibleFiles = query ? files.filter((file) => file.toLowerCase().includes(query)) : files;
+              return visibleFiles.length ? visibleFiles.map((file) => (
+                <button key={file} className={"file-row " + (selectedFile === file ? "selected" : "")} type="button" title={file} onClick={() => void openFile(file)}>
+                  <span>{file.endsWith(".css") ? "◇" : file.endsWith(".js") || file.endsWith(".ts") || file.endsWith(".tsx") ? "ƒ" : file.endsWith(".json") ? "{}" : "□"}</span>
+                  <strong>{file}</strong>
+                </button>
+              )) : <div className="files-empty">Файлы не найдены.</div>;
+            })() : <div className="files-empty">В проекте пока нет доступных файлов.</div>}
           </div>
           <div className="code-editor">
             {editorLoading ? <div className="editor-empty">Загрузка файла…</div> : selectedFile ? (
