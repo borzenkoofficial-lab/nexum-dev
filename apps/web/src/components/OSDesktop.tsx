@@ -204,11 +204,15 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
         </div>
 
         <div className="os-desktop-icons" aria-label="Desktop applications">
-          {apps.map((app) => (
-            <button key={app.id} type="button" className="os-app-icon" onClick={() => launch(app.id)}>
-              <span className={"os-app-glyph " + app.tone} data-icon={app.icon}><AppIcon name={app.icon} /></span><b>{app.label}</b>
-            </button>
-          ))}
+          {apps.map((app) => {
+            const isRunning = runningProjectIds.length > 0 && ["projects", "agent", "code", "preview"].includes(app.id);
+            const isActive = app.id === "agent" || app.id === "code" || app.id === "preview";
+            return (
+              <button key={app.id} type="button" className={"os-app-icon" + (isRunning ? " is-running" : "") + (isActive && isRunning ? " is-active" : "")} onClick={() => launch(app.id)} aria-label={app.label}>
+                <span className={"os-app-glyph " + app.tone} data-icon={app.icon}><AppIcon name={app.icon} /></span><b>{app.label}</b>{isRunning && <i className="os-app-running" aria-hidden="true" />}
+              </button>
+            );
+          })}
           <button type="button" className="os-app-icon" onClick={() => onOpenView("news")}><span className="os-app-glyph journal"><AppIcon name="journal" /></span><b>Journal</b></button>
         </div>
 
