@@ -6,6 +6,7 @@ import { ChatPanel } from "./components/ChatPanel";
 import { CommandPalette } from "./components/CommandPalette";
 import { CodePanel } from "./components/CodePanel";
 import { NewProjectModal } from "./components/NewProjectModal";
+import { PublicLanding } from "./components/PublicLanding";
 import { NewsPage } from "./components/NewsPage";
 import { IntegrationPage } from "./components/IntegrationPage";
 import { DiagnosticsPage } from "./components/DiagnosticsPage";
@@ -793,28 +794,12 @@ function App() {
             <DiagnosticsPage />
           </OSAppWindow>
         ) : view === "home" ? (
-          osEnabled ? <OSDesktop
+          <PublicLanding
             projects={projects}
-            onNewProject={() => setModalOpen(true)}
-            onOpenProject={(id, tab) => openПроект(id, tab)}
-            onOpenView={(next) => setView(next)}
-            osEnabled={osEnabled}
-            onToggleOS={() => setOsEnabled((enabled) => !enabled)}
-            onLaunchWelcome={() => setWelcomeTestMode(true)}
-            runningProjectIds={runningProjectIds}
-            minimizedProjectIds={minimizedProjectIds}
-            onRestoreProject={(id) => openПроект(id, projectWindowModes[id] ?? "agent")}
-          /> : (
-            <section className="nexum-os-disabled" aria-label="NEXUM OS disabled">
-              <div className="nexum-os-disabled-card">
-                <span className="nexum-os-disabled-mark">N</span>
-                <span className="eyebrow">NEXUM OS</span>
-                <h1>OS is off.</h1>
-                <p>Рабочий стол NEXUM OS временно выключен для тестирования обычного режима приложения.</p>
-                <button type="button" className="home-primary" onClick={() => setOsEnabled(true)}>Включить NEXUM OS</button>
-              </div>
-            </section>
-          )
+            onCreateProject={() => setModalOpen(true)}
+            onOpenProject={(projectId) => openПроект(projectId)}
+            onOpenNews={() => setView("news")}
+          />
         ) : view === "news" ? (
           <OSAppWindow title="Журнал NEXUM" subtitle="Новости и системные обновления" icon="✦" status="Актуально" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
             <NewsPage />
