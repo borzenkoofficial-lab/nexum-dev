@@ -1,0 +1,504 @@
+/*
+ * NEXUM OS Experience Layer
+ * Unified OS chrome, application windows, system navigation and responsive behavior.
+ */
+
+.nx-system-chrome{
+  position:fixed;
+  inset:0 0 auto;
+  z-index:2100;
+  height:68px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:0 18px;
+  background:rgba(249,250,252,.88);
+  border-bottom:1px solid rgba(20,24,30,.08);
+  box-shadow:0 1px 0 rgba(255,255,255,.9),0 10px 30px rgba(15,23,42,.055);
+  backdrop-filter:blur(28px) saturate(155%);
+  -webkit-backdrop-filter:blur(28px) saturate(155%);
+  color:#171b21;
+}
+
+.nx-system-left,
+.nx-system-right,
+.nx-system-app,
+.nx-system-nav{
+  display:flex;
+  align-items:center;
+}
+
+.nx-system-left{gap:14px;min-width:0}
+.nx-system-right{gap:8px;flex:0 0 auto}
+.nx-system-app{gap:9px;min-width:0}
+.nx-system-app > div{display:flex;flex-direction:column;min-width:0}
+.nx-system-app strong{font-size:13px;line-height:1.1;font-weight:760;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nx-system-app small{margin-top:3px;font-size:11px;line-height:1.15;color:#7b858f;white-space:nowrap}
+
+.nx-system-brand{
+  height:40px;
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  padding:0 10px 0 4px;
+  border:0;
+  border-radius:12px;
+  background:transparent;
+  color:#161a20;
+  cursor:pointer;
+}
+.nx-system-brand:hover{background:rgba(255,255,255,.68)}
+.nx-system-brand > span{
+  width:34px;height:34px;display:grid;place-items:center;
+  border-radius:10px;
+  color:#fff;
+  background:linear-gradient(145deg,#15191f,#343b46);
+  box-shadow:0 6px 16px rgba(15,23,42,.18),inset 0 1px 0 rgba(255,255,255,.2);
+  font-size:14px;font-weight:850;
+}
+.nx-system-brand strong{font-size:14px;font-weight:790;letter-spacing:-.02em}
+.nx-system-divider{width:1px;height:26px;background:rgba(20,24,30,.10)}
+.nx-system-app-icon{
+  width:32px;height:32px;display:grid;place-items:center;
+  border:1px solid rgba(20,24,30,.08);border-radius:9px;
+  background:rgba(255,255,255,.82);
+  box-shadow:0 5px 14px rgba(15,23,42,.08),inset 0 1px 0 rgba(255,255,255,.9);
+  font-size:13px;font-weight:800;
+}
+
+.nx-system-nav{gap:3px;margin-left:auto;margin-right:auto}
+.nx-system-nav button{
+  height:36px;
+  padding:0 12px;
+  border:1px solid transparent;
+  border-radius:9px;
+  background:transparent;
+  color:#64707c;
+  font-size:12px;
+  font-weight:670;
+  cursor:pointer;
+}
+.nx-system-nav button:hover{background:rgba(255,255,255,.72);color:#20262d}
+.nx-system-nav button.active{background:#fff;border-color:rgba(20,24,30,.08);color:#20242a;box-shadow:0 3px 10px rgba(15,23,42,.06)}
+
+.nx-system-status{
+  display:flex;align-items:center;gap:6px;
+  min-height:32px;padding:0 9px;
+  border:1px solid rgba(20,24,30,.07);
+  border-radius:9px;
+  background:rgba(255,255,255,.62);
+  color:#5d6874;
+  font-size:11px;font-weight:680;
+}
+.nx-system-status i{width:7px;height:7px;border-radius:50%;background:#1d9968;box-shadow:0 0 0 3px rgba(29,153,104,.10)}
+.nx-system-icon-button{
+  width:36px;height:36px;display:grid;place-items:center;
+  border:1px solid rgba(20,24,30,.08);border-radius:10px;
+  background:#fff;color:#4f5964;font-size:18px;cursor:pointer;
+  box-shadow:0 3px 10px rgba(15,23,42,.05);
+}
+.nx-system-icon-button:hover{background:#f7f8fa;color:#171b21}
+.nx-system-clock{
+  min-width:104px;height:40px;padding:0 9px;
+  border:1px solid rgba(20,24,30,.08);border-radius:11px;
+  background:rgba(255,255,255,.72);color:#1c2229;cursor:pointer;
+  display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
+}
+.nx-system-clock strong{font-size:13px;line-height:1;font-weight:770;letter-spacing:-.02em}
+.nx-system-clock span{font-size:10px;line-height:1.1;color:#7a838d;margin-top:4px}
+
+.nx-system-calendar{
+  position:fixed;
+  z-index:2200;
+  top:78px;right:16px;
+  width:294px;
+  padding:14px;
+  border:1px solid rgba(20,24,30,.09);
+  border-radius:16px;
+  background:rgba(255,255,255,.94);
+  box-shadow:0 22px 60px rgba(15,23,42,.16),inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+}
+.nx-calendar-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid #edf0f3}
+.nx-calendar-head > div{display:grid;gap:3px}
+.nx-calendar-head small{font-size:9px;letter-spacing:.1em;font-weight:820;color:#7066dc}
+.nx-calendar-head strong{font-size:25px;line-height:1;font-weight:790;letter-spacing:-.035em}
+.nx-calendar-head span{font-size:11px;color:#7b858f}
+.nx-calendar-head button{width:30px;height:30px;border:1px solid #e1e5e9;border-radius:8px;background:#fff;font-size:18px;color:#69737e;cursor:pointer}
+.nx-calendar-week,.nx-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.nx-calendar-week{margin-top:12px}
+.nx-calendar-week span{padding:4px 0;text-align:center;font-size:9px;font-weight:760;color:#9099a3}
+.nx-calendar-grid{margin-top:4px}
+.nx-calendar-grid span{height:30px;display:grid;place-items:center;border-radius:7px;font-size:11px;color:#333b44}
+.nx-calendar-grid span.today{background:#1b2027;color:#fff;font-weight:760;box-shadow:0 4px 10px rgba(15,23,42,.14)}
+.nx-calendar-grid span.muted{color:transparent}
+.nx-calendar-footer{margin-top:10px;padding-top:10px;border-top:1px solid #edf0f3;font-size:10px;color:#7a848e}
+
+.app:not(.app-home) .main.nexum-os-runtime{
+  min-height:100dvh;
+  padding-top:68px;
+  background:linear-gradient(160deg,#edf1f5 0%,#e7ebef 45%,#f2f4f6 100%);
+}
+.app:not(.app-home) .main.nexum-os-runtime > .nx-system-window-layer{
+  min-height:calc(100dvh - 68px);
+}
+
+/* System application windows */
+.nx-system-window-layer{
+  min-height:calc(100dvh - 68px);
+  padding:18px 22px 28px;
+  display:flex;
+  justify-content:center;
+  align-items:stretch;
+  box-sizing:border-box;
+  isolation:isolate;
+}
+.nx-system-window-layer.is-maximized{padding:0}
+
+.nx-system-window{
+  width:min(1520px,100%);
+  min-height:var(--nx-window-min-height,calc(100dvh - 116px));
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  overflow:hidden;
+  border:1px solid rgba(20,24,30,.11);
+  border-radius:22px;
+  background:rgba(250,251,252,.96);
+  box-shadow:0 28px 90px rgba(15,23,42,.15),0 4px 12px rgba(15,23,42,.06);
+  transition:transform .18s ease,box-shadow .18s ease,border-radius .18s ease;
+}
+.nx-system-window:not(.is-focused){filter:saturate(.88);box-shadow:0 18px 55px rgba(15,23,42,.10)}
+.nx-system-window.is-maximized{width:100%;min-height:100%;border-radius:0}
+
+.nx-app-titlebar{
+  min-height:60px;height:60px;flex:0 0 60px;
+  display:grid;grid-template-columns:190px minmax(0,1fr) 190px;
+  align-items:center;gap:10px;
+  padding:0 16px;
+  background:rgba(255,255,255,.95);
+  border-bottom:1px solid #e2e6ea;
+  user-select:none;
+}
+.nx-app-window-controls{display:flex;align-items:center;gap:8px}
+.nx-app-window-controls button{
+  width:13px;height:13px;padding:0;border:0;border-radius:50%;cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(15,23,42,.10);
+}
+.nx-app-window-controls .close{background:#ff5f57}
+.nx-app-window-controls .minimize{background:#febc2e}
+.nx-app-window-controls .maximize{background:#29c840}
+.nx-app-window-controls button:hover{filter:brightness(.95);transform:scale(1.07)}
+.nx-app-window-title{
+  min-width:0;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+}
+.nx-app-window-icon{
+  width:28px;height:28px;display:grid;place-items:center;
+  border-radius:8px;background:#171c23;color:#fff;
+  font-size:11px;font-weight:820;
+  box-shadow:0 5px 14px rgba(15,23,42,.13);
+}
+.nx-app-window-title > div{display:flex;align-items:center;gap:8px;min-width:0}
+.nx-app-window-title strong{font-size:14px;line-height:1.1;font-weight:750;color:#171c21;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nx-app-window-title span:not(.nx-app-window-icon){font-size:11px;color:#8a949e;white-space:nowrap}
+.nx-app-window-state{display:flex;justify-content:flex-end;align-items:center;gap:7px;font-size:11px;font-weight:650;color:#727d88}
+.nx-app-window-state i{width:7px;height:7px;border-radius:50%;background:#1d9968;box-shadow:0 0 0 3px rgba(29,153,104,.10)}
+.nx-app-window-content{
+  flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;
+  scrollbar-gutter:stable both-edges;
+  background:#f6f8fa;
+}
+.nx-app-window-content > .settings-page,
+.nx-app-window-content > .diagnostics-page,
+.nx-app-window-content > .integrations-page,
+.nx-app-window-content > .news-page{
+  min-height:100%;
+  box-sizing:border-box;
+}
+
+/* Make settings/diagnostics/integrations/news feel like app content, not landing pages. */
+.nx-app-window-content .settings-page,
+.nx-app-window-content .diagnostics-page,
+.nx-app-window-content .integrations-page,
+.nx-app-window-content .news-page{
+  background:linear-gradient(180deg,#fafbfc 0%,#f4f6f8 100%);
+}
+
+.nx-app-window-content .settings-hero,
+.nx-app-window-content .diagnostics-hero,
+.nx-app-window-content .integrations-hero,
+.nx-app-window-content .news-hero{
+  padding-top:4px;
+}
+.nx-app-window-content .settings-hero h1,
+.nx-app-window-content .diagnostics-hero h1,
+.nx-app-window-content .integrations-hero h1,
+.nx-app-window-content .news-hero h1{
+  font-size:clamp(32px,3vw,42px);
+}
+
+/* Existing project workspace becomes a real desktop app surface. */
+.app-project .main.nexum-os-runtime{
+  padding-top:68px;
+  background:#e7ebef;
+}
+.app-project .nexum-os-project{
+  min-height:calc(100dvh - 68px);
+  padding:16px 22px 94px;
+  background:
+    radial-gradient(circle at 18% 8%,rgba(255,255,255,.76),transparent 32%),
+    linear-gradient(160deg,#eef2f5 0%,#e8edf1 55%,#f3f5f7 100%);
+}
+.app-project .os-window-shell{
+  min-height:calc(100dvh - 124px);
+  border-radius:20px;
+  border:1px solid rgba(20,24,30,.11);
+  background:#fff;
+  box-shadow:0 28px 84px rgba(15,23,42,.15),0 4px 12px rgba(15,23,42,.05);
+}
+.app-project .os-window-titlebar{height:58px;grid-template-columns:180px minmax(0,1fr) 180px;background:#fff}
+.app-project .os-window-title{font-size:13px}
+.app-project .os-window-title strong{font-size:14px}
+.app-project .os-window-status{font-size:11px}
+.app-project .os-window-toolbar{min-height:56px;background:#f7f9fb;padding:7px 11px}
+.app-project .os-window-body{min-height:0;background:#fff}
+
+/* Workspace readability */
+.app-project .chat,
+.app-project .right-panel,
+.app-project .nexum-code{
+  font-size:14px;
+}
+.app-project .conversation-content{font-size:15px;line-height:1.65}
+.app-project .welcome h1{font-size:clamp(36px,4vw,58px)!important}
+.app-project .welcome p{font-size:15px!important;line-height:1.6!important}
+.app-project .panel-tabs>button:not(.preview-refresh):not(.preview-expand){font-size:13px!important}
+.app-project .model-dock,
+.app-project .nexum-os-switcher{font-size:14px}
+
+/* System application manager */
+.nexum-os-app-strip{
+  top:78px;
+  border-radius:15px;
+  background:rgba(255,255,255,.84);
+  border-color:rgba(20,24,30,.08);
+}
+.nexum-os-app-strip-title{font-size:9px}
+.nexum-os-app-chip,
+.nexum-os-app-more{height:38px;font-size:11px}
+.nexum-os-app-chip i{width:24px;height:24px;border-radius:7px}
+
+/* Desktop layer gets a more OS-like framing. */
+.app-home .nexum-os-desktop{
+  min-height:100dvh;
+}
+.app-home .os-menubar{
+  height:58px;
+  background:rgba(249,250,252,.72);
+  border-bottom-color:rgba(20,24,30,.07);
+  box-shadow:0 1px 0 rgba(255,255,255,.8);
+}
+.app-home .os-brand strong{font-size:13px;font-weight:790}
+.app-home .os-menu-center span,
+.app-home .os-system>span{font-size:11px}
+.app-home .os-clock-menu b{font-size:12px}
+.app-home .os-clock-menu small{font-size:9px}
+.app-home .os-control-center,
+.app-home .os-search-button,
+.app-home .os-welcome-button,
+.app-home .os-power-button{
+  width:34px;height:34px;
+  border-radius:9px;
+}
+.app-home .os-desktop-content{
+  padding-top:72px;
+  padding-bottom:114px;
+}
+
+/* Mobile OS */
+.nx-mobile-system-nav{display:none}
+
+@media(max-width:980px){
+  .nx-system-nav{display:none}
+  .nx-system-left{flex:1;min-width:0}
+  .nx-system-right{margin-left:auto}
+  .nx-system-status{display:none}
+  .nx-app-titlebar{grid-template-columns:150px minmax(0,1fr) 150px}
+  .nx-system-window-layer{padding-left:12px;padding-right:12px}
+}
+
+@media(max-width:760px){
+  .nx-system-chrome{
+    height:58px;
+    padding:0 10px;
+    gap:8px;
+  }
+  .nx-system-brand{
+    padding-right:4px;
+  }
+  .nx-system-brand > span{width:32px;height:32px}
+  .nx-system-brand strong{display:none}
+  .nx-system-divider{display:none}
+  .nx-system-app{gap:7px}
+  .nx-system-app-icon{width:30px;height:30px}
+  .nx-system-app strong{font-size:12px}
+  .nx-system-app small{font-size:10px}
+  .nx-system-right{gap:5px}
+  .nx-system-icon-button{width:34px;height:34px}
+  .nx-system-clock{
+    min-width:0;width:67px;height:34px;padding:0 5px;
+  }
+  .nx-system-clock strong{font-size:11px}
+  .nx-system-clock span{font-size:8px;max-width:58px;overflow:hidden;text-overflow:ellipsis}
+  .nx-system-calendar{
+    top:66px;left:10px;right:10px;width:auto;
+  }
+
+  .app:not(.app-home) .main.nexum-os-runtime{
+    padding-top:58px;
+    padding-bottom:76px;
+    min-height:100dvh;
+  }
+
+  .nx-system-window-layer{
+    min-height:calc(100dvh - 58px);
+    padding:8px 8px 82px;
+  }
+  .nx-system-window-layer.is-maximized{padding:0 0 76px}
+  .nx-system-window,
+  .nx-system-window.is-maximized{
+    width:100%;
+    min-height:calc(100dvh - 72px);
+    border-radius:17px;
+  }
+  .nx-app-titlebar,
+  .nx-system-window.is-maximized .nx-app-titlebar{
+    min-height:52px;height:52px;grid-template-columns:92px minmax(0,1fr) 92px;padding:0 10px;
+  }
+  .nx-app-window-controls{gap:6px}
+  .nx-app-window-controls button{width:11px;height:11px}
+  .nx-app-window-icon{width:25px;height:25px;font-size:10px}
+  .nx-app-window-title strong{font-size:13px}
+  .nx-app-window-title span:not(.nx-app-window-icon){display:none}
+  .nx-app-window-state{font-size:9px}
+  .nx-app-window-state i{width:6px;height:6px}
+
+  .nx-app-window-content{
+    scrollbar-gutter:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .app-project .main.nexum-os-runtime{
+    padding-bottom:0;
+  }
+  .app-project .nexum-os-project{
+    min-height:calc(100dvh - 58px);
+    padding:8px 8px 78px;
+  }
+  .app-project .os-window-shell{
+    min-height:calc(100dvh - 86px);
+    border-radius:16px;
+  }
+  .app-project .os-window-titlebar{
+    height:50px;
+    min-height:50px;
+    grid-template-columns:92px minmax(0,1fr) 92px;
+    padding:0 9px;
+  }
+  .app-project .os-window-title{gap:6px;font-size:11px}
+  .app-project .os-window-title strong{font-size:12px}
+  .app-project .os-window-separator,
+  .app-project .os-window-title>span:last-child{display:none}
+  .app-project .os-window-status{font-size:9px}
+  .app-project .os-window-toolbar{
+    min-height:52px;
+    padding:5px;
+    gap:5px;
+  }
+  .app-project .os-window-apps,
+  .app-project .os-window-actions{
+    flex:1;
+    overflow:auto;
+    scrollbar-width:none;
+  }
+  .app-project .os-window-apps::-webkit-scrollbar,
+  .app-project .os-window-actions::-webkit-scrollbar{display:none}
+  .app-project .os-window-apps button,
+  .app-project .os-window-actions button{
+    min-height:40px;
+    padding:0 11px;
+    font-size:12px;
+  }
+
+  .nx-mobile-system-nav{
+    position:fixed;
+    left:8px;right:8px;bottom:8px;
+    z-index:2400;
+    height:64px;
+    padding:5px;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:4px;
+    border:1px solid rgba(20,24,30,.08);
+    border-radius:18px;
+    background:rgba(255,255,255,.88);
+    box-shadow:0 16px 45px rgba(15,23,42,.18),inset 0 1px 0 rgba(255,255,255,.95);
+    backdrop-filter:blur(24px) saturate(150%);
+    -webkit-backdrop-filter:blur(24px) saturate(150%);
+  }
+  .nx-mobile-system-nav button{
+    border:0;border-radius:13px;background:transparent;
+    color:#7a838d;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;min-width:0;cursor:pointer;
+  }
+  .nx-mobile-system-nav button span{font-size:18px;line-height:1}
+  .nx-mobile-system-nav button b{font-size:9px;line-height:1.1;font-weight:700}
+  .nx-mobile-system-nav button.active{background:#f0efff;color:#4c40c2}
+
+  .app-home .os-desktop-content{padding-top:66px;padding-bottom:96px}
+  .app-home .os-menu-center{display:none}
+  .app-home .os-brand strong{display:none}
+  .app-home .os-system>span{display:none}
+  .app-home .os-clock-menu small{display:none}
+  .app-home .os-clock-menu{padding:0 4px}
+  .app-home .os-welcome-button small{display:none}
+  .app-home .os-welcome-button{display:none}
+
+  .app-home .os-dock{
+    bottom:9px;
+    left:8px;right:8px;
+    width:auto;
+    transform:none;
+    padding:7px;
+    border-radius:18px;
+    justify-content:space-around;
+  }
+  .app-home .os-dock-item{width:49px;height:49px}
+}
+
+@media(max-width:520px){
+  .nx-system-app small{display:none}
+  .nx-system-app strong{font-size:11px}
+  .nx-system-clock{display:none}
+  .nx-system-icon-button{margin-left:auto}
+  .nx-app-titlebar{grid-template-columns:84px minmax(0,1fr) 84px}
+  .nx-app-window-title strong{font-size:12px}
+  .nx-app-window-state{font-size:8px}
+  .nx-system-window-layer{padding-left:5px;padding-right:5px}
+  .nx-system-window{border-radius:15px}
+  .app-project .os-window-titlebar{grid-template-columns:84px minmax(0,1fr) 84px}
+  .app-project .os-window-apps button,
+  .app-project .os-window-actions button{font-size:11px;padding:0 9px}
+}
+
+/* Accessibility */
+@media(prefers-reduced-motion:reduce){
+  .nx-system-window,
+  .nx-app-window-controls button,
+  .nx-system-brand,
+  .nx-system-icon-button{transition:none!important}
+}
