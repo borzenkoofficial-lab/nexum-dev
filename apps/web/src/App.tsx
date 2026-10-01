@@ -14,7 +14,8 @@ import { OSDesktop } from "./components/OSDesktop";
 import { OSProjectWindow } from "./components/OSProjectWindow";
 import { NexumApplicationManager } from "./components/NexumApplicationManager";
 import { NexumOSEventCenter, type NexumOSEventItem } from "./components/NexumOSEventCenter";
-import { TopBar } from "./components/TopBar";
+import { OSSystemChrome } from "./components/OSSystemChrome";
+import { OSAppWindow } from "./components/OSAppWindow";
 import type { AIProviderInfo, AIProviderStatus, AgentStage as АгентStage, Project as Проект } from "./components/types";
 import { diagnosticsEvent, getDiagnosticsSessionId, startDiagnostics } from "./diagnostics";
 // UI controls persist locally; server-side credentials remain outside the client bundle.
@@ -777,8 +778,21 @@ function App() {
         onClose={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false })); setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId)); navigate("home"); }}
       />
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
-        {view !== "home" && view !== "project" && <TopBar projectName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Новости NEXUM" : view === "diagnostics" ? "Диагностика" : "NEXUM.DEV"} aiStatus={aiStatus} stage={agentStage} />}
-        {view === "diagnostics" ? <DiagnosticsPage /> : view === "home" ? (
+        {view !== "home" && <OSSystemChrome
+          appName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал NEXUM" : "Диагностика"}
+          appIcon={view === "project" ? (activeПроект?.name?.slice(0, 1).toUpperCase() ?? "N") : view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : "⌁"}
+          status={agentStage && !["completed", "error"].includes(agentStage) ? "NEXUM выполняет задачу" : aiStatus?.available ? "AI Core подключён" : "Система готова"}
+          activeView={view}
+          onHome={() => navigate("home")}
+          onSearch={() => setPaletteOpen(true)}
+          onSettings={() => navigate("settings")}
+          onNewProject={() => setModalOpen(true)}
+        />}
+        {view === "diagnostics" ? (
+          <OSAppWindow title="Диагностика" subtitle="Системное состояние и события" icon="⌁" status="Система готова" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
+            <DiagnosticsPage />
+          </OSAppWindow>
+        ) : view === "home" ? (
           osEnabled ? <OSDesktop
             projects={projects}
             onNewProject={() => setModalOpen(true)}
@@ -802,15 +816,20 @@ function App() {
             </section>
           )
         ) : view === "news" ? (
-          <NewsPage />
+          <OSAppWindow title="Журнал NEXUM" subtitle="Новости и системные обновления" icon="✦" status="Актуально" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
+            <NewsPage />
+          </OSAppWindow>
         ) : view === "connectors" ? (
-          <IntegrationPage
-            connectedConnectors={connectedConnectors}
-            onToggleConnector={(name) => {
-              setConnectorModal(name);
-            }}
-          />
+          <OSAppWindow title="Интеграции" subtitle="Подключения и AI engines" icon="◇" status="Готово" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
+            <IntegrationPage
+              connectedConnectors={connectedConnectors}
+              onToggleConnector={(name) => {
+                setConnectorModal(name);
+              }}
+            />
+          </OSAppWindow>
         ) : view === "settings" ? (
+          <OSAppWindow title="Настройки" subtitle="Система, AI Engine и рабочее пространство" icon="⚙" status="Готово" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
           <section className="settings-page settings-page-v2">
             <div className="settings-hero">
               <div>
@@ -952,6 +971,7 @@ function App() {
               </div>
             </div>
           </section>
+          </OSAppWindow>
         ) : (
         <OSProjectWindow
           projectName={activeПроект?.name ?? "NEXUM"}
