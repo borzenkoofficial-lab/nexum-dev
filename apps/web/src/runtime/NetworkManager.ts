@@ -30,7 +30,7 @@ export class NetworkManager {
     if (key && this.inflight.has(key)) return this.inflight.get(key)!.then(r => r.clone());
     if (!this.online && /^https?:/i.test(url)) throw new Error("Network offline");
 
-    const p = this.execute(input, init, timeoutMs, retries, retryBaseMs, {projectId,taskId,operation}, callerSignal);
+    const p = this.execute(input, init, timeoutMs, retries, retryBaseMs, {projectId,taskId,operation}, callerSignal ?? undefined);
     if (key) this.inflight.set(key, p);
     try { return await p; }
     finally { if (key) this.inflight.delete(key); }
