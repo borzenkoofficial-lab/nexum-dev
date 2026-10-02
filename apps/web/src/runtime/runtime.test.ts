@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { test, strict as assert } from "node:test";
 import { RuntimeEventBus } from "./EventBus";
 import { RuntimeDiagnostics } from "./Diagnostics";
