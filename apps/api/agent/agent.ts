@@ -400,7 +400,7 @@ ${result.output}`
     return null;
   }
 
-  async executeTool(toolName: string, input: string): Promise<ToolResult> {
+  async executeTool(toolName: string, input: string, signal?: AbortSignal): Promise<ToolResult> {
     const tool = this.tools.get(toolName);
     if (!tool) {
       return { success: false, output: `Unknown tool: ${toolName}` };
@@ -408,7 +408,7 @@ ${result.output}`
 
     validateToolInvocation(tool, input);
     console.log(`[agent] tool: ${tool.name}`);
-    const result = await tool.execute(input);
+    const result = await tool.execute(input, signal);
     console.log(`[agent] ${tool.name}: ${result.success ? "success" : "failed"}`);
     return result;
   }
