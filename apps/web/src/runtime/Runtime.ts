@@ -1,0 +1,15 @@
+
+import {RuntimeEventBus} from "./EventBus";import {RuntimeDiagnostics} from "./Diagnostics";import {ResourceManager} from "./ResourceManager";import {TaskManager}from"./TaskManager";import{RuntimeScheduler}from"./Scheduler";import{NetworkManager}from"./NetworkManager";import{RuntimePersistence}from"./Persistence";import{RecoveryCore}from"./RecoveryCore";import{ProcessSupervisor}from"./ProcessSupervisor";import{PerformanceMonitor}from"./PerformanceMonitor";import type{RuntimeContext,RuntimeLifecycle,RuntimeSnapshot}from"./types";
+export class NexumRuntime{
+ readonly events=new RuntimeEventBus();readonly diagnostics=new RuntimeDiagnostics();readonly resources=new ResourceManager(this.events,this.diagnostics);readonly tasks=new TaskManager(this.events,this.diagnostics);readonly scheduler=new RuntimeScheduler(this.tasks,4);readonly network=new NetworkManager(this.diagnostics);readonly persistence=new RuntimePersistence();readonly recovery=new RecoveryCore(this.diagnostics);readonly processes=new ProcessSupervisor(this.events,this.diagnostics);readonly performance=new PerformanceMonitor(this.events,this.diagnostics);
+ private lifecycle:RuntimeLifecycle="BOOTING";private started=false;private projectId?:string;
+ async start(context:RuntimeContext={}){if(this.started)return;this.lifecycle="BOOTING";const snapshot=this.persistence.load();this.projectId=context.projectId??snapshot?.activeProjectId;this.events.emit("runtime:booting");this.performance.start();this.started=true;this.lifecycle="READY";this.events.emit("runtime:ready",{snapshot},context);this.diagnostics.info("RUNTIME","Runtime ready",{projectId:this.projectId})}
+ setProject(projectId?:string){this.projectId=projectId;this.events.emit("runtime:project-changed",{projectId});this.save()}
+ setBusy(v=true){if(this.lifecycle==="SHUTTING_DOWN")return;this.lifecycle=v?"BUSY":"READY";this.events.emit("runtime:lifecycle",{lifecycle:this.lifecycle})}
+ degrade(reason:string){this.lifecycle="DEGRADED";this.diagnostics.warn("RUNTIME",reason,{projectId:this.projectId});this.events.emit("runtime:degraded",{reason})}
+ recover(){this.lifecycle="RECOVERING";this.events.emit("runtime:recovering");this.lifecycle="READY";this.events.emit("runtime:ready")}
+ getLifecycle(){return this.lifecycle}
+ save(){const s:RuntimeSnapshot={version:1,savedAt:Date.now(),lifecycle:this.lifecycle,activeProjectId:this.projectId,activeTaskIds:this.tasks.list().filter(t=>!["COMPLETED","FAILED","CANCELLED"].includes(t.status)).map(t=>t.id),metadata:{health:this.performance.getHealth(),fps:this.performance.getFps()}};this.persistence.save(s)}
+ async shutdown(){if(!this.started)return;this.lifecycle="SHUTTING_DOWN";this.events.emit("runtime:shutting-down");this.tasks.list().filter(t=>!["COMPLETED","FAILED","CANCELLED"].includes(t.status)).forEach(t=>this.tasks.cancel(t.id));this.processes.stopAll();this.resources.releaseAll();this.performance.stop();this.save();this.network.destroy();this.started=false;this.events.clear()}
+}
+export const nexumRuntime=new NexumRuntime();
