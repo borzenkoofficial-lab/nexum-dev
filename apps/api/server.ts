@@ -27,6 +27,7 @@ import { pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { acquireProjectLock, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
+import { serverRuntime } from "./runtime/runtime.js";
 
 dotenv.config();
 
@@ -59,6 +60,8 @@ function sendSafeError(res: Response, error: unknown, requestId: string, fallbac
 }
 
 const app = express();
+serverRuntime.start();
+app.use((req, _res, next) => { const requestId = getRequestId(req); const started = Date.now(); _res.on("finish", () => serverRuntime.record("NETWORK", _res.statusCode >= 500 ? "error" : "info", "HTTP request completed", { operation: req.method + " " + req.path }, _res.statusCode >= 500 ? new Error("HTTP " + _res.statusCode) : undefined)); void requestId; void started; next(); });
 const configuredProvider = process.env.AI_PROVIDER?.toLowerCase();
 const defaultProvider = configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai" || configuredProvider === "anthropic" || configuredProvider === "orcarouter"
   ? configuredProvider
@@ -189,7 +192,7 @@ async function runChatJob(
   requestId?: string,
 ) {
   const job = await getChatJob(jobId, userId);
-  if (!job) return;
+  if (!job) { serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
   chatJobCache.set(jobId, job);
   let lockedProjectId: string | undefined;
   let lockHeartbeat: ReturnType<typeof setInterval> | undefined;
@@ -361,7 +364,7 @@ async function runChatJob(
       } catch { return ""; }
     }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
     await stateManager.markCompleted(message.slice(0, 240));
-    console.log("[Nexum] chat job completed", jobId);
+    serverRuntime.updateTask(runtimeTask.id, "COMPLETED", { progress: 1 });\n    console.log("[Nexum] chat job completed", jobId);
   } catch (error) {
     job.status = "failed";
     job.stage = "error";
@@ -372,7 +375,7 @@ async function runChatJob(
     job.errorInfo = { code: normalizedError.code, message: normalizedError.userSafeMessage, retryable: normalizedError.retryable };
     await persistChatJob(job).catch((persistenceError) => console.error("[Nexum] failed to persist job exception", persistenceError));
     void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
-    console.error("[Nexum] chat job failed", jobId, error);
+    serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: normalizedError.userSafeMessage });\n    console.error("[Nexum] chat job failed", jobId, error);
   } finally {
     try {
       if (lockHeartbeat) clearInterval(lockHeartbeat);
@@ -386,7 +389,7 @@ async function runChatJob(
 
 // Project managers are initialized lazily per authenticated user.
 
-const configuredCorsOrigins = (process.env.NEXUM_CORS_ORIGINS || "")
+process.once("SIGTERM", () => serverRuntime.shutdown());\nprocess.once("SIGINT", () => serverRuntime.shutdown());\n\nconst configuredCorsOrigins = (process.env.NEXUM_CORS_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
