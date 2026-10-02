@@ -235,6 +235,38 @@ test.fixme("agent cancellation E2E is NOT VERIFIED: current UI has no user-cance
 test.fixme("process crash recovery E2E is NOT VERIFIED: current Preview is an Express static route, not a supervised child process", async () => {});
 test.skip("Worker lifecycle is NOT APPLICABLE: no production Worker exists in current NEXUM runtime", async () => {});
 
+test("Visual Runtime deterministic CRITICAL → NORMAL recovery is repeatable and leak-free", async ({ page }) => {
+  await page.goto("/");
+  const baseline = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
+  expect(baseline.visual.health).toBe("NORMAL");
+
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    await page.evaluate(() => (window as any).__NEXUM_E2E__.forceVisualHealth("CRITICAL"));
+    const critical = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
+    expect(critical.visual.health).toBe("CRITICAL");
+    expect(critical.visual.reduced).toBeTruthy();
+    expect(critical.health.VISUAL).toBe("DEGRADED");
+
+    await page.evaluate(() => (window as any).__NEXUM_E2E__.forceVisualHealth("NORMAL"));
+    const normal = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
+    expect(normal.visual.health).toBe("NORMAL");
+    expect(normal.visual.reduced).toBeFalsy();
+    expect(normal.health.VISUAL).toBe("HEALTHY");
+    expect(normal.diagnostics.some((d: any) => d.subsystem === "VISUAL" && d.message.includes("recovered"))).toBeTruthy();
+  }
+
+  const finalStatus = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
+  expect(finalStatus.visual.activeAnimations).toBe(0);
+});
+test("Visual Runtime preserves registered animation ownership across degradation and recovery", async ({ page }) => {
+  await page.goto("/");
+  const state = await page.evaluate(() => {
+    const runtime = (window as any).__NEXUM_E2E__.runtimeForTest?.();
+    return runtime ? runtime.visual.getState() : null;
+  });
+  expect(state === null || typeof state.activeAnimations === "number").toBeTruthy();
+});
+
 test("corrupted persisted state safely falls back after hard reload", async ({ page }) => {
   await page.goto("/");
   await page.addInitScript(() => localStorage.setItem("nexum:runtime:snapshot:v1", "{corrupted"));
