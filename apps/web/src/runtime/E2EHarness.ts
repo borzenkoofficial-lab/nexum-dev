@@ -6,15 +6,20 @@ export interface NexumE2EHarness {
   enableFailure: (scenario: FailureName, options?: { delayMs?: number; projectId?: string; taskId?: string }) => void;
   disableFailure: (scenario: FailureName) => void;
   resetFailures: () => void;
-  runNetworkTask: (projectId: string) => Promise<unknown>;\n  startNetworkTask: (projectId: string) => string;\n  waitTask: (taskId: string) => Promise<unknown>;
-  cancelNetworkTask: (taskId: string) => void;\n  cancelProject: (projectId: string) => void;
+  runNetworkTask: (projectId: string) => Promise<unknown>;
+  startNetworkTask: (projectId: string) => string;
+  waitTask: (taskId: string) => Promise<unknown>;
+  cancelNetworkTask: (taskId: string) => void;
+  cancelProject: (projectId: string) => void;
   runConcurrentTasks: (projectIds: string[], count?: number) => Promise<unknown>;
   startPreviewHealthCheck: () => Promise<boolean>;
   shutdown: () => Promise<void>;
   restart: () => Promise<void>;
 }
 
-const pendingTasks = new Map<string, Promise<unknown>>();\n\nexport function installE2EHarness() {
+const pendingTasks = new Map<string, Promise<unknown>>();
+
+export function installE2EHarness() {
   if (!(import.meta.env.DEV || import.meta.env.VITE_E2E === "true")) return;
 
   const harness: NexumE2EHarness = {
