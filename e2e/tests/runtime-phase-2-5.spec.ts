@@ -151,7 +151,8 @@ test("multi-project concurrency and isolation", async ({ page }) => {
     createStaticProject(page, "runtime-B"),
     createStaticProject(page, "runtime-C"),
   ]);
-  await page.evaluate((ids) => { void (window as any).__NEXUM_E2E__.runConcurrentTasks(ids, 15); }, projects);\n  await page.waitForTimeout(60);
+  await page.evaluate((ids) => { void (window as any).__NEXUM_E2E__.runConcurrentTasks(ids, 15); }, projects);
+  await page.waitForTimeout(60);
   const before = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   const projectTasks = before.tasks.filter((t: any) => t.status === "COMPLETED");
   expect(projectTasks.length).toBeGreaterThanOrEqual(15);
