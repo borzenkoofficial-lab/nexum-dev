@@ -37,12 +37,12 @@ export class RunCommandTool implements Tool {
     private readonly context: { projectId?: string; taskId?: string } = {},
   ) {}
 
-  async execute(input: string): Promise<RunCommandResult> {
+  async execute(input: string, signal?: AbortSignal): Promise<RunCommandResult> {
     const command = input.trim();
 
     try {
       const { executable, args } = this.validateCommand(command);
-      const result = await this.run(executable, args, command);
+      const result = await this.run(executable, args, command, signal);
       console.log(
         `[agent] command: ${command}; cwd: ${this.projectRoot}; result: ${result.success ? "success" : "failed"}; exitCode: ${result.exitCode}`,
       );
@@ -171,7 +171,7 @@ export class RunCommandTool implements Tool {
     return { executable: "node", args };
   }
 
-  private run(executable: string, args: string[], command: string): Promise<RunCommandResult> {
+  private run(executable: string, args: string[], command: string, signal?: AbortSignal): Promise<RunCommandResult> {
     return new Promise((resolveResult) => {
       const child = spawn(executable, args, {
         cwd: this.projectRoot,
@@ -184,6 +184,8 @@ export class RunCommandTool implements Tool {
       let timedOut = false;
       let outputLimitReached = false;
       const processId = this.runtime?.registerProcess(`runCommand:${command.slice(0, 120)}`, child, { ...this.context, operation: command });
+      const abort = () => { if (child.exitCode === null) child.kill("SIGTERM"); };
+      if (signal) { if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true }); }
 
       const append = (target: "stdout" | "stderr", chunk: Buffer): void => {
         if (outputLimitReached) return;
@@ -213,6 +215,7 @@ export class RunCommandTool implements Tool {
       child.on("error", (error) => {
         clearTimeout(timer);
         if (processId) this.runtime?.completeProcess(processId);
+        signal?.removeEventListener("abort", abort);
         resolveResult({
           success: false,
           exitCode: null,
@@ -226,6 +229,7 @@ export class RunCommandTool implements Tool {
       child.on("close", (exitCode) => {
         clearTimeout(timer);
         if (processId) this.runtime?.completeProcess(processId);
+        signal?.removeEventListener("abort", abort);
         const success = exitCode === 0 && !timedOut && !outputLimitReached;
         resolveResult({
           success,
