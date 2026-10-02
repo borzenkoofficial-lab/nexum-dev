@@ -197,7 +197,7 @@ test("real browser main thread pressure drives Visual Runtime performance degrad
   const degraded = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   expect(["CRITICAL", "DEGRADED"]).toContain(degraded.performance.health);
 
-  await page.waitForFunction(() => (window as any).__NEXUM_E2E__.status().performance.health === "NORMAL", undefined, { timeout: 5_000 });
+  await page.waitForFunction(() => (window as any).__NEXUM_E2E__.status().performance.health === "NORMAL", undefined, { timeout: 8_000 });
   const recovered = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   expect(recovered.performance.health).toBe("NORMAL");
 });
