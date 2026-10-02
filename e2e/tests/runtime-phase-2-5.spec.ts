@@ -1,24 +1,5 @@
 import { test, expect } from "@playwright/test";
 
-type Harness = {
-  status: () => Promise<any>;
-  enableFailure: (name: string, options?: any) => void;
-  disableFailure: (name: string) => void;
-  resetFailures: () => void;
-  runNetworkTask: (projectId: string) => Promise<any>;
-  startNetworkTask: (projectId: string) => string;
-  waitTask: (taskId: string) => Promise<any>;
-  cancelNetworkTask: (taskId: string) => void;
-  cancelProject: (projectId: string) => void;
-  runConcurrentTasks: (projectIds: string[], count?: number) => Promise<any>;
-  startPreviewHealthCheck: () => Promise<boolean>;
-};
-
-async function harness(page: any): Promise<Harness> {
-  await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E__));
-  return page.evaluateHandle(() => (window as any).__NEXUM_E2E__).then((handle: any) => handle.jsonValue());
-}
-
 async function createStaticProject(page: any, name: string): Promise<string> {
   const response = await page.request.post("/api/projects", {
     data: { name, description: "Runtime Phase 2.5 E2E", type: "static" },
@@ -84,7 +65,6 @@ test("boot, runtime inspection and browser-visible navigation", async ({ page })
 
 test("network failure recovers with bounded retries and stable request identity", async ({ page }) => {
   await page.goto("/");
-  const h = await harness(page);
   h.enableFailure("FAIL_NETWORK", { projectId: "A" });
   const resultPromise = page.evaluate(async () => {
     const h = (window as any).__NEXUM_E2E__;
@@ -106,7 +86,6 @@ test("network failure recovers with bounded retries and stable request identity"
 
 test("network cancellation race leaves no active request or task", async ({ page }) => {
   await page.goto("/");
-  const h = await harness(page);
   h.enableFailure("DELAY_REQUEST", { delayMs: 500, projectId: "race" });
   const taskId = await page.evaluate(() => (window as any).__NEXUM_E2E__.startNetworkTask("race"));
   await page.waitForTimeout(50);
