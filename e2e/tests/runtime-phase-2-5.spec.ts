@@ -82,7 +82,7 @@ test("network failure recovers with bounded retries and stable request identity"
   const status = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   expect(status.activeTasks).toBe(0);
   expect(status.network).toEqual([]);
-  const attempts = status.diagnostics.filter((d: any) => d.subsystem === "NETWORK" && d.message.includes("Injected network failure"));
+  const attempts = status.diagnostics.filter((d: any) => d.subsystem === "NETWORK" && d.message.includes("Injected network failure") && d.context?.taskId === result.taskId);
   expect(attempts.length).toBeGreaterThanOrEqual(1);
   const requestIds = new Set(attempts.map((d: any) => d.payload?.requestId).filter(Boolean));
   expect(requestIds.size).toBe(1);
@@ -118,7 +118,7 @@ test("preview health failure is bounded and recovers when real preview is availa
   const baselineData = await baseline.json();
   expect(baselineData.online).toBeTruthy();
 
-  await page.evaluate(() => (window as any).__NEXUM_E2E__.enableFailure("FAIL_PREVIEW", { projectId }));
+  await page.evaluate((id) => (window as any).__NEXUM_E2E__.enableFailure("FAIL_PREVIEW", { projectId: id }), projectId);
   const recoveredByManager = await page.evaluate(() => (window as any).__NEXUM_E2E__.startPreviewHealthCheck());
   expect(recoveredByManager).toBeTruthy();
   const recovered = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
