@@ -1,5 +1,5 @@
 
-import type { RuntimeHealth } from "./types"; import { RuntimeEventBus } from "./EventBus"; import { RuntimeDiagnostics } from "./Diagnostics";
+import type { RuntimeHealth } from "./types"; import { failureInjection } from "./FailureInjection.ts"; import { RuntimeEventBus } from "./EventBus"; import { RuntimeDiagnostics } from "./Diagnostics";
 export class PerformanceMonitor{
  private health:RuntimeHealth="NORMAL";private fps=60;private raf=0;private last=performance.now();private frames=0;
  private bus:RuntimeEventBus; private diagnostics:RuntimeDiagnostics; constructor(bus:RuntimeEventBus,diagnostics:RuntimeDiagnostics){this.bus=bus;this.diagnostics=diagnostics}
