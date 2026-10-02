@@ -7,7 +7,7 @@ export interface NexumE2EHarness {
   disableFailure: (scenario: FailureName) => void;
   resetFailures: () => void;
   runNetworkTask: (projectId: string) => Promise<unknown>;\n  startNetworkTask: (projectId: string) => string;\n  waitTask: (taskId: string) => Promise<unknown>;
-  cancelNetworkTask: (taskId: string) => void;
+  cancelNetworkTask: (taskId: string) => void;\n  cancelProject: (projectId: string) => void;
   runConcurrentTasks: (projectIds: string[], count?: number) => Promise<unknown>;
   startPreviewHealthCheck: () => Promise<boolean>;
   shutdown: () => Promise<void>;
