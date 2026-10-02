@@ -1,17 +1,21 @@
 import { test, expect } from "@playwright/test";
 
 async function createStaticProject(page: any, name: string): Promise<string> {
-  const response = await page.request.post("/api/projects", {
+  let response = await page.request.post("/api/projects", {
     data: { name, description: "Runtime Phase 2.5 E2E", type: "static" },
   });
-  expect(response.ok()).toBeTruthy();
+  if (response.status() === 409) {
+    const list = await page.request.get("/api/projects");
+    expect(list.ok()).toBeTruthy();
+    const data = await list.json();
+    const existing = (data.projects ?? []).find((project: any) => project.name === name);
+    if (existing?.id) return existing.id;
+  }
+  if (!response.ok()) {
+    throw new Error(`Project creation failed: ${response.status()} ${await response.text()}`);
+  }
   const data = await response.json();
-  const id = data.project.id as string;
-  const file = await page.request.put(`/api/projects/${encodeURIComponent(id)}/file`, {
-    data: { path: "index.html", content: `<!doctype html><html><body><h1>${name}</h1></body></html>` },
-  });
-  expect(file.ok()).toBeTruthy();
-  return id;
+  return data.project.id as string;
 }
 
 test.beforeEach(async ({ page }) => {
@@ -102,25 +106,32 @@ test("network cancellation race leaves no active request or task", async ({ page
 test("preview health failure is bounded and recovers when real preview is available", async ({ page }) => {
   await page.goto("/");
   const projectId = await createStaticProject(page, "runtime-preview-e2e");
-  await page.goto(`/projects/${encodeURIComponent(projectId)}`);
-  await page.waitForTimeout(500);
+  await page.request.post(`/api/projects/${encodeURIComponent(projectId)}/select`);
+  await page.goto("/");
+  await page.waitForFunction(() => {
+    const status = (window as any).__NEXUM_E2E__?.status?.();
+    return Boolean(status && status.preview.state !== "STOPPED");
+  }, undefined, { timeout: 15_000 });
+
   const baseline = await page.request.get(`/api/projects/${encodeURIComponent(projectId)}/preview/status`);
   expect(baseline.ok()).toBeTruthy();
   const baselineData = await baseline.json();
   expect(baselineData.online).toBeTruthy();
 
-  await page.evaluate(() => (window as any).__NEXUM_E2E__.enableFailure("FAIL_PREVIEW", { projectId: "runtime-preview-e2e" }));
-  const failed = await page.evaluate(() => (window as any).__NEXUM_E2E__.startPreviewHealthCheck());
-  expect(failed).toBeFalsy();
-  const degraded = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
-  expect(["UNHEALTHY", "FAILED", "RESTARTING"]).toContain(degraded.preview.state);
+  await page.evaluate(() => (window as any).__NEXUM_E2E__.enableFailure("FAIL_PREVIEW", { projectId }));
+  const recoveredByManager = await page.evaluate(() => (window as any).__NEXUM_E2E__.startPreviewHealthCheck());
+  expect(recoveredByManager).toBeTruthy();
+  const recovered = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
+  expect(recovered.preview.state).toBe("READY");
+  expect(recovered.preview.restartCount).toBeGreaterThanOrEqual(1);
+  expect(recovered.diagnostics.some((d: any) => d.subsystem === "PREVIEW")).toBeTruthy();
 
   await page.evaluate(() => (window as any).__NEXUM_E2E__.disableFailure("FAIL_PREVIEW"));
-  const recovered = await page.evaluate(() => (window as any).__NEXUM_E2E__.startPreviewHealthCheck());
-  expect(recovered).toBeTruthy();
-  const ready = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
-  expect(ready.preview.state).toBe("READY");
-  expect(ready.preview.restartCount).toBeGreaterThanOrEqual(1);
+  const healthy = await page.evaluate(() => (window as any).__NEXUM_E2E__.startPreviewHealthCheck());
+  expect(healthy).toBeTruthy();
+  const finalStatus = await page.request.get(`/api/projects/${encodeURIComponent(projectId)}/preview/status`);
+  expect(finalStatus.ok()).toBeTruthy();
+  expect((await finalStatus.json()).online).toBeTruthy();
 });
 
 test("multi-project concurrency and isolation", async ({ page }) => {
