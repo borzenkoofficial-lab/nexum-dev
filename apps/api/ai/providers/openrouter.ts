@@ -74,6 +74,7 @@ export class OpenRouterProvider implements AIProvider {
       try {
         const data = await this.request<OpenRouterChatResponse>("/chat/completions", {
           method: "POST",
+          signal: options.signal,
           body: JSON.stringify({
             model: candidate,
             messages: [{ role: "user", content: message }],
