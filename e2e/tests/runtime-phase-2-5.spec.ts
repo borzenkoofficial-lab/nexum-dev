@@ -192,6 +192,37 @@ test("multi-project concurrency and isolation", async ({ page }) => {
 
 
 
+test("real child-process supervision tracks running, normal exit and crash without orphaning", async ({ page }) => {
+  await page.goto("/");
+  const projectId = await createStaticProject(page, "runtime-process-supervision");
+  await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
+    data: { path: "runtime-process-ok.js", content: "setTimeout(() => process.exit(0), 500);" },
+  });
+  await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
+    data: { path: "runtime-process-crash.js", content: "setTimeout(() => process.exit(2), 150);" },
+  });
+
+  const successRequest = page.request.post(`/api/projects/${encodeURIComponent(projectId)}/run`, {
+    data: { command: "node runtime-process-ok.js" },
+  });
+  await page.waitForFunction(() => (window as any).__NEXUM_E2E__.status().processes.length > 0, undefined, { timeout: 5_000 });
+  const running = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
+  expect(running.processes.length).toBeGreaterThanOrEqual(1);
+  const success = await successRequest;
+  expect(success.ok()).toBeTruthy();
+  await page.waitForFunction(() => (window as any).__NEXUM_E2E__.status().processes.length === 0, undefined, { timeout: 5_000 });
+
+  const crashRequest = page.request.post(`/api/projects/${encodeURIComponent(projectId)}/run`, {
+    data: { command: "node runtime-process-crash.js" },
+  });
+  const crash = await crashRequest;
+  expect(crash.status()).toBe(422);
+  const crashBody = await crash.json();
+  expect(crashBody.exitCode).toBe(2);
+  await page.waitForFunction(() => (window as any).__NEXUM_E2E__.status().processes.length === 0, undefined, { timeout: 5_000 });
+  const status = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
+  expect(status.diagnostics.some((d: any) => d.subsystem === "PROCESS" && /exited unexpectedly/.test(d.message))).toBeTruthy();
+});
 test("preview recovery failure reaches bounded FAILED state without crashing Runtime", async ({ page }) => {
   await page.goto("/");
   const projectId = await createStaticProject(page, "runtime-preview-recovery-limit");
