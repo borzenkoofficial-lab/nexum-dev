@@ -11,5 +11,8 @@ export class ProcessSupervisor{
  monitor(id:string,ms=10000){this.stopMonitoring(id);const t=window.setInterval(()=>void this.check(id),ms);this.timers.set(id,t);return()=>this.stopMonitoring(id)}
  stopMonitoring(id:string){const t=this.timers.get(id);if(t)window.clearInterval(t);this.timers.delete(id)}
  stop(id:string){const p=this.processes.get(id);if(!p)return;try{p.stop()}catch{}this.stopMonitoring(id);p.state="STOPPED";this.processes.delete(id)}
+ getActiveCount(){return this.processes.size}
+ get(id:string){return this.processes.get(id)}
+ list(){return [...this.processes.values()].map(({stop,restart,health,...p})=>p)}
  stopAll(){for(const id of [...this.processes.keys()])this.stop(id)}
 }
