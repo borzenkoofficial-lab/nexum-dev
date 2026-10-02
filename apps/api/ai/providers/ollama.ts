@@ -136,6 +136,7 @@ export class OllamaProvider implements AIProvider {
       }
       return (await response.json()) as T;
     } catch (error) {
+      if (callerSignal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (controller.signal.aborted) throw new Error("Ollama request timed out");
       if (error instanceof Error && error.message.startsWith("Ollama ")) throw error;
       throw new Error("Ollama is unavailable");
