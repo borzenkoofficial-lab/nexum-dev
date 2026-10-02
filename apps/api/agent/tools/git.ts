@@ -34,7 +34,7 @@ export class GitTool implements Tool {
     private readonly context: { projectId?: string; taskId?: string } = {},
   ) {}
 
-  async execute(input: string): Promise<GitToolResult> {
+  async execute(input: string, signal?: AbortSignal): Promise<GitToolResult> {
     const operation = input.trim();
     const args = OPERATIONS[operation as GitOperation];
 
@@ -42,10 +42,10 @@ export class GitTool implements Tool {
       return this.blocked(operation, "Git operation is not allowed");
     }
 
-    return this.run(operation, args);
+    return this.run(operation, args, signal);
   }
 
-  private run(operation: string, args: string[]): Promise<GitToolResult> {
+  private run(operation: string, args: string[], signal?: AbortSignal): Promise<GitToolResult> {
     return new Promise((resolveResult) => {
       const child = spawn("git", args, {
         cwd: this.projectRoot,
@@ -62,6 +62,8 @@ export class GitTool implements Tool {
       let timedOut = false;
       let outputLimitReached = false;
       const processId = this.runtime?.registerProcess(`git:${operation}`, child, { ...this.context, operation });
+      const abort = () => { if (child.exitCode === null) child.kill("SIGTERM"); };
+      if (signal) { if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true }); }
 
       const append = (target: "stdout" | "stderr", chunk: Buffer): void => {
         if (outputLimitReached) return;
@@ -91,6 +93,7 @@ export class GitTool implements Tool {
       child.on("error", (error) => {
         clearTimeout(timer);
         if (processId) this.runtime?.completeProcess(processId);
+        signal?.removeEventListener("abort", abort);
         this.log(operation, null, false);
         resolveResult({
           success: false,
@@ -105,6 +108,7 @@ export class GitTool implements Tool {
       child.on("close", (exitCode) => {
         clearTimeout(timer);
         if (processId) this.runtime?.completeProcess(processId);
+        signal?.removeEventListener("abort", abort);
         const success = exitCode === 0 && !timedOut;
         this.log(operation, exitCode, success);
         resolveResult({
