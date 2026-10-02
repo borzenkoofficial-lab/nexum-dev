@@ -345,6 +345,9 @@ ${attachment.content.slice(0, 80_000)}`);
       ...(model === undefined ? {} : { model }),
     });
 
+    if (signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
+    const persistedAfterRun = await getChatJob(jobId, userId);
+    if (persistedAfterRun?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
     job.updatedAt = Date.now();
     if (!result.success) {
       job.status = "failed";
