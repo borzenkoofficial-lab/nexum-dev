@@ -3,7 +3,7 @@ import type { ResourceKind,ResourceRecord,RuntimeContext } from "./types";
 import { RuntimeEventBus } from "./EventBus"; import { RuntimeDiagnostics } from "./Diagnostics";
 export class ResourceManager {
  private resources=new Map<string,ResourceRecord>();
- constructor(private bus:RuntimeEventBus,private diagnostics:RuntimeDiagnostics){}
+ private bus:RuntimeEventBus; private diagnostics:RuntimeDiagnostics; constructor(bus:RuntimeEventBus,diagnostics:RuntimeDiagnostics){this.bus=bus;this.diagnostics=diagnostics}
  register(kind:ResourceKind,release:()=>void,context:RuntimeContext={}){const id=crypto.randomUUID();const r:ResourceRecord={id,kind,status:"CREATE",createdAt:Date.now(),release,...context};this.resources.set(id,r);r.status="ACTIVE";this.bus.emit("resource:created",r,context);return id}
  pause(id:string){const r=this.resources.get(id);if(r&&r.status==="ACTIVE")r.status="PAUSED"}
  activate(id:string){const r=this.resources.get(id);if(r&&r.status==="PAUSED")r.status="ACTIVE"}
