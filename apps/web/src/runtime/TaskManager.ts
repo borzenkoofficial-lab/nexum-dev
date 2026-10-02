@@ -1,5 +1,6 @@
 
-import type { TaskRecord,TaskStatus,RuntimeContext } from "./types.ts"; import { RuntimeEventBus } from "./EventBus.ts"; import { RuntimeDiagnostics } from "./Diagnostics.ts";\nimport { failureInjection } from "./FailureInjection.ts";
+import type { TaskRecord,TaskStatus,RuntimeContext } from "./types.ts"; import { RuntimeEventBus } from "./EventBus.ts"; import { RuntimeDiagnostics } from "./Diagnostics.ts";
+import { failureInjection } from "./FailureInjection.ts";
 export interface TaskOptions extends RuntimeContext { parentTaskId?:string;priority?:number;timeoutMs?:number;maxRetries?:number;dependencies?:string[]; }
 type InternalTask=TaskRecord;
 export class TaskManager {
