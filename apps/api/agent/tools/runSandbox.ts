@@ -15,10 +15,10 @@ export class RunSandboxTool implements Tool {
     this.sandbox = new DockerSandbox(projectRoot, undefined, runtime, context);
   }
 
-  async execute(input: string): Promise<RunSandboxResult> {
+  async execute(input: string, signal?: AbortSignal): Promise<RunSandboxResult> {
     try {
       const request = this.parseRequest(input);
-      const result = await this.sandbox.run(request);
+      const result = await this.sandbox.run(request, signal);
       return { ...result, output: JSON.stringify(result) };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Sandbox request is invalid";
