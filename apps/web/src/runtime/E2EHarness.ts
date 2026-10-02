@@ -1,0 +1,85 @@
+import { failureInjection, type FailureName } from "./FailureInjection.ts";
+import { nexumRuntime } from "./Runtime.ts";
+
+export interface NexumE2EHarness {
+  status: () => ReturnType<typeof nexumRuntime.getInspection>;
+  enableFailure: (scenario: FailureName, options?: { delayMs?: number; projectId?: string; taskId?: string }) => void;
+  disableFailure: (scenario: FailureName) => void;
+  resetFailures: () => void;
+  runNetworkTask: (projectId: string) => Promise<unknown>;
+  cancelNetworkTask: (taskId: string) => void;
+  runConcurrentTasks: (projectIds: string[], count?: number) => Promise<unknown>;
+  startPreviewHealthCheck: () => Promise<boolean>;
+  shutdown: () => Promise<void>;
+  restart: () => Promise<void>;
+}
+
+export function installE2EHarness() {
+  if (!(import.meta.env.DEV || import.meta.env.VITE_E2E === "true")) return;
+
+  const harness: NexumE2EHarness = {
+    status: () => nexumRuntime.getInspection(),
+    enableFailure: (scenario, options) => failureInjection.enableFailure(scenario, { delayMs: options?.delayMs, context: { projectId: options?.projectId, taskId: options?.taskId } }),
+    disableFailure: (scenario) => failureInjection.disableFailure(scenario),
+    resetFailures: () => failureInjection.resetFailures(),
+
+    async runNetworkTask(projectId) {
+      const task = nexumRuntime.tasks.create({ projectId, operation: "e2e-network", maxRetries: 2 });
+      nexumRuntime.tasks.update(task.id, "RUNNING");
+      nexumRuntime.tasks.onCancel(task.id, () => nexumRuntime.network.cancelTask(task.id));
+      try {
+        const response = await nexumRuntime.network.fetch("/api/health?runtime-e2e=1", {
+          projectId,
+          taskId: task.id,
+          operation: "e2e-network",
+          retries: 2,
+          retryBaseMs: 25,
+        });
+        nexumRuntime.tasks.update(task.id, response.ok ? "COMPLETED" : "FAILED", { progress: 1 });
+        return { taskId: task.id, ok: response.ok, status: response.status };
+      } catch (error) {
+        if (nexumRuntime.tasks.get(task.id)?.status !== "CANCELLED") {
+          nexumRuntime.tasks.update(task.id, "FAILED", { error: error instanceof Error ? error.message : String(error) });
+        }
+        throw error;
+      }
+    },
+
+    cancelNetworkTask(taskId) {
+      nexumRuntime.network.cancelTask(taskId);
+      nexumRuntime.tasks.cancel(taskId);
+    },
+
+    async runConcurrentTasks(projectIds, count = 12) {
+      const jobs = Array.from({ length: count }, (_, index) => {
+        const projectId = projectIds[index % projectIds.length] ?? projectIds[0] ?? "e2e";
+        return nexumRuntime.tasks.run(async (signal, task) => {
+          const resourceId = nexumRuntime.resources.register("subscription", () => {}, { projectId, taskId: task.id, operation: "e2e-concurrency" });
+          nexumRuntime.tasks.onCancel(task.id, () => nexumRuntime.resources.release(resourceId));
+          await new Promise<void>((resolve, reject) => {
+            const timer = window.setTimeout(resolve, failureInjection.getDelay("DELAY_TASK", 10));
+            const abort = () => { window.clearTimeout(timer); reject(new DOMException("Task cancelled", "AbortError")); };
+            if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true });
+          });
+          nexumRuntime.resources.release(resourceId);
+          return index;
+        }, { projectId, operation: "e2e-concurrent" });
+      });
+      return Promise.allSettled(jobs);
+    },
+
+    async startPreviewHealthCheck() {
+      return nexumRuntime.preview.healthCheck();
+    },
+
+    async shutdown() {
+      await nexumRuntime.shutdown();
+    },
+
+    async restart() {
+      await nexumRuntime.start();
+    },
+  };
+
+  (window as unknown as { __NEXUM_E2E__?: NexumE2EHarness }).__NEXUM_E2E__ = harness;
+}
