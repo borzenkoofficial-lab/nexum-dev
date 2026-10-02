@@ -279,7 +279,7 @@ ${attachment.content.slice(0, 80_000)}`);
     ].filter(Boolean).join("\n\n");
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const userGateway = getAIGatewayForUser(userId);
-    const agent = new NexumAgent(userGateway, project.path);
+    const agent = new NexumAgent(userGateway, project.path, serverRuntime, { projectId: project.id, taskId: runtimeTask.id });
     const agentLoop = new AgentLoop(
       agent,
       userGateway,
@@ -892,7 +892,7 @@ app.post("/api/projects/:id/run", async (req, res) => {
     const command = typeof req.body?.command === "string" ? req.body.command.trim() : "";
     const allowed = new Set(["npm run build", "npm run test", "npm run lint", "npm run typecheck", "git status", "git diff", "git log"]);
     if (!allowed.has(command)) return res.status(400).json({ success: false, error: "Command is not allowed" });
-    const result = await new RunCommandTool(resolve(project.path), 120000).execute(command);
+    const result = await new RunCommandTool(resolve(project.path), 120000, serverRuntime, { projectId: project.id }).execute(command);
     const problems = result.success ? [] : [{
       message: result.stderr || result.stdout || "Command failed",
       source: command,
