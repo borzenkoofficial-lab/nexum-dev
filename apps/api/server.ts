@@ -191,6 +191,8 @@ async function runChatJob(
   conversation: Array<{ role: "user" | "assistant"; content: string }>,
   requestId?: string,
 ) {
+  const runtimeTask = serverRuntime.createTask({ projectId, operation: "chat-job", priority: 10, maxRetries: 1 });
+  serverRuntime.updateTask(runtimeTask.id, "RUNNING");
   const job = await getChatJob(jobId, userId);
   if (!job) { serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
   chatJobCache.set(jobId, job);
