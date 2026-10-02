@@ -77,7 +77,7 @@ export function installE2EHarness() {
       nexumRuntime.resources.releaseByContext(projectId);
     },
 
-    forceVisualHealth(health) { failureInjection.enableFailure(health === "CRITICAL" ? "FORCE_VISUAL_CRITICAL" : "FORCE_VISUAL_NORMAL"); nexumRuntime.performance.setHealthForTest(health); },
+    forceVisualHealth(health) { failureInjection.disableFailure(health === "CRITICAL" ? "FORCE_VISUAL_NORMAL" : "FORCE_VISUAL_CRITICAL"); failureInjection.enableFailure(health === "CRITICAL" ? "FORCE_VISUAL_CRITICAL" : "FORCE_VISUAL_NORMAL"); nexumRuntime.performance.setHealthForTest(health); },
     resetVisualHealth() { failureInjection.disableFailure("FORCE_VISUAL_CRITICAL"); failureInjection.disableFailure("FORCE_VISUAL_NORMAL"); nexumRuntime.performance.setHealthForTest("NORMAL"); },
     startVisualLoop(id) { nexumRuntime.visual.registerAnimation(id, () => {}); },
     stopVisualLoop(id) { nexumRuntime.visual.stopAnimation(id); },
