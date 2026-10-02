@@ -19,6 +19,7 @@ window.addEventListener("pagehide", () => nexumRuntime.shutdown())
 window.addEventListener("beforeunload", () => nexumRuntime.save())
 
 void runtimeBoot.then(() => {
+  installE2EHarness()
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <AppErrorBoundary>
