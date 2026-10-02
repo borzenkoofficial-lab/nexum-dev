@@ -221,11 +221,14 @@ async function runChatJob(
     lockHeartbeat = setInterval(() => {
       void heartbeatProjectLock(project.id, jobId).catch((error) => console.error("[Nexum] project lock heartbeat failed", error));
     }, 60_000);
+    lockHeartbeatResourceId = serverRuntime.registerResource("timer", () => { if (lockHeartbeat) clearInterval(lockHeartbeat); lockHeartbeat = undefined; }, { projectId: project.id, taskId: runtimeTask.id, operation: "project-lock-heartbeat" });
     lockedProjectId = project.id;
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     const checkpoint = await checkpointManager.create(project.id, project.path, `before agent job ${jobId}`);
-    job.checkpointId = checkpoint.id;\n    serverRuntime.updateTask(runtimeTask.id, "WAITING", { checkpointId: checkpoint.id, progress: 0.1 });\n    serverRuntime.updateTask(runtimeTask.id, "RUNNING", { progress: 0.2 });
+    job.checkpointId = checkpoint.id;
+    serverRuntime.updateTask(runtimeTask.id, "WAITING", { checkpointId: checkpoint.id, progress: 0.1 });
+    serverRuntime.updateTask(runtimeTask.id, "RUNNING", { progress: 0.2 });
     await stateManager.refresh(message);
     void agentHistory.record({
       type: "checkpoint-created",
@@ -245,7 +248,8 @@ async function runChatJob(
         const target = resolve(attachmentDir, safeName);
         if (attachment.content !== undefined) {
           await writeFile(target, attachment.content.slice(0, 80_000), "utf8");
-          attachmentContext.push(`Attached text file ${safeName}:\\n${attachment.content.slice(0, 80_000)}`);
+          attachmentContext.push(`Attached text file ${safeName}:\
+${attachment.content.slice(0, 80_000)}`);
         } else if (attachment.data) {
           await writeFile(target, Buffer.from(attachment.data, "base64"));
           attachmentContext.push(`Attached binary file ${safeName} is stored at .nexum/attachments/${jobId}/${safeName}.`);
@@ -257,20 +261,28 @@ async function runChatJob(
     const compactConversation = conversation
       .slice(-8)
       .map((item) => `${item.role === "user" ? "Пользователь" : "NEXUM"}: ${item.content.slice(0, 900)}`)
-      .join("\n");
+      .join("
+");
     const projectContext = [
       "PROJECT CONTEXT LOCK:",
       `Текущий проект: «${project.name}»`,
       `ID проекта: ${project.id}`,
       "Все действия, файлы, команды и ответы относятся ТОЛЬКО к этому проекту.",
       "Не переносить файлы, дизайн, контент или предположения из других проектов.",
-      compactConversation ? `Последние сообщения ЭТОГО проекта:\n${compactConversation}` : "Предыдущих сообщений в этом проекте нет.",
-    ].join("\n");
+      compactConversation ? `Последние сообщения ЭТОГО проекта:
+${compactConversation}` : "Предыдущих сообщений в этом проекте нет.",
+    ].join("
+");
     const agentMessage = [
       projectContext,
       message,
-      attachmentContext.length ? `ATTACHED FILES:\n${attachmentContext.join("\n\n")}` : "",
-    ].filter(Boolean).join("\n\n");
+      attachmentContext.length ? `ATTACHED FILES:
+${attachmentContext.join("
+
+")}` : "",
+    ].filter(Boolean).join("
+
+");
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const userGateway = getAIGatewayForUser(userId);
     const agent = new NexumAgent(userGateway, project.path);
@@ -383,7 +395,8 @@ async function runChatJob(
     console.error("[Nexum] chat job failed", jobId, error);
   } finally {
     try {
-      if (lockHeartbeatResourceId) serverRuntime.releaseResource(lockHeartbeatResourceId);\n      if (lockHeartbeat) clearInterval(lockHeartbeat);
+      if (lockHeartbeatResourceId) serverRuntime.releaseResource(lockHeartbeatResourceId);
+      if (lockHeartbeat) clearInterval(lockHeartbeat);
       if (lockedProjectId) await releaseProjectLock(lockedProjectId, jobId);
     } catch (lockError) {
       console.error("[Nexum] project lock release failed", jobId, lockError);
