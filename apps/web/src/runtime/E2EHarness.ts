@@ -73,6 +73,9 @@ export function installE2EHarness() {
       nexumRuntime.resources.releaseByContext(projectId);
     },
 
+    forceVisualHealth(health) { this.enableFailure(health === "CRITICAL" ? "FORCE_VISUAL_CRITICAL" : "FORCE_VISUAL_NORMAL"); this.runtime.performance.setHealthForTest(health); }
+    resetVisualHealth() { this.disableFailure("FORCE_VISUAL_CRITICAL"); this.disableFailure("FORCE_VISUAL_NORMAL"); this.runtime.performance.setHealthForTest("NORMAL"); }
+
     async runConcurrentTasks(projectIds, count = 12) {
       const jobs = Array.from({ length: count }, (_, index) => {
         const projectId = projectIds[index % projectIds.length] ?? projectIds[0] ?? "e2e";
