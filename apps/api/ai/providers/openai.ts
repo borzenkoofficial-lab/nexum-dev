@@ -112,6 +112,9 @@ export class OpenAIProvider implements AIProvider {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const callerSignal = (init as RequestInit).signal;
+    const abortFromCaller = () => controller.abort(callerSignal?.reason);
+    if (callerSignal) { if (callerSignal.aborted) abortFromCaller(); else callerSignal.addEventListener("abort", abortFromCaller, { once: true }); }
     try {
       const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
         ...init,
@@ -131,6 +134,7 @@ export class OpenAIProvider implements AIProvider {
       throw new Error("OpenAI network error");
     } finally {
       clearTimeout(timeout);
+      callerSignal?.removeEventListener("abort", abortFromCaller);
     }
   }
 
