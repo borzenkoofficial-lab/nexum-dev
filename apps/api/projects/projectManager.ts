@@ -18,6 +18,7 @@ export class ProjectManager {
   private readonly storePath: string;
   private readonly defaultProject: Project;
   private initialized = false;
+  private storeWriteQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly workspaceRoot: string) {
     this.projectsRoot = resolve(workspaceRoot, "projects");
@@ -217,9 +218,13 @@ export class ProjectManager {
   }
 
   private async writeStore(store: ProjectStore): Promise<void> {
-    const tempPath = `${this.storePath}.tmp-${process.pid}`;
-    await writeFile(tempPath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
-    await rename(tempPath, this.storePath);
+    const operation = this.storeWriteQueue.then(async () => {
+      const tempPath = `${this.storePath}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      await writeFile(tempPath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+      await rename(tempPath, this.storePath);
+    });
+    this.storeWriteQueue = operation.catch(() => undefined);
+    await operation;
   }
 
   private async ensureStarterFiles(project: Project): Promise<void> {
