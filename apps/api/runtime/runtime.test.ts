@@ -1,0 +1,5 @@
+
+import {test} from"node:test";import assert from"node:assert/strict";import{ServerRuntime}from"./runtime.js";
+test("server runtime task lifecycle",()=>{const r=new ServerRuntime();r.start();const t=r.createTask({projectId:"p1",operation:"stress"});r.updateTask(t.id,"RUNNING");r.updateTask(t.id,"VALIDATING",{progress:0.9});r.updateTask(t.id,"COMPLETED",{progress:1});assert.equal(r.tasks.get(t.id)?.status,"COMPLETED")});
+test("server runtime resource cleanup is deterministic",()=>{const r=new ServerRuntime();let released=0;const id=r.registerResource("timer",()=>{released++},{projectId:"p1"});r.releaseResource(id);r.releaseResource(id);assert.equal(released,1);assert.equal(r.resources.size,0)});
+test("shutdown cancels active tasks and releases resources",()=>{const r=new ServerRuntime();r.start();const t=r.createTask();r.updateTask(t.id,"RUNNING");const id=r.registerResource("subscription",()=>{});r.shutdown();assert.equal(r.tasks.get(t.id)?.status,"CANCELLED");assert.equal(r.resources.has(id),false);assert.equal(r.lifecycle,"SHUTTING_DOWN")});

@@ -27,6 +27,7 @@ import { pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { acquireProjectLock, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
+import { serverRuntime } from "./runtime/runtime.js";
 
 dotenv.config();
 
@@ -59,6 +60,8 @@ function sendSafeError(res: Response, error: unknown, requestId: string, fallbac
 }
 
 const app = express();
+serverRuntime.start();
+app.use((req, _res, next) => { const requestId = getRequestId(req); const started = Date.now(); _res.on("finish", () => serverRuntime.record("NETWORK", _res.statusCode >= 500 ? "error" : "info", "HTTP request completed", { operation: req.method + " " + req.path }, _res.statusCode >= 500 ? new Error("HTTP " + _res.statusCode) : undefined)); void requestId; void started; next(); });
 const configuredProvider = process.env.AI_PROVIDER?.toLowerCase();
 const defaultProvider = configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai" || configuredProvider === "anthropic" || configuredProvider === "orcarouter"
   ? configuredProvider
@@ -188,11 +191,14 @@ async function runChatJob(
   conversation: Array<{ role: "user" | "assistant"; content: string }>,
   requestId?: string,
 ) {
+  const runtimeTask = serverRuntime.createTask({ projectId, operation: "chat-job", priority: 10, maxRetries: 1 });
+  serverRuntime.updateTask(runtimeTask.id, "RUNNING");
   const job = await getChatJob(jobId, userId);
-  if (!job) return;
+  if (!job) { serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
   chatJobCache.set(jobId, job);
   let lockedProjectId: string | undefined;
   let lockHeartbeat: ReturnType<typeof setInterval> | undefined;
+  let lockHeartbeatResourceId: string | undefined;
 
   job.status = "running";
   job.updatedAt = Date.now();
@@ -215,11 +221,14 @@ async function runChatJob(
     lockHeartbeat = setInterval(() => {
       void heartbeatProjectLock(project.id, jobId).catch((error) => console.error("[Nexum] project lock heartbeat failed", error));
     }, 60_000);
+    lockHeartbeatResourceId = serverRuntime.registerResource("timer", () => { if (lockHeartbeat) clearInterval(lockHeartbeat); lockHeartbeat = undefined; }, { projectId: project.id, taskId: runtimeTask.id, operation: "project-lock-heartbeat" });
     lockedProjectId = project.id;
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     const checkpoint = await checkpointManager.create(project.id, project.path, `before agent job ${jobId}`);
     job.checkpointId = checkpoint.id;
+    serverRuntime.updateTask(runtimeTask.id, "WAITING", { checkpointId: checkpoint.id, progress: 0.1 });
+    serverRuntime.updateTask(runtimeTask.id, "RUNNING", { progress: 0.2 });
     await stateManager.refresh(message);
     void agentHistory.record({
       type: "checkpoint-created",
@@ -239,7 +248,8 @@ async function runChatJob(
         const target = resolve(attachmentDir, safeName);
         if (attachment.content !== undefined) {
           await writeFile(target, attachment.content.slice(0, 80_000), "utf8");
-          attachmentContext.push(`Attached text file ${safeName}:\\n${attachment.content.slice(0, 80_000)}`);
+          attachmentContext.push(`Attached text file ${safeName}:\
+${attachment.content.slice(0, 80_000)}`);
         } else if (attachment.data) {
           await writeFile(target, Buffer.from(attachment.data, "base64"));
           attachmentContext.push(`Attached binary file ${safeName} is stored at .nexum/attachments/${jobId}/${safeName}.`);
@@ -361,6 +371,7 @@ async function runChatJob(
       } catch { return ""; }
     }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
     await stateManager.markCompleted(message.slice(0, 240));
+    serverRuntime.updateTask(runtimeTask.id, "COMPLETED", { progress: 1 });
     console.log("[Nexum] chat job completed", jobId);
   } catch (error) {
     job.status = "failed";
@@ -372,9 +383,11 @@ async function runChatJob(
     job.errorInfo = { code: normalizedError.code, message: normalizedError.userSafeMessage, retryable: normalizedError.retryable };
     await persistChatJob(job).catch((persistenceError) => console.error("[Nexum] failed to persist job exception", persistenceError));
     void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
+    serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: normalizedError.userSafeMessage });
     console.error("[Nexum] chat job failed", jobId, error);
   } finally {
     try {
+      if (lockHeartbeatResourceId) serverRuntime.releaseResource(lockHeartbeatResourceId);
       if (lockHeartbeat) clearInterval(lockHeartbeat);
       if (lockedProjectId) await releaseProjectLock(lockedProjectId, jobId);
     } catch (lockError) {
@@ -385,6 +398,9 @@ async function runChatJob(
 
 
 // Project managers are initialized lazily per authenticated user.
+
+process.once("SIGTERM", () => serverRuntime.shutdown());
+process.once("SIGINT", () => serverRuntime.shutdown());
 
 const configuredCorsOrigins = (process.env.NEXUM_CORS_ORIGINS || "")
   .split(",")
@@ -430,6 +446,8 @@ app.get("/api/diagnostics/latest", (req, res) => {
   const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : 100;
   return res.json({ success: true, generatedAt: new Date().toISOString(), events: getLatestDiagnostics(Number.isFinite(limit) ? limit : 100) });
 });
+
+app.get("/api/runtime/status", (_req, res) => { res.json({ success: true, lifecycle: serverRuntime.lifecycle, tasks: [...serverRuntime.tasks.values()], resources: serverRuntime.resources.size, processes: [...serverRuntime.processes.values()].map(p => ({ id: p.id, name: p.name, state: p.state, projectId: p.projectId })), diagnostics: serverRuntime.diagnostics.slice(-100) }); });
 
 app.get("/api/health", async (_req, res) => {
   const database = await pingDatabase();

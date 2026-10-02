@@ -28,6 +28,10 @@ jobs:
         run: npm --prefix apps/api run typecheck
       - name: Test API
         run: npm --prefix apps/api run test
+      - name: Test Web Runtime
+        run: npm --prefix apps/web run test:runtime
+      - name: Typecheck Web
+        run: npm --prefix apps/web run typecheck
       - name: Build Web
         run: npm --prefix apps/web run build
       - name: Lint Web
