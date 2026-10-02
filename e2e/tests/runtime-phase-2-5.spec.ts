@@ -112,7 +112,7 @@ test("network cancellation race leaves no active request or task", async ({ page
   await page.waitForTimeout(50);
   await page.evaluate((id) => (window as any).__NEXUM_E2E__.cancelNetworkTask(id), taskId);
   await page.evaluate((id) => (window as any).__NEXUM_E2E__.waitTask(id).catch(() => null), taskId);
-  h.disableFailure("DELAY_REQUEST");
+  await page.evaluate(() => (window as any).__NEXUM_E2E__.disableFailure("DELAY_REQUEST"));
   const status = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   const task = status.tasks.find((item: any) => item.id === taskId);
   expect(task.status).toBe("CANCELLED");
@@ -151,7 +151,7 @@ test("multi-project concurrency and isolation", async ({ page }) => {
     createStaticProject(page, "runtime-B"),
     createStaticProject(page, "runtime-C"),
   ]);
-  await page.evaluate((ids) => (window as any).__NEXUM_E2E__.runConcurrentTasks(ids, 15), projects);
+  await page.evaluate((ids) => { void (window as any).__NEXUM_E2E__.runConcurrentTasks(ids, 15); }, projects);\n  await page.waitForTimeout(60);
   const before = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   const projectTasks = before.tasks.filter((t: any) => t.status === "COMPLETED");
   expect(projectTasks.length).toBeGreaterThanOrEqual(15);
