@@ -6,7 +6,7 @@ export interface NexumE2EHarness {
   enableFailure: (scenario: FailureName, options?: { delayMs?: number; projectId?: string; taskId?: string }) => void;
   disableFailure: (scenario: FailureName) => void;
   resetFailures: () => void;
-  runNetworkTask: (projectId: string) => Promise<unknown>;
+  runNetworkTask: (projectId: string) => Promise<unknown>;\n  startNetworkTask: (projectId: string) => string;\n  waitTask: (taskId: string) => Promise<unknown>;
   cancelNetworkTask: (taskId: string) => void;
   runConcurrentTasks: (projectIds: string[], count?: number) => Promise<unknown>;
   startPreviewHealthCheck: () => Promise<boolean>;
@@ -14,7 +14,7 @@ export interface NexumE2EHarness {
   restart: () => Promise<void>;
 }
 
-export function installE2EHarness() {
+const pendingTasks = new Map<string, Promise<unknown>>();\n\nexport function installE2EHarness() {
   if (!(import.meta.env.DEV || import.meta.env.VITE_E2E === "true")) return;
 
   const harness: NexumE2EHarness = {
@@ -24,25 +24,37 @@ export function installE2EHarness() {
     resetFailures: () => failureInjection.resetFailures(),
 
     async runNetworkTask(projectId) {
+      const taskId = harness.startNetworkTask(projectId);
+      return harness.waitTask(taskId);
+    },
+
+    startNetworkTask(projectId) {
       const task = nexumRuntime.tasks.create({ projectId, operation: "e2e-network", maxRetries: 2 });
       nexumRuntime.tasks.update(task.id, "RUNNING");
       nexumRuntime.tasks.onCancel(task.id, () => nexumRuntime.network.cancelTask(task.id));
-      try {
-        const response = await nexumRuntime.network.fetch("/api/health?runtime-e2e=1", {
-          projectId,
-          taskId: task.id,
-          operation: "e2e-network",
-          retries: 2,
-          retryBaseMs: 25,
-        });
+      const pending = nexumRuntime.network.fetch("/api/health?runtime-e2e=1", {
+        projectId,
+        taskId: task.id,
+        operation: "e2e-network",
+        retries: 2,
+        retryBaseMs: 25,
+      }).then(response => {
         nexumRuntime.tasks.update(task.id, response.ok ? "COMPLETED" : "FAILED", { progress: 1 });
         return { taskId: task.id, ok: response.ok, status: response.status };
-      } catch (error) {
+      }).catch(error => {
         if (nexumRuntime.tasks.get(task.id)?.status !== "CANCELLED") {
           nexumRuntime.tasks.update(task.id, "FAILED", { error: error instanceof Error ? error.message : String(error) });
         }
         throw error;
-      }
+      });
+      pendingTasks.set(task.id, pending);
+      void pending.finally(() => pendingTasks.delete(task.id));
+      return task.id;
+    },
+
+    waitTask(taskId) {
+      const pending = pendingTasks.get(taskId);
+      return pending ?? Promise.resolve(nexumRuntime.tasks.get(taskId));
     },
 
     cancelNetworkTask(taskId) {
