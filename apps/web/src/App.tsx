@@ -257,6 +257,19 @@ function App() {
   }, [activeПроектId]);
 
   useEffect(() => {
+    if (!activeПроектId) { void nexumRuntime.preview.stop(); return; }
+    const projectId = activeПроектId;
+    nexumRuntime.preview.attach({
+      start: async () => { const response = await nexumRuntime.network.fetch(`/api/projects/${encodeURIComponent(projectId)}/preview/status`, { projectId, operation: "preview-start" }); if (!response.ok) throw new Error(`Preview status HTTP ${response.status}`); const data = await response.json() as { online?: boolean }; if (!data.online) throw new Error("Preview offline"); },
+      health: async () => { const response = await nexumRuntime.network.fetch(`/api/projects/${encodeURIComponent(projectId)}/preview/status`, { projectId, operation: "preview-health" }); if (!response.ok) return false; const data = await response.json() as { online?: boolean }; return Boolean(data.online); },
+      stop: async () => { /* Preview server ownership remains backend-managed; manager stops its monitor here. */ },
+      restart: async () => { setПредпросмотрKey(key => key + 1); }
+    });
+    void nexumRuntime.preview.start({ projectId, operation: "preview" });
+    return () => { void nexumRuntime.preview.stop(); };
+  }, [activeПроектId]);
+
+  useEffect(() => {
     if (!activeПроектId) return;
     nexumRuntime.network.fetch(`/api/projects/${encodeURIComponent(activeПроектId)}/preview/status`).then(async (response) => {
       if (!response.ok) return;
