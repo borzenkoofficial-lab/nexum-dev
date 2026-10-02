@@ -28,6 +28,7 @@ export default defineConfig({
         AI_PROVIDER: "ollama",
         OLLAMA_BASE_URL: "http://127.0.0.1:11434",
         NEXUM_E2E_FAILURE_INJECTION: "true",
+        NEXUM_DATABASE_URL: "postgresql://nexum:nexum@127.0.0.1:5432/nexum",
       },
     },
     {
