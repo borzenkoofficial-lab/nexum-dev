@@ -27,7 +27,7 @@ export class DockerSandbox {
     return this.workspaceRoot;
   }
 
-  async run(request: SandboxRequest): Promise<SandboxResult> {
+  async run(request: SandboxRequest, signal?: AbortSignal): Promise<SandboxResult> {
     const startedAt = Date.now();
     const baseResult = {
       command: request.command,
@@ -62,6 +62,7 @@ export class DockerSandbox {
         request.command,
         timeoutMs,
         containerName,
+        signal,
       );
       return this.finish(result, startedAt, result.success);
     } catch (error) {
@@ -153,6 +154,7 @@ export class DockerSandbox {
     requestedCommand: string,
     timeoutMs: number,
     containerName: string,
+    signal?: AbortSignal,
   ): Promise<SandboxResult> {
     const dockerArgs = [
       "run",
@@ -193,6 +195,8 @@ export class DockerSandbox {
       let timedOut = false;
       let outputLimitReached = false;
       const processId = this.runtime?.registerProcess(`docker:${requestedCommand}`, child, { ...this.context, operation: requestedCommand });
+      const abort = () => { if (child.exitCode === null) { child.kill("SIGTERM"); void this.removeContainer(containerName); } };
+      if (signal) { if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true }); }
 
       const append = (target: "stdout" | "stderr", chunk: Buffer): void => {
         if (outputLimitReached) return;
@@ -221,6 +225,7 @@ export class DockerSandbox {
       child.on("error", (error) => {
         clearTimeout(timer);
         if (processId) this.runtime?.completeProcess(processId);
+        signal?.removeEventListener("abort", abort);
         this.log(requestedCommand, null, Date.now(), false);
         resolveResult({ success: false, exitCode: null, stdout, stderr: `${stderr}${error.message}`, durationMs: 0, command: requestedCommand, error: "Docker is not available" });
       });
@@ -229,6 +234,7 @@ export class DockerSandbox {
         clearTimeout(timer);
         if (processId) this.runtime?.completeProcess(processId);
         if (processId) this.runtime?.completeProcess(processId);
+        signal?.removeEventListener("abort", abort);
         const success = exitCode === 0 && !timedOut && !outputLimitReached;
         const error = timedOut
           ? "Sandbox timeout"
