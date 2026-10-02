@@ -65,7 +65,7 @@ test("boot, runtime inspection and browser-visible navigation", async ({ page })
 
 test("network failure recovers with bounded retries and stable request identity", async ({ page }) => {
   await page.goto("/");
-  h.enableFailure("FAIL_NETWORK", { projectId: "A" });
+  await page.evaluate(() => (window as any).__NEXUM_E2E__.enableFailure("FAIL_NETWORK", { projectId: "A" }));
   const resultPromise = page.evaluate(async () => {
     const h = (window as any).__NEXUM_E2E__;
     const disable = () => h.disableFailure("FAIL_NETWORK");
@@ -86,7 +86,7 @@ test("network failure recovers with bounded retries and stable request identity"
 
 test("network cancellation race leaves no active request or task", async ({ page }) => {
   await page.goto("/");
-  h.enableFailure("DELAY_REQUEST", { delayMs: 500, projectId: "race" });
+  await page.evaluate(() => (window as any).__NEXUM_E2E__.enableFailure("DELAY_REQUEST", { delayMs: 500, projectId: "race" }));
   const taskId = await page.evaluate(() => (window as any).__NEXUM_E2E__.startNetworkTask("race"));
   await page.waitForTimeout(50);
   await page.evaluate((id) => (window as any).__NEXUM_E2E__.cancelNetworkTask(id), taskId);
