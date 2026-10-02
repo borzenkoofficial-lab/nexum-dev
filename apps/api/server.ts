@@ -436,6 +436,8 @@ app.get("/api/diagnostics/latest", (req, res) => {
   return res.json({ success: true, generatedAt: new Date().toISOString(), events: getLatestDiagnostics(Number.isFinite(limit) ? limit : 100) });
 });
 
+app.get("/api/runtime/status", (_req, res) => { res.json({ success: true, lifecycle: serverRuntime.lifecycle, tasks: [...serverRuntime.tasks.values()], resources: serverRuntime.resources.size, processes: [...serverRuntime.processes.values()].map(p => ({ id: p.id, name: p.name, state: p.state, projectId: p.projectId })), diagnostics: serverRuntime.diagnostics.slice(-100) }); });
+
 app.get("/api/health", async (_req, res) => {
   const database = await pingDatabase();
   res.json({
