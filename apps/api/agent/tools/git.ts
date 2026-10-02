@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { dirname } from "node:path";
 import type { Tool, ToolResult } from "../types.js";
+import type { ServerRuntime } from "../../runtime/runtime.js";
 
 export type GitOperation = "status" | "diff" | "diff-stat" | "log" | "branch";
 
@@ -29,6 +30,8 @@ export class GitTool implements Tool {
   constructor(
     private readonly projectRoot: string,
     private readonly timeoutMs = DEFAULT_TIMEOUT_MS,
+    private readonly runtime?: ServerRuntime,
+    private readonly context: { projectId?: string; taskId?: string } = {},
   ) {}
 
   async execute(input: string): Promise<GitToolResult> {
@@ -58,6 +61,7 @@ export class GitTool implements Tool {
       let outputBytes = 0;
       let timedOut = false;
       let outputLimitReached = false;
+      const processId = this.runtime?.registerProcess(`git:${operation}`, child, { ...this.context, operation });
 
       const append = (target: "stdout" | "stderr", chunk: Buffer): void => {
         if (outputLimitReached) return;
@@ -86,6 +90,7 @@ export class GitTool implements Tool {
 
       child.on("error", (error) => {
         clearTimeout(timer);
+        if (processId) this.runtime?.completeProcess(processId);
         this.log(operation, null, false);
         resolveResult({
           success: false,
@@ -99,6 +104,7 @@ export class GitTool implements Tool {
 
       child.on("close", (exitCode) => {
         clearTimeout(timer);
+        if (processId) this.runtime?.completeProcess(processId);
         const success = exitCode === 0 && !timedOut;
         this.log(operation, exitCode, success);
         resolveResult({
