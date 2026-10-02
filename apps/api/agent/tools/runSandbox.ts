@@ -1,6 +1,7 @@
 import type { Tool, ToolResult } from "../types.js";
 import { DockerSandbox } from "../../sandbox/dockerSandbox.js";
 import type { SandboxRequest, SandboxResult } from "../../sandbox/types.js";
+import type { ServerRuntime } from "../../runtime/runtime.js";
 
 export interface RunSandboxResult extends SandboxResult, ToolResult {}
 
@@ -10,8 +11,8 @@ export class RunSandboxTool implements Tool {
 
   private readonly sandbox: DockerSandbox;
 
-  constructor(projectRoot: string) {
-    this.sandbox = new DockerSandbox(projectRoot);
+  constructor(projectRoot: string, runtime?: ServerRuntime, context: { projectId?: string; taskId?: string } = {}) {
+    this.sandbox = new DockerSandbox(projectRoot, undefined, runtime, context);
   }
 
   async execute(input: string): Promise<RunSandboxResult> {
