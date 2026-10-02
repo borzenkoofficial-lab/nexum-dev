@@ -67,6 +67,12 @@ export function installE2EHarness() {
       nexumRuntime.tasks.cancel(taskId);
     },
 
+    cancelProject(projectId) {
+      nexumRuntime.network.cancelProject(projectId);
+      nexumRuntime.tasks.cancelByProject(projectId);
+      nexumRuntime.resources.releaseByContext(projectId);
+    },
+
     async runConcurrentTasks(projectIds, count = 12) {
       const jobs = Array.from({ length: count }, (_, index) => {
         const projectId = projectIds[index % projectIds.length] ?? projectIds[0] ?? "e2e";
