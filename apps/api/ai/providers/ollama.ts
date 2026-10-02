@@ -38,6 +38,7 @@ export class OllamaProvider implements AIProvider {
     const selectedModel = this.validateModel(model);
     const data = await this.request<OllamaChatResponse>("/api/chat", {
       method: "POST",
+      signal: options.signal,
       body: JSON.stringify({
         model: selectedModel,
         messages: [{ role: "user", content: message }],
