@@ -136,6 +136,23 @@ export async function updateChatJob(id: string, userId: string, patch: Partial<C
   return result.rows[0] ? decode(result.rows[0]) : null;
 }
 
+export async function cancelChatJob(id: string, userId: string, message = "Agent task cancelled by user."): Promise<ChatJob | null> {
+  await ensureTable();
+  const result = await query(
+    `UPDATE agent_chat_jobs
+        SET status='cancelled',
+            updated_at=$3,
+            payload=jsonb_set(
+              jsonb_set(payload, '{stage}', '"error"'::jsonb, true),
+              '{error}', to_jsonb($4::text), true
+            )
+      WHERE id=$1 AND user_id=$2 AND status IN ('queued','running')
+      RETURNING *`,
+    [id, userId, Date.now(), message],
+  );
+  return result.rows[0] ? decode(result.rows[0]) : null;
+}
+
 export async function listChatJobs(userId?: string, limit = 20): Promise<ChatJob[]> {
   await ensureTable();
   const safeLimit = Math.min(Math.max(limit, 1), 100);
