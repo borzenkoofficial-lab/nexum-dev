@@ -26,6 +26,7 @@ import { ValidateProjectTool } from "./tools/validateProject.js";
 import { PatchFileTool } from "./tools/patchFile.js";
 import { TestProjectTool } from "./tools/testProject.js";
 import { buildAgentContext, formatAgentContext } from "./context.js";
+import type { ServerRuntime } from "../runtime/runtime.js";
 import { assertCompleteToolPolicy, validateToolInvocation } from "./toolPolicy.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -37,6 +38,8 @@ export class NexumAgent implements AgentRuntime {
   constructor(
     private readonly gateway: AIGateway,
     public readonly projectRoot = defaultProjectRoot,
+    private readonly serverRuntime?: ServerRuntime,
+    private readonly runtimeContext: { projectId?: string; taskId?: string } = {},
   ) {
     this.orchestrator = new AIOrchestrator(gateway);
     const workspace = new ProjectWorkspace(projectRoot);
@@ -49,9 +52,9 @@ export class NexumAgent implements AgentRuntime {
       new PatchFileTool(workspace),
       new TestProjectTool(workspace),
       new SearchFilesTool(workspace),
-      new RunCommandTool(projectRoot),
-      new RunSandboxTool(projectRoot),
-      new GitTool(projectRoot),
+      new RunCommandTool(projectRoot, 120_000, serverRuntime, runtimeContext),
+      new RunSandboxTool(projectRoot, serverRuntime, runtimeContext),
+      new GitTool(projectRoot, 30_000, serverRuntime, runtimeContext),
       new GitHubTool(projectRoot),
     ];
     assertCompleteToolPolicy(tools.map((tool) => tool.name));
