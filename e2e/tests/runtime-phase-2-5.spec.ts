@@ -160,8 +160,9 @@ test("multi-project concurrency and isolation", async ({ page }) => {
   await page.evaluate((id) => {
     const h = (window as any).__NEXUM_E2E__;
     h.enableFailure("DELAY_TASK", { delayMs: 250, projectId: id });
-    return h.runConcurrentTasks([id], 4);
+    void h.runConcurrentTasks([id], 4);
   }, projects[0]);
+  await page.waitForTimeout(40);
   await page.evaluate((id) => (window as any).__NEXUM_E2E__.cancelProject(id), projects[0]);
   const after = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   expect(after.tasks.filter((t: any) => t.projectId === projects[0] && ["RUNNING", "QUEUED"].includes(t.status))).toHaveLength(0);
