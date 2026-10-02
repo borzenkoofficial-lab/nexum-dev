@@ -1,0 +1,40 @@
+import { defineConfig, devices } from "@playwright/test";
+
+export default defineConfig({
+  testDir: "./tests",
+  fullyParallel: false,
+  workers: 1,
+  retries: process.env.CI ? 1 : 0,
+  timeout: 45_000,
+  reporter: [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
+  use: {
+    baseURL: "http://127.0.0.1:5173",
+    browserName: "chromium",
+    ...devices["Desktop Chrome"],
+    screenshot: "only-on-failure",
+    trace: "retain-on-failure",
+    video: "on-first-retry",
+  },
+  webServer: [
+    {
+      command: "cd .. && npm --prefix apps/api run dev",
+      url: "http://127.0.0.1:3001/api/runtime/status",
+      timeout: 120_000,
+      reuseExistingServer: !process.env.CI,
+      env: {
+        NODE_ENV: "test",
+        NEXUM_AUTH_ENABLED: "false",
+        NEXUM_AUTH_SECRET: "nexum-e2e-runtime-secret-000000000000000000000000",
+        AI_PROVIDER: "ollama",
+        OLLAMA_BASE_URL: "http://127.0.0.1:11434",
+        NEXUM_E2E_FAILURE_INJECTION: "true",
+      },
+    },
+    {
+      command: "cd .. && VITE_E2E=true npm --prefix apps/web run dev -- --host 127.0.0.1",
+      url: "http://127.0.0.1:5173",
+      timeout: 120_000,
+      reuseExistingServer: !process.env.CI,
+    },
+  ],
+});
