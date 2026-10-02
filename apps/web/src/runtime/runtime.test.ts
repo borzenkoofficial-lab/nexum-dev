@@ -1,5 +1,6 @@
 /// <reference types="node" />
-import { test, strict as assert } from "node:test";
+import { test } from "node:test";
+import assert from "node:assert/strict";
 import { RuntimeEventBus } from "./EventBus.ts";
 import { RuntimeDiagnostics } from "./Diagnostics.ts";
 import { ResourceManager } from "./ResourceManager.ts";
