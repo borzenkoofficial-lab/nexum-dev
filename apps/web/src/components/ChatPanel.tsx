@@ -15,6 +15,7 @@ interface ChatPanelProps {
   aiStatus: AIProviderStatus | null;
   onMessageChange: (message: string) => void;
   onSubmit: () => void;
+  onCancel: () => void;
   onRetry: () => void;
   onQuickTask: (task: string) => void;
   onFilesSelected: (files: File[]) => void;
@@ -28,7 +29,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({
   message, reply, stage, apiError, messages, attachments, providers, models, provider, model, aiStatus,
-  onMessageChange, onSubmit, onRetry, onQuickTask, onFilesSelected, onRemoveAttachment, onOpenAgent,
+  onMessageChange, onSubmit, onCancel, onRetry, onQuickTask, onFilesSelected, onRemoveAttachment, onOpenAgent,
   onProviderChange, onModelChange, projectName,
 }: ChatPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -105,7 +106,7 @@ export function ChatPanel({
         <div className={"agent-activity agent-activity-live " + (busy ? "active" : "")} aria-live="polite">
           <span className={"activity-dot " + (busy ? "working" : "")} />
           <div className="activity-copy"><strong>{busy ? "NEXUM выполняет задачу" : "Готов к следующей задаче"}</strong><span>{busy ? "Откройте Agent справа для деталей" : "Опишите следующую итерацию ниже"}</span></div>
-          <button type="button" onClick={onOpenAgent}>Открыть</button>
+          <button type="button" onClick={onOpenAgent}>Открыть</button>{busy && <button type="button" className="composer-cancel" onClick={onCancel} aria-label="Отменить задачу Agent">Отменить</button>}
         </div>
       </div>
 
