@@ -1,5 +1,6 @@
 import { RuntimeDiagnostics } from "./Diagnostics.ts";
 import type { RuntimeContext } from "./types.ts";
+import { failureInjection } from "./FailureInjection.ts";
 
 export interface NetworkOptions extends RequestInit, RuntimeContext {
   timeoutMs?: number; retries?: number; dedupe?: boolean; retryBaseMs?: number;
@@ -29,6 +30,9 @@ export class NetworkManager {
     if (callerSignal?.aborted) throw new DOMException("Request cancelled","AbortError");
     if (key && this.inflight.has(key)) return this.inflight.get(key)!.then(r => r.clone());
     if (!this.online && /^https?:/i.test(url)) throw new Error("Network offline");
+    if (failureInjection.isEnabled("FAIL_NETWORK")) throw new Error("Injected network failure");
+    const injectedDelay = failureInjection.getDelay("DELAY_REQUEST");
+    if (injectedDelay > 0) await this.delay(injectedDelay, callerSignal);
 
     const p = this.execute(input, init, timeoutMs, retries, retryBaseMs, {projectId,taskId,operation}, callerSignal ?? undefined);
     if (key) this.inflight.set(key, p);
@@ -72,7 +76,7 @@ export class NetworkManager {
     throw last instanceof Error ? last : new Error(String(last));
   }
 
-  cancelTask(taskId:string) {
+  private delay(ms:number, signal?:AbortSignal) {\n    return new Promise<void>((resolve,reject)=>{\n      const timer=window.setTimeout(resolve,ms);\n      if(signal) {\n        const abort=()=>{window.clearTimeout(timer);reject(new DOMException("Request cancelled","AbortError"))};\n        if(signal.aborted) abort(); else signal.addEventListener("abort",abort,{once:true});\n      }\n    });\n  }\n\n  cancelTask(taskId:string) {
     for (const [id,r] of this.active) if (r.taskId===taskId) {
       r.controller.abort(); this.active.delete(id);
       this.diagnostics.info("NETWORK","Task requests cancelled",{taskId});
