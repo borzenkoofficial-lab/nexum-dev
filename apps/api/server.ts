@@ -165,6 +165,7 @@ function getAIGatewayForUser(userId: string): AIGateway {
 }
 
 const chatJobCache = new Map<string, ChatJob>();
+const chatJobControllers = new Map<string, AbortController>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
 
 async function persistChatJob(job: ChatJob): Promise<void> {
@@ -190,6 +191,7 @@ async function runChatJob(
   attachments: Array<{ name: string; type: string; size: number; content?: string; data?: string }>,
   conversation: Array<{ role: "user" | "assistant"; content: string }>,
   requestId?: string,
+  signal?: AbortSignal,
 ) {
   const runtimeTask = serverRuntime.createTask({ projectId, operation: "chat-job", priority: 10, maxRetries: 1 });
   serverRuntime.updateTask(runtimeTask.id, "RUNNING");
@@ -332,6 +334,7 @@ ${attachment.content.slice(0, 80_000)}`);
       },
     );
     const result = await agentLoop.run(agentMessage, {
+      ...(signal ? { signal } : {}),
       ...(provider === undefined ? {} : { provider }),
       ...(model === undefined ? {} : { model }),
     });
@@ -374,6 +377,16 @@ ${attachment.content.slice(0, 80_000)}`);
     serverRuntime.updateTask(runtimeTask.id, "COMPLETED", { progress: 1 });
     console.log("[Nexum] chat job completed", jobId);
   } catch (error) {
+    if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) {
+      job.status = "cancelled";
+      job.stage = "error";
+      job.error = "Agent task cancelled by user.";
+      job.updatedAt = Date.now();
+      await persistChatJob(job).catch(() => {});
+      void agentHistory.record({ type: "job-cancelled", jobId, projectId, provider, model, status: "cancelled", message: job.error });
+      serverRuntime.updateTask(runtimeTask.id, "CANCELLED", { error: job.error });
+      return;
+    }
     job.status = "failed";
     job.stage = "error";
     job.updatedAt = Date.now();
@@ -386,6 +399,7 @@ ${attachment.content.slice(0, 80_000)}`);
     serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: normalizedError.userSafeMessage });
     console.error("[Nexum] chat job failed", jobId, error);
   } finally {
+    chatJobControllers.delete(jobId);
     try {
       if (lockHeartbeatResourceId) serverRuntime.releaseResource(lockHeartbeatResourceId);
       if (lockHeartbeat) clearInterval(lockHeartbeat);
@@ -1050,6 +1064,8 @@ app.post("/api/chat", async (req, res) => {
 
     // Do not await the agent. The HTTP request returns immediately, avoiding
     // platform/proxy 504s while local Ollama or another provider is generating.
+    const controller = new AbortController();
+    chatJobControllers.set(jobId, controller);
     void runChatJob(
       jobId,
       message.trim(),
@@ -1060,6 +1076,7 @@ app.post("/api/chat", async (req, res) => {
       normalizedAttachments,
       normalizedConversation,
       getRequestId(req),
+      controller.signal,
     );
 
     return res.status(202).json({
@@ -1072,6 +1089,26 @@ app.post("/api/chat", async (req, res) => {
       error: error instanceof Error ? error.message : "Chat job creation failed",
     });
   }
+});
+
+app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
+  const userId = getAuthUser(req).id;
+  await cleanupChatJobs();
+  const job = await loadChatJob(req.params.id, userId);
+  if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired" });
+  if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
+    return res.json({ success: true, cancelled: job.status === "cancelled", job });
+  }
+  const controller = chatJobControllers.get(job.id);
+  if (!controller) {
+    const current = await updateChatJob(job.id, userId, { status: "cancelled", stage: "error", error: "Agent task cancelled before execution." });
+    chatJobCache.set(job.id, current ?? { ...job, status: "cancelled", stage: "error" });
+    return res.json({ success: true, cancelled: true, job: current ?? chatJobCache.get(job.id) });
+  }
+  controller.abort();
+  const cancelled = await updateChatJob(job.id, userId, { status: "cancelled", stage: "error", error: "Agent task cancelled by user." });
+  if (cancelled) chatJobCache.set(job.id, cancelled);
+  return res.json({ success: true, cancelled: true, job: cancelled });
 });
 
 app.get("/api/agent/history", async (req, res) => {
