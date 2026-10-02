@@ -478,6 +478,25 @@ function App() {
     window.setTimeout(() => void sendMessage(repairTask), 0);
   }
 
+  async function cancelAgent() {
+    const jobId = chatJobId;
+    if (!jobId) return;
+    try {
+      const response = await nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
+      const data = await response.json().catch(() => ({})) as { success?: boolean; job?: { status?: string; error?: string } };
+      if (!response.ok || !data.success) throw new Error(data.job?.error || `Cancel API: HTTP ${response.status}`);
+      setАгентStage("error");
+      setCurrentActivity("Agent отменён пользователем.");
+      setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
+      if (runtimeTaskId) nexumRuntime.tasks.cancel(runtimeTaskId);
+      setRuntimeTaskId(null);
+      setChatJobId(null);
+      pushOSEvent("info", "Agent cancelled", "Выполнение задачи остановлено пользователем.");
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Не удалось отменить Agent");
+    }
+  }
+
   async function sendMessage(task = message, projectIdOverride?: string) {
     const targetПроектId = projectIdOverride ?? activeПроектId;
     if (!task.trim() || !targetПроектId) return;
@@ -556,7 +575,7 @@ function App() {
           ? await response.json() as {
               success?: boolean;
               job?: {
-                status?: "queued" | "running" | "completed" | "failed";
+                status?: "queued" | "running" | "completed" | "failed" | "cancelled";
                 stage?: string;
                 reply?: string | null;
                 steps?: Array<{ iteration: number; tool: string; success: boolean }>;
@@ -630,6 +649,16 @@ function App() {
           setПредпросмотрKey((key) => key + 1);
           setАгентStage("completed");
           if (runtimeTaskId) nexumRuntime.tasks.update(runtimeTaskId, "COMPLETED", { progress: 1 });
+          setChatJobId(null);
+          setRuntimeTaskId(null);
+          return;
+        }
+
+        if (status === "cancelled") {
+          setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
+          setCurrentActivity(data?.job?.error ?? "Agent отменён.");
+          setАгентStage("error");
+          if (runtimeTaskId) nexumRuntime.tasks.cancel(runtimeTaskId);
           setChatJobId(null);
           setRuntimeTaskId(null);
           return;
@@ -1032,7 +1061,7 @@ function App() {
           <div className="os-workspace-layer" aria-hidden={codeMode}>
             <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}${mobileToolOpen ? " mobile-tool-open" : " mobile-chat-open"}`}>
               <div className="main-column">
-                <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => { setRightTab("agent"); setMobileToolOpen(true); setWorkspaceMode("agent"); }} onProviderChange={selectAIProvider} onModelChange={setAIModel} />
+                <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onCancel={() => void cancelAgent()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => { setRightTab("agent"); setMobileToolOpen(true); setWorkspaceMode("agent"); }} onProviderChange={selectAIProvider} onModelChange={setAIModel} />
               </div>
               <RightPanel tab={rightTab} onTabChange={(tab) => { setRightTab(tab); setMobileToolOpen(true); setWorkspaceMode(tab); }} onOpenChat={() => setMobileToolOpen(false)} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onRepair={repairLastTask} />
             </div>
