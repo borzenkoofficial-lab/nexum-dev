@@ -3,6 +3,7 @@ import { isAbsolute } from "node:path";
 import type { Tool } from "../types.js";
 import type { ToolResult } from "../types.js";
 import { resolveProjectPath } from "./path.js";
+import type { ServerRuntime } from "../../runtime/runtime.js";
 
 export interface RunCommandResult extends ToolResult {
   exitCode: number | null;
@@ -32,6 +33,8 @@ export class RunCommandTool implements Tool {
   constructor(
     private readonly projectRoot: string,
     private readonly timeoutMs = DEFAULT_TIMEOUT_MS,
+    private readonly runtime?: ServerRuntime,
+    private readonly context: { projectId?: string; taskId?: string } = {},
   ) {}
 
   async execute(input: string): Promise<RunCommandResult> {
@@ -180,6 +183,7 @@ export class RunCommandTool implements Tool {
       let outputBytes = 0;
       let timedOut = false;
       let outputLimitReached = false;
+      const processId = this.runtime?.registerProcess(`runCommand:${command.slice(0, 120)}`, child, { ...this.context, operation: command });
 
       const append = (target: "stdout" | "stderr", chunk: Buffer): void => {
         if (outputLimitReached) return;
@@ -208,6 +212,7 @@ export class RunCommandTool implements Tool {
 
       child.on("error", (error) => {
         clearTimeout(timer);
+        if (processId) this.runtime?.completeProcess(processId);
         resolveResult({
           success: false,
           exitCode: null,
@@ -220,6 +225,7 @@ export class RunCommandTool implements Tool {
 
       child.on("close", (exitCode) => {
         clearTimeout(timer);
+        if (processId) this.runtime?.completeProcess(processId);
         const success = exitCode === 0 && !timedOut && !outputLimitReached;
         resolveResult({
           success,
