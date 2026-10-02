@@ -105,6 +105,9 @@ export class OllamaProvider implements AIProvider {
   private async request<T>(path: string, init: RequestInit): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const callerSignal = (init as RequestInit).signal;
+    const abortFromCaller = () => controller.abort(callerSignal?.reason);
+    if (callerSignal) { if (callerSignal.aborted) abortFromCaller(); else callerSignal.addEventListener("abort", abortFromCaller, { once: true }); }
 
     try {
       const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
@@ -137,6 +140,7 @@ export class OllamaProvider implements AIProvider {
       throw new Error("Ollama is unavailable");
     } finally {
       clearTimeout(timeout);
+      callerSignal?.removeEventListener("abort", abortFromCaller);
     }
   }
 
