@@ -35,6 +35,7 @@ export class AnthropicProvider implements AIProvider {
   async generate(message: string, model = this.model, options: AIGenerateOptions = {}): Promise<string> {
     const data = await this.request<AnthropicResponse>("/messages", {
       method: "POST",
+      signal: options.signal,
       body: JSON.stringify({
         model: this.validateModel(model),
         max_tokens: Math.max(1, options.maxTokens ?? 4096),
