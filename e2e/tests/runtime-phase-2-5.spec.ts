@@ -124,6 +124,7 @@ test("preview health failure is bounded and recovers when real preview is availa
   const recovered = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   expect(recovered.preview.state).toBe("READY");
   expect(recovered.preview.restartCount).toBeGreaterThanOrEqual(1);
+  expect(["READY", "DEGRADED"]).toContain(recovered.lifecycle);
   expect(recovered.diagnostics.some((d: any) => d.subsystem === "PREVIEW")).toBeTruthy();
 
   await page.evaluate(() => (window as any).__NEXUM_E2E__.disableFailure("FAIL_PREVIEW"));
@@ -160,7 +161,47 @@ test("multi-project concurrency and isolation", async ({ page }) => {
   expect(after.tasks.filter((t: any) => t.projectId === projects[2] && ["RUNNING", "COMPLETED"].includes(t.status)).length).toBeGreaterThan(0);
 });
 
-test("corrupted persisted state safely falls back after hard reload", async ({ page }) => {
+
+
+test("preview recovery failure reaches bounded FAILED state without crashing Runtime", async ({ page }) => {
+  await page.goto("/");
+  const projectId = await createStaticProject(page, "runtime-preview-recovery-limit");
+  await page.request.post(`/api/projects/${encodeURIComponent(projectId)}/select`);
+  await page.goto("/");
+  await page.waitForFunction(() => (window as any).__NEXUM_E2E__?.status?.().preview.state !== "STOPPED");
+
+  await page.evaluate((id) => {
+    const h = (window as any).__NEXUM_E2E__;
+    h.enableFailure("FAIL_PREVIEW", { projectId: id });
+    h.enableFailure("FORCE_PREVIEW_RESTART", { projectId: id });
+  }, projectId);
+
+  for (let i = 0; i < 4; i++) {
+    await page.evaluate(() => (window as any).__NEXUM_E2E__.startPreviewHealthCheck());
+  }
+
+  const status = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
+  expect(status.preview.state).toBe("FAILED");
+  expect(status.preview.restartCount).toBe(3);
+  expect(status.lifecycle).toBe("DEGRADED");
+  expect(status.diagnostics.some((d: any) => d.subsystem === "PREVIEW" && d.message.includes("restart limit"))).toBeTruthy();
+});
+
+test("real browser main thread pressure drives Visual Runtime performance degradation and recovers", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const end = performance.now() + 1600;
+    while (performance.now() < end) Math.sqrt(Math.random() * 1_000_000);
+  });
+  await page.waitForTimeout(100);
+  const degraded = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
+  expect(["CRITICAL", "DEGRADED"]).toContain(degraded.performance.health);
+
+  await page.waitForFunction(() => (window as any).__NEXUM_E2E__.status().performance.health === "NORMAL", undefined, { timeout: 5_000 });
+  const recovered = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
+  expect(recovered.performance.health).toBe("NORMAL");
+});
+\ntest("corrupted persisted state safely falls back after hard reload", async ({ page }) => {
   await page.goto("/");
   await page.addInitScript(() => localStorage.setItem("nexum:runtime:snapshot:v1", "{corrupted"));
   await page.reload();
