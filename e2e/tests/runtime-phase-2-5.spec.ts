@@ -201,7 +201,8 @@ test("real browser main thread pressure drives Visual Runtime performance degrad
   const recovered = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   expect(recovered.performance.health).toBe("NORMAL");
 });
-\ntest("corrupted persisted state safely falls back after hard reload", async ({ page }) => {
+
+test("corrupted persisted state safely falls back after hard reload", async ({ page }) => {
   await page.goto("/");
   await page.addInitScript(() => localStorage.setItem("nexum:runtime:snapshot:v1", "{corrupted"));
   await page.reload();
