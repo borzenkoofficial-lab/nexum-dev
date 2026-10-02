@@ -873,7 +873,7 @@ app.get("/api/projects/:id/git/:operation", async (req, res) => {
     if (!["status", "diff", "diff-stat", "log", "branch"].includes(operation)) {
       return res.status(400).json({ success: false, error: "Unsupported Git operation" });
     }
-    const result = await new GitTool(resolve(project.path)).execute(operation);
+    const result = await new GitTool(resolve(project.path), 30_000, serverRuntime, { projectId: project.id }).execute(operation);
     return res.status(result.success ? 200 : 422).json({
       success: result.success,
       operation: result.operation,
