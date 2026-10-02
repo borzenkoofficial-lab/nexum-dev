@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test:runtime": "node --experimental-strip-types --test src/runtime/runtime.test.ts"
+    "test:runtime": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/runtime/runtime.test.ts"
   },
   "dependencies": {
     "react": "^19.2.8",
