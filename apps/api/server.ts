@@ -261,28 +261,20 @@ ${attachment.content.slice(0, 80_000)}`);
     const compactConversation = conversation
       .slice(-8)
       .map((item) => `${item.role === "user" ? "Пользователь" : "NEXUM"}: ${item.content.slice(0, 900)}`)
-      .join("
-");
+      .join("\n");
     const projectContext = [
       "PROJECT CONTEXT LOCK:",
       `Текущий проект: «${project.name}»`,
       `ID проекта: ${project.id}`,
       "Все действия, файлы, команды и ответы относятся ТОЛЬКО к этому проекту.",
       "Не переносить файлы, дизайн, контент или предположения из других проектов.",
-      compactConversation ? `Последние сообщения ЭТОГО проекта:
-${compactConversation}` : "Предыдущих сообщений в этом проекте нет.",
-    ].join("
-");
+      compactConversation ? `Последние сообщения ЭТОГО проекта:\n${compactConversation}` : "Предыдущих сообщений в этом проекте нет.",
+    ].join("\n");
     const agentMessage = [
       projectContext,
       message,
-      attachmentContext.length ? `ATTACHED FILES:
-${attachmentContext.join("
-
-")}` : "",
-    ].filter(Boolean).join("
-
-");
+      attachmentContext.length ? `ATTACHED FILES:\n${attachmentContext.join("\n\n")}` : "",
+    ].filter(Boolean).join("\n\n");
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const userGateway = getAIGatewayForUser(userId);
     const agent = new NexumAgent(userGateway, project.path);
