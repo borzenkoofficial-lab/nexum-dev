@@ -76,7 +76,7 @@ export function installE2EHarness() {
     },
 
     forceVisualHealth(health) { failureInjection.enableFailure(health === "CRITICAL" ? "FORCE_VISUAL_CRITICAL" : "FORCE_VISUAL_NORMAL"); nexumRuntime.performance.setHealthForTest(health); },
-    resetVisualHealth() { failureInjection.disableFailure("FORCE_VISUAL_CRITICAL"); failureInjection.disableFailure("FORCE_VISUAL_NORMAL"); failureInjection.enableFailure("FORCE_VISUAL_NORMAL"); nexumRuntime.performance.setHealthForTest("NORMAL"); },
+    resetVisualHealth() { failureInjection.disableFailure("FORCE_VISUAL_CRITICAL"); failureInjection.disableFailure("FORCE_VISUAL_NORMAL"); nexumRuntime.performance.setHealthForTest("NORMAL"); },
 
     async runConcurrentTasks(projectIds, count = 12) {
       const jobs = Array.from({ length: count }, (_, index) => {
