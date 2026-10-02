@@ -333,6 +333,12 @@ ${attachment.content.slice(0, 80_000)}`);
         model,
       },
     );
+    if (process.env.NODE_ENV !== "production" && Number(process.env.NEXUM_E2E_AGENT_DELAY_MS || 0) > 0) {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, Number(process.env.NEXUM_E2E_AGENT_DELAY_MS));
+        signal?.addEventListener("abort", () => { clearTimeout(timer); reject(new DOMException("Agent task cancelled", "AbortError")); }, { once: true });
+      });
+    }
     const result = await agentLoop.run(agentMessage, {
       ...(signal ? { signal } : {}),
       ...(provider === undefined ? {} : { provider }),
