@@ -172,9 +172,7 @@ test("multi-project concurrency and isolation", async ({ page }) => {
 
 test("corrupted persisted state safely falls back after hard reload", async ({ page }) => {
   await page.goto("/");
-  await page.evaluate(() => {
-    localStorage.setItem("nexum:runtime:snapshot:v1", "{corrupted");
-  });
+  await page.addInitScript(() => localStorage.setItem("nexum:runtime:snapshot:v1", "{corrupted"));
   await page.reload();
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E__));
   const status = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
@@ -185,9 +183,13 @@ test("corrupted persisted state safely falls back after hard reload", async ({ p
 
 test("shutdown releases runtime resources and prevents active work", async ({ page }) => {
   await page.goto("/");
-  const h = await harness(page);
-  h.enableFailure("DELAY_TASK", { delayMs: 300 });
-  await page.evaluate(() => (window as any).__NEXUM_E2E__.runConcurrentTasks(["shutdown"], 10));
+  await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E__));
+  await page.evaluate(() => {
+    const h = (window as any).__NEXUM_E2E__;
+    h.enableFailure("DELAY_TASK", { delayMs: 300 });
+    void h.runConcurrentTasks(["shutdown"], 10);
+  });
+  await page.waitForTimeout(40);
   await page.evaluate(() => (window as any).__NEXUM_E2E__.shutdown());
   const status = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   expect(status.lifecycle).toBe("SHUTTING_DOWN");
