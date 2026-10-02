@@ -1,0 +1,16 @@
+
+import type { TaskRecord,TaskStatus,RuntimeContext } from "./types"; import { RuntimeEventBus } from "./EventBus"; import { RuntimeDiagnostics } from "./Diagnostics";
+export interface TaskOptions extends RuntimeContext { parentTaskId?:string;priority?:number;timeoutMs?:number;maxRetries?:number;dependencies?:string[]; }
+type InternalTask=TaskRecord & {_controller:AbortController};
+export class TaskManager {
+ private tasks=new Map<string,InternalTask>();
+ constructor(private bus:RuntimeEventBus,private diagnostics:RuntimeDiagnostics){}
+ create(options:TaskOptions={}):TaskRecord{const c=new AbortController();const id=crypto.randomUUID();const t:InternalTask={id,status:"QUEUED",childTaskIds:[],priority:options.priority??0,progress:0,createdAt:Date.now(),retryCount:0,maxRetries:options.maxRetries??2,dependencies:options.dependencies??[],cancel:()=>c.abort(),_controller:c,...options};this.tasks.set(id,t);this.bus.emit("task:created",t,t);return t}
+ controller(id:string){return this.tasks.get(id)?._controller.signal}
+ update(id:string,status:TaskStatus,patch:Partial<TaskRecord>={}){const t=this.tasks.get(id);if(!t)return;Object.assign(t,patch,{status});if(status==="RUNNING"&&!t.startedAt)t.startedAt=Date.now();if(status==="COMPLETED"||status==="FAILED"||status==="CANCELLED")t.completedAt=Date.now();this.bus.emit("task:"+status.toLowerCase(),t,t);return t}
+ get(id:string){return this.tasks.get(id)}
+ list(){return [...this.tasks.values()]}
+ async run<T>(fn:(signal:AbortSignal,task:TaskRecord)=>Promise<T>,options:TaskOptions={}):Promise<T>{const t=this.create(options);this.update(t.id,"PLANNING");try{if(t.dependencies.some(id=>this.tasks.get(id)?.status!=="COMPLETED"))throw new Error("Task dependency is not completed");this.update(t.id,"RUNNING");const timer=t.timeoutMs?window.setTimeout(()=>t.cancel(),t.timeoutMs):undefined;try{const result=await fn(t._controller.signal,t);this.update(t.id,"VALIDATING",{progress:1});this.update(t.id,"COMPLETED",{progress:1});return result}finally{if(timer)window.clearTimeout(timer)}}catch(e){if(t._controller.signal.aborted){this.update(t.id,"CANCELLED",{error:"Cancelled"});this.diagnostics.warn("TASK","Task cancelled",t)}else{this.update(t.id,"FAILED",{error:e instanceof Error?e.message:String(e)});this.diagnostics.error("TASK","Task failed",e,t,"bounded recovery")}throw e}}
+ cancel(id:string){const t=this.tasks.get(id);if(!t)return;t.cancel();this.update(id,"CANCELLED",{error:"Cancelled by user"})}
+ cancelByProject(projectId:string){for(const t of this.tasks.values())if(t.projectId===projectId&&!["COMPLETED","FAILED","CANCELLED"].includes(t.status))this.cancel(t.id)}
+}
