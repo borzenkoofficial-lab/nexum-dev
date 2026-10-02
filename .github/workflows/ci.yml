@@ -68,7 +68,7 @@ jobs:
       - name: Install Web
         run: npm ci --prefix apps/web
       - name: Prepare E2E database
-        run: NEXUM_DATABASE_URL=postgresql://nexum:nexum@127.0.0.1:5432/nexum npm --prefix apps/api run db:migrate
+        run: NEXUM_DATABASE_URL=postgresql://nexum:nexum@127.0.0.1:5432/nexum NEXUM_DB_SSL=false npm --prefix apps/api run db:migrate
       - name: Install E2E
         run: npm install --prefix e2e --no-audit --no-fund
       - name: Install Chromium
