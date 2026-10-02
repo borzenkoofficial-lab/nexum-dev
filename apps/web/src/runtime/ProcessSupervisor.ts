@@ -1,5 +1,5 @@
 
-import { RuntimeEventBus } from "./EventBus"; import { RuntimeDiagnostics } from "./Diagnostics";
+import { RuntimeEventBus } from "./EventBus.ts"; import { RuntimeDiagnostics } from "./Diagnostics.ts";
 type State="START"|"HEALTHY"|"UNHEALTHY"|"RESTARTING"|"STOPPED"|"FAILED";
 interface Process{ id:string;name:string;state:State;projectId?:string;stop:()=>void;restart?:()=>Promise<void>;health?:()=>Promise<boolean> }
 export class ProcessSupervisor{
