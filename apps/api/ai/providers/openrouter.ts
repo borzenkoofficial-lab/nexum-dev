@@ -186,6 +186,7 @@ export class OpenRouterProvider implements AIProvider {
       if (!response.ok) throw new Error(this.httpError(response.status));
       return (await response.json()) as T;
     } catch (error) {
+      if (callerSignal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (controller.signal.aborted) throw new Error("OpenRouter request timed out");
       if (error instanceof Error && error.message.startsWith("OpenRouter")) throw error;
       throw new Error("OpenRouter network error");
