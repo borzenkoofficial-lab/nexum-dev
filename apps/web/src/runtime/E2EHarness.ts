@@ -17,6 +17,8 @@ export interface NexumE2EHarness {
   restart: () => Promise<void>;
   forceVisualHealth: (health: "NORMAL" | "CRITICAL") => void;
   resetVisualHealth: () => void;
+  startVisualLoop: (id: string) => void;
+  stopVisualLoop: (id: string) => void;
 }
 
 const pendingTasks = new Map<string, Promise<unknown>>();
@@ -77,6 +79,8 @@ export function installE2EHarness() {
 
     forceVisualHealth(health) { failureInjection.enableFailure(health === "CRITICAL" ? "FORCE_VISUAL_CRITICAL" : "FORCE_VISUAL_NORMAL"); nexumRuntime.performance.setHealthForTest(health); },
     resetVisualHealth() { failureInjection.disableFailure("FORCE_VISUAL_CRITICAL"); failureInjection.disableFailure("FORCE_VISUAL_NORMAL"); nexumRuntime.performance.setHealthForTest("NORMAL"); },
+    startVisualLoop(id) { nexumRuntime.visual.registerAnimation(id, () => {}); },
+    stopVisualLoop(id) { nexumRuntime.visual.stopAnimation(id); },
 
     async runConcurrentTasks(projectIds, count = 12) {
       const jobs = Array.from({ length: count }, (_, index) => {
