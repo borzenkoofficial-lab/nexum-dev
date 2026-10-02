@@ -1,5 +1,5 @@
 
-import { RuntimeDiagnostics } from "./Diagnostics";
+import { RuntimeDiagnostics } from "./Diagnostics.ts";
 export type RecoveryClass="TRANSIENT"|"RECOVERABLE"|"RESOURCE"|"NETWORK"|"PROCESS"|"STATE"|"CODE"|"USER"|"FATAL";
 export class RecoveryCore{
  private diagnostics:RuntimeDiagnostics; constructor(diagnostics:RuntimeDiagnostics){this.diagnostics=diagnostics}
