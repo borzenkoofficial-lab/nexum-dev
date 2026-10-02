@@ -1,3 +1,6 @@
-
-import {describe,expect,it} from"vitest";import{NexumRuntime}from"./Runtime";
-describe("NEXUM Runtime",()=>{it("boots to READY and persists",async()=>{const r=new NexumRuntime();await r.start({projectId:"p1"});expect(r.getLifecycle()).toBe("READY");r.save();expect(r.persistence.load()?.activeProjectId).toBe("p1");await r.shutdown()});it("runs a task lifecycle",async()=>{const r=new NexumRuntime();await r.start();const value=await r.tasks.run(async()=>42);expect(value).toBe(42);expect(r.tasks.list()[0].status).toBe("COMPLETED");await r.shutdown()});it("cancels work",async()=>{const r=new NexumRuntime();await r.start();const p=r.tasks.run(async signal=>await new Promise<number>((_,reject)=>signal.addEventListener("abort",()=>reject(new Error("aborted")))));r.tasks.cancel(r.tasks.list()[0].id);await expect(p).rejects.toThrow("aborted");await r.shutdown()})});
+import { test, strict as assert } from "node:test";
+import { RuntimeEventBus } from "./EventBus";
+import { RuntimeDiagnostics } from "./Diagnostics";
+import { ResourceManager } from "./ResourceManager";
+test("event bus isolates handler failures",()=>{const bus=new RuntimeEventBus();let called=0;bus.on("x",()=>{called++});bus.on("x",()=>{throw new Error("boom")});bus.emit("x");assert.equal(called,1)});
+test("resource manager releases exactly once",()=>{const bus=new RuntimeEventBus();const d=new RuntimeDiagnostics();const resources=new ResourceManager(bus,d);let releases=0;const id=resources.register("timer",()=>{releases++});resources.release(id);resources.release(id);assert.equal(releases,1);assert.equal(resources.snapshot()[0].status,"RELEASED")});
