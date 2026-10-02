@@ -9,7 +9,9 @@ export type FailureName =
   | "DELAY_REQUEST"
   | "DELAY_TASK"
   | "FORCE_PREVIEW_RESTART"
-  | "FORCE_PROCESS_UNHEALTHY";
+  | "FORCE_PROCESS_UNHEALTHY"
+  | "FORCE_VISUAL_CRITICAL"
+  | "FORCE_VISUAL_NORMAL";
 
 export interface FailureRecord extends RuntimeContext {
   scenario: FailureName;
@@ -21,7 +23,7 @@ export interface FailureRecord extends RuntimeContext {
 const ALLOWED = new Set<FailureName>([
   "FAIL_NETWORK","FAIL_PREVIEW","FAIL_AGENT","FAIL_PROCESS",
   "FAIL_STATE_RESTORE","DELAY_REQUEST","DELAY_TASK",
-  "FORCE_PREVIEW_RESTART","FORCE_PROCESS_UNHEALTHY",
+  "FORCE_PREVIEW_RESTART","FORCE_PROCESS_UNHEALTHY","FORCE_VISUAL_CRITICAL","FORCE_VISUAL_NORMAL",
 ]);
 
 class FailureInjection {
