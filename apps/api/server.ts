@@ -25,7 +25,7 @@ import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
 import { pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
-import { acquireProjectLock, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
+import { acquireProjectLock, cancelChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
 
@@ -1105,15 +1105,13 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
     return res.json({ success: true, cancelled: job.status === "cancelled", job });
   }
-  const controller = chatJobControllers.get(job.id);
-  if (!controller) {
-    const current = await updateChatJob(job.id, userId, { status: "cancelled", stage: "error", error: "Agent task cancelled before execution." });
-    chatJobCache.set(job.id, current ?? { ...job, status: "cancelled", stage: "error" });
-    return res.json({ success: true, cancelled: true, job: current ?? chatJobCache.get(job.id) });
+  const cancelled = await cancelChatJob(job.id, userId);
+  if (!cancelled) {
+    const current = await loadChatJob(job.id, userId);
+    return res.json({ success: true, cancelled: current?.status === "cancelled", job: current });
   }
-  controller.abort();
-  const cancelled = await updateChatJob(job.id, userId, { status: "cancelled", stage: "error", error: "Agent task cancelled by user." });
-  if (cancelled) chatJobCache.set(job.id, cancelled);
+  chatJobCache.set(job.id, cancelled);
+  chatJobControllers.get(job.id)?.abort();
   return res.json({ success: true, cancelled: true, job: cancelled });
 });
 
