@@ -31,7 +31,7 @@ jobs:
       - name: Test Web Runtime
         run: npm --prefix apps/web run test:runtime
       - name: Typecheck Web
-        run: npm --prefix apps/web exec tsc -- --noEmit
+        run: npm --prefix apps/web run typecheck
       - name: Build Web
         run: npm --prefix apps/web run build
       - name: Lint Web
