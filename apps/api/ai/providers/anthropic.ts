@@ -35,6 +35,7 @@ export class AnthropicProvider implements AIProvider {
   async generate(message: string, model = this.model, options: AIGenerateOptions = {}): Promise<string> {
     const data = await this.request<AnthropicResponse>("/messages", {
       method: "POST",
+      signal: options.signal,
       body: JSON.stringify({
         model: this.validateModel(model),
         max_tokens: Math.max(1, options.maxTokens ?? 4096),
@@ -72,6 +73,9 @@ export class AnthropicProvider implements AIProvider {
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const callerSignal = (init as RequestInit).signal;
+    const abortFromCaller = () => controller.abort(callerSignal?.reason);
+    if (callerSignal) { if (callerSignal.aborted) abortFromCaller(); else callerSignal.addEventListener("abort", abortFromCaller, { once: true }); }
     try {
       const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
         ...init,
@@ -81,6 +85,7 @@ export class AnthropicProvider implements AIProvider {
       if (!response.ok) throw new Error(this.httpError(response.status));
       return (await response.json()) as T;
     } catch (error) {
+      if (callerSignal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (controller.signal.aborted) throw new Error("Anthropic request timed out");
       if (error instanceof Error && error.message.startsWith("Anthropic")) throw error;
       throw new Error("Anthropic network error");

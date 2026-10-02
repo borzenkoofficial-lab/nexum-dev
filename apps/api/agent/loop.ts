@@ -37,6 +37,13 @@ const MAX_COMPACT_HISTORY_ITEMS = 8;
 const MAX_COMPACT_INPUT_CHARS = 320;
 const MAX_COMPACT_OUTPUT_CHARS = 520;
 
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
+}
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError" || error instanceof Error && error.name === "AbortError";
+}
+
 export function compactAgentHistory(results: AgentToolResult[]): AgentToolResult[] {
   if (results.length === 0) return [];
 
@@ -180,6 +187,7 @@ export class AgentLoop {
     emit({ iteration: 0, type: "thinking", phase: "analyze", message: "Принял запрос. Анализирую проект и выбираю следующий шаг." });
 
     for (let iteration = 1; iteration <= this.maxIterations; iteration += 1) {
+      throwIfAborted(options?.signal);
       const availableTools = this.runtime.getAvailableTools();
       transition(phaseAfterIteration(phase, previousResults.length > 0));
 
@@ -214,6 +222,7 @@ export class AgentLoop {
           this.onPlan?.(productPlan);
           emit({ iteration, type: "thinking", message: `План готов: ${productPlan.productType}; ${productPlan.pages.length} экранов; ${productPlan.acceptanceCriteria.length} критериев проверки.` });
         } catch (error) {
+        if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
           const normalizedError = toNexumError(error, "MODEL_ERROR", "Не удалось сформировать план проекта.");
       emit({ iteration, type: "tool-error", tool: "Product Planner", message: normalizedError.userSafeMessage, errorCode: normalizedError.code, retryable: normalizedError.retryable });
         }
@@ -243,6 +252,7 @@ export class AgentLoop {
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           modelPlan = await this.runtime.planWithAI(task, compactHistory, aiOptions as AgentModelOptions, productPlan ?? undefined);
         } catch (error) {
+        if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
           const message = error instanceof Error ? error.message : "AI planning failed";
           if (/(?:rate limit|rate-limit|too many requests|429)/i.test(message)) {
             remotePlannerRateLimited = true;
@@ -725,6 +735,7 @@ export class AgentLoop {
       try {
         result = await this.runtime.executeTool(plan.tool, plan.input);
       } catch (error) {
+        if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
         const normalized = toNexumError(error, "TOOL_ERROR", "Инструмент агента завершился с ошибкой.");
         result = { success: false, output: normalized.userSafeMessage };
       }
@@ -940,6 +951,7 @@ export class AgentLoop {
         if (!options) return "NEXUM завершил выполнение без дополнительного AI-ответа: лимит токенов задачи исчерпан.";
         return await this.gateway.generate(task, options);
       } catch (error) {
+        if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
         const detail = error instanceof Error ? error.message : "AI response generation failed";
         return `NEXUM завершил выполнение, но финальный ответ AI недоступен: ${detail}. Проверьте Preview и AI Activity.`;
       }
@@ -974,6 +986,7 @@ export class AgentLoop {
       if (!options) return "Задача выполнена. Дополнительный финальный AI-ответ отключён: лимит токенов задачи исчерпан.";
       return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, options);
     } catch (error) {
+        if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
       const detail = error instanceof Error ? error.message : "AI response generation failed";
       return `Задача выполнена, но финальный ответ AI недоступен: ${detail}. Откройте Preview и вкладку AI Activity для проверки результата.`;
     }

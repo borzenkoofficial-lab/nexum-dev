@@ -28,7 +28,57 @@ jobs:
         run: npm --prefix apps/api run typecheck
       - name: Test API
         run: npm --prefix apps/api run test
+      - name: Test Web Runtime
+        run: npm --prefix apps/web run test:runtime
+      - name: Typecheck Web
+        run: npm --prefix apps/web run typecheck
       - name: Build Web
         run: npm --prefix apps/web run build
       - name: Lint Web
         run: npm --prefix apps/web run lint
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nexum
+          POSTGRES_PASSWORD: nexum
+          POSTGRES_DB: nexum
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexum -d nexum"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            apps/api/package-lock.json
+            apps/web/package-lock.json
+      - name: Install API
+        run: npm install --prefix apps/api
+      - name: Install Web
+        run: npm ci --prefix apps/web
+      - name: Prepare E2E database
+        run: NEXUM_DATABASE_URL=postgresql://nexum:nexum@127.0.0.1:5432/nexum NEXUM_DB_SSL=false npm --prefix apps/api run db:migrate
+      - name: Install E2E
+        run: npm install --prefix e2e --no-audit --no-fund
+      - name: Install Chromium
+        run: npx --prefix e2e playwright install --with-deps chromium
+      - name: Run Runtime Phase 2.5 E2E
+        run: npm --prefix e2e test
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: nexum-runtime-e2e-report
+          path: e2e/playwright-report/
+          retention-days: 14

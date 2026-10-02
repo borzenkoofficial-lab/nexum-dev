@@ -49,6 +49,7 @@ export class OrcaRouterProvider implements AIProvider {
   async generate(message: string, model = this.model, options: AIGenerateOptions = {}): Promise<string> {
     const data = await this.request<ChatResponse>("/chat/completions", {
       method: "POST",
+      signal: options.signal,
       body: JSON.stringify({
         model: this.validateModel(model),
         messages: [{ role: "user", content: message }],
@@ -110,6 +111,9 @@ export class OrcaRouterProvider implements AIProvider {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const callerSignal = (init as RequestInit).signal;
+    const abortFromCaller = () => controller.abort(callerSignal?.reason);
+    if (callerSignal) { if (callerSignal.aborted) abortFromCaller(); else callerSignal.addEventListener("abort", abortFromCaller, { once: true }); }
     try {
       const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
         ...init,
@@ -124,11 +128,13 @@ export class OrcaRouterProvider implements AIProvider {
       if (!response.ok) throw new Error(this.httpError(response.status));
       return (await response.json()) as T;
     } catch (error) {
+      if (callerSignal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (controller.signal.aborted) throw new Error("OrcaRouter request timed out");
       if (error instanceof Error && error.message.startsWith("OrcaRouter")) throw error;
       throw new Error("OrcaRouter network error");
     } finally {
       clearTimeout(timeout);
+      callerSignal?.removeEventListener("abort", abortFromCaller);
     }
   }
 

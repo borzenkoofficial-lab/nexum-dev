@@ -38,6 +38,7 @@ export class OllamaProvider implements AIProvider {
     const selectedModel = this.validateModel(model);
     const data = await this.request<OllamaChatResponse>("/api/chat", {
       method: "POST",
+      signal: options.signal,
       body: JSON.stringify({
         model: selectedModel,
         messages: [{ role: "user", content: message }],
@@ -105,6 +106,9 @@ export class OllamaProvider implements AIProvider {
   private async request<T>(path: string, init: RequestInit): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const callerSignal = (init as RequestInit).signal;
+    const abortFromCaller = () => controller.abort(callerSignal?.reason);
+    if (callerSignal) { if (callerSignal.aborted) abortFromCaller(); else callerSignal.addEventListener("abort", abortFromCaller, { once: true }); }
 
     try {
       const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
@@ -132,11 +136,13 @@ export class OllamaProvider implements AIProvider {
       }
       return (await response.json()) as T;
     } catch (error) {
+      if (callerSignal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (controller.signal.aborted) throw new Error("Ollama request timed out");
       if (error instanceof Error && error.message.startsWith("Ollama ")) throw error;
       throw new Error("Ollama is unavailable");
     } finally {
       clearTimeout(timeout);
+      callerSignal?.removeEventListener("abort", abortFromCaller);
     }
   }
 

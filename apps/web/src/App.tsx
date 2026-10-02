@@ -18,6 +18,7 @@ import { OSSystemChrome } from "./components/OSSystemChrome";
 import { OSAppWindow } from "./components/OSAppWindow";
 import type { AIProviderInfo, AIProviderStatus, AgentStage as АгентStage, Project as Проект } from "./components/types";
 import { diagnosticsEvent, getDiagnosticsSessionId, startDiagnostics } from "./diagnostics";
+import { nexumRuntime } from "./runtime";
 // UI controls persist locally; server-side credentials remain outside the client bundle.
 
 function App() {
@@ -89,6 +90,7 @@ function App() {
   const [previewKey, setПредпросмотрKey] = useState(0);
   const [builderStarted, setBuilderStarted] = useState(false);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
+  const [runtimeTaskId, setRuntimeTaskId] = useState<string | null>(null);
   const [projectTaskMeta, setProjectTaskMeta] = useState<Record<string, { task: string; timestamp: number; status: "queued" | "running" | "completed" | "failed" }>>(() => { try { return JSON.parse(localStorage.getItem("nexum:project-task-meta") || "{}"); } catch { return {}; } });
   const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news" | "diagnostics">(() => {
     const path = window.location.pathname;
@@ -136,6 +138,7 @@ function App() {
   useEffect(() => { document.documentElement.dataset.motion=uiSettings.animations?"on":"off"; document.documentElement.dataset.compact=uiSettings.compact?"on":"off"; document.documentElement.dataset.glow=uiSettings.glow?"on":"off"; document.documentElement.dataset.uiScale=String(uiSettings.scale); }, [uiSettings]);
 
   const activeПроект = projects.find((project) => project.id === activeПроектId);
+  useEffect(() => { nexumRuntime.setProject(activeПроектId); }, [activeПроектId]);
   const minimizedProjectIds = runningProjectIds.filter((id) => Boolean(projectWindowMinimizedByProject[id]));
   useEffect(() => {
     try { sessionStorage.setItem("nexum:os:minimized-windows", JSON.stringify(projectWindowMinimizedByProject)); } catch {}
@@ -222,7 +225,7 @@ function App() {
 
   useEffect(() => {
     const report = (payload: Record<string, unknown>) => {
-      void fetch("/api/agent/client-error", {
+      void nexumRuntime.network.fetch("/api/agent/client-error", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...payload, url: window.location.href }),
@@ -235,7 +238,7 @@ function App() {
       const data = event.data as { source?: string; projectId?: string; kind?: string; message?: string; stack?: string };
       if (data?.source !== "nexum-preview" || data.projectId !== activeПроектId || typeof data.message !== "string") return;
       setProblems((items) => [...items, { message: `Предпросмотр ${data.kind ?? "error"}: ${data.message}`, source: "preview" }].slice(-20));
-      void fetch(`/api/projects/${encodeURIComponent(activeПроектId)}/preview/runtime-error`, {
+      void nexumRuntime.network.fetch(`/api/projects/${encodeURIComponent(activeПроектId)}/preview/runtime-error`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind: data.kind, message: data.message, stack: data.stack }),
@@ -254,8 +257,21 @@ function App() {
   }, [activeПроектId]);
 
   useEffect(() => {
+    if (!activeПроектId) { void nexumRuntime.preview.stop(); return; }
+    const projectId = activeПроектId;
+    nexumRuntime.preview.attach({
+      start: async () => { const response = await nexumRuntime.network.fetch(`/api/projects/${encodeURIComponent(projectId)}/preview/status`, { projectId, operation: "preview-start" }); if (!response.ok) throw new Error(`Preview status HTTP ${response.status}`); const data = await response.json() as { online?: boolean }; if (!data.online) throw new Error("Preview offline"); },
+      health: async () => { const response = await nexumRuntime.network.fetch(`/api/projects/${encodeURIComponent(projectId)}/preview/status`, { projectId, operation: "preview-health" }); if (!response.ok) return false; const data = await response.json() as { online?: boolean }; return Boolean(data.online); },
+      stop: async () => { /* Preview server ownership remains backend-managed; manager stops its monitor here. */ },
+      restart: async () => { setПредпросмотрKey(key => key + 1); }
+    });
+    void nexumRuntime.preview.start({ projectId, operation: "preview" });
+    return () => { void nexumRuntime.preview.stop(); };
+  }, [activeПроектId]);
+
+  useEffect(() => {
     if (!activeПроектId) return;
-    fetch(`/api/projects/${encodeURIComponent(activeПроектId)}/preview/status`).then(async (response) => {
+    nexumRuntime.network.fetch(`/api/projects/${encodeURIComponent(activeПроектId)}/preview/status`).then(async (response) => {
       if (!response.ok) return;
       const data = await response.json() as { online?: boolean };
       setПредпросмотрOnline(Boolean(data.online));
@@ -266,7 +282,7 @@ function App() {
   async function loadПроектs(preferredId = activeПроектId) {
     setПроектsLoading(true);
     try {
-      const response = await fetch("/api/projects");
+      const response = await nexumRuntime.network.fetch("/api/projects");
       if (!response.ok) throw new Error(`Проекты API: HTTP ${response.status}`);
       const data = (await response.json()) as { projects?: Проект[] };
       const nextПроектs = data.projects ?? [];
@@ -300,8 +316,8 @@ function App() {
     async function loadAIConfig() {
       try {
         const [providersResponse, modelsResponse] = await Promise.all([
-          fetch("/api/ai/providers"),
-          fetch("/api/ai/models"),
+          nexumRuntime.network.fetch("/api/ai/providers"),
+          nexumRuntime.network.fetch("/api/ai/models"),
         ]);
         if (!providersResponse.ok || !modelsResponse.ok) throw new Error(`AI config API: HTTP ${!providersResponse.ok ? providersResponse.status : modelsResponse.status}`);
         const providersData = (await providersResponse.json()) as { providers?: AIProviderInfo[] };
@@ -324,7 +340,7 @@ function App() {
     let cancelled = false;
     async function refreshAIStatus() {
       try {
-        const response = await fetch(`/api/ai/status?provider=${encodeURIComponent(aiProvider)}&model=${encodeURIComponent(aiModel)}`);
+        const response = await nexumRuntime.network.fetch(`/api/ai/status?provider=${encodeURIComponent(aiProvider)}&model=${encodeURIComponent(aiModel)}`);
         const data = response.ok ? (await response.json()) as { status?: AIProviderStatus } : null;
         if (!cancelled) setAIStatus(data?.status ?? { provider: aiProvider, available: false, model: aiModel, latencyMs: null, error: "ИИ status unavailable" });
       } catch {
@@ -385,7 +401,7 @@ function App() {
   async function selectПроект(projectId: string): Promise<boolean> {
     setПроектActionLoading(true);
     try {
-      const response = await fetch(`/api/projects/${projectId}/select`, { method: "POST" });
+      const response = await nexumRuntime.network.fetch(`/api/projects/${projectId}/select`, { method: "POST" });
       if (!response.ok) throw new Error(`API выбора проекта: HTTP ${response.status}`);
       setChatJobId(null);
       setАгентStage(null);
@@ -406,7 +422,7 @@ function App() {
     setProjectCreationError("");
     setПроектActionLoading(true);
     try {
-      const response = await fetch("/api/projects", {
+      const response = await nexumRuntime.network.fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: data.name.trim(), description: data.description, type: data.type }),
@@ -462,6 +478,25 @@ function App() {
     window.setTimeout(() => void sendMessage(repairTask), 0);
   }
 
+  async function cancelAgent() {
+    const jobId = chatJobId;
+    if (!jobId) return;
+    try {
+      const response = await nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
+      const data = await response.json().catch(() => ({})) as { success?: boolean; job?: { status?: string; error?: string } };
+      if (!response.ok || !data.success) throw new Error(data.job?.error || `Cancel API: HTTP ${response.status}`);
+      setАгентStage("error");
+      setCurrentActivity("Agent отменён пользователем.");
+      setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
+      if (runtimeTaskId) nexumRuntime.tasks.cancel(runtimeTaskId);
+      setRuntimeTaskId(null);
+      setChatJobId(null);
+      pushOSEvent("info", "Agent cancelled", "Выполнение задачи остановлено пользователем.");
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Не удалось отменить Agent");
+    }
+  }
+
   async function sendMessage(task = message, projectIdOverride?: string) {
     const targetПроектId = projectIdOverride ?? activeПроектId;
     if (!task.trim() || !targetПроектId) return;
@@ -488,7 +523,7 @@ function App() {
         .slice(-8)
         .map((item) => ({ role: item.role, content: item.content.slice(0, 900) }))
         .filter((item) => item.content.trim());
-      const response = await fetch("/api/chat", {
+      const response = await nexumRuntime.network.fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -515,6 +550,9 @@ function App() {
       if (!data.jobId) throw new Error(data.error || "API чата не вернул идентификатор задачи");
 
       setChatJobId(data.jobId);
+      const runtimeTask = nexumRuntime.tasks.create({ projectId: targetПроектId, operation: "ai-agent-job", priority: 10 });
+      nexumRuntime.tasks.update(runtimeTask.id, "RUNNING");
+      setRuntimeTaskId(runtimeTask.id);
       setProjectTaskMeta((items) => ({ ...items, [targetПроектId]: { ...(items[targetПроектId] ?? { task: task.trim(), timestamp: Date.now() }), status: "running" } }));
     } catch (error) {
       console.error("[Nexum] Chat job creation failed:", error);
@@ -532,12 +570,12 @@ function App() {
 
     async function pollJob() {
       try {
-        const response = await fetch(`/api/chat/jobs/${encodeURIComponent(activeJobId)}`);
+        const response = await nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(activeJobId)}`);
         const data = response.ok
           ? await response.json() as {
               success?: boolean;
               job?: {
-                status?: "queued" | "running" | "completed" | "failed";
+                status?: "queued" | "running" | "completed" | "failed" | "cancelled";
                 stage?: string;
                 reply?: string | null;
                 steps?: Array<{ iteration: number; tool: string; success: boolean }>;
@@ -590,7 +628,7 @@ function App() {
           let previewReady = false;
           for (let attempt = 0; attempt < 12; attempt += 1) {
             try {
-              const previewResponse = await fetch(
+              const previewResponse = await nexumRuntime.network.fetch(
                 `/api/projects/${encodeURIComponent(activeПроектId)}/preview/status?ts=${Date.now()}`,
                 { cache: "no-store" },
               );
@@ -610,7 +648,19 @@ function App() {
           setПредпросмотрOnline(previewReady);
           setПредпросмотрKey((key) => key + 1);
           setАгентStage("completed");
+          if (runtimeTaskId) nexumRuntime.tasks.update(runtimeTaskId, "COMPLETED", { progress: 1 });
           setChatJobId(null);
+          setRuntimeTaskId(null);
+          return;
+        }
+
+        if (status === "cancelled") {
+          setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
+          setCurrentActivity(data?.job?.error ?? "Agent отменён.");
+          setАгентStage("error");
+          if (runtimeTaskId) nexumRuntime.tasks.cancel(runtimeTaskId);
+          setChatJobId(null);
+          setRuntimeTaskId(null);
           return;
         }
 
@@ -638,7 +688,9 @@ function App() {
         setApiError(error instanceof Error ? error.message : "Ошибка получения статуса задачи чата");
         setАгентStage("error");
         pushOSEvent("error", "Agent error", error instanceof Error ? error.message : "Не удалось получить статус задачи");
+        if (runtimeTaskId) nexumRuntime.tasks.update(runtimeTaskId, "FAILED", { error: error instanceof Error ? error.message : "Chat job failed" });
         setChatJobId(null);
+        setRuntimeTaskId(null);
       }
     }
 
@@ -647,14 +699,14 @@ function App() {
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [chatJobId]);
+  }, [chatJobId, runtimeTaskId]);
 
   async function connectAIKey() {
     if (!aiApiKey.trim()) return;
     setAiApiKeyLoading(true);
     setApiError("");
     try {
-      const response = await fetch("/api/ai/connect-key", {
+      const response = await nexumRuntime.network.fetch("/api/ai/connect-key", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ apiKey: aiApiKey.trim() }),
@@ -667,7 +719,7 @@ function App() {
       setAIModel(data.model || aiModels[provider]?.[0] || (provider === "openai" ? "gpt-5" : provider === "orcarouter" ? "deepseek/deepseek-v4-flash-free" : "openrouter/free"));
       setNotice(provider === "openai" ? "OpenAI подключён — модели GPT готовы" : "OpenRouter подключён");
       window.setTimeout(() => setNotice(""), 3200);
-      const modelsResponse = await fetch("/api/ai/models");
+      const modelsResponse = await nexumRuntime.network.fetch("/api/ai/models");
       if (modelsResponse.ok) {
         const modelsData = await modelsResponse.json() as { models?: Record<string, string[]> };
         setAIModels(modelsData.models ?? {});
@@ -684,7 +736,7 @@ function App() {
     setLocalAIKeyLoading(true);
     setApiError("");
     try {
-      const response = await fetch("/api/ai/local-test", {
+      const response = await nexumRuntime.network.fetch("/api/ai/local-test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ apiKey: localAIKey.trim() }),
@@ -1009,7 +1061,7 @@ function App() {
           <div className="os-workspace-layer" aria-hidden={codeMode}>
             <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}${mobileToolOpen ? " mobile-tool-open" : " mobile-chat-open"}`}>
               <div className="main-column">
-                <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => { setRightTab("agent"); setMobileToolOpen(true); setWorkspaceMode("agent"); }} onProviderChange={selectAIProvider} onModelChange={setAIModel} />
+                <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onCancel={() => void cancelAgent()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => { setRightTab("agent"); setMobileToolOpen(true); setWorkspaceMode("agent"); }} onProviderChange={selectAIProvider} onModelChange={setAIModel} />
               </div>
               <RightPanel tab={rightTab} onTabChange={(tab) => { setRightTab(tab); setMobileToolOpen(true); setWorkspaceMode(tab); }} onOpenChat={() => setMobileToolOpen(false)} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onRepair={repairLastTask} />
             </div>

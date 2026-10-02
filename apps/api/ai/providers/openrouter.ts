@@ -74,6 +74,7 @@ export class OpenRouterProvider implements AIProvider {
       try {
         const data = await this.request<OpenRouterChatResponse>("/chat/completions", {
           method: "POST",
+          signal: options.signal,
           body: JSON.stringify({
             model: candidate,
             messages: [{ role: "user", content: message }],
@@ -165,6 +166,9 @@ export class OpenRouterProvider implements AIProvider {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const callerSignal = (init as RequestInit).signal;
+    const abortFromCaller = () => controller.abort(callerSignal?.reason);
+    if (callerSignal) { if (callerSignal.aborted) abortFromCaller(); else callerSignal.addEventListener("abort", abortFromCaller, { once: true }); }
     try {
       const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
         ...init,
@@ -182,11 +186,13 @@ export class OpenRouterProvider implements AIProvider {
       if (!response.ok) throw new Error(this.httpError(response.status));
       return (await response.json()) as T;
     } catch (error) {
+      if (callerSignal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (controller.signal.aborted) throw new Error("OpenRouter request timed out");
       if (error instanceof Error && error.message.startsWith("OpenRouter")) throw error;
       throw new Error("OpenRouter network error");
     } finally {
       clearTimeout(timeout);
+      callerSignal?.removeEventListener("abort", abortFromCaller);
     }
   }
 

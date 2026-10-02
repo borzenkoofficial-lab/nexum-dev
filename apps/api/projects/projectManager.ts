@@ -1,4 +1,4 @@
-import { access, cp, mkdir, lstat, readFile, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, lstat, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { assertExistingProjectPath, resolveProjectPath } from "../agent/tools/path.js";
 import type { Project, ProjectStatus, ProjectStore } from "./types.js";
@@ -18,6 +18,7 @@ export class ProjectManager {
   private readonly storePath: string;
   private readonly defaultProject: Project;
   private initialized = false;
+  private storeWriteQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly workspaceRoot: string) {
     this.projectsRoot = resolve(workspaceRoot, "projects");
@@ -217,7 +218,13 @@ export class ProjectManager {
   }
 
   private async writeStore(store: ProjectStore): Promise<void> {
-    await writeFile(this.storePath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+    const operation = this.storeWriteQueue.then(async () => {
+      const tempPath = `${this.storePath}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      await writeFile(tempPath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+      await rename(tempPath, this.storePath);
+    });
+    this.storeWriteQueue = operation.catch(() => undefined);
+    await operation;
   }
 
   private async ensureStarterFiles(project: Project): Promise<void> {

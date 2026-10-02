@@ -1,6 +1,6 @@
 import { query } from "./db.js";
 
-export type ChatJobStatus = "queued" | "running" | "completed" | "failed";
+export type ChatJobStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 export type ChatJobStage = "queued" | "analyzing" | "planning" | "reading" | "editing" | "building" | "testing" | "completed" | "error";
 
 export interface ChatJob {
@@ -40,11 +40,13 @@ async function ensureTable(): Promise<void> {
         id UUID PRIMARY KEY,
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         project_id UUID NULL,
-        status TEXT NOT NULL CHECK (status IN ('queued','running','completed','failed')),
+        status TEXT NOT NULL CHECK (status IN ('queued','running','completed','failed','cancelled')),
         created_at BIGINT NOT NULL,
         updated_at BIGINT NOT NULL,
         payload JSONB NOT NULL DEFAULT '{}'::jsonb
       );
+      ALTER TABLE agent_chat_jobs DROP CONSTRAINT IF EXISTS agent_chat_jobs_status_check;
+      ALTER TABLE agent_chat_jobs ADD CONSTRAINT agent_chat_jobs_status_check CHECK (status IN ('queued','running','completed','failed','cancelled'));
       CREATE INDEX IF NOT EXISTS agent_chat_jobs_user_updated_idx
         ON agent_chat_jobs(user_id, updated_at DESC);
       CREATE TABLE IF NOT EXISTS agent_project_locks (
@@ -146,7 +148,7 @@ export async function listChatJobs(userId?: string, limit = 20): Promise<ChatJob
 export async function cleanupChatJobs(ttlMs = 30 * 60 * 1000): Promise<void> {
   await ensureTable();
   await query(
-    `DELETE FROM agent_chat_jobs WHERE updated_at < $1 AND status IN ('completed','failed')`,
+    `DELETE FROM agent_chat_jobs WHERE updated_at < $1 AND status IN ('completed','failed','cancelled')`,
     [Date.now() - ttlMs],
   );
 }
