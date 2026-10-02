@@ -1,5 +1,6 @@
 
-import {RuntimeEventBus} from "./EventBus";import {RuntimeDiagnostics} from "./Diagnostics";import type{RuntimeContext}from"./types";\nimport { failureInjection } from "./FailureInjection.ts";
+import {RuntimeEventBus} from "./EventBus";import {RuntimeDiagnostics} from "./Diagnostics";import type{RuntimeContext}from"./types";
+import { failureInjection } from "./FailureInjection.ts";
 export type PreviewState="STOPPED"|"STARTING"|"READY"|"UNHEALTHY"|"RESTARTING"|"FAILED"|"STOPPING";
 export interface PreviewAdapter{start:(context:RuntimeContext)=>Promise<void>;stop:()=>Promise<void>;health:()=>Promise<boolean>;restart?:()=>Promise<void>}
 export class PreviewManager{
@@ -10,5 +11,6 @@ export class PreviewManager{
  private monitor(){if(this.timer)clearInterval(this.timer);if(typeof window==="undefined")return;this.timer=window.setInterval(()=>void this.healthCheck(),10000)}
  async healthCheck(){if(!this.adapter||this.state==="STOPPED")return true;try{const ok=await this.adapter.health();if(ok){this.state="READY";return true}this.state="UNHEALTHY";this.bus.emit("preview:error",{state:this.state},this.context);return this.recover()}catch(e){this.state="UNHEALTHY";this.diagnostics.error("PREVIEW","Preview health check failed",e,this.context,"restart");return this.recover()}}
  async recover(){if(!this.adapter)return false;if(this.restartCount>=this.maxRestarts){this.state="FAILED";this.diagnostics.error("PREVIEW","Preview restart limit reached",undefined,this.context);return false}this.restartCount++;this.state="RESTARTING";this.bus.emit("preview:restarting",undefined,this.context);try{if(this.adapter.restart)await this.adapter.restart();else{await this.adapter.stop();await this.adapter.start(this.context)}this.state="READY";this.bus.emit("preview:ready",undefined,this.context);return true}catch(e){this.state="FAILED";this.diagnostics.error("PREVIEW","Preview recovery failed",e,this.context);return false}}
- getRestartCount(){return this.restartCount}\n async stop(){this.state="STOPPING";if(this.timer)clearInterval(this.timer);this.timer=0;if(this.adapter){try{await this.adapter.stop()}catch(e){this.diagnostics.error("PREVIEW","Preview stop failed",e,this.context)}}this.state="STOPPED";this.bus.emit("preview:stopped",undefined,this.context)}
+ getRestartCount(){return this.restartCount}
+ async stop(){this.state="STOPPING";if(this.timer)clearInterval(this.timer);this.timer=0;if(this.adapter){try{await this.adapter.stop()}catch(e){this.diagnostics.error("PREVIEW","Preview stop failed",e,this.context)}}this.state="STOPPED";this.bus.emit("preview:stopped",undefined,this.context)}
 }
