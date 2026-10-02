@@ -219,8 +219,18 @@ test("real child-process supervision tracks running, normal exit and crash witho
     data: { path: "runtime-process-crash.js", content: "setTimeout(() => process.exit(2), 150);" },
   });
 
+  await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
+    data: { path: "package.json", content: JSON.stringify({ scripts: { lint: "node runtime-process-ok.js", test: "node runtime-process-crash.js" } }) },
+  });
+  await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
+    data: { path: "runtime-process-ok.js", content: "setTimeout(() => process.exit(0), 500);" },
+  });
+  await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
+    data: { path: "runtime-process-crash.js", content: "setTimeout(() => process.exit(2), 150);" },
+  });
+
   const successRequest = page.request.post(`/api/projects/${encodeURIComponent(projectId)}/run`, {
-    data: { command: "node runtime-process-ok.js" },
+    data: { command: "npm run lint" },
   });
   await expect.poll(async () => ((await (await page.request.get("/api/runtime/status")).json()).processes ?? []).length, { timeout: 5_000 }).toBeGreaterThan(0);
   const success = await successRequest;
@@ -228,7 +238,7 @@ test("real child-process supervision tracks running, normal exit and crash witho
   await expect.poll(async () => ((await (await page.request.get("/api/runtime/status")).json()).processes ?? []).length, { timeout: 5_000 }).toBe(0);
 
   const crashRequest = page.request.post(`/api/projects/${encodeURIComponent(projectId)}/run`, {
-    data: { command: "node runtime-process-crash.js" },
+    data: { command: "npm run test" },
   });
   const crash = await crashRequest;
   expect(crash.status()).toBe(422);
