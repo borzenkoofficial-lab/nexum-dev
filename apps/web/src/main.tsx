@@ -9,7 +9,7 @@ import './nexum-os-hardening.css'
 import './nexum-premium-system.css'
 import './nexum-os-experience.css'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
-import { nexumRuntime } from './runtime'
+import { nexumRuntime } from './runtime'\nimport { installE2EHarness } from './runtime/E2EHarness.ts'
 
 const runtimeBoot = nexumRuntime.start()
 window.addEventListener("error", event => nexumRuntime.diagnostics.error("APPLICATION", event.message || "Browser runtime error", event.error))
