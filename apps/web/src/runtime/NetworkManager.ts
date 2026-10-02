@@ -1,5 +1,5 @@
-import { RuntimeDiagnostics } from "./Diagnostics";
-import type { RuntimeContext } from "./types";
+import { RuntimeDiagnostics } from "./Diagnostics.ts";
+import type { RuntimeContext } from "./types.ts";
 
 export interface NetworkOptions extends RequestInit, RuntimeContext {
   timeoutMs?: number; retries?: number; dedupe?: boolean; retryBaseMs?: number;
