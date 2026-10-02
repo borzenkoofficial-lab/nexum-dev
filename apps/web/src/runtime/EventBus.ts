@@ -1,4 +1,4 @@
-import type { RuntimeEvent } from "./types";
+import type { RuntimeEvent } from "./types.ts";
 type Handler=(event:RuntimeEvent)=>void;
 export class RuntimeEventBus {
  private handlers=new Map<string,Set<Handler>>(); private active=true; private emitting=false;
