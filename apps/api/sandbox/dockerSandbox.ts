@@ -228,6 +228,7 @@ export class DockerSandbox {
       child.on("close", (exitCode) => {
         clearTimeout(timer);
         if (processId) this.runtime?.completeProcess(processId);
+        if (processId) this.runtime?.completeProcess(processId);
         const success = exitCode === 0 && !timedOut && !outputLimitReached;
         const error = timedOut
           ? "Sandbox timeout"
@@ -254,9 +255,11 @@ export class DockerSandbox {
   private runProcess(args: string[], timeoutMs: number): Promise<{ exitCode: number | null; spawnError: boolean }> {
     return new Promise((resolveResult) => {
       const child = spawn("docker", args, { shell: false, windowsHide: true, stdio: "ignore" });
+      const processId = this.runtime?.registerProcess(`docker:${args.join(" ")}`, child, this.context);
       const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs);
       child.on("error", () => {
         clearTimeout(timer);
+        if (processId) this.runtime?.completeProcess(processId);
         resolveResult({ exitCode: null, spawnError: true });
       });
       child.on("close", (exitCode) => {
