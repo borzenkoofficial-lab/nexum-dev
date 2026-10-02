@@ -205,12 +205,10 @@ test("real child-process supervision tracks running, normal exit and crash witho
   const successRequest = page.request.post(`/api/projects/${encodeURIComponent(projectId)}/run`, {
     data: { command: "node runtime-process-ok.js" },
   });
-  await page.waitForFunction(() => (window as any).__NEXUM_E2E__.status().processes.length > 0, undefined, { timeout: 5_000 });
-  const running = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
-  expect(running.processes.length).toBeGreaterThanOrEqual(1);
+  await expect.poll(async () => ((await (await page.request.get("/api/runtime/status")).json()).processes ?? []).length, { timeout: 5_000 }).toBeGreaterThan(0);
   const success = await successRequest;
   expect(success.ok()).toBeTruthy();
-  await page.waitForFunction(() => (window as any).__NEXUM_E2E__.status().processes.length === 0, undefined, { timeout: 5_000 });
+  await expect.poll(async () => ((await (await page.request.get("/api/runtime/status")).json()).processes ?? []).length, { timeout: 5_000 }).toBe(0);
 
   const crashRequest = page.request.post(`/api/projects/${encodeURIComponent(projectId)}/run`, {
     data: { command: "node runtime-process-crash.js" },
@@ -220,8 +218,9 @@ test("real child-process supervision tracks running, normal exit and crash witho
   const crashBody = await crash.json();
   expect(crashBody.exitCode).toBe(2);
   await page.waitForFunction(() => (window as any).__NEXUM_E2E__.status().processes.length === 0, undefined, { timeout: 5_000 });
-  const status = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
-  expect(status.diagnostics.some((d: any) => d.subsystem === "PROCESS" && /exited unexpectedly/.test(d.message))).toBeTruthy();
+  const status = await page.request.get("/api/runtime/status");
+  const runtimeStatus = await status.json();
+  expect(runtimeStatus.diagnostics.some((d: any) => d.subsystem === "PROCESS" && /exited unexpectedly/.test(d.message))).toBeTruthy();
 });
 test("preview recovery failure reaches bounded FAILED state without crashing Runtime", async ({ page }) => {
   await page.goto("/");
