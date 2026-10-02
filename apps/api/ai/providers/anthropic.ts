@@ -72,6 +72,9 @@ export class AnthropicProvider implements AIProvider {
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const callerSignal = (init as RequestInit).signal;
+    const abortFromCaller = () => controller.abort(callerSignal?.reason);
+    if (callerSignal) { if (callerSignal.aborted) abortFromCaller(); else callerSignal.addEventListener("abort", abortFromCaller, { once: true }); }
     try {
       const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
         ...init,
