@@ -6,7 +6,7 @@ export interface ToolResult {
 export interface Tool {
   name: string;
   description: string;
-  execute(input: string): Promise<ToolResult>;
+  execute(input: string, signal?: AbortSignal): Promise<ToolResult>;
 }
 
 export interface ProductPlan {
@@ -41,6 +41,7 @@ export interface AgentPlan {
 export interface AgentModelOptions {
   provider?: string;
   model?: string;
+  signal?: AbortSignal;
 }
 
 export interface AgentToolResult {
