@@ -366,7 +366,8 @@ async function runChatJob(
       } catch { return ""; }
     }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
     await stateManager.markCompleted(message.slice(0, 240));
-    serverRuntime.updateTask(runtimeTask.id, "COMPLETED", { progress: 1 });\n    console.log("[Nexum] chat job completed", jobId);
+    serverRuntime.updateTask(runtimeTask.id, "COMPLETED", { progress: 1 });
+    console.log("[Nexum] chat job completed", jobId);
   } catch (error) {
     job.status = "failed";
     job.stage = "error";
@@ -377,7 +378,8 @@ async function runChatJob(
     job.errorInfo = { code: normalizedError.code, message: normalizedError.userSafeMessage, retryable: normalizedError.retryable };
     await persistChatJob(job).catch((persistenceError) => console.error("[Nexum] failed to persist job exception", persistenceError));
     void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
-    serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: normalizedError.userSafeMessage });\n    console.error("[Nexum] chat job failed", jobId, error);
+    serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: normalizedError.userSafeMessage });
+    console.error("[Nexum] chat job failed", jobId, error);
   } finally {
     try {
       if (lockHeartbeat) clearInterval(lockHeartbeat);
@@ -391,7 +393,10 @@ async function runChatJob(
 
 // Project managers are initialized lazily per authenticated user.
 
-process.once("SIGTERM", () => serverRuntime.shutdown());\nprocess.once("SIGINT", () => serverRuntime.shutdown());\n\nconst configuredCorsOrigins = (process.env.NEXUM_CORS_ORIGINS || "")
+process.once("SIGTERM", () => serverRuntime.shutdown());
+process.once("SIGINT", () => serverRuntime.shutdown());
+
+const configuredCorsOrigins = (process.env.NEXUM_CORS_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
