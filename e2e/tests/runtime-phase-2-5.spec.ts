@@ -67,6 +67,35 @@ test("boot, runtime inspection and browser-visible navigation", async ({ page })
   expect(["READY", "DEGRADED", "BUSY"]).toContain(api.lifecycle);
 });
 
+test("real Agent user cancellation aborts the Agent task and releases Runtime ownership", async ({ page }) => {
+  await page.goto("/");
+  const input = page.getByLabel("Опишите задачу");
+  await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
+  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+
+  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
+  await expect(cancel).toBeVisible({ timeout: 5_000 });
+  await cancel.click();
+
+  await page.waitForFunction(async () => {
+    const id = (window as any).__NEXUM_E2E_LAST_JOB_ID__;
+    return Boolean(id);
+  }).catch(() => {});
+
+  await page.waitForTimeout(200);
+  const runtime = await page.request.get("/api/runtime/status");
+  expect(runtime.ok()).toBeTruthy();
+  const runtimeData = await runtime.json();
+  const cancelledTasks = (runtimeData.tasks ?? []).filter((task: any) => task.operation === "chat-job" && task.status === "CANCELLED");
+  expect(cancelledTasks.length).toBeGreaterThanOrEqual(1);
+  expect((runtimeData.resources ?? 0)).toBe(0);
+
+  const diagnostics = await page.request.get("/api/agent/diagnostics?limit=100");
+  expect(diagnostics.ok()).toBeTruthy();
+  const diagnosticData = await diagnostics.json();
+  expect((diagnosticData.jobs ?? []).some((job: any) => job.status === "cancelled")).toBeTruthy();
+});
+
 test("network failure recovers with bounded retries and stable request identity", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => (window as any).__NEXUM_E2E__.enableFailure("FAIL_NETWORK", { projectId: "A" }));
