@@ -49,6 +49,7 @@ export class OrcaRouterProvider implements AIProvider {
   async generate(message: string, model = this.model, options: AIGenerateOptions = {}): Promise<string> {
     const data = await this.request<ChatResponse>("/chat/completions", {
       method: "POST",
+      signal: options.signal,
       body: JSON.stringify({
         model: this.validateModel(model),
         messages: [{ role: "user", content: message }],
