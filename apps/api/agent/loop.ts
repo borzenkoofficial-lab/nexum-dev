@@ -733,7 +733,7 @@ export class AgentLoop {
       const toolStartedAt = Date.now();
       let result: AgentToolResult["result"];
       try {
-        result = await this.runtime.executeTool(plan.tool, plan.input);
+        result = await this.runtime.executeTool(plan.tool, plan.input, options?.signal);
       } catch (error) {
         if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
         const normalized = toNexumError(error, "TOOL_ERROR", "Инструмент агента завершился с ошибкой.");
