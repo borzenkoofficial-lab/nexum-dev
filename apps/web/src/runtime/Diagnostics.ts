@@ -1,5 +1,5 @@
 
-import type { RuntimeDiagnostic } from "./types";
+import type { RuntimeDiagnostic } from "./types.ts";
 export class RuntimeDiagnostics {
  private events:RuntimeDiagnostic[]=[];
  record(input:Omit<RuntimeDiagnostic,"timestamp">){const e={...input,timestamp:Date.now()};this.events.push(e);if(this.events.length>1000)this.events.splice(0,this.events.length-1000);if(e.severity==="error"||e.severity==="fatal")console.error("[NEXUM Runtime]",e);return e}
