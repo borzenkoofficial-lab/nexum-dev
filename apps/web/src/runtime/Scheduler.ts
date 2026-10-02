@@ -1,5 +1,5 @@
 
-import { TaskManager,type TaskOptions } from "./TaskManager";
+import { TaskManager,type TaskOptions } from "./TaskManager.ts";
 export class RuntimeScheduler {
  private active=0;private queue:Array<{priority:number;run:()=>void}>=[];
  private tasks:TaskManager; private concurrency:number; constructor(tasks:TaskManager,concurrency=4){this.tasks=tasks;this.concurrency=concurrency}
