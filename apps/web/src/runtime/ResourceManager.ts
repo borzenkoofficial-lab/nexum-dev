@@ -1,6 +1,6 @@
 
-import type { ResourceKind,ResourceRecord,RuntimeContext } from "./types";
-import { RuntimeEventBus } from "./EventBus"; import { RuntimeDiagnostics } from "./Diagnostics";
+import type { ResourceKind,ResourceRecord,RuntimeContext } from "./types.ts";
+import { RuntimeEventBus } from "./EventBus.ts"; import { RuntimeDiagnostics } from "./Diagnostics.ts";
 export class ResourceManager {
  private resources=new Map<string,ResourceRecord>();
  private bus:RuntimeEventBus; private diagnostics:RuntimeDiagnostics; constructor(bus:RuntimeEventBus,diagnostics:RuntimeDiagnostics){this.bus=bus;this.diagnostics=diagnostics}
