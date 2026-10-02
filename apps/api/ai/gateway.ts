@@ -7,6 +7,7 @@ export interface GatewayGenerateOptions {
   fallback?: boolean;
   maxTokens?: number;
   temperature?: number;
+  signal?: AbortSignal;
 }
 
 export interface GatewayProviderInfo {
@@ -134,6 +135,7 @@ export class AIGateway {
         response: await provider.generate(localizedMessage, normalizedOptions.model, {
           ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
           ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
+          ...(normalizedOptions.signal ? { signal: normalizedOptions.signal } : {}),
         }),
         provider: provider.id,
         model: normalizedOptions.model ?? provider.model,
