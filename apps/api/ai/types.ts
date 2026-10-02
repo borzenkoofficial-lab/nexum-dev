@@ -23,6 +23,7 @@ export interface AIProvider {
 export interface AIGenerateOptions {
   maxTokens?: number;
   temperature?: number;
+  signal?: AbortSignal;
 }
 
 export interface AIProviderStatus {
