@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { assertExistingProjectPath, resolveProjectPath } from "../agent/tools/path.js";
+import type { ServerRuntime } from "../runtime/runtime.js";
 import type { SandboxRequest, SandboxResult } from "./types.js";
 
 export const SANDBOX_IMAGE = "node:22-bookworm-slim";
@@ -18,6 +19,8 @@ export class DockerSandbox {
   constructor(
     private readonly workspaceRoot: string,
     private readonly image = SANDBOX_IMAGE,
+    private readonly runtime?: ServerRuntime,
+    private readonly context: { projectId?: string; taskId?: string } = {},
   ) {}
 
   getWorkspaceRoot(): string {
@@ -189,6 +192,7 @@ export class DockerSandbox {
       let outputBytes = 0;
       let timedOut = false;
       let outputLimitReached = false;
+      const processId = this.runtime?.registerProcess(`docker:${requestedCommand}`, child, { ...this.context, operation: requestedCommand });
 
       const append = (target: "stdout" | "stderr", chunk: Buffer): void => {
         if (outputLimitReached) return;
@@ -216,12 +220,14 @@ export class DockerSandbox {
 
       child.on("error", (error) => {
         clearTimeout(timer);
+        if (processId) this.runtime?.completeProcess(processId);
         this.log(requestedCommand, null, Date.now(), false);
         resolveResult({ success: false, exitCode: null, stdout, stderr: `${stderr}${error.message}`, durationMs: 0, command: requestedCommand, error: "Docker is not available" });
       });
 
       child.on("close", (exitCode) => {
         clearTimeout(timer);
+        if (processId) this.runtime?.completeProcess(processId);
         const success = exitCode === 0 && !timedOut && !outputLimitReached;
         const error = timedOut
           ? "Sandbox timeout"
