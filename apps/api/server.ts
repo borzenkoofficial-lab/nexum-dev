@@ -338,17 +338,6 @@ ${attachment.content.slice(0, 80_000)}`);
         void persistChatJob(job).catch((error) => console.error("[Nexum] job event persistence failed", error));
         void agentHistory.record({ type: "agent-event", jobId, projectId, provider, model, requestId: event.requestId ?? requestId, taskId: event.taskId ?? runtimeTask.id, planId: event.planId, iteration: event.iteration, tool: event.tool, status: event.name ?? event.type, message: event.message });
       },
-      (snapshot) => {
-        job.agentIntent = snapshot.intent;
-        job.executionPlan = snapshot.plan;
-        job.executionState = snapshot;
-        job.updatedAt = Date.now();
-        void persistChatJob(job).catch((error) => console.error("[Nexum] execution state persistence failed", error));
-        if (job.checkpointId) {
-          void checkpointManager.writeExecutionState(project.id, project.path, job.checkpointId, snapshot)
-            .catch((error) => console.error("[Nexum] execution checkpoint persistence failed", error));
-        }
-      },
       (plan) => {
         job.productPlan = plan;
         job.stage = "planning";
@@ -362,6 +351,17 @@ ${attachment.content.slice(0, 80_000)}`);
         projectId: project.id,
         provider,
         model,
+      },
+      (snapshot) => {
+        job.agentIntent = snapshot.intent;
+        job.executionPlan = snapshot.plan;
+        job.executionState = snapshot;
+        job.updatedAt = Date.now();
+        void persistChatJob(job).catch((error) => console.error("[Nexum] execution state persistence failed", error));
+        if (job.checkpointId) {
+          void checkpointManager.writeExecutionState(project.id, project.path, job.checkpointId, snapshot)
+            .catch((error: unknown) => console.error("[Nexum] execution checkpoint persistence failed", error));
+        }
       },
     );
     if (process.env.NODE_ENV !== "production" && Number(process.env.NEXUM_E2E_AGENT_DELAY_MS || 0) > 0) {
