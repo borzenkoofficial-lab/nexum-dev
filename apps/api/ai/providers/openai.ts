@@ -69,8 +69,8 @@ export class OpenAIProvider implements AIProvider {
     return content;
   }
 
-  async listModels(): Promise<string[]> {
-    const data = await this.request<OpenAIModelsResponse>("/models", { method: "GET" });
+  async listModels(signal?: AbortSignal): Promise<string[]> {
+    const data = await this.request<OpenAIModelsResponse>("/models", { method: "GET", ...(signal ? { signal } : {}) });
     const remote = (data.data ?? [])
       .map((item) => item.id)
       .filter((id): id is string => typeof id === "string")
@@ -78,7 +78,7 @@ export class OpenAIProvider implements AIProvider {
     return [...new Set([...DEFAULT_MODELS, ...remote])];
   }
 
-  async getStatus(model = this.model): Promise<AIProviderStatus> {
+  async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
     const startedAt = Date.now();
     if (!this.runtimeApiKey) {
       return {
@@ -90,7 +90,7 @@ export class OpenAIProvider implements AIProvider {
     }
 
     try {
-      const models = await this.listModels();
+      const models = await this.listModels(signal);
       return {
         available: models.length > 0,
         model: this.validateModel(model),
