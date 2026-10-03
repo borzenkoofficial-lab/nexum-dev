@@ -25,7 +25,7 @@ import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
 import { pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
-import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
+import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
 
@@ -60,6 +60,7 @@ function sendSafeError(res: Response, error: unknown, requestId: string, fallbac
 }
 
 const app = express();
+void recoverStaleChatJobs(0).catch((error) => console.error("[Nexum] stale Agent recovery failed", error));
 serverRuntime.start();
 app.use((req, _res, next) => { const requestId = getRequestId(req); const started = Date.now(); _res.on("finish", () => serverRuntime.record("NETWORK", _res.statusCode >= 500 ? "error" : "info", "HTTP request completed", { operation: req.method + " " + req.path }, _res.statusCode >= 500 ? new Error("HTTP " + _res.statusCode) : undefined)); void requestId; void started; next(); });
 const configuredProvider = process.env.AI_PROVIDER?.toLowerCase();
@@ -1212,6 +1213,14 @@ app.get("/api/agent/diagnostics", async (req, res) => {
     })),
     recent: entries,
   });
+});
+
+app.get("/api/chat/jobs", async (req, res) => {
+  await cleanupChatJobs();
+  const userId = getAuthUser(req).id;
+  const jobs = await listChatJobs(userId, 50);
+  const active = jobs.filter((job) => job.status === "queued" || job.status === "running");
+  return res.json({ success: true, jobs: active });
 });
 
 app.get("/api/chat/jobs/:id", async (req, res) => {
