@@ -310,6 +310,29 @@ function App() {
     const preferred = segments[0] === "projects" && segments[1] ? decodeURIComponent(segments[1]) : "nexum";
     void loadПроектs(preferred);
   }, []);
+  useEffect(() => {
+    let cancelled = false;
+    async function restoreActiveAgentJob() {
+      try {
+        const response = await nexumRuntime.network.fetch("/api/chat/jobs");
+        if (!response.ok || cancelled) return;
+        const data = await response.json() as { jobs?: Array<{ id: string; projectId?: string; status?: string; stage?: string; currentMessage?: string }> };
+        const job = (data.jobs ?? []).find((item) => (item.status === "queued" || item.status === "running") && (!item.projectId || item.projectId === activeПроектId));
+        if (!job || cancelled) return;
+        setChatJobId(job.id);
+        setBuilderStarted(true);
+        setRightTab("agent");
+        setWorkspaceMode("agent");
+        setMobileToolOpen(true);
+        setАгентStage((job.stage as typeof agentStage) ?? "running");
+        setCurrentActivity(job.currentMessage ?? "Восстанавливаю активную Agent задачу после перезагрузки.");
+      } catch {
+        // Reload recovery is best-effort; backend Job remains the source of truth.
+      }
+    }
+    void restoreActiveAgentJob();
+    return () => { cancelled = true; };
+  }, [activeПроектId]);
 
   useEffect(() => {
     async function loadAIConfig() {
