@@ -89,6 +89,11 @@ export class NetworkManager {
       try {
         this.diagnostics.info("NETWORK", "Request started", context, { requestId, attempt });
 
+        const injectedDelay = failureInjection.getDelay("DELAY_REQUEST");
+        if (injectedDelay > 0) {
+          await this.delay(injectedDelay, controller.signal);
+        }
+
         if (failureInjection.isEnabled("FAIL_NETWORK")) {
           last = new Error("Injected network failure");
           this.diagnostics.warn("NETWORK", "Injected network failure", context, { requestId, attempt });
