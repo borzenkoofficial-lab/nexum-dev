@@ -200,6 +200,22 @@ export class AgentLoop {
       return maxTokens > 0 ? { ...(base ?? {}), maxTokens } : undefined;
     };
     const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
+    const markStepRunning = (id: string) => {
+      setPlanStep(executionSnapshot.plan, id, "RUNNING");
+      publishExecution();
+    };
+    const markStepCompletedLocal = (id: string, result?: string) => {
+      markPlanStepCompleted(executionSnapshot.plan, id, result);
+      if (!executionSnapshot.completedStepIds.includes(id)) executionSnapshot.completedStepIds.push(id);
+      publishExecution();
+    };
+    const addObservation = (observation: string) => {
+      executionSnapshot.observations.push(observation.slice(0, 1600));
+      executionSnapshot.observations = executionSnapshot.observations.slice(-12);
+      publishExecution();
+      emit({ iteration: 0, type: "thinking", name: "agent.observation.created", message: "Observation: " + observation.slice(0, 420), phase });
+    };
+
 
     // Build is optional for static projects. Only enforce npm run build when
     // package.json (or a React/Vite scaffold) actually exposes a build script.
@@ -249,12 +265,15 @@ export class AgentLoop {
       // Builder sessions always inspect the active project before planning or editing.
       // This prevents the model from inventing a new app or answering with source code.
       if (builderTask && previousResults.length === 0 && availableTools.includes("listFiles")) {
-        emit({ iteration, type: "tool-start", tool: "listFiles", message: "Изучаю текущий проект перед планированием." });
+        markStepRunning("understand");
+        emit({ iteration, type: "tool-start", name: "agent.step.started", tool: "listFiles", message: "Изучаю текущий проект перед планированием." });
         const inspection = await this.runtime.executeTool("listFiles", ".");
         const step: AgentStep = { iteration, tool: "listFiles", input: ".", success: inspection.success };
         steps.push(step);
         this.onStep?.(step);
         previousResults.push({ iteration, tool: "listFiles", input: ".", result: inspection });
+        addObservation(inspection.success ? `Project structure acquired: ${inspection.output.slice(0, 900)}` : `Project inspection failed: ${inspection.output.slice(0, 900)}`);
+        markStepCompletedLocal("understand", inspection.output);
         seenActions.add(this.actionFingerprint("listFiles", "."));
         actionAttempts.set(this.actionFingerprint("listFiles", "."), 1);
         this.log(iteration, "listFiles", inspection.success ? "success" : "error");
@@ -275,7 +294,11 @@ export class AgentLoop {
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           productPlan = await this.runtime.createProductPlan(task, compactAgentHistory(previousResults), aiOptions as AgentModelOptions);
           this.onPlan?.(productPlan);
-          emit({ iteration, type: "thinking", message: `План готов: ${productPlan.productType}; ${productPlan.pages.length} экранов; ${productPlan.acceptanceCriteria.length} критериев проверки.` });
+          executionSnapshot.plan.acceptanceCriteria = [...new Set([...executionSnapshot.plan.acceptanceCriteria, ...productPlan.acceptanceCriteria])];
+          markPlanStepCompleted(executionSnapshot.plan, "plan", JSON.stringify({ productType: productPlan.productType, pages: productPlan.pages, components: productPlan.components }));
+          if (!executionSnapshot.completedStepIds.includes("plan")) executionSnapshot.completedStepIds.push("plan");
+          publishExecution();
+          emit({ iteration, type: "thinking", name: "agent.plan.created", message: `План готов: ${productPlan.productType}; ${productPlan.pages.length} экранов; ${productPlan.acceptanceCriteria.length} критериев проверки.` });
         } catch (error) {
         if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
           const normalizedError = toNexumError(error, "MODEL_ERROR", "Не удалось сформировать план проекта.");
