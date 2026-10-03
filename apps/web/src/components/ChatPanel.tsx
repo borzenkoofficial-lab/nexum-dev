@@ -108,7 +108,7 @@ export function ChatPanel({
         <div className={"agent-activity agent-activity-live " + (busy ? "active" : "")} aria-live="polite">
           <span className={"activity-dot " + (busy ? "working" : "")} />
           <div className="activity-copy"><strong>{liveJob && busy ? "NEXUM выполняет задачу" : "Готов к следующей задаче"}</strong><span>{busy ? "Откройте Agent справа для деталей" : "Опишите следующую итерацию ниже"}</span></div>
-          <button type="button" onClick={onOpenAgent}>Открыть</button>{liveJob && busy && <button type="button" className="composer-cancel" onClick={onCancel} aria-label="Отменить задачу Agent">Отменить</button>}
+          <button type="button" onClick={onOpenAgent}>Открыть</button>{liveJob && <button type="button" className="composer-cancel" onClick={onCancel} aria-label="Отменить задачу Agent">Отменить</button>}
         </div>
       </div>
 
