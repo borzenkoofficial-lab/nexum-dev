@@ -53,8 +53,11 @@ test("Checkpoint persistence survives repeated concurrent writes and ignores tra
     const persisted = await manager.readExecutionState("concurrent", root, checkpoint.id) as { writer?: number; state?: string };
     assert.ok(persisted);
     assert.equal(persisted.state, "VALIDATING");
-    assert.equal(typeof persisted.writer, "number");
-    assert.ok(persisted.writer! >= batch * 32 && persisted.writer! < (batch + 1) * 32);
+    const writer = persisted.writer;
+    if (typeof writer !== "number") {
+      assert.fail("checkpoint state must persist a numeric writer");
+    }
+    assert.ok(writer >= batch * 32 && writer < (batch + 1) * 32);
 
     const files = await readdir(join(root, ".nexum", "checkpoints", checkpoint.id));
     assert.equal(files.some((file) => file.startsWith("agent-state.tmp-")), false);
@@ -90,7 +93,10 @@ test("Checkpoint persistence isolates concurrent checkpoint identities", async (
     };
     assert.deepEqual(persisted?.job, index);
     assert.equal(persisted?.state, "EXECUTING");
-    assert.equal(typeof persisted?.writer, "number");
-    assert.ok(persisted.writer! >= 0 && persisted.writer! < 24);
+    const writer = persisted?.writer;
+    if (typeof writer !== "number") {
+      assert.fail("checkpoint state must persist a numeric writer");
+    }
+    assert.ok(writer >= 0 && writer < 24);
   }
 });
