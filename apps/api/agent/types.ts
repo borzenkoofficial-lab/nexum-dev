@@ -9,6 +9,9 @@ export interface ToolResult {
     retryable: boolean;
     repairable?: boolean;
     fatal?: boolean;
+    category?: AgentErrorCategory;
+    summary?: string;
+    recoveryStrategy?: string;
   };
   metadata?: {
     projectId?: string;
