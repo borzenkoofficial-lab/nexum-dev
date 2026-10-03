@@ -96,12 +96,18 @@ test("boot, runtime inspection and browser-visible navigation", async ({ page })
 });
 
 test("real Agent user cancellation aborts the Agent task and releases Runtime ownership", async ({ page }) => {
-  const { jobId } = await page.request.post("/api/chat", { data: { message: "Проверь структуру текущего проекта и ничего не изменяй.", projectId: runtimeWorkspaceId } }).then(async response => {
-    expect(response.status()).toBe(202);
-    return response.json();
-  });
-  const cancel = await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`);
-  expect(cancel.ok()).toBeTruthy();
+  await setAgentFailure(page, "enable", "TOOL_CHECKPOINT", undefined, runtimeWorkspaceId);
+  const input = page.getByLabel("Опишите задачу");
+  await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
+  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+
+  await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
+  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
+  expect(jobId).toBeTruthy();
+  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
+  await expect(cancel).toBeVisible({ timeout: 5_000 });
+  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
+  await cancel.click();
 
   await page.waitForFunction(async () => {
     const id = (window as any).__NEXUM_E2E_LAST_JOB_ID__;
