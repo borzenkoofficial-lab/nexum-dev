@@ -910,7 +910,7 @@ export class AgentLoop {
             ((item.tool === "writeFile" || item.tool === "patchFile") && /"verified"\s*:\s*true/.test(item.result.output));
           return validationTool && item.result.success ? currentIndex : index;
         }, -1);
-        const postChangeValidationPassed = lastMutationIndex < 0 || lastValidationIndex > lastMutationIndex;
+        const postChangeValidationPassed = lastMutationIndex < 0 || lastValidationIndex >= lastMutationIndex;
         const reviewPassed = !productPlan || !builderTask || previousResults.some(
           (item) => item.tool === "productReview" && item.result.success,
         );
