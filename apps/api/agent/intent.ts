@@ -16,7 +16,7 @@ export function createAgentIntent(
     /настрой|configure|config|подключ|integration|интеграц/.test(lower) ? "configure" :
     /проанализ|проверь|исслед|analy[sz]e|review|audit/.test(lower) ? "analyze" : "unknown";
 
-  const explicitFiles = [...objective.matchAll(FILE_RE)].map((m) => m[1]).filter(Boolean);
+  const explicitFiles = [...objective.matchAll(FILE_RE)].map((m) => m[1]).filter((value): value is string => typeof value === "string");
   const acceptanceCriteria = [
     type === "create" ? "The requested product is represented in the active project." : "The requested change is represented in the active project.",
     "Implementation is validated after the latest changes.",
