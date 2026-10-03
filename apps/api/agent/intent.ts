@@ -34,10 +34,18 @@ export function createAgentIntent(
     "Do not report completion before validation and verification.",
     ...(productPlan?.visualSystem ?? []).slice(0, 6),
   ]);
+  const baseAcceptance = type === "analyze"
+    ? "A concrete evidence-based result for the requested analysis is available."
+    : type === "unknown"
+      ? "The request is understood well enough to produce a controlled result or an explicit failure."
+      : type === "create"
+        ? "The requested product is represented in the active project."
+        : "The requested change is represented in the active project.";
+
   const acceptanceCriteria = unique([
     ...(productPlan?.acceptanceCriteria ?? []),
-    type === "create" ? "The requested product is represented in the active project." : "The requested change is represented in the active project.",
-    "Implementation is validated after the latest changes.",
+    baseAcceptance,
+    "The latest applicable validation has been run after execution.",
     ...(/preview|предпросмотр/i.test(objective) ? ["Preview is available and healthy."] : []),
     ...(/тест|test|провер/i.test(objective) ? ["Relevant automated verification passes."] : []),
   ]).slice(0, 20);
