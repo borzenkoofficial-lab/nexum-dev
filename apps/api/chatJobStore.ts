@@ -27,6 +27,11 @@ export interface ChatJob {
   attachments?: string[];
   productPlan?: unknown;
   checkpointId?: string;
+  agentIntent?: unknown;
+  executionPlan?: unknown;
+  executionState?: unknown;
+  validation?: unknown;
+  telemetry?: unknown;
   userId: string;
   projectId?: string;
 }
