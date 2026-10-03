@@ -14,9 +14,9 @@ export interface RegisteredAIModel {
 export class AIModelRegistry {
   constructor(private readonly gateway: AIGateway) {}
 
-  async list(providerId?: string): Promise<RegisteredAIModel[]> {
+  async list(providerId?: string, signal?: AbortSignal): Promise<RegisteredAIModel[]> {
     const providers = this.gateway.getProviders().filter((provider) => !providerId || provider.id === providerId);
-    const models = await this.gateway.getModels();
+    const models = await this.gateway.getModels(signal);
     const result: RegisteredAIModel[] = [];
     for (const provider of providers) {
       const providerModels = models[provider.id];
@@ -28,13 +28,13 @@ export class AIModelRegistry {
     return result;
   }
 
-  async select(requirement: AIModelRequirement, options: { provider?: string; model?: string } = {}): Promise<RegisteredAIModel | null> {
+  async select(requirement: AIModelRequirement, options: { provider?: string; model?: string } = {}, signal?: AbortSignal): Promise<RegisteredAIModel | null> {
     if (options.model) {
       const provider = options.provider ?? this.gateway.getDefaultProviderId();
       const capabilities = this.gateway.getCapabilities(provider, options.model);
       return this.matches(capabilities, requirement) ? { provider, model: options.model, capabilities } : null;
     }
-    const models = await this.list(options.provider);
+    const models = await this.list(options.provider, signal);
     return models.find((candidate) => this.matches(candidate.capabilities, requirement)) ?? null;
   }
 
