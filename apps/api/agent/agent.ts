@@ -400,14 +400,29 @@ export class NexumAgent implements AgentRuntime {
     const { stat } = await import("node:fs/promises");
     const hasDist = await stat(distIndex).then((details) => details.isFile()).catch(() => false);
     const hasSource = await stat(sourceIndex).then((details) => details.isFile()).catch(() => false);
-    const online = hasPackage ? hasDist : hasSource;
-    return {
-      success: online,
-      output: JSON.stringify({ online, mode: hasPackage ? "built-app" : "static", hasPackage, hasDist, hasSource }),
-      toolName: "runtimeValidation",
-      metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId },
-      error: online ? undefined : { code: "RUNTIME_ERROR", message: "Preview/runtime artifact is not available.", retryable: true, repairable: true, fatal: false },
-    };
+    const artifactReady = hasPackage ? hasDist : hasSource;
+    if (!artifactReady) {
+      return { success: false, output: JSON.stringify({ online: false, mode: hasPackage ? "built-app" : "static", hasPackage, hasDist, hasSource, evidence: "preview artifact missing" }), toolName: "runtimeValidation", metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId }, error: { code: "RUNTIME_ERROR", message: "Preview/runtime artifact is not available.", retryable: true, repairable: true, fatal: false } };
+    }
+    if (this.runtimeContext.projectId) {
+      const port = Number(process.env.PORT || 3001);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5_000);
+      const abortFromAgent = () => controller.abort();
+      if (signal) { if (signal.aborted) abortFromAgent(); else signal.addEventListener("abort", abortFromAgent, { once: true }); }
+      try {
+        const response = await fetch("http://127.0.0.1:" + port + "/api/preview/" + encodeURIComponent(this.runtimeContext.projectId) + "/index.html", { signal: controller.signal, headers: { Accept: "text/html" } });
+        if (!response.ok) throw new Error("Preview HTTP " + response.status);
+        const body = await response.text();
+        if (!/<!doctype html|<html[\s>]/i.test(body)) throw new Error("Preview endpoint did not return an HTML document");
+        return { success: true, output: JSON.stringify({ online: true, httpStatus: response.status, mode: hasPackage ? "built-app" : "static", hasPackage, hasDist, hasSource, evidence: "real preview HTTP response" }), toolName: "runtimeValidation", metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId } };
+      } catch (error) {
+        if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) throw new DOMException("Agent task cancelled", "AbortError");
+        return { success: false, output: JSON.stringify({ online: false, mode: hasPackage ? "built-app" : "static", hasPackage, hasDist, hasSource, error: error instanceof Error ? error.message : String(error) }), toolName: "runtimeValidation", metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId }, error: { code: "RUNTIME_ERROR", message: error instanceof Error ? error.message : "Preview HTTP validation failed", retryable: true, repairable: true, fatal: false } };
+      } finally { clearTimeout(timeout); signal?.removeEventListener("abort", abortFromAgent); }
+    }
+    return { success: true, output: JSON.stringify({ online: true, mode: hasPackage ? "built-app" : "static", hasPackage, hasDist, hasSource, evidence: "runtime artifact present; HTTP probe unavailable in standalone loop" }), toolName: "runtimeValidation", metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId } };
+  }
   }
 
   async executeTool(toolName: string, input: string, signal?: AbortSignal): Promise<ToolResult> {
