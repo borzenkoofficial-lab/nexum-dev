@@ -139,6 +139,8 @@ test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime tas
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   expect(jobId).toBeTruthy();
+  const uiDebug = await page.evaluate(() => ({ activity: document.querySelector(".agent-activity-live")?.outerHTML ?? null, ariaHidden: document.querySelector(".agent-activity-live")?.closest("[aria-hidden=\"true\"]")?.getAttribute("aria-hidden") ?? null }));
+  console.log("[Nexum UI DEBUG]", JSON.stringify(uiDebug));
   const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
   await expect(cancel).toBeVisible({ timeout: 5_000 });
   await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
