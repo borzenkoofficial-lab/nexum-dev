@@ -15,7 +15,7 @@ export class PatchFileTool implements Tool {
 
   constructor(private readonly workspace: ProjectWorkspace) {}
 
-  async execute(input: string): Promise<ToolResult> {
+  async execute(input: string, signal?: AbortSignal): Promise<ToolResult> {
     let parsed: PatchInput;
     try {
       parsed = JSON.parse(input) as PatchInput;
@@ -29,6 +29,7 @@ export class PatchFileTool implements Tool {
     if (parsed.find.length === 0) return { success: false, output: "patchFile find cannot be empty." };
 
     try {
+      if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
       const filePath = await this.workspace.existing(parsed.path);
       const before = await readFile(filePath, "utf8");
       const matches = before.split(parsed.find).length - 1;
@@ -44,7 +45,8 @@ export class PatchFileTool implements Tool {
       if (after === before) return { success: false, output: "Patch produced no change." };
 
       const { writeFile } = await import("node:fs/promises");
-      await writeFile(filePath, after, "utf8");
+      if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+      await writeFile(filePath, after, { encoding: "utf8", signal });
       return {
         success: true,
         output: JSON.stringify({ path: this.workspace.relative(filePath), changed: true, replacements: matches, beforeBytes: Buffer.byteLength(before), afterBytes: Buffer.byteLength(after) }),
