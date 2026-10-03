@@ -58,12 +58,13 @@ async function ensureTable(): Promise<void> {
         job_id UUID NOT NULL,
         expires_at TIMESTAMPTZ NOT NULL
       );
-      ALTER TABLE agent_chat_jobs ALTER COLUMN project_id TYPE TEXT USING project_id::text;
-      ALTER TABLE agent_project_locks ALTER COLUMN project_id TYPE TEXT USING project_id::text;
+      -- Existing installations may have UUID project IDs; normalize only after each table exists.
       ALTER TABLE agent_chat_jobs DROP CONSTRAINT IF EXISTS agent_chat_jobs_status_check;
       ALTER TABLE agent_chat_jobs ADD CONSTRAINT agent_chat_jobs_status_check CHECK (status IN ('queued','running','completed','failed','cancelled'));
       CREATE INDEX IF NOT EXISTS agent_chat_jobs_user_updated_idx
         ON agent_chat_jobs(user_id, updated_at DESC);
+      ALTER TABLE agent_chat_jobs ALTER COLUMN project_id TYPE TEXT USING project_id::text;
+      ALTER TABLE agent_project_locks ALTER COLUMN project_id TYPE TEXT USING project_id::text;
       CREATE INDEX IF NOT EXISTS agent_project_locks_expiry_idx
         ON agent_project_locks(expires_at);
     `).then(() => undefined).catch((error) => {
