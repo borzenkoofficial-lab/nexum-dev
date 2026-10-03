@@ -391,6 +391,25 @@ export class NexumAgent implements AgentRuntime {
     return null;
   }
 
+  async validateRuntime(signal?: AbortSignal): Promise<ToolResult> {
+    if (signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
+    const packageRaw = await import("node:fs/promises").then(({ readFile }) => readFile(resolve(this.projectRoot, "package.json"), "utf8").catch(() => ""));
+    const hasPackage = Boolean(packageRaw);
+    const distIndex = resolve(this.projectRoot, "dist", "index.html");
+    const sourceIndex = resolve(this.projectRoot, "index.html");
+    const { stat } = await import("node:fs/promises");
+    const hasDist = await stat(distIndex).then((details) => details.isFile()).catch(() => false);
+    const hasSource = await stat(sourceIndex).then((details) => details.isFile()).catch(() => false);
+    const online = hasPackage ? hasDist : hasSource;
+    return {
+      success: online,
+      output: JSON.stringify({ online, mode: hasPackage ? "built-app" : "static", hasPackage, hasDist, hasSource }),
+      toolName: "runtimeValidation",
+      metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId },
+      error: online ? undefined : { code: "RUNTIME_ERROR", message: "Preview/runtime artifact is not available.", retryable: true, repairable: true, fatal: false },
+    };
+  }
+
   async executeTool(toolName: string, input: string, signal?: AbortSignal): Promise<ToolResult> {
     const tool = this.tools.get(toolName);
     if (!tool) return { success: false, output: `Unknown tool: ${toolName}`, toolName };
