@@ -80,8 +80,6 @@ jobs:
       - name: Install Chromium
         run: npx --prefix e2e playwright install --with-deps chromium
       - name: Run Runtime Phase 2.5 E2E
-        env:
-          NEXUM_E2E_MAX_FAILURES: "1"
         run: npm --prefix e2e test
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
