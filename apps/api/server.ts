@@ -451,15 +451,6 @@ ${attachment.content.slice(0, 80_000)}`);
       (step.tool === "runCommand" || step.tool === "runSandbox") &&
       /npm run build/.test(step.input),
     );
-    if (successfulBuild) await stateManager.markBuildSucceeded();
-    await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
-      try {
-        const parsed = JSON.parse(step.input);
-        return typeof parsed.path === "string" ? parsed.path : "";
-      } catch { return ""; }
-    }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
-    await stateManager.markCompleted(message.slice(0, 240));
-
     if (signal?.aborted || (await getChatJob(jobId, userId))?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
     const completed = await completeChatJob(jobId, userId, {
       reply: job.reply,
@@ -473,6 +464,14 @@ ${attachment.content.slice(0, 80_000)}`);
       stage: "completed",
     });
     if (!completed || completed.status !== "completed") throw new DOMException("Agent completion lost a race with cancellation", "AbortError");
+    if (successfulBuild) await stateManager.markBuildSucceeded();
+    await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
+      try {
+        const parsed = JSON.parse(step.input);
+        return typeof parsed.path === "string" ? parsed.path : "";
+      } catch { return ""; }
+    }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
+    await stateManager.markCompleted(message.slice(0, 240));
     job.status = "completed";
     job.stage = "completed";
     void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
