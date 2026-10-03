@@ -31,6 +31,9 @@ import type {
 const DEFAULT_MAX_ITERATIONS = 12;
 const MAX_AI_PLANNER_CALLS = 3;
 const MAX_PRODUCT_REVIEW_CALLS = 1;
+const MAX_REPAIR_ATTEMPTS = 3;
+const MAX_TOOL_CALLS = 40;
+const MAX_DURATION_MS = 15 * 60 * 1000;
 // One bounded token budget is shared by every remote AI call in a single task.
 // The budget is based on requested max tokens, so a long agent run cannot
 // silently accumulate several independent per-call limits.
@@ -260,6 +263,16 @@ export class AgentLoop {
 
     for (let iteration = 1; iteration <= this.maxIterations; iteration += 1) {
       throwIfAborted(options?.signal);
+      if (Date.now() - executionSnapshot.startedAt > MAX_DURATION_MS) {
+        setAgentState("FAILED", "agent.failed", "Agent execution duration limit reached.");
+        options?.signal?.removeEventListener("abort", onAbort);
+        return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Agent execution duration limit reached." };
+      }
+      if (steps.length >= MAX_TOOL_CALLS) {
+        setAgentState("FAILED", "agent.failed", "Agent tool-call limit reached.");
+        options?.signal?.removeEventListener("abort", onAbort);
+        return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Agent tool-call limit reached." };
+      }
       const availableTools = this.runtime.getAvailableTools();
       transition(phaseAfterIteration(phase, previousResults.length > 0));
 
@@ -867,7 +880,8 @@ export class AgentLoop {
       markStepRunning("execute");
       emit({ iteration, type: "tool-start", name: "agent.tool.started", tool: plan.tool, message: this.describeToolStart(plan.tool, plan.input) });
       const fingerprint = this.actionFingerprint(plan.tool, plan.input);
-      actionAttempts.set(fingerprint, (actionAttempts.get(fingerprint) ?? 0) + 1);
+      const attemptCount = (actionAttempts.get(fingerprint) ?? 0) + 1;
+      actionAttempts.set(fingerprint, attemptCount);
       seenActions.add(fingerprint);
       const toolStartedAt = Date.now();
       throwIfAborted(options?.signal);
@@ -956,6 +970,11 @@ export class AgentLoop {
       });
       if (!result.success) {
         executionSnapshot.repairAttempts += 1;
+        if (attemptCount >= 3 || executionSnapshot.repairAttempts > MAX_REPAIR_ATTEMPTS) {
+          setAgentState("FAILED", "agent.failed", "Bounded repair/loop limit reached.");
+          options?.signal?.removeEventListener("abort", onAbort);
+          return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Bounded repair/loop limit reached.", errorInfo: { code: "TOOL_ERROR", message: "Repeated failing tool action detected.", retryable: false, category: "loop", summary: "LOOP_DETECTED", recoveryStrategy: "Choose a new action instead of repeating the same failing tool call." } };
+        }
         markStepRunning("observe");
         emit({ iteration, type: "thinking", name: "agent.repair.started", phase: "repair", message: "Ошибка исполнения обнаружена; запускаю bounded repair path." });
         const diagnosis = diagnoseError(result.output);
