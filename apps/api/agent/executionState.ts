@@ -128,13 +128,23 @@ export function createValidation(
   };
 }
 
-export function createTelemetry(startedAt: number, modelCalls: number, toolCalls: number, steps: number, repairAttempts: number): AgentTelemetry {
+export function createTelemetry(
+  startedAt: number,
+  modelCalls: number,
+  toolCalls: number,
+  steps: number,
+  repairAttempts: number,
+  provider?: string,
+  model?: string,
+): AgentTelemetry {
   return {
     modelCalls,
     toolCalls,
     steps,
     repairAttempts,
     durationMs: Date.now() - startedAt,
+    ...(provider ? { provider } : {}),
+    ...(model ? { model } : {}),
   };
 }
 
