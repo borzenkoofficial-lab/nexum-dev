@@ -29,6 +29,8 @@ export class WriteFileTool implements Tool {
       await mkdir(dirname(filePath), { recursive:true });
       if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
       await writeFile(filePath, next, { encoding: "utf8", signal });
+      const verifiedContent = await readFile(filePath, "utf8");
+      if (verifiedContent !== next) throw new Error("writeFile verification failed: on-disk content differs from requested content");
       return {
         success:true,
         output:JSON.stringify({
@@ -39,6 +41,7 @@ export class WriteFileTool implements Tool {
           newBytes: Buffer.byteLength(next),
           previousSha256: previous === null ? null : hash(previous),
           newSha256: hash(next),
+          verified: true,
         }),
       };
     } catch (error) { return { success:false, output:error instanceof Error ? error.message : "Unable to write file" }; }
