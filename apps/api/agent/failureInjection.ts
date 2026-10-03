@@ -44,15 +44,15 @@ export const agentFailureInjection = {
     checkpointWaiters.set(name, waiters);
     record(name, true, undefined, "consumed");
     await new Promise<void>((resolve, reject) => {
-      const waiter = { resolve, reject };
+      let wrapped: { resolve: () => void; reject: (error: unknown) => void };
       const abort = () => {
-        waiters.delete(waiter);
+        waiters.delete(wrapped);
         if (waiters.size === 0) checkpointWaiters.delete(name);
         reject(new DOMException("Agent task cancelled", "AbortError"));
       };
       if (signal?.aborted) return abort();
       signal?.addEventListener("abort", abort, { once: true });
-      const wrapped = {
+      wrapped = {
         resolve: () => {
           signal?.removeEventListener("abort", abort);
           waiters.delete(wrapped);
@@ -66,7 +66,6 @@ export const agentFailureInjection = {
           reject(error);
         },
       };
-      waiters.delete(waiter);
       waiters.add(wrapped);
     });
   },
