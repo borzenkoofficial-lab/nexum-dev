@@ -448,8 +448,8 @@ export class NexumAgent implements AgentRuntime {
         metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId },
       };
     }
-    if (agentFailureInjection.consumeFailure("TOOL_CHECKPOINT")) {
-      await agentFailureInjection.waitForCheckpoint("TOOL_CHECKPOINT", signal);
+    if (agentFailureInjection.consumeFailure("TOOL_CHECKPOINT", this.runtimeContext.projectId)) {
+      await agentFailureInjection.waitForCheckpoint("TOOL_CHECKPOINT", this.runtimeContext.projectId, signal);
     }
     const toolCallId = crypto.randomUUID();
     const startedAt = Date.now();
