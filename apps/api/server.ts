@@ -25,7 +25,7 @@ import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
 import { pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
-import { acquireProjectLock, cancelChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
+import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
 
@@ -196,8 +196,15 @@ async function runChatJob(
 ) {
   const runtimeTask = runtimeTaskId ? serverRuntime.tasks.get(runtimeTaskId) : undefined;
   if (!runtimeTask) throw new Error("Canonical Runtime Task is unavailable for Agent Job");
-  const job = await getChatJob(jobId, userId);
-  if (!job) { serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
+  const existingJob = await getChatJob(jobId, userId);
+  if (!existingJob) { serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
+  const job = existingJob.status === "queued" ? await claimChatJob(jobId, userId) : existingJob;
+  if (!job || job.status !== "running") {
+    if (job?.status === "cancelled") serverRuntime.cancelTask(runtimeTask.id);
+    else serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Agent Job could not be claimed" });
+    chatJobControllers.delete(jobId);
+    return;
+  }
   chatJobCache.set(jobId, job);
   let lockedProjectId: string | undefined;
   let lockHeartbeat: ReturnType<typeof setInterval> | undefined;
@@ -1138,7 +1145,6 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
     return res.json({ success: true, cancelled: current?.status === "cancelled", job: current });
   }
   chatJobCache.set(job.id, cancelled);
-  chatJobControllers.get(job.id)?.abort();
   chatJobControllers.get(job.id)?.abort();
   const runtimeTaskId = job.runtimeTaskId;
   if (runtimeTaskId) serverRuntime.cancelTask(runtimeTaskId);
