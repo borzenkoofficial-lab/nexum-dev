@@ -11,6 +11,9 @@ export interface RuntimeDiagnostic extends RuntimeContext{timestamp:number;subsy
 interface Resource extends RuntimeContext{id:string;kind:ResourceKind;release:()=>void;createdAt:number}
 interface ProcessRecord extends RuntimeContext{id:string;name:string;child:ChildProcess;restart?:()=>Promise<ChildProcess>;state:"STARTING"|"HEALTHY"|"UNHEALTHY"|"RESTARTING"|"STOPPED"|"FAILED"}
 
+const TASK_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
+ QUEUED:["PLANNING","RUNNING","CANCELLED","FAILED"],PLANNING:["RUNNING","WAITING","CANCELLED","FAILED"],RUNNING:["WAITING","VALIDATING","RECOVERING","COMPLETED","FAILED","CANCELLED"],WAITING:["RUNNING","VALIDATING","RECOVERING","FAILED","CANCELLED"],VALIDATING:["COMPLETED","RECOVERING","FAILED","CANCELLED"],RECOVERING:["RUNNING","VALIDATING","FAILED","CANCELLED"],COMPLETED:[],FAILED:[],CANCELLED:[]
+};
 export class ServerRuntime{
  lifecycle:RuntimeLifecycle="BOOTING";
  readonly tasks=new Map<string,RuntimeTask>();
@@ -20,7 +23,7 @@ export class ServerRuntime{
  start(){this.lifecycle="READY";this.record("RUNTIME","info","Runtime ready");}
  setBusy(value=true){this.lifecycle=value?"BUSY":"READY"}
  createTask(context:RuntimeContext&{priority?:number;maxRetries?:number;timeoutMs?:number}={}):RuntimeTask{const t:RuntimeTask={id:randomUUID(),status:"QUEUED",children:[],priority:context.priority??0,progress:0,createdAt:Date.now(),retryCount:0,maxRetries:context.maxRetries??2,timeoutMs:context.timeoutMs,...context};this.tasks.set(t.id,t);this.record("TASK","info","Task created",context);return t}
- updateTask(id:string,status:TaskStatus,patch:Partial<RuntimeTask>={}){const t=this.tasks.get(id);if(!t)return;Object.assign(t,patch,{status});if(status==="RUNNING"&&!t.startedAt)t.startedAt=Date.now();if(["COMPLETED","FAILED","CANCELLED"].includes(status))t.completedAt=Date.now();return t}
+ updateTask(id:string,status:TaskStatus,patch:Partial<RuntimeTask>={}){const t=this.tasks.get(id);if(!t)return;if(status!==t.status&&!TASK_TRANSITIONS[t.status].includes(status)){this.record("TASK","warn",`Invalid task transition ${t.status} -> ${status}`,t);return t;}Object.assign(t,patch,{status});if(status==="RUNNING"&&!t.startedAt)t.startedAt=Date.now();if(["COMPLETED","FAILED","CANCELLED"].includes(status))t.completedAt=Date.now();return t}
  registerResource(kind:ResourceKind,release:()=>void,context:RuntimeContext={}):string{const id=randomUUID();this.resources.set(id,{id,kind,release,createdAt:Date.now(),...context});return id}
  releaseResource(id:string){const r=this.resources.get(id);if(!r)return;try{r.release()}catch(e){this.record("RESOURCE","error","Resource release failed",r,e)}this.resources.delete(id)}
  registerProcess(name:string,child:ChildProcess,context:RuntimeContext={},restart?:()=>Promise<ChildProcess>){const id=randomUUID();const p:ProcessRecord={id,name,child,state:"STARTING",restart,...context};this.processes.set(id,p);this.record("PROCESS","info","Process registered",{...context,operation:name});child.once("spawn",()=>{p.state="HEALTHY";this.record("PROCESS","info","Process healthy",{...context,operation:name});});child.once("exit",(code,signal)=>{if(p.state==="STOPPED")return;if(code===0){p.state="STOPPED";this.record("PROCESS","info","Process exited normally",{...context,operation:name});}else{p.state="FAILED";this.record("PROCESS","error","Process exited unexpectedly",{...context,operation:name},new Error(`exit=${code ?? "null"} signal=${signal ?? "none"}`),"no automatic restart for side-effectful command");}this.processes.delete(id)});return id}
