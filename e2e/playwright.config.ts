@@ -18,10 +18,12 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "cd .. && npm --prefix apps/api run dev",
+      name: "API",
+      command: "cd .. && npm --prefix apps/api run start",
       url: "http://127.0.0.1:3001/api/runtime/status",
       timeout: 120_000,
       reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
       env: {
         NODE_ENV: "test",
         NEXUM_AUTH_ENABLED: "false",
@@ -37,10 +39,12 @@ export default defineConfig({
       },
     },
     {
+      name: "Web",
       command: "cd .. && VITE_E2E=true npm --prefix apps/web run dev -- --host 127.0.0.1",
       url: "http://127.0.0.1:5173",
       timeout: 120_000,
       reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
     },
   ],
 });
