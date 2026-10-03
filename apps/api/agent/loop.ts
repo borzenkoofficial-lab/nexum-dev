@@ -134,6 +134,11 @@ export interface AgentEvent {
   message: string;
   errorCode?: string;
   retryable?: boolean;
+  requestId?: string;
+  projectId?: string;
+  taskId?: string;
+  agentJobId?: string;
+  planId?: string;
 }
 
 export class AgentLoop {
@@ -289,7 +294,17 @@ export class AgentLoop {
       emit({ iteration: 0, type: "thinking", phase, message: `Стадия агента: ${phase}.` });
     };
     const emit = (event: Omit<AgentEvent, "id" | "timestamp" | "phase"> & { phase?: AgentPhase }) => {
-      this.onEvent?.({ ...event, phase: event.phase ?? phase, id: ++eventId, timestamp: Date.now() });
+      this.onEvent?.({
+        ...event,
+        phase: event.phase ?? phase,
+        id: ++eventId,
+        timestamp: Date.now(),
+        requestId: this.journalContext?.requestId,
+        projectId: this.journalContext?.projectId,
+        taskId: this.journalContext?.taskId,
+        agentJobId: this.journalContext?.agentRunId,
+        planId: executionSnapshot.plan.planId,
+      });
     };
     setAgentState("UNDERSTANDING", "agent.started", "Agent execution started.");
     emit({ iteration: 0, type: "thinking", name: "agent.intent.created", phase: "analyze", message: "Нормализовал запрос в структурированный Intent и закрепил project/task ownership." });
