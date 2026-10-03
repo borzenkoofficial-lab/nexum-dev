@@ -27,7 +27,7 @@ import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAu
 import { closeDatabase, pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
-import { chatJobCache, syncTerminalChatJobCache } from "./chatJobCache.js";
+import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
@@ -219,14 +219,6 @@ async function persistChatJob(job: ChatJob): Promise<void> {
   } finally {
     if (chatJobPersistQueues.get(job.id) === next) chatJobPersistQueues.delete(job.id);
   }
-}
-
-async function loadChatJob(id: string, userId: string): Promise<ChatJob | null> {
-  const cached = chatJobCache.get(id);
-  if (cached && cached.userId === userId) return cached;
-  const persisted = await getChatJob(id, userId);
-  if (persisted) chatJobCache.set(id, persisted);
-  return persisted;
 }
 
 function throwIfAgentAborted(signal?: AbortSignal): void {
@@ -1300,14 +1292,14 @@ app.post("/api/chat", async (req, res) => {
 app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   const userId = getAuthUser(req).id;
   await cleanupChatJobs();
-  const job = await loadChatJob(req.params.id, userId);
+  const job = await loadChatJob(req.params.id, userId, getChatJob);
   if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired" });
   if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
     return res.json({ success: true, cancelled: job.status === "cancelled", job });
   }
   const cancelled = await cancelChatJob(job.id, userId);
   if (!cancelled) {
-    const current = await loadChatJob(job.id, userId);
+    const current = await loadChatJob(job.id, userId, getChatJob);
     return res.json({ success: true, cancelled: current?.status === "cancelled", job: current });
   }
   syncTerminalChatJobCache(cancelled);
