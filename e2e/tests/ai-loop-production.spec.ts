@@ -8,6 +8,15 @@ async function setFailure(page: any, operation: "enable" | "disable" | "reset", 
   return response.json();
 }
 
+async function waitForFailurePhase(page: any, name: string, phase: "consumed" | "released") {
+  await expect.poll(async () => {
+    const response = await page.request.get("/api/test/agent-failures");
+    if (!response.ok()) return false;
+    const data = await response.json();
+    return Boolean((data.diagnostics ?? []).some((entry: any) => entry.name === name && entry.phase === phase));
+  }, { timeout: 5_000 }).toBeTruthy();
+}
+
 async function submitAgent(page: any, message: string, projectId?: string) {
   const response = await page.request.post("/api/chat", {
     data: { message, projectId: projectId ?? undefined },
