@@ -19,6 +19,8 @@ async function waitForFailurePhase(page: any, name: string, phase: "consumed" | 
   }, { timeout: 5_000 }).toBeTruthy();
 }
 
+let runtimeWorkspaceId = "";
+
 async function createStaticProject(page: any, name: string): Promise<string> {
   let response = await page.request.post("/api/projects", {
     data: { name, description: "Runtime Phase 2.5 E2E", type: "static" },
@@ -44,6 +46,7 @@ test.beforeEach(async ({ page }) => {
   });
   await page.request.post("/api/test/agent-failures", { data: { operation: "reset" } }).catch(() => {});
   const workspaceId = await createStaticProject(page, "runtime-agent-workspace-" + Date.now());
+  runtimeWorkspaceId = workspaceId;
   await page.goto("/projects/" + encodeURIComponent(workspaceId));
   await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 10_000 });
 });
@@ -94,7 +97,7 @@ test("boot, runtime inspection and browser-visible navigation", async ({ page })
 
 test("real Agent user cancellation aborts the Agent task and releases Runtime ownership", async ({ page }) => {
   await setAgentFailure(page, "enable", "TOOL_CHECKPOINT");
-  const { jobId } = await page.request.post("/api/chat", { data: { message: "Проверь структуру текущего проекта и ничего не изменяй." } }).then(async response => {
+  const { jobId } = await page.request.post("/api/chat", { data: { message: "Проверь структуру текущего проекта и ничего не изменяй.", projectId: runtimeWorkspaceId } }).then(async response => {
     expect(response.status()).toBe(202);
     return response.json();
   });
