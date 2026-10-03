@@ -48,20 +48,20 @@ export class AnthropicProvider implements AIProvider {
     return content;
   }
 
-  async listModels(): Promise<string[]> {
+  async listModels(signal?: AbortSignal): Promise<string[]> {
     if (!this.runtimeApiKey) return [...DEFAULT_MODELS];
     try {
-      const data = await this.request<AnthropicModelsResponse>("/models", { method: "GET" });
+      const data = await this.request<AnthropicModelsResponse>("/models", { method: "GET", ...(signal ? { signal } : {}) });
       const remote = (data.data ?? []).map((item) => item.id).filter((id): id is string => typeof id === "string" && /^claude-/i.test(id));
       return [...new Set([...DEFAULT_MODELS, ...remote])];
     } catch { return [...DEFAULT_MODELS]; }
   }
 
-  async getStatus(model = this.model): Promise<AIProviderStatus> {
+  async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
     const startedAt = Date.now();
     if (!this.runtimeApiKey) return { available: false, model: this.validateModel(model), latencyMs: Date.now() - startedAt, error: "ANTHROPIC_API_KEY is not configured. Add an API key in NEXUM Settings." };
     try {
-      const models = await this.listModels();
+      const models = await this.listModels(signal);
       return { available: models.length > 0, model: this.validateModel(model), latencyMs: Date.now() - startedAt };
     } catch (error) {
       return { available: false, model: this.validateModel(model), latencyMs: Date.now() - startedAt, error: error instanceof Error ? error.message : "Anthropic is unavailable" };
