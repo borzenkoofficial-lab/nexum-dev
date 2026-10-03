@@ -96,7 +96,7 @@ test("boot, runtime inspection and browser-visible navigation", async ({ page })
 });
 
 test("real Agent user cancellation aborts the Agent task and releases Runtime ownership", async ({ page }) => {
-  await setAgentFailure(page, "enable", "TOOL_CHECKPOINT", undefined, runtimeWorkspaceId);
+  await setAgentFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, runtimeWorkspaceId);
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
   await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
@@ -106,7 +106,7 @@ test("real Agent user cancellation aborts the Agent task and releases Runtime ow
   expect(jobId).toBeTruthy();
   const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
   await expect(cancel).toBeVisible({ timeout: 5_000 });
-  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
+  await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
   await cancel.click();
 
   await page.waitForFunction(async () => {
