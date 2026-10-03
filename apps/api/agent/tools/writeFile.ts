@@ -12,10 +12,11 @@ export class WriteFileTool implements Tool {
   name = "writeFile";
   description = "Creates or updates a text file inside the active project. Path must be relative.";
   constructor(private readonly workspace: ProjectWorkspace) {}
-  async execute(input: string): Promise<ToolResult> {
+  async execute(input: string, signal?: AbortSignal): Promise<ToolResult> {
     try {
       const request = JSON.parse(input) as Partial<WriteFileRequest>;
       if (typeof request.path !== "string" || typeof request.content !== "string") return { success:false, output:"writeFile expects JSON: { path, content }" };
+      if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
       const filePath = await this.workspace.writable(request.path);
       const previous = await readFile(filePath, "utf8").catch(() => null);
       const next = request.content;
@@ -26,7 +27,8 @@ export class WriteFileTool implements Tool {
         };
       }
       await mkdir(dirname(filePath), { recursive:true });
-      await writeFile(filePath, next, "utf8");
+      if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+      await writeFile(filePath, next, { encoding: "utf8", signal });
       return {
         success:true,
         output:JSON.stringify({
