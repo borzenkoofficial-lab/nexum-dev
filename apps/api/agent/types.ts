@@ -104,6 +104,15 @@ export interface AgentValidation {
   failedCriteria: string[];
 }
 
+export interface AgentResultSummary {
+  status: AgentState;
+  summary: string;
+  changedFiles: string[];
+  completedSteps: string[];
+  warnings: string[];
+  errors: string[];
+}
+
 export interface AgentTelemetry {
   modelCalls: number;
   toolCalls: number;
@@ -172,6 +181,7 @@ export interface AgentLoopResult {
   productPlan?: ProductPlan;
   steps: AgentStep[];
   finalResponse?: string;
+  summary?: AgentResultSummary;
   error?: string;
   errorInfo?: AgentErrorInfo;
 }
