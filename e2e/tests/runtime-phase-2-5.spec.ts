@@ -107,6 +107,7 @@ test("real Agent user cancellation aborts the Agent task and releases Runtime ow
   expect(jobId).toBeTruthy();
   const uiDebug = await page.evaluate(() => ({ activity: document.querySelector(".agent-activity-live")?.outerHTML ?? null, ariaHidden: document.querySelector(".agent-activity-live")?.closest("[aria-hidden=\"true\"]")?.getAttribute("aria-hidden") ?? null }));
   console.log("[Nexum UI DEBUG]", JSON.stringify(uiDebug));
+  console.log("[Nexum UI DEBUG2]", await page.locator(".composer-cancel").evaluateAll((els) => els.map((el) => ({ visible: !!(el as HTMLElement).offsetParent, aria: el.getAttribute("aria-label"), text: el.textContent, display: getComputedStyle(el).display, visibility: getComputedStyle(el).visibility }))));
   const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
   await expect(cancel).toBeVisible({ timeout: 5_000 });
   await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
