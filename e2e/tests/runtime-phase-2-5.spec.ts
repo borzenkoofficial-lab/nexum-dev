@@ -82,7 +82,6 @@ test("boot, runtime inspection and browser-visible navigation", async ({ page })
 });
 
 test("real Agent user cancellation aborts the Agent task and releases Runtime ownership", async ({ page }) => {
-  await page.goto("/");
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
   await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
@@ -111,7 +110,6 @@ test("real Agent user cancellation aborts the Agent task and releases Runtime ow
 });
 
 test("Agent cancellation remains terminal across repeated cancel/response races", async ({ page }) => {
-  await page.goto("/");
   for (let i = 0; i < 3; i += 1) {
     const input = page.getByLabel("Опишите задачу");
     await input.fill(`Проверь проект, итерация ${i}, ничего не изменяй.`);
@@ -128,7 +126,6 @@ test("Agent cancellation remains terminal across repeated cancel/response races"
   }
 });
 test("network failure recovers with bounded retries and stable request identity", async ({ page }) => {
-  await page.goto("/");
   await page.evaluate(() => (window as any).__NEXUM_E2E__.enableFailure("FAIL_NETWORK", { projectId: "A" }));
   const resultPromise = page.evaluate(async () => {
     const h = (window as any).__NEXUM_E2E__;
@@ -149,7 +146,6 @@ test("network failure recovers with bounded retries and stable request identity"
 });
 
 test("network cancellation race leaves no active request or task", async ({ page }) => {
-  await page.goto("/");
   await page.evaluate(() => (window as any).__NEXUM_E2E__.enableFailure("DELAY_REQUEST", { delayMs: 500, projectId: "race" }));
   const taskId = await page.evaluate(() => (window as any).__NEXUM_E2E__.startNetworkTask("race"));
   await page.waitForTimeout(50);
@@ -164,10 +160,8 @@ test("network cancellation race leaves no active request or task", async ({ page
 });
 
 test("preview health failure is bounded and recovers when real preview is available", async ({ page }) => {
-  await page.goto("/");
   const projectId = await createStaticProject(page, "runtime-preview-e2e");
   await page.request.post(`/api/projects/${encodeURIComponent(projectId)}/select`);
-  await page.goto("/");
   await page.waitForFunction(() => {
     const status = (window as any).__NEXUM_E2E__?.status?.();
     return Boolean(status && status.preview.state !== "STOPPED");
@@ -196,7 +190,6 @@ test("preview health failure is bounded and recovers when real preview is availa
 });
 
 test("multi-project concurrency and isolation", async ({ page }) => {
-  await page.goto("/");
   const projects = await Promise.all([
     createStaticProject(page, "runtime-A"),
     createStaticProject(page, "runtime-B"),
@@ -222,9 +215,7 @@ test("multi-project concurrency and isolation", async ({ page }) => {
 });
 
 
-
 test("real child-process supervision tracks running, normal exit and crash without orphaning", async ({ page }) => {
-  await page.goto("/");
   const projectId = await createStaticProject(page, "runtime-process-supervision");
   await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
     data: { path: "runtime-process-ok.js", content: "setTimeout(() => process.exit(0), 500);" },
@@ -264,10 +255,8 @@ test("real child-process supervision tracks running, normal exit and crash witho
   expect(runtimeStatus.diagnostics.some((d: any) => d.subsystem === "PROCESS" && /exited unexpectedly/.test(d.message))).toBeTruthy();
 });
 test("preview recovery failure reaches bounded FAILED state without crashing Runtime", async ({ page }) => {
-  await page.goto("/");
   const projectId = await createStaticProject(page, "runtime-preview-recovery-limit");
   await page.request.post(`/api/projects/${encodeURIComponent(projectId)}/select`);
-  await page.goto("/");
   await page.waitForFunction(() => (window as any).__NEXUM_E2E__?.status?.().preview.state !== "STOPPED");
 
   await page.evaluate((id) => {
@@ -288,7 +277,6 @@ test("preview recovery failure reaches bounded FAILED state without crashing Run
 });
 
 test.fixme("real browser main thread pressure recovery is NOT VERIFIED yet", async ({ page }) => {
-  await page.goto("/");
   await page.evaluate(() => {
     const end = performance.now() + 1600;
     while (performance.now() < end) Math.sqrt(Math.random() * 1_000_000);
@@ -303,7 +291,6 @@ test.fixme("real browser main thread pressure recovery is NOT VERIFIED yet", asy
 });
 
 test("Agent Job creation produces exactly one canonical Runtime Task", async ({ page }) => {
-  await page.goto("/");
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Покажи статус Git");
   await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
@@ -327,7 +314,6 @@ test("Agent Job creation produces exactly one canonical Runtime Task", async ({ 
 });
 
 test("real Agent user cancellation aborts the Agent task and leaves terminal state", async ({ page }) => {
-  await page.goto("/");
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
   await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
@@ -361,7 +347,6 @@ test.fixme("process crash recovery E2E is NOT VERIFIED: current Preview is an Ex
 test.skip("Worker lifecycle is NOT APPLICABLE: no production Worker exists in current NEXUM runtime", async () => {});
 
 test("Visual Runtime deterministic CRITICAL → NORMAL recovery is repeatable and leak-free", async ({ page }) => {
-  await page.goto("/");
   const baseline = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   expect(baseline.visual.health).toBe("NORMAL");
 
@@ -384,7 +369,6 @@ test("Visual Runtime deterministic CRITICAL → NORMAL recovery is repeatable an
   expect(finalStatus.visual.activeAnimations).toBe(0);
 });
 test("Visual Runtime preserves registered animation ownership across degradation and recovery", async ({ page }) => {
-  await page.goto("/");
   const state = await page.evaluate(() => {
     const runtime = (window as any).__NEXUM_E2E__.runtimeForTest?.();
     return runtime ? runtime.visual.getState() : null;
@@ -393,7 +377,6 @@ test("Visual Runtime preserves registered animation ownership across degradation
 });
 
 test("corrupted persisted state safely falls back after hard reload", async ({ page }) => {
-  await page.goto("/");
   await page.addInitScript(() => localStorage.setItem("nexum:runtime:snapshot:v1", "{corrupted"));
   await page.reload();
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E__));
@@ -404,7 +387,6 @@ test("corrupted persisted state safely falls back after hard reload", async ({ p
 });
 
 test("shutdown releases runtime resources and prevents active work", async ({ page }) => {
-  await page.goto("/");
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E__));
   await page.evaluate(() => {
     const h = (window as any).__NEXUM_E2E__;
