@@ -15,8 +15,8 @@ export interface AIProvider {
   model: string;
   capabilities: AIModelCapabilities;
   generate(message: string, model?: string, options?: AIGenerateOptions): Promise<string>;
-  listModels?(): Promise<string[]>;
-  getStatus?(model?: string): Promise<AIProviderStatus>;
+  listModels?(signal?: AbortSignal): Promise<string[]>;
+  getStatus?(model?: string, signal?: AbortSignal): Promise<AIProviderStatus>;
   getCapabilities?(model?: string): AIModelCapabilities;
 }
 
