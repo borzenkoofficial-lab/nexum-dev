@@ -141,6 +141,38 @@ export async function updateChatJob(id: string, userId: string, patch: Partial<C
   return result.rows[0] ? decode(result.rows[0]) : null;
 }
 
+export async function completeChatJob(id: string, userId: string, patch: Partial<ChatJob>): Promise<ChatJob | null> {
+  await ensureTable();
+  const current = await getChatJob(id, userId);
+  if (!current || !["queued", "running"].includes(current.status)) return current;
+  const next: ChatJob = { ...current, ...patch, status: "completed", updatedAt: Date.now() };
+  const data = encode(next);
+  const result = await query(
+    `UPDATE agent_chat_jobs
+        SET project_id=$3,status='completed',updated_at=$4,payload=$5::jsonb
+      WHERE id=$1 AND user_id=$2 AND status IN ('queued','running')
+      RETURNING *`,
+    [id, userId, data.projectId, data.updatedAt, JSON.stringify(data.payload)],
+  );
+  return result.rows[0] ? decode(result.rows[0]) : await getChatJob(id, userId);
+}
+
+export async function failChatJob(id: string, userId: string, patch: Partial<ChatJob>): Promise<ChatJob | null> {
+  await ensureTable();
+  const current = await getChatJob(id, userId);
+  if (!current || !["queued", "running"].includes(current.status)) return current;
+  const next: ChatJob = { ...current, ...patch, status: "failed", updatedAt: Date.now() };
+  const data = encode(next);
+  const result = await query(
+    `UPDATE agent_chat_jobs
+        SET project_id=$3,status='failed',updated_at=$4,payload=$5::jsonb
+      WHERE id=$1 AND user_id=$2 AND status IN ('queued','running')
+      RETURNING *`,
+    [id, userId, data.projectId, data.updatedAt, JSON.stringify(data.payload)],
+  );
+  return result.rows[0] ? decode(result.rows[0]) : await getChatJob(id, userId);
+}
+
 export async function cancelChatJob(id: string, userId: string, message = "Agent task cancelled by user."): Promise<ChatJob | null> {
   await ensureTable();
   const result = await query(
