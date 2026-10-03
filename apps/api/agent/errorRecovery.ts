@@ -1,3 +1,30 @@
+export type AgentErrorClass =
+  | "MODEL_ERROR" | "TOOL_ERROR" | "NETWORK_ERROR" | "PROJECT_ERROR"
+  | "VALIDATION_ERROR" | "RUNTIME_ERROR" | "DEPENDENCY_ERROR"
+  | "PERMISSION_ERROR" | "CANCELLATION" | "TIMEOUT" | "UNKNOWN";
+
+export interface AgentErrorClassification {
+  class: AgentErrorClass;
+  retryable: boolean;
+  repairable: boolean;
+  fatal: boolean;
+}
+
+export function classifyAgentError(error: unknown, output = ""): AgentErrorClassification {
+  const text = `${error instanceof Error ? error.message : String(error ?? "")} ${output}`;
+  if (/AbortError|cancelled|canceled/i.test(text)) return { class: "CANCELLATION", retryable: false, repairable: false, fatal: false };
+  if (/timed out|timeout/i.test(text)) return { class: "TIMEOUT", retryable: true, repairable: true, fatal: false };
+  if (/permission|forbidden|EACCES|EPERM|401|403/i.test(text)) return { class: "PERMISSION_ERROR", retryable: false, repairable: false, fatal: true };
+  if (/429|rate limit|provider|model|AI planner|Ollama|OpenRouter|OpenAI|Anthropic/i.test(text)) return { class: "MODEL_ERROR", retryable: /429|rate limit|temporar|timeout/i.test(text), repairable: true, fatal: false };
+  if (/fetch failed|network|ECONN|ENOTFOUND|socket|offline/i.test(text)) return { class: "NETWORK_ERROR", retryable: true, repairable: false, fatal: false };
+  if (/validation|acceptance|DOMAIN_MISMATCH|static validation|testProject/i.test(text)) return { class: "VALIDATION_ERROR", retryable: false, repairable: true, fatal: false };
+  if (/runtime|ReferenceError|TypeError|uncaught|unhandled/i.test(text)) return { class: "RUNTIME_ERROR", retryable: false, repairable: true, fatal: false };
+  if (/module not found|Cannot find module|npm ERR|ERESOLVE|dependency/i.test(text)) return { class: "DEPENDENCY_ERROR", retryable: false, repairable: true, fatal: false };
+  if (/path must|path escape|not allowed|project path/i.test(text)) return { class: "PROJECT_ERROR", retryable: false, repairable: true, fatal: false };
+  if (/tool/i.test(text)) return { class: "TOOL_ERROR", retryable: /busy|temporar/i.test(text), repairable: true, fatal: false };
+  return { class: "UNKNOWN", retryable: false, repairable: true, fatal: false };
+}
+
 export type ErrorCategory =
   | "typescript"
   | "syntax"
