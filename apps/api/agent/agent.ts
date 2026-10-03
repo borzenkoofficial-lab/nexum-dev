@@ -423,7 +423,6 @@ export class NexumAgent implements AgentRuntime {
     }
     return { success: true, output: JSON.stringify({ online: true, mode: hasPackage ? "built-app" : "static", hasPackage, hasDist, hasSource, evidence: "runtime artifact present; HTTP probe unavailable in standalone loop" }), toolName: "runtimeValidation", metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId } };
   }
-  }
 
   async executeTool(toolName: string, input: string, signal?: AbortSignal): Promise<ToolResult> {
     const tool = this.tools.get(toolName);
