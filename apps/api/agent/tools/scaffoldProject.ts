@@ -9,8 +9,9 @@ export class ScaffoldProjectTool implements Tool {
 
   constructor(private readonly workspace: ProjectWorkspace) {}
 
-  async execute(input: string): Promise<ToolResult> {
+  async execute(input: string, signal?: AbortSignal): Promise<ToolResult> {
     try {
+      if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
       const brief = input.trim();
       if (!brief) return { success: false, output: "scaffoldProject requires a non-empty app brief" };
 
@@ -64,6 +65,7 @@ export class ScaffoldProjectTool implements Tool {
           ] as const;
 
       for (const [path, content] of files) {
+        if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
         const target = await this.workspace.writable(path);
         await mkdir(dirname(target), { recursive: true });
         await writeFile(target, content, "utf8");
