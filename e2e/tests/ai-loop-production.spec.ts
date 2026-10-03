@@ -139,7 +139,8 @@ test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime tas
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   expect(jobId).toBeTruthy();
   await expect.poll(async () => page.evaluate(() => (window as any).__NEXUM_E2E_ACTIVE_CHAT_JOB_ID__ ?? null), { timeout: 5_000 }).toBe(jobId);
-  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
+  const cancel = page.locator(".composer-cancel");
+  await expect(cancel).toHaveCount(1);
   await expect(cancel).toBeVisible({ timeout: 5_000 });
   await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
   await cancel.click();
