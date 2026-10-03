@@ -335,7 +335,7 @@ ${attachment.content.slice(0, 80_000)}`);
             event.phase === "validate" ? "building" :
             event.phase === "repair" ? "error" :
             event.phase === "verify" ? "testing" :
-            event.phase === "finish" ? "completed" :
+            event.phase === "finish" ? "testing" :
             event.iteration === 0 ? "analyzing" : "planning";
         }
         if (event.type === "tool-start") {
@@ -416,7 +416,7 @@ ${attachment.content.slice(0, 80_000)}`);
     job.updatedAt = Date.now();
     if (result.finalState === "CANCELLED") {
       job.status = "cancelled";
-      job.stage = "error";
+      job.stage = "cancelled";
       job.error = result.error ?? "Agent task cancelled by user.";
       job.validation = result.validation;
       job.telemetry = result.telemetry;
@@ -442,7 +442,6 @@ ${attachment.content.slice(0, 80_000)}`);
     job.productPlan = result.productPlan;
     job.agentIntent = result.intent;
     job.executionPlan = result.executionPlan;
-    job.executionState = result.finalState;
     job.validation = result.validation;
     job.telemetry = result.telemetry;
     if (result.finalResponse !== undefined) job.reply = result.finalResponse;
