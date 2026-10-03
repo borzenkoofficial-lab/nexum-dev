@@ -464,7 +464,7 @@ export class AgentLoop {
         }
       }
       if (plan && !executionSnapshot.completedStepIds.includes("plan")) {
-        markPlanStepCompletedLocal("plan", `Next action: ${plan.done ? "completion candidate" : plan.tool}`);
+        markStepCompletedLocal("plan", `Next action: ${plan.done ? "completion candidate" : plan.tool}`);
         emit({ iteration, type: "thinking", name: "agent.plan.created", message: "Выбран следующий bounded action с учётом наблюдений.", phase });
       }
       if (plan && !plan.done) transition(plan.tool === "runCommand" || plan.tool === "runSandbox" ? "validate" : plan.tool === "readFile" || plan.tool === "listFiles" || plan.tool === "searchFiles" ? "analyze" : "implement");
@@ -848,7 +848,7 @@ export class AgentLoop {
           { name: "completion gate", passed: gatePassed, evidence: finishReason ?? "gate passed" },
         ];
         const finalValidation = createValidation(validationChecks, gatePassed ? [] : [finishReason ?? "Completion gate failed."]);
-        markPlanStepCompletedLocal("validate", JSON.stringify(finalValidation));
+        markStepCompletedLocal("validate", JSON.stringify(finalValidation));
         if (!finalValidation.passed || !hasExecuted || !lastActionPassed) {
           emit({ iteration, type: "tool-error", name: "agent.validation.failed", message: "Completion blocked: validation did not pass." });
           executionSnapshot.repairAttempts += 1;
@@ -860,10 +860,10 @@ export class AgentLoop {
         setAgentState("VERIFYING", "agent.verification.started", "Acceptance criteria and final project state verified.");
         const repairStep = executionSnapshot.plan.steps.find((step) => step.id === "repair");
         if (repairStep?.status === "PENDING") markPlanStepSkipped(executionSnapshot.plan, "repair", "No repair required after validation.");
-        if (repairStep?.status === "RUNNING") markPlanStepCompletedLocal("repair", "Repair cycle resolved after revalidation.");
+        if (repairStep?.status === "RUNNING") markStepCompletedLocal("repair", "Repair cycle resolved after revalidation.");
         markStepRunning("verify");
-        markPlanStepCompletedLocal("verify", "Verification passed.");
-        markPlanStepCompletedLocal("complete", "Completion gate passed.");
+        markStepCompletedLocal("verify", "Verification passed.");
+        markStepCompletedLocal("complete", "Completion gate passed.");
         transition("finish");
         markStepCompletedLocal("complete", "Agent completed after validation and verification.");
         emit({ iteration, type: "completed", name: "agent.completed", message: "Финальный completion gate пройден. Проект действительно реализован и проверен." });
@@ -888,7 +888,7 @@ export class AgentLoop {
           intent,
           executionPlan: executionSnapshot.plan,
           validation: finalValidation,
-          telemetry: createTelemetry(executionSnapshot.startedAt, aiPlannerCalls + productReviewAttempts + (productPlannerCreated ? 1 : 0) + 1, steps.length, executionSnapshot.repairAttempts),
+          telemetry: createTelemetry(executionSnapshot.startedAt, aiPlannerCalls + productReviewAttempts + (productPlannerCreated ? 1 : 0) + 1, steps.length, steps.length, executionSnapshot.repairAttempts),
           finalState: "COMPLETED",
           summary,
           finalResponse,
@@ -1030,7 +1030,7 @@ export class AgentLoop {
       }
       if (result.success && (plan.tool === "writeFile" || plan.tool === "patchFile")) recordSuccessfulChange(taskState, plan.input);
       if (result.success && executionSnapshot.plan.steps.find((step) => step.id === "repair")?.status === "RUNNING") {
-        markPlanStepCompletedLocal("repair", "Repair action completed; continuing with validation.");
+        markStepCompletedLocal("repair", "Repair action completed; continuing with validation.");
         emit({ iteration, type: "thinking", name: "agent.repair.completed", phase: "repair", message: "Исправление выполнено; возвращаю результат на validation." });
       }
       syncVerificationState(taskState, previousResults, productPlan);
