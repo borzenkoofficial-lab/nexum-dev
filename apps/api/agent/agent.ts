@@ -448,14 +448,8 @@ export class NexumAgent implements AgentRuntime {
         metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId },
       };
     }
-    if (agentFailureInjection.consumeFailure("TOOL_DELAY")) {
-      const delayMs = Math.max(1, Number(process.env.NEXUM_E2E_TOOL_DELAY_MS || 1500));
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(resolve, delayMs);
-        const abort = () => { clearTimeout(timer); reject(new DOMException("Agent task cancelled", "AbortError")); };
-        if (signal?.aborted) abort();
-        else signal?.addEventListener("abort", abort, { once: true });
-      });
+    if (agentFailureInjection.consumeFailure("TOOL_CHECKPOINT")) {
+      await agentFailureInjection.waitForCheckpoint("TOOL_CHECKPOINT", signal);
     }
     const toolCallId = crypto.randomUUID();
     const startedAt = Date.now();
