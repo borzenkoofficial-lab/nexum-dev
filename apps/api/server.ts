@@ -327,6 +327,13 @@ ${attachment.content.slice(0, 80_000)}`);
         void persistChatJob(job).catch((error) => console.error("[Nexum] job event persistence failed", error));
         void agentHistory.record({ type: "agent-event", jobId, projectId, provider, model, iteration: event.iteration, tool: event.tool, status: event.type, message: event.message });
       },
+      (snapshot) => {
+        job.agentIntent = snapshot.intent;
+        job.executionPlan = snapshot.plan;
+        job.executionState = snapshot;
+        job.updatedAt = Date.now();
+        void persistChatJob(job).catch((error) => console.error("[Nexum] execution state persistence failed", error));
+      },
       (plan) => {
         job.productPlan = plan;
         job.stage = "planning";
