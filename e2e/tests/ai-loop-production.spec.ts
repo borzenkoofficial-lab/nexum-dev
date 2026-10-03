@@ -130,8 +130,8 @@ test("E2E-04 validation failure is repaired and bounded", async ({ page }) => {
 });
 
 test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime task", async ({ page }) => {
-  await page.route("**/api/chat", async (route) => {
-    await route.continue({ headers: { ...route.request().headers(), "x-nexum-e2e-planner-checkpoint": "1" } });
+  await page.evaluate(() => {
+    (window as any).__NEXUM_E2E_CANCELLATION_CHECKPOINT__ = true;
   });
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
