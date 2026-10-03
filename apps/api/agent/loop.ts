@@ -1224,8 +1224,19 @@ export class AgentLoop {
       });
       if (!result.success) {
         if (result.error && result.error.repairable === false) {
-          setAgentState("FAILED", "agent.failed", result.error.message);
-          return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: result.output, errorInfo: result.error };
+          const diagnosis = diagnoseError(result.output);
+          const normalizedError: AgentErrorInfo = {
+            code: ERROR_CODE_BY_CATEGORY[diagnosis.category] ?? "TOOL_ERROR",
+            message: result.error.message ?? result.output.slice(0, 2000),
+            retryable: false,
+            repairable: false,
+            fatal: Boolean(result.error.fatal),
+            category: diagnosis.category,
+            summary: diagnosis.summary,
+            recoveryStrategy: diagnosis.strategy,
+          };
+          setAgentState("FAILED", "agent.failed", normalizedError.message);
+          return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: result.output, errorInfo: normalizedError };
         }
         executionSnapshot.repairAttempts += 1;
         if (attemptCount >= 3 || executionSnapshot.repairAttempts > MAX_REPAIR_ATTEMPTS) {
