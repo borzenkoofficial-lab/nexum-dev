@@ -130,7 +130,7 @@ test("E2E-04 validation failure is repaired and bounded", async ({ page }) => {
 });
 
 test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime task", async ({ page }) => {
-  await setFailure(page, "enable", "TOOL_CHECKPOINT", undefined, e2eWorkspaceId);
+  await setFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, e2eWorkspaceId);
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
   await input.press("Enter");
@@ -140,7 +140,7 @@ test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime tas
   expect(jobId).toBeTruthy();
   const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
   await expect(cancel).toBeVisible({ timeout: 5_000 });
-  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
+  await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
   await cancel.click();
 
   await expect.poll(async () => (await getJob(page, jobId)).status, { timeout: 10_000 }).toBe("cancelled");
