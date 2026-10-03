@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-async function setFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number) {
+async function setFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number, projectId?: string) {
   const response = await page.request.post("/api/test/agent-failures", {
-    data: { operation, ...(name ? { name } : {}), ...(times ? { times } : {}) },
+    data: { operation, ...(name ? { name } : {}), ...(times ? { times } : {}), ...(projectId ? { projectId } : {}) },
   });
   expect(response.ok()).toBeTruthy();
   return response.json();
@@ -15,7 +15,7 @@ async function waitForFailurePhase(page: any, name: string, phase: "consumed" | 
     const data = await response.json();
     const events = (data.diagnostics ?? []).filter((entry: any) => entry.name === name);
     const latestEnable = [...events].reverse().find((entry: any) => entry.phase === "enabled");
-    return Boolean(latestEnable && events.some((entry: any) => entry.phase === phase && entry.timestamp >= latestEnable.timestamp));
+    return Boolean(latestEnable && events.some((entry: any) => entry.phase === phase && entry.timestamp >= latestEnable.timestamp && (!latestEnable.projectId || entry.projectId === latestEnable.projectId)));
   }, { timeout: 5_000 }).toBeTruthy();
 }
 
@@ -130,7 +130,7 @@ test("E2E-04 validation failure is repaired and bounded", async ({ page }) => {
 });
 
 test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime task", async ({ page }) => {
-  await setFailure(page, "enable", "TOOL_CHECKPOINT");
+  await setFailure(page, "enable", "TOOL_CHECKPOINT", undefined, e2eWorkspaceId);
   const { jobId } = await submitAgent(page, "Проверь структуру текущего проекта и ничего не изменяй.", e2eWorkspaceId);
   await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
 
