@@ -844,12 +844,31 @@ export class AgentLoop {
         const lastObserved = [...previousResults].reverse()[0];
         const hasExecuted = previousResults.length > 0;
         const lastActionPassed = Boolean(lastObserved?.result.success);
+        const reviewPassed = !productPlan || !builderTask || previousResults.some(
+          (item) => item.tool === "productReview" && item.result.success,
+        );
+        const noCriticalErrors = !previousResults.some(
+          (item) => !item.result.success && /permission|security|fatal|credential|secret/i.test(item.result.output),
+        );
+        const completionGate = evaluateCompletionGate({
+          hasPlan: executionSnapshot.plan.steps.some((step) => step.status === "COMPLETED" && ["plan", "execute", "observe", "validate", "verify"].includes(step.id)),
+          hasExecuted,
+          validationPassed: gatePassed && lastActionPassed,
+          acceptanceCriteriaSatisfied: reviewPassed,
+          noCriticalErrors,
+          projectStateConsistent: lastActionPassed,
+        });
+        if (!completionGate.ok) {
+          gatePassed = false;
+          finishReason = completionGate.reasons.join("; ");
+        }
         const validationChecks = [
           { name: "tool execution", passed: hasExecuted, evidence: `toolCalls=${previousResults.length}` },
           { name: "last action", passed: lastActionPassed, evidence: lastObserved ? `${lastObserved.tool}: ${lastObserved.result.success ? "success" : "failure"}` : "no action" },
           { name: "build", passed: !builderTask || !projectHasBuildScript(previousResults) || previousResults.some((item) => item.tool === "runCommand" && item.input === "npm run build" && item.result.success), evidence: "latest build must pass after changes" },
           { name: "tests", passed: !builderTask || !availableTools.includes("testProject") || previousResults.some((item) => item.tool === "testProject" && item.result.success), evidence: "applicable project smoke checks" },
           { name: "project/domain", passed: !builderTask || taskState.verified.domain, evidence: taskState.verified.domain ? "domain verified" : "domain not verified" },
+          { name: "acceptance criteria", passed: reviewPassed, evidence: reviewPassed ? "criteria verified" : "product review evidence missing" },
           { name: "completion gate", passed: gatePassed, evidence: finishReason ?? "gate passed" },
         ];
         const finalValidation = createValidation(validationChecks, gatePassed ? [] : [finishReason ?? "Completion gate failed."]);
