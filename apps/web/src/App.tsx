@@ -572,6 +572,11 @@ function App() {
       if (!data.jobId) throw new Error(data.error || "API чата не вернул идентификатор задачи");
 
       setChatJobId(data.jobId);
+      if (import.meta.env.VITE_E2E === "true") {
+        const testWindow = window as unknown as { __NEXUM_E2E_LAST_JOB_ID__?: string; __NEXUM_E2E_RUNTIME_TASK_ID__?: string };
+        testWindow.__NEXUM_E2E_LAST_JOB_ID__ = data.jobId;
+        testWindow.__NEXUM_E2E_RUNTIME_TASK_ID__ = (data as { runtimeTaskId?: string }).runtimeTaskId;
+      }
       setProjectTaskMeta((items) => ({ ...items, [targetПроектId]: { ...(items[targetПроектId] ?? { task: task.trim(), timestamp: Date.now() }), status: "running" } }));
     } catch (error) {
       console.error("[Nexum] Chat job creation failed:", error);
