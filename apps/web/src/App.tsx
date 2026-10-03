@@ -509,7 +509,7 @@ function App() {
       if (!response.ok || !data.success) throw new Error(data.job?.error || `Cancel API: HTTP ${response.status}`);
       setАгентStage("error");
       setCurrentActivity("Agent отменён пользователем.");
-      setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
+      setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "cancelled" } }));
       setChatJobId(null);
       pushOSEvent("info", "Agent cancelled", "Выполнение задачи остановлено пользователем.");
     } catch (error) {
@@ -849,7 +849,7 @@ function App() {
         {view !== "home" && <OSSystemChrome
           appName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал NEXUM" : "Диагностика"}
           appIcon={view === "project" ? (activeПроект?.name?.slice(0, 1).toUpperCase() ?? "N") : view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : "⌁"}
-          status={agentStage && !["completed", "error"].includes(agentStage) ? "NEXUM выполняет задачу" : aiStatus?.available ? "AI Core подключён" : "Система готова"}
+          status={aiStatus?.available ? "AI Core подключён" : "Система готова"}
           activeView={view}
           onHome={() => navigate("home")}
           onSearch={() => setPaletteOpen(true)}
