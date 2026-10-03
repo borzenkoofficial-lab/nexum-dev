@@ -228,6 +228,7 @@ export class AgentLoop {
     const seenActions = new Set<string>();
     const actionAttempts = new Map<string, number>();
     const seenPlannerContexts = new Set<string>();
+    const actionSequence: string[] = [];
     let eventId = 0;
     let phase: AgentPhase = "analyze";
     const taskState = createAgentTaskState(task);
@@ -825,6 +826,10 @@ export class AgentLoop {
             previousResults.push({ iteration, tool: "productReview", input: "final", result: reviewResult });
             emit({ iteration, type: "tool-error", name: "agent.validation.failed", tool: "productReview", message: feedback.slice(0, 1200) });
             executionSnapshot.repairAttempts += 1;
+            if (executionSnapshot.repairAttempts > MAX_REPAIR_ATTEMPTS) {
+              setAgentState("FAILED", "agent.failed", "Bounded repair limit reached after product validation.");
+              return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Bounded repair limit reached after validation.", errorInfo: { code: "VALIDATION_ERROR", message: "Product validation remained unsatisfied within the repair budget.", retryable: false, repairable: false, fatal: false, category: "validation", summary: "REPAIR_LIMIT", recoveryStrategy: "Stop after the bounded repair budget." } };
+            }
             markStepRunning("repair");
             transition("repair");
             continue;
@@ -893,6 +898,10 @@ export class AgentLoop {
         if (!finalValidation.passed || !hasExecuted || !lastActionPassed) {
           emit({ iteration, type: "tool-error", name: "agent.validation.failed", message: "Completion blocked: validation did not pass." });
           executionSnapshot.repairAttempts += 1;
+          if (executionSnapshot.repairAttempts > MAX_REPAIR_ATTEMPTS) {
+            setAgentState("FAILED", "agent.failed", "Bounded repair limit reached after validation.");
+            return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Bounded repair limit reached after validation.", errorInfo: { code: "VALIDATION_ERROR", message: "Validation did not pass within the repair budget.", retryable: false, repairable: false, fatal: false, category: "validation", summary: "REPAIR_LIMIT", recoveryStrategy: "Stop after the bounded repair budget." } };
+          }
           setAgentState("REPAIRING", "agent.repair.started", "Validation failed; bounded repair required.");
           markStepRunning("repair");
           transition("repair");
