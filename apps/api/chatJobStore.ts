@@ -135,7 +135,7 @@ export async function updateChatJob(id: string, userId: string, patch: Partial<C
   const result = await query(
     `UPDATE agent_chat_jobs
         SET project_id=$3,status=$4,updated_at=$5,payload=$6::jsonb
-      WHERE id=$1 AND user_id=$2
+      WHERE id=$1 AND user_id=$2 AND status IN ('queued','running')
       RETURNING *`,
     [id, userId, data.projectId, data.status, data.updatedAt, JSON.stringify(data.payload)],
   );
