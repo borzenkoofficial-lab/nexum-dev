@@ -4,7 +4,7 @@ import { ProjectWorkspace } from "./workspace.js";
 export class ReadFileTool implements Tool {
   name="readFile"; description="Reads a text file from the active project. Path must be relative.";
   constructor(private readonly workspace: ProjectWorkspace) {}
-  async execute(input:string):Promise<ToolResult>{
+  async execute(input:string,signal?:AbortSignal):Promise<ToolResult>{
     try {
       let requestedPath = input.trim();
       // The planner contract documents a string input, but models sometimes
@@ -18,7 +18,8 @@ export class ReadFileTool implements Tool {
         requestedPath = parsed.path;
       }
       const p=await this.workspace.existing(requestedPath);
-      return {success:true,output:await readFile(p,"utf8")};
+      if(signal?.aborted)throw new DOMException("Aborted","AbortError");
+      return {success:true,output:await readFile(p,{encoding:"utf8",signal})};
     } catch(error){
       return {success:false,output:error instanceof Error?error.message:"Unable to read file"};
     }
