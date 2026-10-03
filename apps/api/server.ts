@@ -696,7 +696,7 @@ if (agentFailureControlEnabled) {
     const operation = typeof req.body?.operation === "string" ? req.body.operation : "";
     const name = typeof req.body?.name === "string" ? req.body.name as AgentFailure : undefined;
     if (operation === "reset") agentFailureInjection.resetFailures();
-    else if (operation === "enable" && name) agentFailureInjection.enableFailure(name, { times: Number(req.body?.times) || undefined });
+    else if (operation === "enable" && name) agentFailureInjection.enableFailure(name, { times: Number(req.body?.times) || undefined, projectId: typeof req.body?.projectId === "string" ? req.body.projectId : undefined });
     else if (operation === "disable" && name) agentFailureInjection.disableFailure(name);
     else if (operation === "release" && name) agentFailureInjection.releaseFailure(name);
     else return res.status(400).json({ success: false, error: "Invalid failure injection operation" });
