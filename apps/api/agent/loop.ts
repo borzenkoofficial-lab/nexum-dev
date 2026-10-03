@@ -1064,6 +1064,7 @@ export class AgentLoop {
         attempts: 0,
       });
       executionSnapshot.plan.currentStepId = actionPlanStepId;
+      (plan as AgentPlan).planStepId = actionPlanStepId;
       if (canRunPlanStep(executionSnapshot.plan, actionPlanStepId)) {
         setPlanStep(executionSnapshot.plan, actionPlanStepId, "RUNNING");
       }
