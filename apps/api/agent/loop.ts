@@ -906,7 +906,8 @@ export class AgentLoop {
           ["writeFile", "patchFile", "scaffoldProject"].includes(item.tool) && item.result.success ? currentIndex : index, -1);
         const lastValidationIndex = previousResults.reduce((index, item, currentIndex) => {
           const validationTool = ["validateProject", "testProject"].includes(item.tool) ||
-            (item.tool === "runCommand" && /npm run (build|test|lint|typecheck)/.test(item.input)) || item.tool === "runSandbox";
+            (item.tool === "runCommand" && /npm run (build|test|lint|typecheck)/.test(item.input)) || item.tool === "runSandbox" ||
+            ((item.tool === "writeFile" || item.tool === "patchFile") && /"verified"\s*:\s*true/.test(item.result.output));
           return validationTool && item.result.success ? currentIndex : index;
         }, -1);
         const postChangeValidationPassed = lastMutationIndex < 0 || lastValidationIndex > lastMutationIndex;
@@ -1140,7 +1141,7 @@ export class AgentLoop {
           code: ERROR_CODE_BY_CATEGORY[diagnosis.category] ?? "TOOL_ERROR",
           message: result.output.slice(0, 2000),
           retryable: ["network", "tool", "timeout", "dependency"].includes(diagnosis.category),
-          repairable: !["permission", "cancellation", "timeout"].includes(diagnosis.category),
+          repairable: !["permission", "cancellation", "timeout", "path"].includes(diagnosis.category),
           fatal: ["permission", "cancellation"].includes(diagnosis.category),
         };
       }
@@ -1222,6 +1223,10 @@ export class AgentLoop {
         message: result.success ? this.describeToolSuccess(plan.tool, result.output) : this.describeToolError(plan.tool, result.output),
       });
       if (!result.success) {
+        if (result.error && result.error.repairable === false) {
+          setAgentState("FAILED", "agent.failed", result.error.message);
+          return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: result.output, errorInfo: result.error };
+        }
         executionSnapshot.repairAttempts += 1;
         if (attemptCount >= 3 || executionSnapshot.repairAttempts > MAX_REPAIR_ATTEMPTS) {
           setAgentState("FAILED", "agent.failed", "Bounded repair/loop limit reached.");
