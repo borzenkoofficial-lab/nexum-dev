@@ -1,7 +1,7 @@
 import { query } from "./db.js";
 
 export type ChatJobStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
-export type ChatJobStage = "queued" | "analyzing" | "planning" | "reading" | "editing" | "building" | "testing" | "completed" | "error";
+export type ChatJobStage = "queued" | "analyzing" | "planning" | "reading" | "editing" | "building" | "testing" | "completed" | "cancelled" | "error";
 
 export interface ChatJob {
   id: string;
@@ -228,7 +228,7 @@ export async function cleanupChatJobs(ttlMs = 30 * 60 * 1000): Promise<void> {
 
 export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promise<number> {
   await ensureTable();
-  const result = await query(
+  const recovered = await query(
     `UPDATE agent_chat_jobs
         SET status='failed',
             updated_at=$1,
@@ -240,5 +240,8 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
       RETURNING id`,
     [Date.now(), Date.now() - maxRunningMs],
   );
-  return result.rows.length;
+  for (const row of recovered.rows) {
+    await query(`DELETE FROM agent_project_locks WHERE job_id=$1`, [row.id]);
+  }
+  return recovered.rows.length;
 }
