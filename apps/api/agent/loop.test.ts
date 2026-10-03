@@ -485,6 +485,7 @@ test("cancellation returns the last canonical execution snapshot", async () => {
         if (signal?.aborted) return reject(new DOMException("Aborted", "AbortError"));
         signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
       });
+      return { success: true, output: "completed" };
     },
   };
   const promise = new AgentLoop(runtime, gateway, 8, undefined, undefined, undefined, {
