@@ -543,9 +543,15 @@ function App() {
         .slice(-8)
         .map((item) => ({ role: item.role, content: item.content.slice(0, 900) }))
         .filter((item) => item.content.trim());
+      const e2eCancellationCheckpoint =
+        import.meta.env.VITE_E2E === "true" &&
+        (window as unknown as { __NEXUM_E2E_CANCELLATION_CHECKPOINT__?: boolean }).__NEXUM_E2E_CANCELLATION_CHECKPOINT__ === true;
       const response = await nexumRuntime.network.fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(e2eCancellationCheckpoint ? { "x-nexum-e2e-planner-checkpoint": "1" } : {}),
+        },
         body: JSON.stringify({
           message: task,
           projectId: targetПроектId,
