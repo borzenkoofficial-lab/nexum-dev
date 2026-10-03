@@ -29,6 +29,7 @@ import { buildAgentContext, formatAgentContext } from "./context.js";
 import type { ServerRuntime } from "../runtime/runtime.js";
 import { assertCompleteToolPolicy, validateToolInvocation } from "./toolPolicy.js";
 import { AgentLoop } from "./loop.js";
+import { agentFailureInjection } from "./failureInjection.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
