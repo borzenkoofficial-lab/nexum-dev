@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-async function setAgentFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number) {
+async function setAgentFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number, projectId?: string) {
   const response = await page.request.post("/api/test/agent-failures", {
-    data: { operation, ...(name ? { name } : {}), ...(times ? { times } : {}) },
+    data: { operation, ...(name ? { name } : {}), ...(times ? { times } : {}), ...(projectId ? { projectId } : {}) },
   });
   expect(response.ok()).toBeTruthy();
   return response.json();
@@ -15,7 +15,7 @@ async function waitForFailurePhase(page: any, name: string, phase: "consumed" | 
     const data = await response.json();
     const events = (data.diagnostics ?? []).filter((entry: any) => entry.name === name);
     const latestEnable = [...events].reverse().find((entry: any) => entry.phase === "enabled");
-    return Boolean(latestEnable && events.some((entry: any) => entry.phase === phase && entry.timestamp >= latestEnable.timestamp));
+    return Boolean(latestEnable && events.some((entry: any) => entry.phase === phase && entry.timestamp >= latestEnable.timestamp && (!latestEnable.projectId || entry.projectId === latestEnable.projectId)));
   }, { timeout: 5_000 }).toBeTruthy();
 }
 
@@ -96,7 +96,7 @@ test("boot, runtime inspection and browser-visible navigation", async ({ page })
 });
 
 test("real Agent user cancellation aborts the Agent task and releases Runtime ownership", async ({ page }) => {
-  await setAgentFailure(page, "enable", "TOOL_CHECKPOINT");
+  await setAgentFailure(page, "enable", "TOOL_CHECKPOINT", undefined, runtimeWorkspaceId);
   const { jobId } = await page.request.post("/api/chat", { data: { message: "Проверь структуру текущего проекта и ничего не изменяй.", projectId: runtimeWorkspaceId } }).then(async response => {
     expect(response.status()).toBe(202);
     return response.json();
