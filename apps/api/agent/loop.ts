@@ -172,6 +172,7 @@ export class AgentLoop {
       this.onExecutionUpdate?.(structuredClone(executionSnapshot));
     };
     const setAgentState = (next: AgentState, name?: AgentEventName, message?: string) => {
+      if (executionSnapshot.state === next) return true;
       const changed = transitionAgentState(executionSnapshot, next, (warning, severity = "warn") => {
         this.onEvent?.({ id: ++eventId, timestamp: Date.now(), iteration: 0, type: "failed", phase, name: "agent.failed", message: warning, errorCode: severity === "error" ? "INTERNAL_ERROR" : undefined });
       });
@@ -180,6 +181,15 @@ export class AgentLoop {
       return changed;
     };
     let productPlan: ProductPlan | null = null;
+    const onAbort = () => {
+      if (!["COMPLETED", "FAILED", "CANCELLED"].includes(executionSnapshot.state)) {
+        transitionAgentState(executionSnapshot, "CANCELLED", () => undefined);
+        executionSnapshot.updatedAt = Date.now();
+        this.onEvent?.({ id: ++eventId, timestamp: Date.now(), iteration: executionSnapshot.plan.steps.length, type: "failed", name: "agent.cancelled", phase, message: "Agent execution cancelled." });
+        this.onExecutionUpdate?.(structuredClone(executionSnapshot));
+      }
+    };
+    options?.signal?.addEventListener("abort", onAbort, { once: true });
     let productReviewAttempts = 0;
     let remotePlannerRateLimited = false;
     let aiPlannerCalls = 0;
@@ -213,11 +223,14 @@ export class AgentLoop {
     };
     const transition = (next: AgentPhase) => {
       if (phase === next) return;
-      phase = next;
-      taskState.phase = next;
       const stateByPhase: Record<AgentPhase, AgentState> = { analyze: "UNDERSTANDING", plan: "PLANNING", implement: "EXECUTING", validate: "VALIDATING", repair: "REPAIRING", verify: "VERIFYING", finish: "COMPLETED" };
       const nextState = stateByPhase[next];
-      if (executionSnapshot.state !== nextState) setAgentState(nextState, undefined, undefined);
+      if (executionSnapshot.state !== nextState && !transitionAgentState(executionSnapshot, nextState, (warning) => this.onEvent?.({ id: ++eventId, timestamp: Date.now(), iteration: 0, type: "failed", name: "agent.failed", phase, message: warning }))) {
+        return;
+      }
+      phase = next;
+      taskState.phase = next;
+      publishExecution();
       emit({ iteration: 0, type: "thinking", phase, message: `Стадия агента: ${phase}.` });
     };
     const emit = (event: Omit<AgentEvent, "id" | "timestamp" | "phase"> & { phase?: AgentPhase }) => {
