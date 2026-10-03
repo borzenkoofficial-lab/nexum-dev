@@ -99,6 +99,10 @@ export class NetworkManager {
           this.diagnostics.warn("NETWORK", "Injected network failure", context, { requestId, attempt });
           if (attempt === retries) throw last;
         } else {
+          const injectedDelay = failureInjection.getDelay("DELAY_REQUEST");
+          if (injectedDelay > 0) {
+            await this.delay(injectedDelay, controller.signal);
+          }
           const response = await window.fetch(input, { ...init, signal: controller.signal });
           if (response.ok || (![408, 425, 429].includes(response.status) && response.status < 500) || attempt === retries) {
             return response;
