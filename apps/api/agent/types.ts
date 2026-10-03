@@ -188,7 +188,7 @@ export type AgentErrorCategory =
   | "PERMISSION_ERROR" | "CANCELLATION" | "TIMEOUT" | "UNKNOWN"
   | "typescript" | "syntax" | "dependency" | "build" | "runtime"
   | "path" | "tool" | "network" | "permission" | "validation"
-  | "cancellation" | "timeout" | "completion" | "loop";
+  | "cancellation" | "timeout" | "unknown" | "completion" | "loop";
 export interface AgentErrorInfo {
   code:
     | "USER_ERROR"
