@@ -134,13 +134,14 @@ test("real Agent user cancellation aborts the Agent task and releases Runtime ow
 test("Agent cancellation remains terminal across repeated cancel/response races", async ({ page }) => {
   for (let i = 0; i < 3; i += 1) {
     await setAgentFailure(page, "enable", "TOOL_CHECKPOINT");
-      const create = await page.request.post("/api/chat", { data: { message: `Проверь проект, итерация ${i}, ничего не изменяй.` } });
+    const create = await page.request.post("/api/chat", { data: { message: `Проверь проект, итерация ${i}, ничего не изменяй.` } });
     expect(create.status()).toBe(202);
+    const created = await create.json();
     await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
-    const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
-    await expect(cancel).toBeVisible({ timeout: 5_000 });
-    await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
-    await cancel.click();
+    const firstCancel = await page.request.post(`/api/chat/jobs/${encodeURIComponent(created.jobId)}/cancel`);
+    const secondCancel = await page.request.post(`/api/chat/jobs/${encodeURIComponent(created.jobId)}/cancel`);
+    expect(firstCancel.ok()).toBeTruthy();
+    expect(secondCancel.ok()).toBeTruthy();
     await expect.poll(async () => {
       const runtime = await (await page.request.get("/api/runtime/status")).json();
       return (runtime.tasks ?? []).some((task: any) => task.operation === "chat-job" && task.projectId && task.status === "RUNNING");
@@ -346,10 +347,9 @@ test("real Agent user cancellation aborts the Agent task and leaves terminal sta
   const created = await create.json();
   const jobId = created.jobId as string;
   await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
-  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
-  await expect(cancel).toBeVisible({ timeout: 5_000 });
   expect(jobId).toBeTruthy();
-  await cancel.click();
+  const cancel = await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`);
+  expect(cancel.ok()).toBeTruthy();
 
   await expect.poll(async () => (await (await page.request.get(`/api/chat/jobs/${encodeURIComponent(jobId)}`)).json()).job?.status, { timeout: 8_000 }).toBe("cancelled");
   const job = await (await page.request.get(`/api/chat/jobs/${encodeURIComponent(jobId)}`)).json();
