@@ -38,7 +38,7 @@ export class GitHubTool implements Tool {
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
-  async execute(input: string): Promise<GitHubToolResult> {
+  async execute(input: string, signal?: AbortSignal): Promise<GitHubToolResult> {
     const request = this.parseRequest(input);
     const token = process.env.GITHUB_TOKEN?.trim();
 
@@ -57,6 +57,8 @@ export class GitHubTool implements Tool {
       const path = this.buildPath(repository, request);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+      const abortFromCaller = () => controller.abort(signal?.reason);
+      if (signal) { if (signal.aborted) abortFromCaller(); else signal.addEventListener("abort", abortFromCaller, { once: true }); }
       let response: Response;
 
       try {
@@ -71,13 +73,16 @@ export class GitHubTool implements Tool {
           signal: controller.signal,
         });
       } catch (error) {
-        const message = controller.signal.aborted
-          ? "GitHub request timed out"
+        const message = signal?.aborted
+          ? "GitHub request cancelled"
+          : controller.signal.aborted
+            ? "GitHub request timed out"
           : "GitHub network error";
         this.log(request.operation, repository, null, false);
         return this.failure(request.operation, message);
       } finally {
         clearTimeout(timeout);
+        signal?.removeEventListener("abort", abortFromCaller);
       }
 
       this.log(request.operation, repository, response.status, response.ok);
