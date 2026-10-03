@@ -1,5 +1,6 @@
 import type { AIProvider, AIProviderStatus, AIModelCapabilities } from "./types.js";
 import { classifyAIError } from "../core/errors.js";
+import { agentFailureInjection } from "../agent/failureInjection.js";
 
 export interface GatewayGenerateOptions {
   provider?: string;
@@ -131,6 +132,8 @@ export class AIGateway {
     ].join("\n");
 
     try {
+      if (agentFailureInjection.consumeFailure("NETWORK_FAILURE")) throw new Error("Injected network failure");
+      if (agentFailureInjection.consumeFailure("MODEL_FAILURE")) throw new Error("Injected model failure");
       return {
         response: await provider.generate(localizedMessage, normalizedOptions.model, {
           ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
