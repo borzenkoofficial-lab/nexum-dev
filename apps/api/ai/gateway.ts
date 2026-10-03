@@ -176,6 +176,7 @@ export class AIGateway {
           response: await fallback.generate(localizedMessage, fallback.model, {
             ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
             ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
+          ...(normalizedOptions.signal ? { signal: normalizedOptions.signal } : {}),
           }),
           provider: fallback.id,
           model: fallback.model,
