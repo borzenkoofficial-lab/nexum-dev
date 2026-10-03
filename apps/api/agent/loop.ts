@@ -283,6 +283,7 @@ export class AgentLoop {
       return maxTokens > 0 ? { ...(base ?? {}), maxTokens } : undefined;
     };
     const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
+    const requiresProjectUnderstanding = builderTask || /analy[sz]e|audit|review|проверь|проанализ|исправ|debug|debugger|рефактор|refactor|настрой|configure|измен|добав|удал|fix|bug/i.test(task);
     const markStepRunning = (id: string) => {
       if (!canRunPlanStep(executionSnapshot.plan, id)) {
         throw new Error(`Plan step dependency is not satisfied: ${id}`);
@@ -375,10 +376,10 @@ export class AgentLoop {
 
       // Builder sessions always inspect the active project before planning or editing.
       // This prevents the model from inventing a new app or answering with source code.
-      if (builderTask && previousResults.length === 0 && availableTools.includes("listFiles")) {
+      if (requiresProjectUnderstanding && previousResults.length === 0 && availableTools.includes("listFiles")) {
         markStepRunning("understand");
         emit({ iteration, type: "tool-start", name: "agent.step.started", tool: "listFiles", message: "Изучаю текущий проект перед планированием." });
-        const inspection = await this.runtime.executeTool("listFiles", ".");
+        const inspection = await this.runtime.executeTool("listFiles", ".", options?.signal);
         const step: AgentStep = { iteration, tool: "listFiles", input: ".", success: inspection.success };
         steps.push(step);
         this.onStep?.(step);
@@ -573,7 +574,7 @@ export class AgentLoop {
       }
 
       if (plan.done) {
-        transition("verify");
+        transition("validate");
         const buildTask = /создай|сделай|разработай|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(task);
         const scaffoldedProject = previousResults.some((item) => item.tool === "scaffoldProject" && item.result.success);
         const meaningfulImplementationCount = previousResults.filter((item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success).length;
@@ -594,7 +595,7 @@ export class AgentLoop {
 
           if (!inspectedProject && availableTools.includes("listFiles")) {
             const input = ".";
-            const result = await this.runtime.executeTool("listFiles", input);
+            const result = await this.runtime.executeTool("listFiles", input, options?.signal);
             const step: AgentStep = { iteration, tool: "listFiles", input, success: result.success };
             steps.push(step);
             this.onStep?.(step);
@@ -612,7 +613,7 @@ export class AgentLoop {
 
           if (!verifiedBuild && projectHasBuildScript(previousResults) && availableTools.includes("runCommand")) {
             const input = "npm run build";
-            const result = await this.runtime.executeTool("runCommand", input);
+            const result = await this.runtime.executeTool("runCommand", input, options?.signal);
             const step: AgentStep = { iteration, tool: "runCommand", input, success: result.success };
             steps.push(step);
             this.onStep?.(step);
@@ -657,7 +658,7 @@ export class AgentLoop {
             tool: "validateProject",
             message: "Проверяю HTML, CSS, JavaScript и JSON перед Preview.",
           });
-          const validation = await this.runtime.executeTool("validateProject", ".");
+          const validation = await this.runtime.executeTool("validateProject", ".", options?.signal);
           const step: AgentStep = { iteration, tool: "validateProject", input: ".", success: validation.success };
           steps.push(step);
           this.onStep?.(step);
@@ -709,7 +710,7 @@ export class AgentLoop {
                 ? "Финализирую приложение: устанавливаю зависимости."
                 : "Финализирую приложение: выполняю production-сборку перед Preview.",
             });
-            const result = await this.runtime.executeTool("runCommand", command);
+            const result = await this.runtime.executeTool("runCommand", command, options?.signal);
             const step: AgentStep = { iteration, tool: "runCommand", input: command, success: result.success };
             steps.push(step);
             this.onStep?.(step);
@@ -745,7 +746,7 @@ export class AgentLoop {
             tool: "testProject",
             message: "Запускаю автоматический Tester Agent перед финальным self-review.",
           });
-          const testResult = await this.runtime.executeTool("testProject", ".");
+          const testResult = await this.runtime.executeTool("testProject", ".", options?.signal);
           const testStep: AgentStep = { iteration, tool: "testProject", input: ".", success: testResult.success };
           steps.push(testStep);
           this.onStep?.(testStep);
@@ -1185,7 +1186,7 @@ export class AgentLoop {
           ? (packageChanged ? ["npm install", "npm run build"] : ["npm run build"])
           : (packageChanged ? ["npm install"] : []);
         for (const command of commands) {
-          const commandResult = await this.runtime.executeTool("runCommand", command);          const commandStep: AgentStep = { iteration, tool: "runCommand", input: command, success: commandResult.success };
+          const commandResult = await this.runtime.executeTool("runCommand", command, options?.signal);          const commandStep: AgentStep = { iteration, tool: "runCommand", input: command, success: commandResult.success };
           steps.push(commandStep);
           this.onStep?.(commandStep);
           previousResults.push({ iteration, tool: "runCommand", input: command, result: commandResult });
@@ -1222,7 +1223,7 @@ export class AgentLoop {
           }
           seenActions.add(commandKey);
           emit({ iteration, type: "tool-start", tool: "runCommand", message: command === "npm install" ? "Устанавливаю зависимости созданного React-приложения." : "Собираю production-версию для Preview." });
-          const buildResult = await this.runtime.executeTool("runCommand", command);
+          const buildResult = await this.runtime.executeTool("runCommand", command, options?.signal);
           const buildStep: AgentStep = { iteration, tool: "runCommand", input: command, success: buildResult.success };
           steps.push(buildStep);
           this.onStep?.(buildStep);
