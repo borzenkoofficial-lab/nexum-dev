@@ -182,6 +182,11 @@ export interface AgentStep {
   planStepId?: string;
 }
 
+export type AgentErrorCategory =
+  | "MODEL_ERROR" | "TOOL_ERROR" | "NETWORK_ERROR" | "PROJECT_ERROR"
+  | "VALIDATION_ERROR" | "RUNTIME_ERROR" | "DEPENDENCY_ERROR"
+  | "PERMISSION_ERROR" | "CANCELLATION" | "TIMEOUT" | "UNKNOWN";
+
 export interface AgentErrorInfo {
   code:
     | "USER_ERROR"
@@ -201,7 +206,7 @@ export interface AgentErrorInfo {
   retryable: boolean;
   repairable?: boolean;
   fatal?: boolean;
-  category?: string;
+  category?: AgentErrorCategory;
   summary?: string;
   recoveryStrategy?: string;
 }
