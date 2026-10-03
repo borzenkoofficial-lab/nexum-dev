@@ -955,6 +955,10 @@ export class AgentLoop {
         }).catch(() => undefined);
       }
       if (result.success && (plan.tool === "writeFile" || plan.tool === "patchFile")) recordSuccessfulChange(taskState, plan.input);
+      if (result.success && executionSnapshot.plan.steps.find((step) => step.id === "repair")?.status === "RUNNING") {
+        markPlanStepCompletedLocal("repair", "Repair action completed; continuing with validation.");
+        emit({ iteration, type: "thinking", name: "agent.repair.completed", phase: "repair", message: "Исправление выполнено; возвращаю результат на validation." });
+      }
       syncVerificationState(taskState, previousResults, productPlan);
 
       // Validate the domain immediately after every implementation write so a
@@ -986,6 +990,7 @@ export class AgentLoop {
       emit({
         iteration,
         type: result.success ? "tool-success" : "tool-error",
+        name: result.success ? "agent.tool.completed" : "agent.validation.failed",
         tool: plan.tool,
         message: result.success ? this.describeToolSuccess(plan.tool, result.output) : this.describeToolError(plan.tool, result.output),
       });
