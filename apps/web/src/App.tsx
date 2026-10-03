@@ -707,7 +707,6 @@ function App() {
         setАгентStage("error");
         pushOSEvent("error", "Agent error", error instanceof Error ? error.message : "Не удалось получить статус задачи");
         setChatJobId(null);
-        setRuntimeTaskId(null);
       }
     }
 
