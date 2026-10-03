@@ -7,10 +7,13 @@ export interface ToolResult {
     code: string;
     message: string;
     retryable: boolean;
+    repairable?: boolean;
+    fatal?: boolean;
   };
   metadata?: {
     projectId?: string;
     taskId?: string;
+    agentJobId?: string;
     durationMs?: number;
     exitCode?: number | null;
   };
@@ -45,8 +48,17 @@ export interface ProductReview {
 export type AgentPhase = "analyze" | "plan" | "implement" | "validate" | "repair" | "verify" | "finish";
 
 export type AgentState =
-  | "IDLE" | "UNDERSTANDING" | "PLANNING" | "EXECUTING" | "OBSERVING"
-  | "VALIDATING" | "REPAIRING" | "VERIFYING" | "COMPLETED" | "FAILED" | "CANCELLED";
+  | "IDLE"
+  | "UNDERSTANDING"
+  | "PLANNING"
+  | "EXECUTING"
+  | "OBSERVING"
+  | "VALIDATING"
+  | "REPAIRING"
+  | "VERIFYING"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
 
 export type AgentIntentType = "create" | "modify" | "debug" | "refactor" | "analyze" | "configure" | "unknown";
 
@@ -90,53 +102,6 @@ export interface AgentExecutionPlan {
   acceptanceCriteria: string[];
   risks: string[];
   createdAt: number;
-}
-export type AgentState =
-  | "IDLE"
-  | "UNDERSTANDING"
-  | "PLANNING"
-  | "EXECUTING"
-  | "OBSERVING"
-  | "VALIDATING"
-  | "REPAIRING"
-  | "VERIFYING"
-  | "COMPLETED"
-  | "FAILED"
-  | "CANCELLED";
-
-export interface AgentIntent {
-  requestId: string;
-  projectId: string;
-  taskId: string;
-  type: "create" | "modify" | "debug" | "refactor" | "analyze" | "configure" | "unknown";
-  objective: string;
-  requirements: string[];
-  constraints: string[];
-  acceptanceCriteria: string[];
-  explicitFiles?: string[];
-  unknowns: string[];
-  confidence?: number;
-}
-
-export type AgentPlanStepStatus = "PENDING" | "READY" | "RUNNING" | "COMPLETED" | "FAILED" | "SKIPPED" | "CANCELLED";
-
-export interface AgentPlanStep {
-  id: string;
-  description: string;
-  dependencies: string[];
-  status: AgentPlanStepStatus;
-  attempts: number;
-  result?: string;
-}
-
-export interface AgentExecutionPlan {
-  planId: string;
-  taskId: string;
-  goal: string;
-  steps: AgentPlanStep[];
-  acceptanceCriteria: string[];
-  risks: string[];
-  createdAt: number;
   currentStepId?: string;
 }
 
@@ -167,6 +132,8 @@ export interface AgentTelemetry {
   steps: number;
   repairAttempts: number;
   durationMs: number;
+  provider?: string;
+  model?: string;
   inputTokens?: number;
   outputTokens?: number;
   totalTokens?: number;
@@ -215,20 +182,35 @@ export interface AgentStep {
 }
 
 export interface AgentErrorInfo {
-  code: "USER_ERROR" | "MODEL_ERROR" | "PROVIDER_ERROR" | "TOOL_ERROR" | "BUILD_ERROR" | "RUNTIME_ERROR" | "NETWORK_ERROR" | "AUTH_ERROR" | "CONFIG_ERROR" | "INTERNAL_ERROR";
+  code:
+    | "USER_ERROR"
+    | "MODEL_ERROR"
+    | "PROVIDER_ERROR"
+    | "TOOL_ERROR"
+    | "BUILD_ERROR"
+    | "RUNTIME_ERROR"
+    | "NETWORK_ERROR"
+    | "AUTH_ERROR"
+    | "CONFIG_ERROR"
+    | "INTERNAL_ERROR"
+    | "VALIDATION_ERROR"
+    | "CANCELLATION"
+    | "TIMEOUT";
   message: string;
   retryable: boolean;
+  repairable?: boolean;
+  fatal?: boolean;
   category?: string;
   summary?: string;
   recoveryStrategy?: string;
 }
 
 export interface AgentLoopResult {
-  intent?: AgentIntent;
-  executionPlan?: AgentExecutionPlan;
+  intent: AgentIntent;
+  executionPlan: AgentExecutionPlan;
   validation?: AgentValidation;
-  telemetry?: AgentTelemetry;
-  finalState?: AgentState;
+  telemetry: AgentTelemetry;
+  finalState: AgentState;
   phase: AgentPhase;
   success: boolean;
   iterations: number;
@@ -236,6 +218,9 @@ export interface AgentLoopResult {
   steps: AgentStep[];
   finalResponse?: string;
   summary?: AgentResultSummary;
+  changedFiles?: string[];
+  warnings?: string[];
+  errors?: string[];
   error?: string;
   errorInfo?: AgentErrorInfo;
 }
