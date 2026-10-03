@@ -27,6 +27,7 @@ import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAu
 import { closeDatabase, pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
+import { chatJobCache, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
@@ -202,7 +203,6 @@ function getAIGatewayForUser(userId: string): AIGateway {
   return userAIGateways.get(userId) ?? aiGateway;
 }
 
-const chatJobCache = new Map<string, ChatJob>();
 const chatJobControllers = new Map<string, AbortController>();
 const chatJobPersistQueues = new Map<string, Promise<void>>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
@@ -282,7 +282,8 @@ async function runChatJob(
       job.status = "failed";
       job.stage = "error";
       job.error = "Project is already being modified by another Agent Run.";
-      await failChatJob(jobId, userId, { error: job.error, stage: job.stage });
+      const failed = await failChatJob(jobId, userId, { error: job.error, stage: job.stage });
+      syncTerminalChatJobCache(failed);
       serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: job.error });
       void agentHistory.record({ type: "job-rejected-lock", jobId, projectId: project.id, status: "failed", message: job.error });
       return;
@@ -456,7 +457,8 @@ ${attachment.content.slice(0, 80_000)}`);
       job.error = result.error ?? "Agent task cancelled by user.";
       job.validation = result.validation;
       job.telemetry = result.telemetry;
-      await cancelChatJob(jobId, userId, job.error);
+      const cancelled = await cancelChatJob(jobId, userId, job.error);
+      syncTerminalChatJobCache(cancelled);
       serverRuntime.cancelTask(runtimeTask.id);
       void agentHistory.record({ type: "job-cancelled", jobId, projectId, provider, model, status: "cancelled", message: job.error });
       return;
@@ -469,7 +471,8 @@ ${attachment.content.slice(0, 80_000)}`);
       job.errorInfo = result.errorInfo;
       void agentHistory.record({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
-      await failChatJob(jobId, userId, { error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, steps: job.steps, productPlan: job.productPlan, stage: job.stage, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry });
+      const failed = await failChatJob(jobId, userId, { error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, steps: job.steps, productPlan: job.productPlan, stage: job.stage, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry });
+      syncTerminalChatJobCache(failed);
       return;
     }
 
@@ -500,6 +503,7 @@ ${attachment.content.slice(0, 80_000)}`);
       stage: "completed",
     });
     if (!completed || completed.status !== "completed") throw new DOMException("Agent completion lost a race with cancellation", "AbortError");
+    syncTerminalChatJobCache(completed);
     if (successfulBuild) await stateManager.markBuildSucceeded();
     await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
       try {
@@ -531,7 +535,11 @@ ${attachment.content.slice(0, 80_000)}`);
     job.error = normalizedError.userSafeMessage;
     job.errorCode = normalizedError.code;
     job.errorInfo = { code: normalizedError.code, message: normalizedError.userSafeMessage, retryable: normalizedError.retryable };
-    await failChatJob(jobId, userId, { stage: "error", error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry }).catch((persistenceError) => console.error("[Nexum] failed to persist job exception", persistenceError));
+    const failed = await failChatJob(jobId, userId, { stage: "error", error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry }).catch((persistenceError) => {
+      console.error("[Nexum] failed to persist job exception", persistenceError);
+      return null;
+    });
+    syncTerminalChatJobCache(failed);
     void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
     serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: normalizedError.userSafeMessage });
     console.error("[Nexum] chat job failed", jobId, error);
@@ -1302,7 +1310,7 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
     const current = await loadChatJob(job.id, userId);
     return res.json({ success: true, cancelled: current?.status === "cancelled", job: current });
   }
-  chatJobCache.set(job.id, cancelled);
+  syncTerminalChatJobCache(cancelled);
   chatJobControllers.get(job.id)?.abort();
   const runtimeTaskId = job.runtimeTaskId;
   if (runtimeTaskId) serverRuntime.cancelTask(runtimeTaskId);
