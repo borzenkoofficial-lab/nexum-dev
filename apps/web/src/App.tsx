@@ -90,6 +90,17 @@ function App() {
   const [previewKey, setПредпросмотрKey] = useState(0);
   const [builderStarted, setBuilderStarted] = useState(false);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
+  const chatJobIdRef = useRef<string | null>(null);
+  const setAuthoritativeChatJobId = (jobId: string | null) => {
+    chatJobIdRef.current = jobId;
+    setChatJobId(jobId);
+  };
+  const clearAuthoritativeChatJobIfOwned = (jobId: string) => {
+    if (chatJobIdRef.current !== jobId) return false;
+    chatJobIdRef.current = null;
+    setChatJobId(null);
+    return true;
+  };
   const [projectTaskMeta, setProjectTaskMeta] = useState<Record<string, { task: string; timestamp: number; status: "queued" | "running" | "completed" | "failed" | "cancelled" }>>(() => { try { return JSON.parse(localStorage.getItem("nexum:project-task-meta") || "{}"); } catch { return {}; } });
   const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news" | "diagnostics">(() => {
     const path = window.location.pathname;
@@ -318,8 +329,8 @@ function App() {
         if (!response.ok || cancelled) return;
         const data = await response.json() as { jobs?: Array<{ id: string; projectId?: string; status?: string; stage?: string; currentMessage?: string }> };
         const job = (data.jobs ?? []).find((item) => (item.status === "queued" || item.status === "running") && (!item.projectId || item.projectId === activeПроектId));
-        if (!job || cancelled) return;
-        setChatJobId(job.id);
+        if (!job || cancelled || chatJobIdRef.current !== null) return;
+        setAuthoritativeChatJobId(job.id);
         setBuilderStarted(true);
         setRightTab("agent");
         setWorkspaceMode("agent");
@@ -425,7 +436,7 @@ function App() {
     try {
       const response = await nexumRuntime.network.fetch(`/api/projects/${projectId}/select`, { method: "POST" });
       if (!response.ok) throw new Error(`API выбора проекта: HTTP ${response.status}`);
-      setChatJobId(null);
+      setAuthoritativeChatJobId(null);
       setАгентStage(null);
       setActiveПроектId(projectId);
       setReply("");
@@ -510,7 +521,7 @@ function App() {
       setАгентStage("error");
       setCurrentActivity("Agent отменён пользователем.");
       setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "cancelled" } }));
-      setChatJobId(null);
+      clearAuthoritativeChatJobIfOwned(jobId);
       pushOSEvent("info", "Agent cancelled", "Выполнение задачи остановлено пользователем.");
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Не удалось отменить Agent");
@@ -575,7 +586,7 @@ function App() {
       };
       if (!data.jobId) throw new Error(data.error || "API чата не вернул идентификатор задачи");
 
-      setChatJobId(data.jobId);
+      setAuthoritativeChatJobId(data.jobId);
       if (import.meta.env.VITE_E2E === "true") {
         const testWindow = window as unknown as { __NEXUM_E2E_LAST_JOB_ID__?: string; __NEXUM_E2E_RUNTIME_TASK_ID__?: string };
         testWindow.__NEXUM_E2E_LAST_JOB_ID__ = data.jobId;
@@ -623,7 +634,7 @@ function App() {
             }
           : null;
 
-        if (cancelled) return;
+        if (cancelled || chatJobIdRef.current !== activeJobId) return;
 
         if (!response.ok) {
           throw new Error(data?.error || `Chat job API: HTTP ${response.status}`);
@@ -676,7 +687,7 @@ function App() {
           setПредпросмотрOnline(previewReady);
           setПредпросмотрKey((key) => key + 1);
           setАгентStage("completed");
-          setChatJobId(null);
+          clearAuthoritativeChatJobIfOwned(activeJobId);
               return;
         }
 
@@ -684,7 +695,7 @@ function App() {
           setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "cancelled" } }));
           setCurrentActivity(data?.job?.error ?? "Agent отменён.");
           setАгентStage("error");
-          setChatJobId(null);
+          clearAuthoritativeChatJobIfOwned(activeJobId);
             return;
         }
 
