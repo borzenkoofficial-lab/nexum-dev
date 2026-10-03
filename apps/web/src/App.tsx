@@ -432,12 +432,15 @@ function App() {
   }
 
   async function selectПроект(projectId: string): Promise<boolean> {
+    const jobIdAtSelectionStart = chatJobIdRef.current;
     setПроектActionLoading(true);
     try {
       const response = await nexumRuntime.network.fetch(`/api/projects/${projectId}/select`, { method: "POST" });
       if (!response.ok) throw new Error(`API выбора проекта: HTTP ${response.status}`);
-      setAuthoritativeChatJobId(null);
-      setАгентStage(null);
+      if (chatJobIdRef.current === jobIdAtSelectionStart) {
+        setAuthoritativeChatJobId(null);
+        setАгентStage(null);
+      }
       setActiveПроектId(projectId);
       setReply("");
       await loadПроектs(projectId);
@@ -512,7 +515,7 @@ function App() {
   }
 
   async function cancelAgent() {
-    const jobId = chatJobId;
+    const jobId = chatJobIdRef.current;
     if (!jobId) return;
     try {
       const response = await nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
