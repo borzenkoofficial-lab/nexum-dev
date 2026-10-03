@@ -47,7 +47,7 @@ export class PatchFileTool implements Tool {
       await writeFile(filePath, after, "utf8");
       return {
         success: true,
-        output: `Patched ${this.workspace.relative(filePath)}: ${matches} exact replacement applied.`,
+        output: JSON.stringify({ path: this.workspace.relative(filePath), changed: true, replacements: matches, beforeBytes: Buffer.byteLength(before), afterBytes: Buffer.byteLength(after) }),
       };
     } catch (error) {
       return { success: false, output: error instanceof Error ? error.message : "Patch failed." };
