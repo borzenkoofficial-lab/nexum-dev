@@ -441,7 +441,6 @@ export class AgentLoop {
       const plannerContextSeen = seenPlannerContexts.has(plannerContextFingerprint);
       if (!modelPlan && this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < MAX_AI_PLANNER_CALLS && !plannerContextSeen) {
         try {
-          if (agentFailureInjection.consumeFailure("MODEL_FAILURE")) throw new Error("Injected model failure");
           if (++modelTurns > MAX_MODEL_TURNS) throw new Error("Agent model-turn limit reached");
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
