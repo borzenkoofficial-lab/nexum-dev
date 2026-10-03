@@ -3,6 +3,10 @@ name: NEXUM CI
 permissions:
   contents: read
 
+concurrency:
+  group: nexum-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: ["main", "feat/ai-loop-production-overhaul"]
