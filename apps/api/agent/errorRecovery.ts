@@ -6,6 +6,11 @@ export type ErrorCategory =
   | "runtime"
   | "path"
   | "tool"
+  | "network"
+  | "permission"
+  | "validation"
+  | "cancellation"
+  | "timeout"
   | "unknown";
 
 export interface ErrorDiagnosis {
@@ -24,6 +29,21 @@ export function diagnoseError(output: string): ErrorDiagnosis {
     .filter(Boolean);
   const likelyFiles = [...new Set(fileMatches.filter((file): file is string => Boolean(file)))].slice(0, 8);
 
+  if (/(?:aborterror|cancelled|canceled|cancel)/i.test(text)) {
+    return { category: "cancellation", priority: 1, summary: "Agent execution cancelled", evidence: text.slice(-1600), likelyFiles, strategy: "Do not retry or repair a cancelled operation; stop execution and release owned resources." };
+  }
+  if (/(?:timed out|timeout|ETIMEDOUT)/i.test(text)) {
+    return { category: "timeout", priority: 2, summary: "Operation timed out", evidence: text.slice(-1600), likelyFiles, strategy: "Stop the timed-out operation, verify cleanup, then retry only when the operation is transient and bounded." };
+  }
+  if (/(?:401|403|permission denied|forbidden|not permitted|EACCES)/i.test(text)) {
+    return { category: "permission", priority: 1, summary: "Permission error", evidence: text.slice(-1600), likelyFiles, strategy: "Do not retry automatically. Report the permission boundary or require explicit user configuration." };
+  }
+  if (/(?:network error|fetch failed|ECONNRESET|ECONNREFUSED|ENOTFOUND|429|rate limit|too many requests)/i.test(text)) {
+    return { category: "network", priority: 3, summary: "Transient network/provider error", evidence: text.slice(-1600), likelyFiles, strategy: "Use the bounded Runtime network retry policy; never create an independent unbounded retry loop." };
+  }
+  if (/(?:validation failed|completion gate|acceptance criteria|DOMAIN_MISMATCH)/i.test(text)) {
+    return { category: "validation", priority: 2, summary: "Validation did not pass", evidence: text.slice(-1600), likelyFiles, strategy: "Treat the evidence as the current project state, create a bounded repair action, then rerun validation." };
+  }
   if (/(?:TS\d+|TypeScript|tsc)/i.test(text)) {
     return { category: "typescript", priority: 1, summary: "TypeScript error", evidence: text.slice(-1600), likelyFiles, strategy: "Inspect the reported file and type error, apply the smallest targeted fix, then rerun typecheck/build." };
   }
