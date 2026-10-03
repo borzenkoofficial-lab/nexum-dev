@@ -13,7 +13,9 @@ async function waitForFailurePhase(page: any, name: string, phase: "consumed" | 
     const response = await page.request.get("/api/test/agent-failures");
     if (!response.ok()) return false;
     const data = await response.json();
-    return Boolean((data.diagnostics ?? []).some((entry: any) => entry.name === name && entry.phase === phase));
+    const events = (data.diagnostics ?? []).filter((entry: any) => entry.name === name);
+    const latestEnable = [...events].reverse().find((entry: any) => entry.phase === "enabled");
+    return Boolean(latestEnable && events.some((entry: any) => entry.phase === phase && entry.timestamp >= latestEnable.timestamp));
   }, { timeout: 5_000 }).toBeTruthy();
 }
 
@@ -92,9 +94,13 @@ test("boot, runtime inspection and browser-visible navigation", async ({ page })
 
 test("real Agent user cancellation aborts the Agent task and releases Runtime ownership", async ({ page }) => {
   await setAgentFailure(page, "enable", "TOOL_CHECKPOINT");
-  const input = page.getByLabel("Опишите задачу");
-  await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
-  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+  const { jobId } = await page.request.post("/api/chat", { data: { message: "Проверь структуру текущего проекта и ничего не изменяй." } }).then(async response => {
+    expect(response.status()).toBe(202);
+    return response.json();
+  });
+  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
+  await page.reload();
+  await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 10_000 });
 
   const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
   await expect(cancel).toBeVisible({ timeout: 5_000 });
@@ -128,9 +134,9 @@ test("real Agent user cancellation aborts the Agent task and releases Runtime ow
 test("Agent cancellation remains terminal across repeated cancel/response races", async ({ page }) => {
   for (let i = 0; i < 3; i += 1) {
     await setAgentFailure(page, "enable", "TOOL_CHECKPOINT");
-    const input = page.getByLabel("Опишите задачу");
-    await input.fill(`Проверь проект, итерация ${i}, ничего не изменяй.`);
-    await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+      const create = await page.request.post("/api/chat", { data: { message: `Проверь проект, итерация ${i}, ничего не изменяй.` } });
+    expect(create.status()).toBe(202);
+    await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
     const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
     await expect(cancel).toBeVisible({ timeout: 5_000 });
     await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
@@ -335,15 +341,14 @@ test("Agent Job creation produces exactly one canonical Runtime Task", async ({ 
 });
 
 test("real Agent user cancellation aborts the Agent task and leaves terminal state", async ({ page }) => {
-  const input = page.getByLabel("Опишите задачу");
-  await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
-  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
-
+  const create = await page.request.post("/api/chat", { data: { message: "Проверь структуру текущего проекта и ничего не изменяй." } });
+  expect(create.status()).toBe(202);
+  const created = await create.json();
+  const jobId = created.jobId as string;
+  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
   const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
   await expect(cancel).toBeVisible({ timeout: 5_000 });
-  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   expect(jobId).toBeTruthy();
-
   await cancel.click();
 
   await expect.poll(async () => (await (await page.request.get(`/api/chat/jobs/${encodeURIComponent(jobId)}`)).json()).job?.status, { timeout: 8_000 }).toBe("cancelled");
