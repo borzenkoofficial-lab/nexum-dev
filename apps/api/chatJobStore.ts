@@ -26,6 +26,8 @@ export interface ChatJob {
   stage?: ChatJobStage;
   attachments?: string[];
   productPlan?: unknown;
+  intent?: unknown;
+  plan?: unknown;
   checkpointId?: string;
   userId: string;
   projectId?: string;
@@ -73,7 +75,6 @@ function encode(job: ChatJob): Record<string, unknown> {
 function decode(row: any): ChatJob {
   return { id: row.id, userId: row.user_id, projectId: row.project_id ?? undefined, status: row.status, createdAt: Number(row.created_at), updatedAt: Number(row.updated_at), ...(row.payload ?? {}) };
 }
-
 
 export async function acquireProjectLock(projectId: string, userId: string, jobId: string, ttlMs = 15 * 60 * 1000): Promise<boolean> {
   await ensureTable();
@@ -128,62 +129,34 @@ export async function updateChatJob(id: string, userId: string, patch: Partial<C
   const data = encode(next);
   const result = await query(
     `UPDATE agent_chat_jobs
-        SET project_id=$3,status=$4,updated_at=$5,payload=$6::jsonb
-      WHERE id=$1 AND user_id=$2
-      RETURNING *`,
-    [id, userId, data.projectId, data.status, data.updatedAt, JSON.stringify(data.payload)],
+     SET project_id=$2,status=$3,updated_at=$4,payload=$5::jsonb
+     WHERE id=$1 AND user_id=$6
+     RETURNING *`,
+    [next.id, next.projectId ?? null, next.status, next.updatedAt, JSON.stringify({ ...data.payload }), next.userId],
   );
   return result.rows[0] ? decode(result.rows[0]) : null;
 }
 
-export async function cancelChatJob(id: string, userId: string, message = "Agent task cancelled by user."): Promise<ChatJob | null> {
+export async function cancelChatJob(id: string, userId: string): Promise<ChatJob | null> {
   await ensureTable();
+  const current = await getChatJob(id, userId);
+  if (!current || ["completed", "failed", "cancelled"].includes(current.status)) return current;
+  const next = { ...current, status: "cancelled" as const, updatedAt: Date.now(), error: "Agent task cancelled by user." };
+  const data = encode(next);
   const result = await query(
-    `UPDATE agent_chat_jobs
-        SET status='cancelled',
-            updated_at=$3,
-            payload=jsonb_set(
-              jsonb_set(payload, '{stage}', '"error"'::jsonb, true),
-              '{error}', to_jsonb($4::text), true
-            )
-      WHERE id=$1 AND user_id=$2 AND status IN ('queued','running')
-      RETURNING *`,
-    [id, userId, Date.now(), message],
+    `UPDATE agent_chat_jobs SET status='cancelled',updated_at=$3,payload=$4::jsonb WHERE id=$1 AND user_id=$2 AND status IN ('queued','running') RETURNING *`,
+    [id, userId, next.updatedAt, JSON.stringify(data.payload)],
   );
-  return result.rows[0] ? decode(result.rows[0]) : null;
+  return result.rows[0] ? decode(result.rows[0]) : current;
 }
 
-export async function listChatJobs(userId?: string, limit = 20): Promise<ChatJob[]> {
+export async function listChatJobs(userId: string, limit = 30): Promise<ChatJob[]> {
   await ensureTable();
-  const safeLimit = Math.min(Math.max(limit, 1), 100);
-  const result = userId
-    ? await query(`SELECT * FROM agent_chat_jobs WHERE user_id=$1 ORDER BY updated_at DESC LIMIT $2`, [userId, safeLimit])
-    : await query(`SELECT * FROM agent_chat_jobs ORDER BY updated_at DESC LIMIT $1`, [safeLimit]);
+  const result = await query(`SELECT * FROM agent_chat_jobs WHERE user_id=$1 ORDER BY updated_at DESC LIMIT $2`, [userId, Math.min(Math.max(limit, 1), 100)]);
   return result.rows.map(decode);
 }
 
-export async function cleanupChatJobs(ttlMs = 30 * 60 * 1000): Promise<void> {
+export async function cleanupChatJobs(): Promise<void> {
   await ensureTable();
-  await query(
-    `DELETE FROM agent_chat_jobs WHERE updated_at < $1 AND status IN ('completed','failed','cancelled')`,
-    [Date.now() - ttlMs],
-  );
-}
-
-
-export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promise<number> {
-  await ensureTable();
-  const result = await query(
-    `UPDATE agent_chat_jobs
-        SET status='failed',
-            updated_at=$1,
-            payload=jsonb_set(
-              jsonb_set(payload, '{stage}', '"error"'::jsonb, true),
-              '{error}', '"API process restarted while this Agent Run was active."'::jsonb, true
-            )
-      WHERE status='running' AND updated_at < $2
-      RETURNING id`,
-    [Date.now(), Date.now() - maxRunningMs],
-  );
-  return result.rows.length;
+  await query(`DELETE FROM agent_chat_jobs WHERE updated_at < $1`, [Date.now() - 30 * 60 * 1000]);
 }
