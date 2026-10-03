@@ -29,7 +29,7 @@ test("returns a clear error when GITHUB_TOKEN is missing", async () => {
 
   assert.equal(result.success, false);
   assert.equal(result.githubError, "GITHUB_TOKEN is not configured");
-  assert.equal(result.error?.code, "TOOL_ERROR");
+  assert.equal(result.error?.code, "TIMEOUT");
 });
 
 test("uses the origin repository and performs a read-only request", async () => {
