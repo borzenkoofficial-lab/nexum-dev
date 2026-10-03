@@ -2,14 +2,15 @@ import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { spawn } from "node:child_process";
 import type { Tool, ToolResult } from "../types.js";
+import type { ServerRuntime } from "../../runtime/runtime.js";
 import { ProjectWorkspace } from "./workspace.js";
 
 export class TestProjectTool implements Tool {
   name = "testProject";
   description = "Runs the project's safest available automated checks and reports structured failures before Preview.";
-  constructor(private readonly workspace: ProjectWorkspace) {}
+  constructor(private readonly workspace: ProjectWorkspace, private readonly runtime?: ServerRuntime, private readonly context: { projectId?: string; taskId?: string } = {}) {}
 
-  async execute(_input = "."): Promise<ToolResult> {
+  async execute(_input = ".", signal?: AbortSignal): Promise<ToolResult> {
     try {
       const root = await this.workspace.existing(".");
       const packagePath = resolve(root, "package.json");
@@ -29,7 +30,7 @@ export class TestProjectTool implements Tool {
 
       const results: string[] = [];
       for (const name of commands) {
-        const result = await this.run(root, "npm", ["run", name], name);
+        const result = await this.run(root, "npm", ["run", name], name, signal);
         results.push(result.output);
         if (!result.success) {
           return {
@@ -63,18 +64,21 @@ export class TestProjectTool implements Tool {
     }
   }
 
-  private run(cwd: string, command: string, args: string[], stage: string): Promise<ToolResult> {
+  private run(cwd: string, command: string, args: string[], stage: string, signal?: AbortSignal): Promise<ToolResult> {
     return new Promise((resolveResult) => {
       const child = spawn(command, args, { cwd, shell: process.platform === "win32", env: process.env });
+      const processId = this.runtime?.registerProcess(`testProject:${stage}`, child, { ...this.context, operation: stage });
+      const abort = () => { if (child.exitCode === null) child.kill("SIGTERM"); };
+      if (signal) { if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true }); }
       let stdout = "";
       let stderr = "";
       child.stdout.on("data", (chunk) => { stdout += chunk.toString(); });
       child.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
-      child.on("error", (error) => resolveResult({ success: false, output: stage + ": " + error.message }));
-      child.on("close", (code) => resolveResult({
+      child.on("error", (error) => { if (processId) this.runtime?.completeProcess(processId); signal?.removeEventListener("abort", abort); resolveResult({ success: false, output: stage + ": " + error.message }); });
+      child.on("close", (code) => { if (processId) this.runtime?.completeProcess(processId); signal?.removeEventListener("abort", abort); resolveResult({
         success: code === 0,
         output: (stage + " exit=" + (code ?? "unknown") + "\n" + stdout + "\n" + stderr).slice(-16000),
-      }));
+      })); });
     });
   }
 }
