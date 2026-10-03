@@ -218,8 +218,6 @@ export class AgentLoop {
       }
       throw error;
     }
-  }      throw error;
-    }
   }
 
   private async runInternal(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
