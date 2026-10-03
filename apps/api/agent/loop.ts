@@ -192,7 +192,7 @@ export class AgentLoop {
         const executionPlan = snapshot?.plan ?? createExecutionPlan(intent);
         return {
           success: false,
-          iterations: snapshot?.plan.steps.length ?? 0,
+          iterations: snapshot?.completedStepIds.length ?? 0,
           steps: [],
           phase: "repair",
           intent,
@@ -210,13 +210,15 @@ export class AgentLoop {
             status: "CANCELLED",
             summary: "Agent execution cancelled by user.",
             changedFiles: [],
-            completedSteps: [],
+            completedSteps: snapshot?.completedStepIds ?? [],
             warnings: [],
             errors: ["CANCELLED"],
           },
         };
       }
       throw error;
+    }
+  }      throw error;
     }
   }
 
