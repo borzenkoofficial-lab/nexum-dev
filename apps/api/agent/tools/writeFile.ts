@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { dirname } from "node:path";
 import type { Tool, ToolResult } from "../types.js";
 import { ProjectWorkspace } from "./workspace.js";
+import { ProjectPathError } from "./path.js";
 
 export interface WriteFileRequest { path: string; content: string; }
 
