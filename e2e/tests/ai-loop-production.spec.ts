@@ -13,7 +13,9 @@ async function waitForFailurePhase(page: any, name: string, phase: "consumed" | 
     const response = await page.request.get("/api/test/agent-failures");
     if (!response.ok()) return false;
     const data = await response.json();
-    return Boolean((data.diagnostics ?? []).some((entry: any) => entry.name === name && entry.phase === phase));
+    const events = (data.diagnostics ?? []).filter((entry: any) => entry.name === name);
+    const latestEnable = [...events].reverse().find((entry: any) => entry.phase === "enabled");
+    return Boolean(latestEnable && events.some((entry: any) => entry.phase === phase && entry.timestamp >= latestEnable.timestamp));
   }, { timeout: 5_000 }).toBeTruthy();
 }
 
