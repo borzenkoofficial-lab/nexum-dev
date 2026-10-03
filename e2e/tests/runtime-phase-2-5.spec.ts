@@ -8,6 +8,15 @@ async function setAgentFailure(page: any, operation: "enable" | "disable" | "res
   return response.json();
 }
 
+async function waitForFailurePhase(page: any, name: string, phase: "consumed" | "released") {
+  await expect.poll(async () => {
+    const response = await page.request.get("/api/test/agent-failures");
+    if (!response.ok()) return false;
+    const data = await response.json();
+    return Boolean((data.diagnostics ?? []).some((entry: any) => entry.name === name && entry.phase === phase));
+  }, { timeout: 5_000 }).toBeTruthy();
+}
+
 async function createStaticProject(page: any, name: string): Promise<string> {
   let response = await page.request.post("/api/projects", {
     data: { name, description: "Runtime Phase 2.5 E2E", type: "static" },
@@ -82,12 +91,14 @@ test("boot, runtime inspection and browser-visible navigation", async ({ page })
 });
 
 test("real Agent user cancellation aborts the Agent task and releases Runtime ownership", async ({ page }) => {
+  await setAgentFailure(page, "enable", "TOOL_CHECKPOINT");
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
   await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
 
   const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
   await expect(cancel).toBeVisible({ timeout: 5_000 });
+  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
   await cancel.click();
 
   await page.waitForFunction(async () => {
@@ -95,7 +106,12 @@ test("real Agent user cancellation aborts the Agent task and releases Runtime ow
     return Boolean(id);
   }).catch(() => {});
 
-  await page.waitForTimeout(200);
+  await expect.poll(async () => {
+    const runtime = await page.request.get("/api/runtime/status");
+    if (!runtime.ok()) return "HTTP_ERROR";
+    const data = await runtime.json();
+    return (data.tasks ?? []).some((task: any) => task.operation === "chat-job" && task.status === "CANCELLED") ? "CANCELLED" : "PENDING";
+  }, { timeout: 5_000 }).toBe("CANCELLED");
   const runtime = await page.request.get("/api/runtime/status");
   expect(runtime.ok()).toBeTruthy();
   const runtimeData = await runtime.json();
@@ -111,13 +127,18 @@ test("real Agent user cancellation aborts the Agent task and releases Runtime ow
 
 test("Agent cancellation remains terminal across repeated cancel/response races", async ({ page }) => {
   for (let i = 0; i < 3; i += 1) {
+    await setAgentFailure(page, "enable", "TOOL_CHECKPOINT");
     const input = page.getByLabel("Опишите задачу");
     await input.fill(`Проверь проект, итерация ${i}, ничего не изменяй.`);
     await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
     const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
     await expect(cancel).toBeVisible({ timeout: 5_000 });
+    await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
     await cancel.click();
-    await page.waitForTimeout(100);
+    await expect.poll(async () => {
+      const runtime = await (await page.request.get("/api/runtime/status")).json();
+      return (runtime.tasks ?? []).some((task: any) => task.operation === "chat-job" && task.projectId && task.status === "RUNNING");
+    }, { timeout: 5_000 }).toBe(false);
     const runtime = await (await page.request.get("/api/runtime/status")).json();
     const activeOrCompleted = (runtime.tasks ?? []).filter((task: any) =>
       task.operation === "chat-job" && task.projectId && task.status === "RUNNING"
