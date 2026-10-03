@@ -232,11 +232,19 @@ export class GitHubTool implements Tool {
   }
 
   private failure(operation: string, error: string): GitHubToolResult {
+    const lower = error.toLowerCase();
+    const code = /authentication|forbidden|permission/.test(lower)
+      ? "PERMISSION_ERROR"
+      : /rate limit|429|timed out|network/.test(lower)
+        ? "NETWORK_ERROR"
+        : "TOOL_ERROR";
+    const retryable = code === "NETWORK_ERROR" && !/authentication|permission|forbidden/.test(lower);
     return {
       success: false,
       operation,
       githubError: error,
-      output: JSON.stringify({ success: false, operation, error }),
+      error: { code, message: error, retryable, repairable: !retryable, fatal: code === "PERMISSION_ERROR" },
+      output: JSON.stringify({ success: false, operation, error: { code, message: error, retryable } }),
     };
   }
 
