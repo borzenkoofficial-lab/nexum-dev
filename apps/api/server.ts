@@ -31,6 +31,7 @@ import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCa
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
+import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 
 dotenv.config();
 
@@ -204,21 +205,13 @@ function getAIGatewayForUser(userId: string): AIGateway {
 }
 
 const chatJobControllers = new Map<string, AbortController>();
-const chatJobPersistQueues = new Map<string, Promise<void>>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
 
 async function persistChatJob(job: ChatJob): Promise<void> {
-  const previous = chatJobPersistQueues.get(job.id) ?? Promise.resolve();
-  const next = previous.then(async () => {
+  await enqueueChatJobPersistence(job.id, async () => {
     const persisted = await updateChatJob(job.id, job.userId, job);
     if (persisted) chatJobCache.set(job.id, persisted);
   });
-  chatJobPersistQueues.set(job.id, next.catch(() => undefined));
-  try {
-    await next;
-  } finally {
-    if (chatJobPersistQueues.get(job.id) === next) chatJobPersistQueues.delete(job.id);
-  }
 }
 
 function throwIfAgentAborted(signal?: AbortSignal): void {
@@ -274,6 +267,7 @@ async function runChatJob(
       job.status = "failed";
       job.stage = "error";
       job.error = "Project is already being modified by another Agent Run.";
+      await waitForChatJobPersistence(jobId);
       const failed = await failChatJob(jobId, userId, { error: job.error, stage: job.stage });
       syncTerminalChatJobCache(failed);
       serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: job.error });
@@ -449,6 +443,7 @@ ${attachment.content.slice(0, 80_000)}`);
       job.error = result.error ?? "Agent task cancelled by user.";
       job.validation = result.validation;
       job.telemetry = result.telemetry;
+      await waitForChatJobPersistence(jobId);
       const cancelled = await cancelChatJob(jobId, userId, job.error);
       syncTerminalChatJobCache(cancelled);
       serverRuntime.cancelTask(runtimeTask.id);
@@ -463,6 +458,7 @@ ${attachment.content.slice(0, 80_000)}`);
       job.errorInfo = result.errorInfo;
       void agentHistory.record({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
+      await waitForChatJobPersistence(jobId);
       const failed = await failChatJob(jobId, userId, { error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, steps: job.steps, productPlan: job.productPlan, stage: job.stage, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry });
       syncTerminalChatJobCache(failed);
       return;
@@ -483,6 +479,7 @@ ${attachment.content.slice(0, 80_000)}`);
       /npm run build/.test(step.input),
     );
     if (signal?.aborted || (await getChatJob(jobId, userId))?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
+    await waitForChatJobPersistence(jobId);
     const completed = await completeChatJob(jobId, userId, {
       reply: job.reply,
       steps: job.steps,
@@ -527,6 +524,7 @@ ${attachment.content.slice(0, 80_000)}`);
     job.error = normalizedError.userSafeMessage;
     job.errorCode = normalizedError.code;
     job.errorInfo = { code: normalizedError.code, message: normalizedError.userSafeMessage, retryable: normalizedError.retryable };
+    await waitForChatJobPersistence(jobId);
     const failed = await failChatJob(jobId, userId, { stage: "error", error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry }).catch((persistenceError) => {
       console.error("[Nexum] failed to persist job exception", persistenceError);
       return null;
@@ -1297,6 +1295,7 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
     return res.json({ success: true, cancelled: job.status === "cancelled", job });
   }
+  await waitForChatJobPersistence(job.id);
   const cancelled = await cancelChatJob(job.id, userId);
   if (!cancelled) {
     const current = await loadChatJob(job.id, userId, getChatJob);
