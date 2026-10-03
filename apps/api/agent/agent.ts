@@ -44,7 +44,7 @@ export class NexumAgent implements AgentRuntime {
   ) {
     this.orchestrator = new AIOrchestrator(gateway);
     const workspace = new ProjectWorkspace(projectRoot);
-    const tools = [
+    const tools: Tool[] = [
       new ListFilesTool(workspace),
       new ReadFileTool(workspace),
       new WriteFileTool(workspace),
