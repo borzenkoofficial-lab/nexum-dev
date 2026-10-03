@@ -50,7 +50,7 @@ export class NexumAgent implements AgentRuntime {
       new ScaffoldProjectTool(workspace),
       new ValidateProjectTool(workspace),
       new PatchFileTool(workspace),
-      new TestProjectTool(workspace),
+      new TestProjectTool(workspace, serverRuntime, runtimeContext),
       new SearchFilesTool(workspace),
       new RunCommandTool(projectRoot, 120_000, serverRuntime, runtimeContext),
       new RunSandboxTool(projectRoot, serverRuntime, runtimeContext),
