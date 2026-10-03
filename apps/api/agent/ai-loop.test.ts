@@ -40,6 +40,7 @@ test("AI structured plan selects writeFile and executes it", async () => {
   const result = await loop.run("Запиши index.html", { provider: "openrouter", model: "openrouter/free" });
   const content = await readFile(join(projectRoot, "index.html"), "utf8");
 
+  console.log("DEBUG_WRITE_RESULT", JSON.stringify({ success: result.success, error: result.error, finalState: result.finalState, steps: result.steps, validation: result.validation, plan: result.executionPlan, response: result.finalResponse }));
   assert.equal(result.success, true);
   assert.deepEqual(result.steps.map((step) => step.tool), ["writeFile", "runCommand"]);
   assert.equal(content, "<h1>NEXUM.DEV</h1>");
