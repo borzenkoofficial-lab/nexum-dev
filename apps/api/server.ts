@@ -1375,7 +1375,7 @@ app.get("/api/chat/jobs", async (req, res) => {
 app.get("/api/chat/jobs/:id", async (req, res) => {
   await cleanupChatJobs();
   const userId = getAuthUser(req).id;
-  const job = await loadChatJob(req.params.id, userId);
+  const job = await loadChatJob(req.params.id, userId, getChatJob);
   if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired" });
   return res.json({ success: true, job });
 });
