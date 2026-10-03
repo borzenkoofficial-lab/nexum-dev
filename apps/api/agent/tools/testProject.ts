@@ -68,7 +68,7 @@ export class TestProjectTool implements Tool {
     return new Promise((resolveResult) => {
       const child = spawn(command, args, { cwd, shell: process.platform === "win32", env: process.env });
       const processId = this.runtime?.registerProcess(`testProject:${stage}`, child, { ...this.context, operation: stage });
-      const abort = () => { if (child.exitCode === null) child.kill("SIGTERM"); };
+      const abort = () => { if (processId) this.runtime?.stopProcess(processId); else if (child.exitCode === null) child.kill("SIGTERM"); };
       if (signal) { if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true }); }
       let stdout = "";
       let stderr = "";
