@@ -167,11 +167,19 @@ function getAIGatewayForUser(userId: string): AIGateway {
 
 const chatJobCache = new Map<string, ChatJob>();
 const chatJobControllers = new Map<string, AbortController>();
+const chatJobPersistQueues = new Map<string, Promise<void>>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
 
 async function persistChatJob(job: ChatJob): Promise<void> {
   chatJobCache.set(job.id, job);
-  await updateChatJob(job.id, job.userId, job);
+  const previous = chatJobPersistQueues.get(job.id) ?? Promise.resolve();
+  const next = previous.then(() => updateChatJob(job.id, job.userId, job).then(() => undefined));
+  chatJobPersistQueues.set(job.id, next.catch(() => undefined));
+  try {
+    await next;
+  } finally {
+    if (chatJobPersistQueues.get(job.id) === next) chatJobPersistQueues.delete(job.id);
+  }
 }
 
 async function loadChatJob(id: string, userId: string): Promise<ChatJob | null> {
@@ -225,7 +233,8 @@ async function runChatJob(
       job.status = "failed";
       job.stage = "error";
       job.error = "Project is already being modified by another Agent Run.";
-      await persistChatJob(job);
+      await failChatJob(jobId, userId, { error: job.error, stage: job.stage });
+      serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: job.error });
       void agentHistory.record({ type: "job-rejected-lock", jobId, projectId: project.id, status: "failed", message: job.error });
       return;
     }
@@ -1106,8 +1115,13 @@ app.post("/api/chat", async (req, res) => {
       projectId: typeof projectId === "string" ? projectId : undefined,
       runtimeTaskId: runtimeTask.id,
     };
-    await createChatJob(newJob);
-    chatJobCache.set(jobId, newJob);
+    try {
+      await createChatJob(newJob);
+      chatJobCache.set(jobId, newJob);
+    } catch (error) {
+      serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: error instanceof Error ? error.message : "Chat Job persistence failed" });
+      throw error;
+    }
 
     // Do not await the agent. The HTTP request returns immediately, avoiding
     // platform/proxy 504s while local Ollama or another provider is generating.
