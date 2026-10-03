@@ -327,10 +327,7 @@ export class AgentLoop {
     const transition = (next: AgentPhase) => {
       if (phase === next) return;
       const stateByPhase: Record<AgentPhase, AgentState> = { analyze: "UNDERSTANDING", plan: "PLANNING", implement: "EXECUTING", validate: "VALIDATING", repair: "REPAIRING", verify: "VERIFYING", finish: "COMPLETED" };
-      const nextState = stateByPhase[next];
-      if (executionSnapshot.state !== nextState && !transitionAgentState(executionSnapshot, nextState, (warning) => this.onEvent?.({ id: ++eventId, timestamp: Date.now(), iteration: 0, type: "failed", name: "agent.failed", phase, message: warning }))) {
-        return;
-      }
+      setAgentState(stateByPhase[next]);
       phase = next;
       taskState.phase = next;
       publishExecution();
