@@ -154,7 +154,28 @@ export class AgentLoop {
 
   async run(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
     try {
-      return await this.runInternal(task, options);
+      const result = await this.runInternal(task, options);
+      const intent = result.intent ?? createAgentIntent(task, {
+        requestId: this.journalContext?.requestId,
+        projectId: this.journalContext?.projectId,
+        taskId: this.journalContext?.taskId ?? this.journalContext?.agentRunId,
+      });
+      const finalState: AgentState = result.finalState ?? (result.success ? "COMPLETED" : "FAILED");
+      const executionPlan = result.executionPlan ?? createExecutionPlan(intent);
+      return {
+        ...result,
+        intent,
+        executionPlan,
+        finalState,
+        summary: result.summary ?? {
+          status: finalState,
+          summary: result.success ? "Agent execution completed." : result.error ?? "Agent execution failed.",
+          changedFiles: [],
+          completedSteps: executionPlan.steps.filter((step) => step.status === "COMPLETED").map((step) => step.id),
+          warnings: [],
+          errors: result.success ? [] : [result.error ?? finalState],
+        },
+      };
     } catch (error) {
       if (isAbortError(error) || options?.signal?.aborted) {
         const intent = createAgentIntent(task, {
