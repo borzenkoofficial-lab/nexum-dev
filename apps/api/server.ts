@@ -386,6 +386,22 @@ ${attachment.content.slice(0, 80_000)}`);
     job.validation = result.validation;
     job.telemetry = result.telemetry;
     if (result.finalResponse !== undefined) job.reply = result.finalResponse;
+
+    const successfulBuild = result.steps.some((step) =>
+      step.success &&
+      (step.tool === "runCommand" || step.tool === "runSandbox") &&
+      /npm run build/.test(step.input),
+    );
+    if (successfulBuild) await stateManager.markBuildSucceeded();
+    await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
+      try {
+        const parsed = JSON.parse(step.input);
+        return typeof parsed.path === "string" ? parsed.path : "";
+      } catch { return ""; }
+    }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
+    await stateManager.markCompleted(message.slice(0, 240));
+
+    if (signal?.aborted || (await getChatJob(jobId, userId))?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
     const completed = await completeChatJob(jobId, userId, {
       reply: job.reply,
       steps: job.steps,
@@ -401,23 +417,8 @@ ${attachment.content.slice(0, 80_000)}`);
     job.status = "completed";
     job.stage = "completed";
     void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
-    const successfulBuild = result.steps.some((step) =>
-      step.success &&
-      (step.tool === "runCommand" || step.tool === "runSandbox") &&
-      /npm run build/.test(step.input),
-    );
-    if (successfulBuild) {
-      await stateManager.markBuildSucceeded();
-    }
-    await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
-      try {
-        const parsed = JSON.parse(step.input);
-        return typeof parsed.path === "string" ? parsed.path : "";
-      } catch { return ""; }
-    }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
-    await stateManager.markCompleted(message.slice(0, 240));
     serverRuntime.updateTask(runtimeTask.id, "COMPLETED", { progress: 1 });
-    console.log("[Nexum] chat job completed", jobId);
+
   } catch (error) {
     if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) {
       job.status = "cancelled";
