@@ -378,7 +378,7 @@ ${attachment.content.slice(0, 80_000)}`);
           : snapshot.state === "REPAIRING"
             ? "RECOVERING"
             : snapshot.state === "COMPLETED"
-              ? "COMPLETED"
+              ? "VALIDATING"
               : snapshot.state === "FAILED"
                 ? "FAILED"
                 : snapshot.state === "CANCELLED"
@@ -387,6 +387,8 @@ ${attachment.content.slice(0, 80_000)}`);
         if (runtimeStatus === "CANCELLED") serverRuntime.cancelTask(runtimeTask.id);
         else serverRuntime.updateTask(runtimeTask.id, runtimeStatus, {
           progress: Math.min(0.95, snapshot.completedStepIds.length / Math.max(1, snapshot.plan.steps.length)),
+          planId: snapshot.plan.planId,
+          ...(job.checkpointId ? { checkpointId: job.checkpointId } : {}),
         });
         void persistChatJob(job).catch((error) => console.error("[Nexum] execution state persistence failed", error));
         if (job.checkpointId) {
@@ -416,7 +418,6 @@ ${attachment.content.slice(0, 80_000)}`);
       job.status = "cancelled";
       job.stage = "error";
       job.error = result.error ?? "Agent task cancelled by user.";
-      job.executionState = result.finalState;
       job.validation = result.validation;
       job.telemetry = result.telemetry;
       await cancelChatJob(jobId, userId, job.error);
@@ -481,7 +482,7 @@ ${attachment.content.slice(0, 80_000)}`);
   } catch (error) {
     if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) {
       job.status = "cancelled";
-      job.stage = "error";
+      job.stage = "cancelled";
       job.error = "Agent task cancelled by user.";
       job.updatedAt = Date.now();
       await persistChatJob(job).catch(() => {});
