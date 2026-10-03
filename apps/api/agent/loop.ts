@@ -11,7 +11,7 @@ import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 import { createAgentIntent } from "./intent.js";
-import { createExecutionPlan, createTelemetry, transitionAgentState, setPlanStep, markPlanStepCompleted, createValidation, type AgentExecutionSnapshot } from "./executionState.js";
+import { createExecutionPlan, createTelemetry, transitionAgentState, setPlanStep, markPlanStepCompleted, markPlanStepSkipped, canRunPlanStep, createValidation, type AgentExecutionSnapshot } from "./executionState.js";
 import { agentFailureInjection } from "./failureInjection.js";
 import type {
   AgentModelOptions,
@@ -265,6 +265,9 @@ export class AgentLoop {
     };
     const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
     const markStepRunning = (id: string) => {
+      if (!canRunPlanStep(executionSnapshot.plan, id)) {
+        throw new Error(`Plan step dependency is not satisfied: ${id}`);
+      }
       setPlanStep(executionSnapshot.plan, id, "RUNNING");
       publishExecution();
     };
@@ -855,6 +858,9 @@ export class AgentLoop {
           continue;
         }
         setAgentState("VERIFYING", "agent.verification.started", "Acceptance criteria and final project state verified.");
+        const repairStep = executionSnapshot.plan.steps.find((step) => step.id === "repair");
+        if (repairStep?.status === "PENDING") markPlanStepSkipped(executionSnapshot.plan, "repair", "No repair required after validation.");
+        if (repairStep?.status === "RUNNING") markPlanStepCompletedLocal("repair", "Repair cycle resolved after revalidation.");
         markStepRunning("verify");
         markPlanStepCompletedLocal("verify", "Verification passed.");
         markPlanStepCompletedLocal("complete", "Completion gate passed.");
