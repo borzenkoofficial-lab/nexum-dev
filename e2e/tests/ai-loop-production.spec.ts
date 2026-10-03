@@ -151,7 +151,28 @@ test("E2E-06 cancellation is idempotent and cannot be resurrected by late comple
   expect(runtime.tasks.find((item: any) => item.id === job.runtimeTaskId)?.status).toBe("CANCELLED");
 });
 
-test.skip("E2E-07 streaming cancellation is NOT APPLICABLE: all current production AI providers expose non-streaming generation", async () => {});
+test("E2E-07 cancellation during real tool execution aborts before completion", async ({ page }) => {
+  await page.goto("/");
+  await setFailure(page, "enable", "TOOL_DELAY");
+  const input = page.getByLabel("Опишите задачу");
+  await input.fill("Покажи структуру текущего проекта.");
+  await input.press("Enter");
+
+  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
+  await expect(cancel).toBeVisible({ timeout: 5_000 });
+  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
+  await page.waitForTimeout(150);
+  await cancel.click();
+
+  await expect.poll(async () => (await getJob(page, jobId)).status, { timeout: 10_000 }).toBe("cancelled");
+  const job = await getJob(page, jobId);
+  const runtime = await (await page.request.get("/api/runtime/status")).json();
+  expect(job.status).toBe("cancelled");
+  expect(runtime.tasks.find((task: any) => task.id === job.runtimeTaskId)?.status).toBe("CANCELLED");
+  expect(runtime.resources).toBe(0);
+  expect(runtime.processes).toHaveLength(0);
+  expect(job.steps ?? []).toHaveLength(0);
+});
 
 test("E2E-08 completion gate blocks injected validation failure before final completion", async ({ page }) => {
   await page.goto("/");
@@ -285,3 +306,6 @@ test("E2E-17 one transient tool failure enters repair and then completes", async
   expect(job.events.some((event: any) => event.name === "agent.repair.completed")).toBeTruthy();
   expect(job.validation?.passed).toBeTruthy();
 });
+
+
+test.skip("E2E-18 streaming cancellation is NOT APPLICABLE: all current production AI providers expose non-streaming generation", async () => {});
