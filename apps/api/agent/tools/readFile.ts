@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import type { Tool, ToolResult } from "../types.js";
 import { ProjectWorkspace } from "./workspace.js";
-const SENSITIVE_FILE=/(^|\\/)(?:\\.env(?:\\..*)?|.*(?:secret|credential|private[-_]?key|id_rsa).*)(?:$)/i;
+const SENSITIVE_FILE=/(^|\/)(?:\.env(?:\..*)?|.*(?:secret|credential|private[-_]?key|id_rsa).*)(?:$)/i;
 export class ReadFileTool implements Tool {
   name="readFile"; description="Reads a text file from the active project. Path must be relative.";
   constructor(private readonly workspace: ProjectWorkspace) {}
