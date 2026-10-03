@@ -7,22 +7,67 @@ export type AgentFailure =
   | "CANCELLATION"
   | "CORRUPTED_CHECKPOINT";
 
+const ALLOWED = new Set<AgentFailure>([
+  "MODEL_FAILURE","NETWORK_FAILURE","TOOL_FAILURE","VALIDATION_FAILURE",
+  "TIMEOUT","CANCELLATION","CORRUPTED_CHECKPOINT",
+]);
+
 const active = process.env.NODE_ENV !== "production" && process.env.NEXUM_E2E_FAILURE_INJECTION === "true";
-const enabled = new Set<AgentFailure>(
-  (process.env.NEXUM_AGENT_FAILURES ?? "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter((value): value is AgentFailure => [
-      "MODEL_FAILURE","NETWORK_FAILURE","TOOL_FAILURE","VALIDATION_FAILURE","TIMEOUT","CANCELLATION","CORRUPTED_CHECKPOINT",
-    ].includes(value as AgentFailure)),
+const initial = (process.env.NEXUM_AGENT_FAILURES ?? "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter((value): value is AgentFailure => ALLOWED.has(value as AgentFailure));
+
+const enabled = new Map<AgentFailure, { remaining?: number }>(
+  initial.map((name) => [name, {}]),
 );
+
+const events: Array<{ timestamp: number; name: AgentFailure; enabled: boolean; remaining?: number }> = [];
+
+function record(name: AgentFailure, on: boolean, remaining?: number) {
+  events.push({ timestamp: Date.now(), name, enabled: on, ...(remaining === undefined ? {} : { remaining }) });
+  if (events.length > 200) events.splice(0, events.length - 200);
+}
 
 export const agentFailureInjection = {
   active,
+  enableFailure(name: AgentFailure, options: { times?: number } = {}) {
+    if (!active || !ALLOWED.has(name)) return;
+    const times = Number.isFinite(options.times) && (options.times ?? 0) > 0 ? Math.floor(options.times!) : undefined;
+    enabled.set(name, times === undefined ? {} : { remaining: times });
+    record(name, true, times);
+  },
+  disableFailure(name: AgentFailure) {
+    if (!active) return;
+    enabled.delete(name);
+    record(name, false);
+  },
+  resetFailures() {
+    if (!active) return;
+    for (const name of enabled.keys()) record(name, false);
+    enabled.clear();
+  },
   isEnabled(name: AgentFailure) {
     return active && enabled.has(name);
   },
+  consumeFailure(name: AgentFailure) {
+    if (!active) return false;
+    const entry = enabled.get(name);
+    if (!entry) return false;
+    if (entry.remaining === undefined) return true;
+    if (entry.remaining <= 0) {
+      enabled.delete(name);
+      return false;
+    }
+    entry.remaining -= 1;
+    if (entry.remaining === 0) enabled.delete(name);
+    record(name, true, entry.remaining);
+    return true;
+  },
   list() {
-    return active ? [...enabled] : [];
+    return active ? [...enabled.entries()].map(([name, options]) => ({ name, ...options })) : [];
+  },
+  diagnostics() {
+    return [...events];
   },
 };
