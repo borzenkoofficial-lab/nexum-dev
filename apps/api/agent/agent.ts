@@ -402,15 +402,44 @@ ${result.output}`
 
   async executeTool(toolName: string, input: string, signal?: AbortSignal): Promise<ToolResult> {
     const tool = this.tools.get(toolName);
-    if (!tool) {
-      return { success: false, output: `Unknown tool: ${toolName}` };
-    }
-
+    if (!tool) return { success: false, output: `Unknown tool: ${toolName}`, toolName };
+    if (signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
     validateToolInvocation(tool, input);
+    const toolCallId = crypto.randomUUID();
+    const startedAt = Date.now();
     console.log(`[agent] tool: ${tool.name}`);
-    const result = await tool.execute(input, signal);
-    console.log(`[agent] ${tool.name}: ${result.success ? "success" : "failed"}`);
-    return result;
+    try {
+      const result = await tool.execute(input, signal);
+      if (signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
+      const durationMs = Date.now() - startedAt;
+      return {
+        ...result,
+        toolCallId,
+        toolName: tool.name,
+        metadata: {
+          ...(result.metadata ?? {}),
+          projectId: this.runtimeContext.projectId,
+          taskId: this.runtimeContext.taskId,
+          durationMs,
+          ...(typeof (result as { exitCode?: unknown }).exitCode === "number" || (result as { exitCode?: unknown }).exitCode === null
+            ? { exitCode: (result as { exitCode: number | null }).exitCode }
+            : {}),
+        },
+        ...(result.success ? {} : {
+          error: result.error ?? {
+            code: "TOOL_ERROR",
+            message: result.output.slice(0, 2000),
+            retryable: /timeout|temporar|network|busy|429/i.test(result.output),
+          },
+        }),
+      };
+    } catch (error) {
+      if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) throw new DOMException("Agent task cancelled", "AbortError");
+      const message = error instanceof Error ? error.message : "Tool execution failed";
+      return { success: false, output: message, toolCallId, toolName: tool.name, error: { code: "TOOL_ERROR", message, retryable: /timeout|temporar|network|busy|429/i.test(message) }, metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId, durationMs: Date.now() - startedAt } };
+    } finally {
+      console.log(`[agent] ${tool.name}: completed`);
+    }
   }
 
   private isRateLimitError(response: string): boolean {
