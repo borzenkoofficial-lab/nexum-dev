@@ -408,6 +408,10 @@ export class AgentLoop {
           const aiOptions = aiOptionsForTask(options, "planner");
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           productPlan = await this.runtime.createProductPlan(task, compactAgentHistory(previousResults), aiOptions as AgentModelOptions);
+          intent.requirements = [...new Set([...intent.requirements, ...productPlan.components, ...productPlan.interactions])].slice(0, 40);
+          intent.constraints = [...new Set([...intent.constraints, ...productPlan.visualSystem])].slice(0, 30);
+          intent.acceptanceCriteria = [...new Set([...intent.acceptanceCriteria, ...productPlan.acceptanceCriteria])].slice(0, 30);
+          intent.unknowns = intent.unknowns.filter((item) => item !== "Product plan is not available yet");
           this.onPlan?.(productPlan);
           executionSnapshot.plan.acceptanceCriteria = [...new Set([...executionSnapshot.plan.acceptanceCriteria, ...productPlan.acceptanceCriteria])];
           markPlanStepCompleted(executionSnapshot.plan, "plan", JSON.stringify({ productType: productPlan.productType, pages: productPlan.pages, components: productPlan.components }));
