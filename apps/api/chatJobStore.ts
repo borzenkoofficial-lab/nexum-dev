@@ -142,6 +142,22 @@ export async function updateChatJob(id: string, userId: string, patch: Partial<C
   return result.rows[0] ? decode(result.rows[0]) : null;
 }
 
+export async function claimChatJob(id: string, userId: string): Promise<ChatJob | null> {
+  await ensureTable();
+  const current = await getChatJob(id, userId);
+  if (!current || current.status !== "queued") return current;
+  const next: ChatJob = { ...current, status: "running", stage: "analyzing", updatedAt: Date.now() };
+  const data = encode(next);
+  const result = await query(
+    `UPDATE agent_chat_jobs
+        SET status='running',updated_at=$3,payload=$4::jsonb
+      WHERE id=$1 AND user_id=$2 AND status='queued'
+      RETURNING *`,
+    [id, userId, next.updatedAt, JSON.stringify(data.payload)],
+  );
+  return result.rows[0] ? decode(result.rows[0]) : await getChatJob(id, userId);
+}
+
 export async function completeChatJob(id: string, userId: string, patch: Partial<ChatJob>): Promise<ChatJob | null> {
   await ensureTable();
   const current = await getChatJob(id, userId);
