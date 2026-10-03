@@ -142,6 +142,8 @@ export interface AgentEvent {
 }
 
 export class AgentLoop {
+  private lastExecutionSnapshot?: AgentExecutionSnapshot;
+
   constructor(
     private readonly runtime: AgentRuntime,
     private readonly gateway: AIGateway,
@@ -180,19 +182,29 @@ export class AgentLoop {
       };
     } catch (error) {
       if (isAbortError(error) || options?.signal?.aborted) {
-        const intent = createAgentIntent(task, {
+        const snapshot = this.lastExecutionSnapshot;
+        const intent = snapshot?.intent ?? createAgentIntent(task, {
           requestId: this.journalContext?.requestId,
           projectId: this.journalContext?.projectId,
           taskId: this.journalContext?.taskId ?? this.journalContext?.agentRunId,
+          agentJobId: this.journalContext?.agentRunId,
         });
+        const executionPlan = snapshot?.plan ?? createExecutionPlan(intent);
         return {
           success: false,
-          iterations: 0,
+          iterations: snapshot?.plan.steps.length ?? 0,
           steps: [],
           phase: "repair",
           intent,
-          executionPlan: createExecutionPlan(intent),
+          executionPlan,
           finalState: "CANCELLED",
+          validation: {
+            passed: false,
+            categories: { static: false, runtime: false, functional: false, project: false },
+            checks: [{ name: "cancellation", passed: true, evidence: "Agent cancellation was observed before completion." }],
+            failedCriteria: ["Cancelled by user"],
+          },
+          telemetry: snapshot ? createTelemetry(snapshot.startedAt, 0, 0, snapshot.completedStepIds.length, snapshot.repairAttempts) : undefined,
           error: "Agent task cancelled by user.",
           summary: {
             status: "CANCELLED",
@@ -235,6 +247,7 @@ export class AgentLoop {
     };
     const publishExecution = () => {
       executionSnapshot.updatedAt = Date.now();
+      this.lastExecutionSnapshot = structuredClone(executionSnapshot);
       this.onExecutionUpdate?.(structuredClone(executionSnapshot));
     };
     const setAgentState = (next: AgentState, name?: AgentEventName, message?: string) => {
