@@ -77,7 +77,7 @@ test("Checkpoint persistence isolates concurrent checkpoint identities", async (
   await Promise.all(checkpoints.flatMap((checkpoint, checkpointIndex) =>
     Array.from({ length: 24 }, (_, index) =>
       manager.writeExecutionState(
-        checkpoints[checkpointIndex].projectId,
+        checkpoint.projectId,
         root,
         checkpoint.id,
         { job: checkpointIndex, writer: index, state: "EXECUTING" },
