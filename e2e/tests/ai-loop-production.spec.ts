@@ -130,7 +130,6 @@ test("E2E-04 validation failure is repaired and bounded", async ({ page }) => {
 });
 
 test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime task", async ({ page }) => {
-  page.on("console", (msg) => { if (msg.text().includes("[Nexum UI]")) console.log(msg.text()); });
   await setFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, e2eWorkspaceId);
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
@@ -139,9 +138,6 @@ test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime tas
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   expect(jobId).toBeTruthy();
-  const uiDebug = await page.evaluate(() => ({ activity: document.querySelector(".agent-activity-live")?.outerHTML ?? null, ariaHidden: document.querySelector(".agent-activity-live")?.closest("[aria-hidden=\"true\"]")?.getAttribute("aria-hidden") ?? null }));
-  console.log("[Nexum UI DEBUG]", JSON.stringify(uiDebug));
-  console.log("[Nexum UI DEBUG2]", await page.locator(".composer-cancel").evaluateAll((els) => els.map((el) => ({ visible: !!(el as HTMLElement).offsetParent, aria: el.getAttribute("aria-label"), text: el.textContent, display: getComputedStyle(el).display, visibility: getComputedStyle(el).visibility }))));
   const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
   await expect(cancel).toBeVisible({ timeout: 5_000 });
   await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
