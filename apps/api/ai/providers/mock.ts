@@ -16,8 +16,10 @@ export class MockProvider implements AIProvider {
   } as const;
 
   async generate(message: string): Promise<string> {
-    // Test-only deterministic responses. This provider is never registered
-    // unless NEXUM_E2E_MOCK_AI=true and NODE_ENV=test.
+    // Preserve the lightweight mock semantics used by unit tests. The richer
+    // deterministic planner is enabled only by the E2E-only environment flag.
+    if (process.env.NEXUM_E2E_MOCK_AI !== "true") return `NEXUM Demo: ${message}`;
+
     if (/You are the NEXUM product planner/i.test(message)) {
       return JSON.stringify({
         goal: "Проверить и выполнить запрос пользователя в тестовом окружении NEXUM.",
@@ -59,9 +61,10 @@ export class MockProvider implements AIProvider {
 
   async getStatus(model = this.model): Promise<AIProviderStatus> {
     return {
-      available: true,
+      available: process.env.NEXUM_E2E_MOCK_AI === "true",
       model,
-      latencyMs: 0,
+      latencyMs: process.env.NEXUM_E2E_MOCK_AI === "true" ? 0 : null,
+      ...(process.env.NEXUM_E2E_MOCK_AI === "true" ? {} : { error: "Demo provider is not a real AI model" }),
     };
   }
 }
