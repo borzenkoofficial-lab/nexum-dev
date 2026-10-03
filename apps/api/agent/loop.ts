@@ -991,7 +991,7 @@ export class AgentLoop {
       if (options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
       const toolDurationMs = Date.now() - toolStartedAt;
       const actionPlanStepId = `action-${iteration}-${crypto.randomUUID().slice(0, 8)}`;
-      const lastActionStep = [...executionSnapshot.plan.steps].reverse().find((item) => item.id.startsWith("action-"));
+      const lastActionStep = [...executionSnapshot.plan.steps].reverse().find((item) => item.id.startsWith("action-") && item.status === "COMPLETED");
       executionSnapshot.plan.steps.push({
         id: actionPlanStepId,
         description: this.describeToolStart(plan.tool, plan.input),
