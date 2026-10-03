@@ -91,6 +91,7 @@ function App() {
   const [builderStarted, setBuilderStarted] = useState(false);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
   const chatJobIdRef = useRef<string | null>(null);
+  useEffect(() => { if (import.meta.env.VITE_E2E === "true") console.info("[Nexum UI] authoritative chatJobId", chatJobId); }, [chatJobId]);
   const setAuthoritativeChatJobId = (jobId: string | null) => {
     chatJobIdRef.current = jobId;
     setChatJobId(jobId);
