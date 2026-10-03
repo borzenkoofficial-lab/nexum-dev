@@ -938,7 +938,7 @@ export class AgentLoop {
           intent,
           executionPlan: executionSnapshot.plan,
           validation: finalValidation,
-          telemetry: createTelemetry(executionSnapshot.startedAt, aiPlannerCalls + productReviewAttempts + (productPlannerCreated ? 1 : 0) + 1, steps.length, steps.length, executionSnapshot.repairAttempts),
+          telemetry: createTelemetry(executionSnapshot.startedAt, modelTurns, steps.length, steps.length, executionSnapshot.repairAttempts, options?.provider, options?.model),
           finalState: "COMPLETED",
           summary,
           finalResponse,
@@ -1027,6 +1027,8 @@ export class AgentLoop {
       const attemptCount = (actionAttempts.get(fingerprint) ?? 0) + 1;
       actionAttempts.set(fingerprint, attemptCount);
       seenActions.add(fingerprint);
+      actionSequence.push(fingerprint);
+      if (actionSequence.length > 8) actionSequence.shift();
       const toolStartedAt = Date.now();
       throwIfAborted(options?.signal);
       let result: AgentToolResult["result"];
@@ -1040,6 +1042,16 @@ export class AgentLoop {
       }
       if (options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
       const toolDurationMs = Date.now() - toolStartedAt;
+      const sequenceLength = actionSequence.length;
+      const alternatingFailure = sequenceLength >= 4
+        && actionSequence[sequenceLength - 1] === actionSequence[sequenceLength - 3]
+        && actionSequence[sequenceLength - 2] === actionSequence[sequenceLength - 4]
+        && actionSequence[sequenceLength - 1] !== actionSequence[sequenceLength - 2]
+        && !result.success;
+      if (alternatingFailure) {
+        setAgentState("FAILED", "agent.failed", "LOOP_DETECTED: repeating alternating failing actions.");
+        return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "LOOP_DETECTED", errorInfo: { code: "TOOL_ERROR", message: "Alternating failing tool actions detected.", retryable: false, repairable: false, fatal: false, category: "loop", summary: "LOOP_DETECTED", recoveryStrategy: "Stop repeated actions and require a new plan." } };
+      }
       const actionPlanStepId = `action-${iteration}-${crypto.randomUUID().slice(0, 8)}`;
       const lastActionStep = [...executionSnapshot.plan.steps].reverse().find((item) => item.id.startsWith("action-") && item.status === "COMPLETED");
       executionSnapshot.plan.steps.push({
