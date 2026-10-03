@@ -206,11 +206,11 @@ export interface AgentErrorInfo {
 }
 
 export interface AgentLoopResult {
-  intent: AgentIntent;
-  executionPlan: AgentExecutionPlan;
+  intent?: AgentIntent;
+  executionPlan?: AgentExecutionPlan;
   validation?: AgentValidation;
-  telemetry: AgentTelemetry;
-  finalState: AgentState;
+  telemetry?: AgentTelemetry;
+  finalState?: AgentState;
   phase: AgentPhase;
   success: boolean;
   iterations: number;
