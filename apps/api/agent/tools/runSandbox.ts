@@ -3,7 +3,13 @@ import { DockerSandbox } from "../../sandbox/dockerSandbox.js";
 import type { SandboxRequest, SandboxResult } from "../../sandbox/types.js";
 import type { ServerRuntime } from "../../runtime/runtime.js";
 
-export interface RunSandboxResult extends SandboxResult, ToolResult {}
+export interface RunSandboxResult extends ToolResult {
+  exitCode: number | null;
+  stdout: string;
+  stderr: string;
+  durationMs: number;
+  command: string;
+}
 
 export class RunSandboxTool implements Tool {
   name = "runSandbox";
@@ -19,7 +25,16 @@ export class RunSandboxTool implements Tool {
     try {
       const request = this.parseRequest(input);
       const result = await this.sandbox.run(request, signal);
-      return { ...result, output: JSON.stringify(result) };
+      return {
+        success: result.success,
+        exitCode: result.exitCode,
+        stdout: result.stdout,
+        stderr: result.stderr,
+        durationMs: result.durationMs,
+        command: result.command,
+        output: JSON.stringify(result),
+        ...(result.error ? { error: { code: "TOOL_ERROR", message: result.error, retryable: /timeout|temporar|network|busy/i.test(result.error) } } : {}),
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Sandbox request is invalid";
       const result: RunSandboxResult = {
