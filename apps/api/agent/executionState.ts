@@ -69,6 +69,15 @@ export function transitionAgentState(
   return true;
 }
 
+export function canRunPlanStep(plan: AgentExecutionPlan, id: string): boolean {
+  const step = plan.steps.find((item) => item.id === id);
+  if (!step) return false;
+  return step.dependencies.every((dependency) => {
+    const dependencyStep = plan.steps.find((item) => item.id === dependency);
+    return dependencyStep?.status === "COMPLETED" || dependencyStep?.status === "SKIPPED";
+  });
+}
+
 export function setPlanStep(
   plan: AgentExecutionPlan,
   id: string,
@@ -81,6 +90,13 @@ export function setPlanStep(
   step.attempts += status === "RUNNING" ? 1 : 0;
   if (result) step.result = result.slice(0, 1600);
   plan.currentStepId = id;
+}
+
+export function markPlanStepSkipped(plan: AgentExecutionPlan, id: string, result?: string): void {
+  const step = plan.steps.find((item) => item.id === id);
+  if (!step) return;
+  step.status = "SKIPPED";
+  if (result) step.result = result.slice(0, 1600);
 }
 
 export function markPlanStepCompleted(plan: AgentExecutionPlan, id: string, result?: string): void {
