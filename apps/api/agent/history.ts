@@ -8,6 +8,9 @@ export interface AgentHistoryEntry {
   projectId?: string;
   provider?: string;
   model?: string;
+  requestId?: string;
+  taskId?: string;
+  planId?: string;
   iteration?: number;
   tool?: string;
   status?: string;
