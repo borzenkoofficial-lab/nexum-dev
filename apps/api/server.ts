@@ -172,9 +172,11 @@ const chatJobPersistQueues = new Map<string, Promise<void>>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
 
 async function persistChatJob(job: ChatJob): Promise<void> {
-  chatJobCache.set(job.id, job);
   const previous = chatJobPersistQueues.get(job.id) ?? Promise.resolve();
-  const next = previous.then(() => updateChatJob(job.id, job.userId, job).then(() => undefined));
+  const next = previous.then(async () => {
+    const persisted = await updateChatJob(job.id, job.userId, job);
+    if (persisted) chatJobCache.set(job.id, persisted);
+  });
   chatJobPersistQueues.set(job.id, next.catch(() => undefined));
   try {
     await next;
