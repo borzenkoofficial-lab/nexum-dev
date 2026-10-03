@@ -12,6 +12,7 @@ import type { GatewayGenerateOptions } from "../ai/gateway.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 import { createAgentIntent } from "./intent.js";
 import { createExecutionPlan, createTelemetry, transitionAgentState, setPlanStep, markPlanStepCompleted, createValidation, type AgentExecutionSnapshot } from "./executionState.js";
+import { agentFailureInjection } from "./failureInjection.js";
 import type {
   AgentModelOptions,
   AgentPlan,
@@ -263,6 +264,11 @@ export class AgentLoop {
 
     for (let iteration = 1; iteration <= this.maxIterations; iteration += 1) {
       throwIfAborted(options?.signal);
+      if (agentFailureInjection.isEnabled("TIMEOUT")) {
+        setAgentState("FAILED", "agent.failed", "Injected Agent timeout.");
+        options?.signal?.removeEventListener("abort", onAbort);
+        return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Injected Agent timeout." };
+      }
       if (Date.now() - executionSnapshot.startedAt > MAX_DURATION_MS) {
         setAgentState("FAILED", "agent.failed", "Agent execution duration limit reached.");
         options?.signal?.removeEventListener("abort", onAbort);
@@ -338,6 +344,7 @@ export class AgentLoop {
       const plannerContextSeen = seenPlannerContexts.has(plannerContextFingerprint);
       if (this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < MAX_AI_PLANNER_CALLS && !plannerContextSeen) {
         try {
+          if (agentFailureInjection.isEnabled("MODEL_FAILURE")) throw new Error("Injected model failure");
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
           const aiOptions = aiOptionsForTask(options, "finalizer");
@@ -723,7 +730,8 @@ export class AgentLoop {
 
         syncVerificationState(taskState, previousResults, productPlan);
         let finishReason: string | undefined;
-        let gatePassed = true;
+        let gatePassed = !agentFailureInjection.isEnabled("VALIDATION_FAILURE");
+        if (!gatePassed) finishReason = "Injected validation failure.";
         if (builderTask) {
           const finishCheck = canFinishBuilder(
             taskState,
@@ -887,6 +895,7 @@ export class AgentLoop {
       throwIfAborted(options?.signal);
       let result: AgentToolResult["result"];
       try {
+        if (agentFailureInjection.isEnabled("TOOL_FAILURE")) throw new Error("Injected tool failure");
         result = await this.runtime.executeTool(plan.tool, plan.input, options?.signal);
       } catch (error) {
         if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
