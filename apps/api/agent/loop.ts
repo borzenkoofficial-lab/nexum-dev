@@ -975,7 +975,8 @@ export class AgentLoop {
           options?.signal?.removeEventListener("abort", onAbort);
           return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Bounded repair/loop limit reached.", errorInfo: { code: "TOOL_ERROR", message: "Repeated failing tool action detected.", retryable: false, category: "loop", summary: "LOOP_DETECTED", recoveryStrategy: "Choose a new action instead of repeating the same failing tool call." } };
         }
-        markStepRunning("observe");
+        markStepRunning("repair");
+        transition("repair");
         emit({ iteration, type: "thinking", name: "agent.repair.started", phase: "repair", message: "Ошибка исполнения обнаружена; запускаю bounded repair path." });
         const diagnosis = diagnoseError(result.output);
         emit({
@@ -984,23 +985,6 @@ export class AgentLoop {
           tool: "Error Recovery",
           message: `Ошибка классифицирована как ${diagnosis.category} (приоритет ${diagnosis.priority}/4): ${diagnosis.summary}. ${diagnosis.strategy}`,
         });
-      }
-
-      // When no remote planner is available, the deterministic planner can
-      // immediately confirm that a simple non-builder task has no next action.
-      if (result.success && !builderTask && !this.runtime.planWithAI) {
-        const followUpPlan = this.runtime.plan(task, previousResults);
-        if (!followUpPlan) {
-          transition("finish");
-          emit({ iteration, type: "completed", message: "Задача завершена после успешного действия." });
-          return {
-            phase: "finish",
-            success: true,
-            iterations: iteration,
-            steps,
-            productPlan: productPlan ?? undefined,
-          };
-        }
       }
 
       // A scaffold is only the baseline. Once the agent writes the requested
