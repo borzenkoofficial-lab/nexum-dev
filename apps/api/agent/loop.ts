@@ -11,7 +11,7 @@ import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 import { createAgentIntent } from "./intent.js";
-import { createExecutionPlan, createTelemetry, transitionAgentState, setPlanStep, markPlanStepCompleted, markPlanStepSkipped, canRunPlanStep, createValidation, type AgentExecutionSnapshot } from "./executionState.js";
+import { createExecutionPlan, createTelemetry, transitionAgentState, setPlanStep, markPlanStepCompleted, markPlanStepSkipped, canRunPlanStep, createValidation, evaluateCompletionGate, type AgentExecutionSnapshot } from "./executionState.js";
 import { agentFailureInjection } from "./failureInjection.js";
 import type {
   AgentModelOptions,
