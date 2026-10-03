@@ -35,6 +35,7 @@ export interface ChatJob {
   userId: string;
   projectId?: string;
   runtimeTaskId?: string;
+  requestId?: string;
 }
 
 let initialized: Promise<void> | null = null;
