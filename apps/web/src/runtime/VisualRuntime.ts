@@ -1,4 +1,4 @@
-import {RuntimeEventBus}from"./EventBus";import {RuntimeDiagnostics}from"./Diagnostics";import type{RuntimeHealth}from"./types";
+import {RuntimeEventBus}from "./EventBus.ts";import {RuntimeDiagnostics}from "./Diagnostics.ts";import type{RuntimeHealth}from "./types.ts";
 interface VisualLoop{raf:number;frame:(time:number)=>void}
 export class VisualRuntime{
  private loops=new Map<string,VisualLoop>();private health:RuntimeHealth="NORMAL";private reduced=false;
