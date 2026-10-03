@@ -23,7 +23,6 @@ import type {
   AgentToolResult,
   AgentPhase,
   AgentErrorInfo,
-  AgentExecutionPlan,
   AgentIntent,
   AgentState,
   AgentResultSummary,
