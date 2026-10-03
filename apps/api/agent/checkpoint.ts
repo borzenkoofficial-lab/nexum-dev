@@ -128,6 +128,22 @@ export class CheckpointManager {
     await rename(temp, target);
   }
 
+  async readExecutionState(projectId: string, projectPath: string, checkpointId: string): Promise<unknown | null> {
+    if (!/^[a-z0-9-]+$/i.test(checkpointId)) throw new Error("Invalid checkpoint id");
+    const checkpointRoot = resolve(this.root(projectPath), checkpointId);
+    try {
+      const rawManifest: unknown = JSON.parse(await readFile(resolve(checkpointRoot, "manifest.json"), "utf8"));
+      validateCheckpointManifest(rawManifest, projectId, checkpointId);
+      const rawState = await readFile(resolve(checkpointRoot, "agent-state.json"), "utf8");
+      const parsed: unknown = JSON.parse(rawState);
+      if (!parsed || typeof parsed !== "object") throw new Error("Invalid persisted Agent execution state");
+      return parsed;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === "ENOENT") return null;
+      throw error;
+    }
+  }
   async list(projectId: string, projectPath: string): Promise<ProjectCheckpoint[]> {
     const root = this.root(projectPath);
     const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
