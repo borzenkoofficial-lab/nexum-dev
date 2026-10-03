@@ -130,9 +130,18 @@ test("E2E-04 validation failure is repaired and bounded", async ({ page }) => {
 });
 
 test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime task", async ({ page }) => {
-  const { jobId } = await submitAgent(page, "Проверь структуру текущего проекта и ничего не изменяй.", e2eWorkspaceId);
-  const cancel = await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`);
-  expect(cancel.ok()).toBeTruthy();
+  await setFailure(page, "enable", "TOOL_CHECKPOINT", undefined, e2eWorkspaceId);
+  const input = page.getByLabel("Опишите задачу");
+  await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
+  await input.press("Enter");
+
+  await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
+  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
+  expect(jobId).toBeTruthy();
+  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
+  await expect(cancel).toBeVisible({ timeout: 5_000 });
+  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
+  await cancel.click();
 
   await expect.poll(async () => (await getJob(page, jobId)).status, { timeout: 10_000 }).toBe("cancelled");
   const job = await getJob(page, jobId);
