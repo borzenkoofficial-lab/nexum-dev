@@ -155,13 +155,12 @@ test.skip("E2E-07 streaming cancellation is NOT APPLICABLE: all current producti
 
 test("E2E-08 completion gate blocks injected validation failure before final completion", async ({ page }) => {
   await page.goto("/");
-  await setFailure(page, "enable", "VALIDATION_FAILURE", 1);
+  await setFailure(page, "enable", "VALIDATION_FAILURE", 10);
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
-  await expect.poll(async () => (await getJob(page, jobId)).status, { timeout: 5_000 }).not.toBe("completed");
-
-  const mid = await getJob(page, jobId);
-  expect(mid.events.some((event: any) => event.name === "agent.validation.failed")).toBeTruthy();
-  expect(["queued", "running", "completed"]).toContain(mid.status);
+  const terminal = await waitForTerminal(page, jobId, 30_000);
+  expect(terminal.status).toBe("failed");
+  expect(terminal.events.some((event: any) => event.name === "agent.validation.failed")).toBeTruthy();
+  expect(terminal.events.some((event: any) => event.name === "agent.completed")).toBeFalsy();
 });
 
 test("E2E-09 browser reload preserves one Agent Job without duplicate submission", async ({ page }) => {
@@ -219,6 +218,7 @@ test("E2E-11 concurrent Agent Jobs create isolated Runtime Tasks", async ({ page
   expect(runtimeIds.size).toBe(3);
   const terminal = await Promise.all(jobs.map((job) => waitForTerminal(page, job.jobId, 30_000)));
   expect(terminal.every((job) => ["completed", "failed", "cancelled"].includes(job.status))).toBeTruthy();
+  expect(new Set(terminal.map((job) => job.projectId)).size).toBe(1);
 });
 
 test("E2E-12 model failure follows controlled recovery without infinite retries", async ({ page }) => {
@@ -272,4 +272,16 @@ test("E2E-16 final verification is persisted before completion", async ({ page }
   expect(job.executionState?.state).toBe("COMPLETED");
   expect(job.executionPlan.steps.some((step: any) => step.id === "verify" && step.status === "COMPLETED")).toBeTruthy();
   expect(job.executionPlan.steps.some((step: any) => step.id === "complete" && step.status === "COMPLETED")).toBeTruthy();
+});
+
+test("E2E-17 one transient tool failure enters repair and then completes", async ({ page }) => {
+  await page.goto("/");
+  await setFailure(page, "enable", "TOOL_FAILURE", 1);
+  const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
+  const job = await waitForTerminal(page, jobId, 30_000);
+
+  expect(job.status).toBe("completed");
+  expect(job.events.some((event: any) => event.name === "agent.repair.started")).toBeTruthy();
+  expect(job.events.some((event: any) => event.name === "agent.repair.completed")).toBeTruthy();
+  expect(job.validation?.passed).toBeTruthy();
 });
