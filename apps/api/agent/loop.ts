@@ -40,7 +40,7 @@ const MAX_DURATION_MS = 15 * 60 * 1000;
 // The budget is based on requested max tokens, so a long agent run cannot
 // silently accumulate several independent per-call limits.
 const DEFAULT_TASK_TOKEN_BUDGET = 18_000;
-const ERROR_CODE_BY_CATEGORY: Record<string, AgentErrorInfo["code"] | string> = {
+const ERROR_CODE_BY_CATEGORY: Record<string, AgentErrorInfo["code"]> = {
   typescript: "BUILD_ERROR",
   syntax: "VALIDATION_ERROR",
   dependency: "BUILD_ERROR",
