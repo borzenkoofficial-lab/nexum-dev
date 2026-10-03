@@ -6,11 +6,12 @@ const IGNORED_DIRECTORIES=new Set([".git","node_modules","dist"]);
 export class SearchFilesTool implements Tool {
  name="searchFiles"; description="Searches text inside the active project.";
  constructor(private readonly workspace:ProjectWorkspace){}
- async execute(input:string):Promise<ToolResult>{
-  try{const q=input.trim();if(!q)return {success:false,output:"Search query is required"};const m:string[]=[];await this.search(this.workspace.root,q,m);return {success:true,output:m.join("\n")||`No matches found for: ${q}`}}
+ async execute(input:string, signal?:AbortSignal):Promise<ToolResult>{
+  try{const q=input.trim();if(!q)return {success:false,output:"Search query is required"};const m:string[]=[];await this.search(this.workspace.root,q,m,signal);return {success:true,output:m.join("\n")||`No matches found for: ${q}`}}
   catch(error){return {success:false,output:error instanceof Error?error.message:"Unable to search files"}}
  }
- private async search(dir:string,q:string,m:string[]):Promise<void>{
-  for(const e of await readdir(dir,{withFileTypes:true})){if(e.isDirectory()&&IGNORED_DIRECTORIES.has(e.name))continue;const p=join(dir,e.name);if(e.isDirectory()&&!e.isSymbolicLink()){await this.search(p,q,m);continue}if(!e.isFile())continue;const c=await readFile(p,"utf8").catch(()=>null);if(c===null||!c.includes(q))continue;const line=c.split(/\r?\n/).findIndex(v=>v.includes(q))+1;m.push(`${this.workspace.relative(p)}:${line}`)}
+ private async search(dir:string,q:string,m:string[],signal?:AbortSignal):Promise<void>{
+  if(signal?.aborted)throw new DOMException("Aborted","AbortError");
+  for(const e of await readdir(dir,{withFileTypes:true})){if(e.isDirectory()&&IGNORED_DIRECTORIES.has(e.name))continue;const p=join(dir,e.name);if(e.isDirectory()&&!e.isSymbolicLink()){await this.search(p,q,m,signal);continue}if(!e.isFile())continue;const c=await readFile(p,"utf8").catch(()=>null);if(c===null||!c.includes(q))continue;const line=c.split(/\r?\n/).findIndex(v=>v.includes(q))+1;m.push(`${this.workspace.relative(p)}:${line}`)}
  }
 }
