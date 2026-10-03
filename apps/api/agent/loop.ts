@@ -33,6 +33,7 @@ const MAX_AI_PLANNER_CALLS = 3;
 const MAX_PRODUCT_REVIEW_CALLS = 1;
 const MAX_REPAIR_ATTEMPTS = 3;
 const MAX_TOOL_CALLS = 40;
+const MAX_MODEL_TURNS = 8;
 const MAX_DURATION_MS = 15 * 60 * 1000;
 // One bounded token budget is shared by every remote AI call in a single task.
 // The budget is based on requested max tokens, so a long agent run cannot
@@ -257,6 +258,7 @@ export class AgentLoop {
     let forceCompletionNextIteration = false;
     let remotePlannerRateLimited = false;
     let aiPlannerCalls = 0;
+    let modelTurns = 0;
     let productPlannerCreated = false;
     const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
     const aiOptionsForTask = (base?: GatewayGenerateOptions, role: "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" = "general"): GatewayGenerateOptions | undefined => {
@@ -381,6 +383,7 @@ export class AgentLoop {
       if (builderTask && !productPlan && !productPlannerCreated && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
         emit({ iteration, type: "thinking", message: "Формирую Product Plan: страницы, компоненты, визуальную систему и критерии готовности." });
         try {
+          if (++modelTurns > MAX_MODEL_TURNS) throw new Error("Agent model-turn limit reached");
           productPlannerCreated = true;
           const aiOptions = aiOptionsForTask(options, "planner");
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
@@ -421,6 +424,7 @@ export class AgentLoop {
       if (!modelPlan && this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < MAX_AI_PLANNER_CALLS && !plannerContextSeen) {
         try {
           if (agentFailureInjection.consumeFailure("MODEL_FAILURE")) throw new Error("Injected model failure");
+          if (++modelTurns > MAX_MODEL_TURNS) throw new Error("Agent model-turn limit reached");
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
           const aiOptions = aiOptionsForTask(options, "finalizer");
@@ -789,6 +793,7 @@ export class AgentLoop {
         markStepRunning("validate");
         if (builderTask && productPlan && this.runtime.reviewProduct && productReviewAttempts < MAX_PRODUCT_REVIEW_CALLS) {
           productReviewAttempts += 1;
+          if (++modelTurns > MAX_MODEL_TURNS) throw new Error("Agent model-turn limit reached");
           emit({ iteration, type: "thinking", message: "Запускаю финальный self-review: сверяю реализацию с Product Plan и ищу недостающие функции." });
           const aiOptions = aiOptionsForTask(options, "reviewer");
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
@@ -1107,7 +1112,7 @@ export class AgentLoop {
       emit({
         iteration,
         type: result.success ? "tool-success" : "tool-error",
-        name: result.success ? "agent.tool.completed" : "agent.validation.failed",
+        name: "agent.tool.completed",
         tool: plan.tool,
         message: result.success ? this.describeToolSuccess(plan.tool, result.output) : this.describeToolError(plan.tool, result.output),
       });
