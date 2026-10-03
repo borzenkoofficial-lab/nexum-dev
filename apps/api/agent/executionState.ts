@@ -34,7 +34,7 @@ export function createExecutionPlan(intent: AgentIntent): AgentExecutionPlan {
     { id: "execute", description: "Execute concrete project actions one step at a time.", dependencies: ["plan"], status: "PENDING", attempts: 0 },
     { id: "observe", description: "Record and inspect actual tool results.", dependencies: ["execute"], status: "PENDING", attempts: 0 },
     { id: "validate", description: "Run static, project and applicable runtime validation.", dependencies: ["observe"], status: "PENDING", attempts: 0 },
-    { id: "repair", description: "Apply bounded repairs after validation failures.", dependencies: ["validate"], status: "PENDING", attempts: 0 },
+    { id: "repair", description: "Apply bounded repairs after execution or validation failures.", dependencies: ["observe"], status: "PENDING", attempts: 0 },
     { id: "verify", description: "Check acceptance criteria and consistency after the last change.", dependencies: ["validate", "repair"], status: "PENDING", attempts: 0 },
     { id: "complete", description: "Pass the completion gate and publish the terminal result.", dependencies: ["verify"], status: "PENDING", attempts: 0 },
   ];
