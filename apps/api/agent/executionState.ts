@@ -112,6 +112,7 @@ export function markPlanStepSkipped(plan: AgentExecutionPlan, id: string, result
   if (!step) return;
   step.status = "SKIPPED";
   if (result) step.result = result.slice(0, 1600);
+  step.completedAt = Date.now();
 }
 
 export function markPlanStepCompleted(plan: AgentExecutionPlan, id: string, result?: string): void {
@@ -119,6 +120,7 @@ export function markPlanStepCompleted(plan: AgentExecutionPlan, id: string, resu
   if (!step) return;
   step.status = "COMPLETED";
   if (result) step.result = result.slice(0, 1600);
+  step.completedAt = Date.now();
 }
 
 export function createValidation(
