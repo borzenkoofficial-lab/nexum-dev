@@ -137,7 +137,7 @@ test("real Agent user cancellation aborts the Agent task and releases Runtime ow
 test("Agent cancellation remains terminal across repeated cancel/response races", async ({ page }) => {
   for (let i = 0; i < 3; i += 1) {
     await setAgentFailure(page, "enable", "TOOL_CHECKPOINT");
-    const create = await page.request.post("/api/chat", { data: { message: `Проверь проект, итерация ${i}, ничего не изменяй.` } });
+    const create = await page.request.post("/api/chat", { data: { message: `Проверь проект, итерация ${i}, ничего не изменяй.`, projectId: runtimeWorkspaceId } });
     expect(create.status()).toBe(202);
     const created = await create.json();
     await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
@@ -345,7 +345,7 @@ test("Agent Job creation produces exactly one canonical Runtime Task", async ({ 
 });
 
 test("real Agent user cancellation aborts the Agent task and leaves terminal state", async ({ page }) => {
-  const create = await page.request.post("/api/chat", { data: { message: "Проверь структуру текущего проекта и ничего не изменяй." } });
+  const create = await page.request.post("/api/chat", { data: { message: "Проверь структуру текущего проекта и ничего не изменяй.", projectId: runtimeWorkspaceId } });
   expect(create.status()).toBe(202);
   const created = await create.json();
   const jobId = created.jobId as string;
