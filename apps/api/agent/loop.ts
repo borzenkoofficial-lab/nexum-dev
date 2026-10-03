@@ -873,9 +873,9 @@ export class AgentLoop {
           previousResults.push({ iteration, tool: "runtimeValidation", input: ".", result: runtimeCheck, observedAt: Date.now() });
           addObservation("runtimeValidation: " + runtimeCheck.output);
         }
-        const lastObserved = [...previousResults].reverse()[0];
-        const hasExecuted = previousResults.some((item) => item.tool !== "runtimeValidation");
-        const lastActionPassed = Boolean(previousResults.filter((item) => item.tool !== "runtimeValidation").slice(-1)[0]?.result.success);
+        const lastObserved = previousResults.filter((item) => item.tool !== "runtimeValidation").slice(-1)[0];
+        const hasExecuted = Boolean(lastObserved);
+        const lastActionPassed = Boolean(lastObserved?.result.success);
         const reviewPassed = !productPlan || !builderTask || previousResults.some(
           (item) => item.tool === "productReview" && item.result.success,
         );
@@ -885,7 +885,7 @@ export class AgentLoop {
         const completionGate = evaluateCompletionGate({
           hasPlan: executionSnapshot.plan.steps.some((step) => step.status === "COMPLETED" && ["plan", "execute", "observe", "validate", "verify"].includes(step.id)),
           hasExecuted,
-          validationPassed: gatePassed && lastActionPassed,
+          validationPassed: gatePassed && lastActionPassed && runtimeValidationPassed,
           acceptanceCriteriaSatisfied: reviewPassed,
           noCriticalErrors,
           projectStateConsistent: lastActionPassed,
