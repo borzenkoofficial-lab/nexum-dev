@@ -28,6 +28,7 @@ import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, 
 import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
+import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 
 dotenv.config();
 
@@ -583,6 +584,20 @@ app.get("/api/ai/providers", authMiddleware, (req, res) => {
 app.get("/api/ai/models", authMiddleware, async (req, res) => {
   return res.json({ success: true, models: await getAIGatewayForUser(getAuthUser(req).id).getModels() });
 });
+
+const agentFailureControlEnabled = process.env.NODE_ENV !== "production" && agentFailureInjection.active;
+if (agentFailureControlEnabled) {
+  app.post("/api/test/agent-failures", (req, res) => {
+    const operation = typeof req.body?.operation === "string" ? req.body.operation : "";
+    const name = typeof req.body?.name === "string" ? req.body.name as AgentFailure : undefined;
+    if (operation === "reset") agentFailureInjection.resetFailures();
+    else if (operation === "enable" && name) agentFailureInjection.enableFailure(name, { times: Number(req.body?.times) || undefined });
+    else if (operation === "disable" && name) agentFailureInjection.disableFailure(name);
+    else return res.status(400).json({ success: false, error: "Invalid failure injection operation" });
+    return res.json({ success: true, active: agentFailureInjection.list(), diagnostics: agentFailureInjection.diagnostics().slice(-50) });
+  });
+  app.get("/api/test/agent-failures", (_req, res) => res.json({ success: true, active: agentFailureInjection.list(), diagnostics: agentFailureInjection.diagnostics().slice(-50) }));
+}
 
 const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM_LOCAL_TEST_MODE !== "false";
 
