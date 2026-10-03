@@ -990,15 +990,58 @@ export class AgentLoop {
       }
       if (options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
       const toolDurationMs = Date.now() - toolStartedAt;
+      const actionPlanStepId = `action-${iteration}-${crypto.randomUUID().slice(0, 8)}`;
+      const lastActionStep = [...executionSnapshot.plan.steps].reverse().find((item) => item.id.startsWith("action-"));
+      executionSnapshot.plan.steps.push({
+        id: actionPlanStepId,
+        description: this.describeToolStart(plan.tool, plan.input),
+        tool: plan.tool,
+        input: plan.input,
+        dependencies: lastActionStep ? [lastActionStep.id] : [],
+        status: "READY",
+        attempts: 0,
+      });
+      executionSnapshot.plan.currentStepId = actionPlanStepId;
+      if (canRunPlanStep(executionSnapshot.plan, actionPlanStepId)) {
+        setPlanStep(executionSnapshot.plan, actionPlanStepId, "RUNNING");
+      }
       const step: AgentStep = {
         iteration,
         tool: plan.tool,
         input: plan.input,
         success: result.success,
+        toolCallId: crypto.randomUUID(),
+        durationMs: toolDurationMs,
+        planStepId: actionPlanStepId,
       };
       steps.push(step);
       this.onStep?.(step);
-      previousResults.push({ iteration, tool: plan.tool, input: plan.input, result });
+      result = {
+        ...result,
+        toolCallId: step.toolCallId,
+        toolName: plan.tool,
+        metadata: {
+          ...(result.metadata ?? {}),
+          projectId: this.journalContext?.projectId,
+          taskId: this.journalContext?.taskId,
+          agentJobId: this.journalContext?.agentRunId,
+          durationMs: toolDurationMs,
+          ...(typeof (result as { exitCode?: unknown }).exitCode === "number" ? { exitCode: (result as { exitCode: number }).exitCode } : {}),
+        },
+      };
+      if (!result.success) {
+        const diagnosis = diagnoseError(result.output);
+        result.error = {
+          code: diagnosis.category === "network" ? "NETWORK_ERROR" : diagnosis.category === "permission" ? "PERMISSION_ERROR" : diagnosis.category === "validation" ? "VALIDATION_ERROR" : "TOOL_ERROR",
+          message: result.output.slice(0, 2000),
+          retryable: diagnosis.priority >= 3,
+          repairable: diagnosis.priority <= 2,
+          fatal: diagnosis.priority === 1 && diagnosis.category === "permission",
+        };
+      }
+      previousResults.push({ iteration, tool: plan.tool, input: plan.input, result, toolCallId: step.toolCallId, observedAt: Date.now() });
+      if (result.success) markPlanStepCompleted(executionSnapshot.plan, actionPlanStepId, result.output);
+      else setPlanStep(executionSnapshot.plan, actionPlanStepId, "FAILED", result.output);
       setAgentState("OBSERVING", "agent.observation.created", `Observed ${plan.tool}: ${result.success ? "success" : "failure"}.`);
       markPlanStepCompleted(executionSnapshot.plan, "execute", `${plan.tool}: ${result.success ? "success" : "failure"}`);
       markPlanStepCompleted(executionSnapshot.plan, "observe", result.output);
