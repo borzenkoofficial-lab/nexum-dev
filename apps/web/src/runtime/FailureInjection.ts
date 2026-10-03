@@ -30,7 +30,8 @@ class FailureInjection {
   private enabled = new Map<FailureName, { delayMs?: number }>();
   private records: FailureRecord[] = [];
 
-  readonly active = import.meta.env.DEV || import.meta.env.VITE_E2E === "true";
+  private readonly env = (import.meta as ImportMeta & { env?: Record<string, string | boolean | undefined> }).env;
+  readonly active = Boolean(this.env?.DEV || this.env?.VITE_E2E === "true");
 
   enableFailure(scenario: FailureName, options: { delayMs?: number; context?: RuntimeContext } = {}) {
     if (!this.active) throw new Error("Failure injection is disabled outside development/E2E.");
