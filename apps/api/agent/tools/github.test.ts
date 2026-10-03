@@ -28,7 +28,8 @@ test("returns a clear error when GITHUB_TOKEN is missing", async () => {
   const result = await withToken(undefined, () => new GitHubTool(projectRoot).execute("repository"));
 
   assert.equal(result.success, false);
-  assert.equal(result.error, "GITHUB_TOKEN is not configured");
+  assert.equal(result.githubError, "GITHUB_TOKEN is not configured");
+  assert.equal(result.error?.code, "TOOL_ERROR");
 });
 
 test("uses the origin repository and performs a read-only request", async () => {
@@ -60,7 +61,8 @@ test("maps GitHub HTTP errors without exposing credentials", async () => {
     );
 
     assert.equal(result.success, false);
-    assert.equal(result.error, expected);
+    assert.equal(result.githubError, expected);
+    assert.equal(result.error?.message, expected);
     assert.equal(result.output.includes("unit-test-token"), false);
   }
 });
@@ -75,5 +77,6 @@ test("maps an aborted request to a timeout error", async () => {
   );
 
   assert.equal(result.success, false);
-  assert.equal(result.error, "GitHub request timed out");
+  assert.equal(result.githubError, "GitHub request timed out");
+  assert.equal(result.error?.code, "TOOL_ERROR");
 });
