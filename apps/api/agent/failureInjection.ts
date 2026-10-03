@@ -3,6 +3,7 @@ export type AgentFailure =
   | "NETWORK_FAILURE"
   | "TOOL_FAILURE"
   | "TOOL_DELAY"
+  | "TOOL_CHECKPOINT"
   | "VALIDATION_FAILURE"
   | "TIMEOUT"
   | "CANCELLATION"
