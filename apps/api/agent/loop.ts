@@ -149,6 +149,39 @@ export class AgentLoop {
   ) {}
 
   async run(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
+    try {
+      return await this.runInternal(task, options);
+    } catch (error) {
+      if (isAbortError(error) || options?.signal?.aborted) {
+        const intent = createAgentIntent(task, {
+          requestId: this.journalContext?.requestId,
+          projectId: this.journalContext?.projectId,
+          taskId: this.journalContext?.taskId ?? this.journalContext?.agentRunId,
+        });
+        return {
+          success: false,
+          iterations: 0,
+          steps: [],
+          phase: "repair",
+          intent,
+          executionPlan: createExecutionPlan(intent),
+          finalState: "CANCELLED",
+          error: "Agent task cancelled by user.",
+          summary: {
+            status: "CANCELLED",
+            summary: "Agent execution cancelled by user.",
+            changedFiles: [],
+            completedSteps: [],
+            warnings: [],
+            errors: ["CANCELLED"],
+          },
+        };
+      }
+      throw error;
+    }
+  }
+
+  private async runInternal(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
     const steps: AgentStep[] = [];
     const previousResults: AgentToolResult[] = [];
     const seenActions = new Set<string>();
