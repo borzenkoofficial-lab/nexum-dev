@@ -19,7 +19,7 @@ export default defineConfig({
   webServer: [
     {
       name: "API",
-      command: "cd .. && npm --prefix apps/api run dev",
+      command: "cd .. && npm --prefix apps/api run start",
       url: "http://127.0.0.1:3001/api/runtime/status",
       timeout: 120_000,
       reuseExistingServer: !process.env.CI,
