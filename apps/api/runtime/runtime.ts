@@ -30,8 +30,8 @@ export class ServerRuntime{
  completeProcess(id:string){const p=this.processes.get(id);if(!p)return false;p.state="STOPPED";this.processes.delete(id);return true}
  failProcess(id:string,error:unknown){const p=this.processes.get(id);if(!p)return false;p.state="FAILED";this.record("PROCESS","error","Process failed",{...p,operation:p.name},error);this.processes.delete(id);return true}
  async restartProcess(id:string){const p=this.processes.get(id);if(!p?.restart)return false;p.state="RESTARTING";try{p.child.kill("SIGTERM")}catch{};p.child=await p.restart();p.state="HEALTHY";return true}
- stopProcess(id:string){const p=this.processes.get(id);if(!p)return;try{p.child.kill("SIGTERM")}catch{}p.state="STOPPED";this.processes.delete(id)}
- cancelTask(id:string){const t=this.tasks.get(id);if(!t)return false;this.updateTask(id,"CANCELLED",{error:"Cancelled"});return true}
+ stopProcess(id:string){const p=this.processes.get(id);if(!p)return; p.state="STOPPED"; this.processes.delete(id); try{p.child.kill("SIGTERM")}catch{} }
+ cancelTask(id:string){const t=this.tasks.get(id);if(!t||["COMPLETED","FAILED","CANCELLED"].includes(t.status))return false;this.updateTask(id,"CANCELLED",{error:"Cancelled"});for(const [resourceId,r] of this.resources)if(r.taskId===id)this.releaseResource(resourceId);for(const [processId,p] of this.processes)if(p.taskId===id)this.stopProcess(processId);return true}
  listTasks(){return [...this.tasks.values()]}
  listResources(){return [...this.resources.values()].map(({release,...r})=>r)}
  cancelProject(projectId:string){for(const t of this.tasks.values())if(t.projectId===projectId&&!["COMPLETED","FAILED","CANCELLED"].includes(t.status))this.cancelTask(t.id);for(const [id,r] of this.resources)if(r.projectId===projectId)this.releaseResource(id)}
