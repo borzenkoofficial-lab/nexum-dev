@@ -428,7 +428,26 @@ export class NexumAgent implements AgentRuntime {
     const tool = this.tools.get(toolName);
     if (!tool) return { success: false, output: `Unknown tool: ${toolName}`, toolName };
     if (signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
-    validateToolInvocation(tool, input);
+    try {
+      validateToolInvocation(tool, input);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid tool invocation";
+      const pathPolicy = /project directory|path|traversal|absolute/i.test(message);
+      return {
+        success: false,
+        output: message,
+        toolCallId: crypto.randomUUID(),
+        toolName: tool.name,
+        error: {
+          code: pathPolicy ? "PERMISSION_ERROR" : "TOOL_ERROR",
+          message,
+          retryable: false,
+          repairable: false,
+          fatal: pathPolicy,
+        },
+        metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId },
+      };
+    }
     if (agentFailureInjection.consumeFailure("TOOL_DELAY")) {
       const delayMs = Math.max(1, Number(process.env.NEXUM_E2E_TOOL_DELAY_MS || 1500));
       await new Promise<void>((resolve, reject) => {
