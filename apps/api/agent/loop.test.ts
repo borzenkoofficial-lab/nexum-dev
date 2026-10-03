@@ -124,6 +124,63 @@ test("creates structured Intent and execution plan for every Agent run", async (
   assert.equal(result.summary?.status, "COMPLETED");
 });
 
+class PrematureDoneProvider implements AIProvider {
+  id = "premature-done";
+  name = "Premature done test provider";
+  model = "premature-done";
+  capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: true, reasoning: false, contextWindow: 32768 };
+
+  async generate(): Promise<string> {
+    return JSON.stringify({ done: true, finalResponse: "Задача завершена." });
+  }
+}
+
+test("planner guard converts premature done into listFiles for structure analysis", async () => {
+  const plannerGateway = new AIGateway([new PrematureDoneProvider()]);
+  const agent = new NexumAgent(plannerGateway);
+  const plan = await agent.planWithAI!("Покажи структуру текущего проекта.", []);
+
+  assert.deepEqual(plan, { tool: "listFiles", input: "." });
+});
+
+test("planner guard permits done after real execution evidence", async () => {
+  const plannerGateway = new AIGateway([new PrematureDoneProvider()]);
+  const agent = new NexumAgent(plannerGateway);
+  const plan = await agent.planWithAI!("Покажи структуру текущего проекта.", [
+    {
+      iteration: 1,
+      tool: "runCommand",
+      input: "git status",
+      result: { success: true, output: "clean" },
+      observedAt: Date.now(),
+    },
+  ]);
+
+  assert.equal(plan?.done, true);
+});
+
+test("runtime flow executes deterministic listFiles after premature planner completion", async () => {
+  const plannerGateway = new AIGateway([new PrematureDoneProvider()]);
+  const agent = new NexumAgent(plannerGateway);
+  const executed: string[] = [];
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => agent.getAvailableTools(),
+    plan: (task, previousResults) => agent.plan(task, previousResults),
+    planWithAI: (task, previousResults, options) => agent.planWithAI!(task, previousResults, options),
+    executeTool: async (tool, input) => {
+      executed.push(tool + ":" + input);
+      return { success: true, output: tool === "listFiles" ? "src\npackage.json" : "ok" };
+    },
+  };
+
+  const result = await new AgentLoop(runtime, plannerGateway, 4).run("Покажи структуру текущего проекта.");
+
+  assert.equal(result.success, true);
+  assert.equal(result.finalState, "COMPLETED");
+  assert.deepEqual(executed, ["listFiles:."]);
+  assert.equal(result.steps[0]?.tool, "listFiles");
+});
+
 test("does not accept model done without executed and validated evidence", async () => {
   const runtime: AgentRuntime = {
     getAvailableTools: () => ["fake"],

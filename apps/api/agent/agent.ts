@@ -249,9 +249,10 @@ export class NexumAgent implements AgentRuntime {
     const run = await this.orchestrator.run(role, prompt, options);
     console.log(JSON.stringify({ type: "ai-role", role: run.role, provider: run.provider, model: run.model, fallback: run.fallback }));
     const parsed = this.parseAIPlan(run.response);
-    if (parsed && this.isPlanAlignedWithTask(task, parsed)) return parsed;
+    const guardedPlan = parsed ? this.guardPlannerCompletion(task, previousResults, parsed) : null;
+    if (guardedPlan && this.isPlanAlignedWithTask(task, guardedPlan)) return guardedPlan;
     if (parsed) {
-      console.warn("[agent] rejected AI plan because it does not match the user's requested domain; using deterministic recovery");
+      console.warn("[agent] rejected AI plan because it does not match the user's requested domain or attempted premature completion; using deterministic recovery");
     }
 
     // Do not spend a second provider request repairing a known 429 response.
@@ -563,6 +564,31 @@ export class NexumAgent implements AgentRuntime {
       ? /строит|подряд|демонтаж|фасад|объект|бригада|ремонт|стяжк|штукатур|монтаж|кровл/.test(content)
       : /авто|автомобил|машин|автосервис|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст|сто/.test(content);
     return domainSignal && !genericDigital;
+  }
+
+  private guardPlannerCompletion(task: string, previousResults: AgentToolResult[], plan: AgentPlan): AgentPlan | null {
+    if (!plan.done) return plan;
+
+    // Planner output is a completion candidate, never execution evidence.
+    // Only successful concrete tool execution may authorize the candidate to
+    // reach the existing Completion Gate.
+    const hasExecutionEvidence = previousResults.some((item) => item.result.success);
+    if (hasExecutionEvidence) return plan;
+
+    const deterministic = this.selectTool(task, previousResults);
+    if (deterministic) {
+      console.warn("[agent] blocked premature planner completion; selected deterministic next action", deterministic);
+      return { tool: deterministic.name, input: deterministic.input };
+    }
+
+    // The structure-inspection recovery is intentionally bounded and routed
+    // through the normal listFiles tool/runtime path.
+    if (this.tools.has("listFiles")) {
+      console.warn("[agent] blocked premature planner completion; falling back to listFiles(.)");
+      return { tool: "listFiles", input: "." };
+    }
+
+    return null;
   }
 
   private parseAIPlan(response: string): AgentPlan | null {
