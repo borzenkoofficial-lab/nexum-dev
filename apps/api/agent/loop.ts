@@ -349,7 +349,7 @@ export class AgentLoop {
       const plannerContextSeen = seenPlannerContexts.has(plannerContextFingerprint);
       if (!modelPlan && this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < MAX_AI_PLANNER_CALLS && !plannerContextSeen) {
         try {
-          if (agentFailureInjection.isEnabled("MODEL_FAILURE")) throw new Error("Injected model failure");
+          if (agentFailureInjection.consumeFailure("MODEL_FAILURE")) throw new Error("Injected model failure");
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
           const aiOptions = aiOptionsForTask(options, "finalizer");
@@ -742,7 +742,7 @@ export class AgentLoop {
 
         syncVerificationState(taskState, previousResults, productPlan);
         let finishReason: string | undefined;
-        let gatePassed = !agentFailureInjection.isEnabled("VALIDATION_FAILURE");
+        let gatePassed = !agentFailureInjection.consumeFailure("VALIDATION_FAILURE");
         if (!gatePassed) finishReason = "Injected validation failure.";
         if (builderTask) {
           const finishCheck = canFinishBuilder(
@@ -907,7 +907,7 @@ export class AgentLoop {
       throwIfAborted(options?.signal);
       let result: AgentToolResult["result"];
       try {
-        if (agentFailureInjection.isEnabled("TOOL_FAILURE")) throw new Error("Injected tool failure");
+        if (agentFailureInjection.consumeFailure("TOOL_FAILURE")) throw new Error("Injected tool failure");
         result = await this.runtime.executeTool(plan.tool, plan.input, options?.signal);
       } catch (error) {
         if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
