@@ -20,6 +20,16 @@ async function submitAgent(page: any, message: string, projectId?: string) {
   return body as { jobId: string; runtimeTaskId: string };
 }
 
+async function createE2EWorkspace(page: any): Promise<string> {
+  const name = `e2e-agent-workspace-${Date.now()}`;
+  const response = await page.request.post("/api/projects", {
+    data: { name, description: "AI Loop browser workspace", type: "static" },
+  });
+  expect(response.ok()).toBeTruthy();
+  const data = await response.json();
+  return data.project.id as string;
+}
+
 async function getJob(page: any, jobId: string) {
   const response = await page.request.get(`/api/chat/jobs/${encodeURIComponent(jobId)}`);
   expect(response.ok()).toBeTruthy();
@@ -37,6 +47,9 @@ test.beforeEach(async ({ page }) => {
     sessionStorage.clear();
   });
   await page.request.post("/api/test/agent-failures", { data: { operation: "reset" } }).catch(() => {});
+  const workspaceId = await createE2EWorkspace(page);
+  await page.goto("/projects/" + encodeURIComponent(workspaceId));
+  await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 10_000 });
 });
 
 test.afterEach(async ({ page }) => {
