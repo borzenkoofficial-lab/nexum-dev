@@ -36,6 +36,7 @@ test.beforeEach(async ({ page }) => {
 
 test.afterEach(async ({ page }, testInfo) => {
   await page.request.post("/api/test/agent-failures", { data: { operation: "reset" } }).catch(() => {});
+  await page.request.post("/api/test/agent-failures", { data: { operation: "reset" } }).catch(() => {});
   if (testInfo.status === testInfo.expectedStatus) return;
   const status = await page.evaluate(() => (window as any).__NEXUM_E2E__?.status?.()).catch(() => null);
   await testInfo.attach("runtime-diagnostics.json", {
