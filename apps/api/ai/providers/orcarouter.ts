@@ -64,9 +64,9 @@ export class OrcaRouterProvider implements AIProvider {
     return content;
   }
 
-  async listModels(): Promise<string[]> {
+  async listModels(signal?: AbortSignal): Promise<string[]> {
     try {
-      const data = await this.request<ModelsResponse>("/models", { method: "GET" });
+      const data = await this.request<ModelsResponse>("/models", { method: "GET", ...(signal ? { signal } : {}) });
       const remote = (data.data ?? [])
         .map((item) => item.id)
         .filter((id): id is string => typeof id === "string" && id.length > 0);
@@ -76,7 +76,7 @@ export class OrcaRouterProvider implements AIProvider {
     }
   }
 
-  async getStatus(model = this.model): Promise<AIProviderStatus> {
+  async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
     const startedAt = Date.now();
     if (!this.runtimeApiKey) {
       return {
@@ -88,7 +88,7 @@ export class OrcaRouterProvider implements AIProvider {
     }
 
     try {
-      const models = await this.listModels();
+      const models = await this.listModels(signal);
       return {
         available: models.length > 0,
         model: this.validateModel(model),
