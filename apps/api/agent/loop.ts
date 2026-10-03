@@ -10,6 +10,8 @@ import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVer
 import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
+import { createAgentIntent } from "./intent.js";
+import { createExecutionPlan, createTelemetry, transitionAgentState, setPlanStep, markPlanStepCompleted, createValidation, type AgentExecutionSnapshot } from "./executionState.js";
 import type {
   AgentModelOptions,
   AgentPlan,
@@ -20,6 +22,10 @@ import type {
   AgentToolResult,
   AgentPhase,
   AgentErrorInfo,
+  AgentExecutionPlan,
+  AgentIntent,
+  AgentState,
+  AgentResultSummary,
 } from "./types.js";
 
 const DEFAULT_MAX_ITERATIONS = 12;
@@ -111,11 +117,14 @@ export function compactAgentHistory(results: AgentToolResult[]): AgentToolResult
   return compacted;
 }
 
+export type AgentEventName = "agent.started"|"agent.intent.created"|"agent.plan.created"|"agent.step.started"|"agent.tool.started"|"agent.tool.completed"|"agent.observation.created"|"agent.validation.started"|"agent.validation.failed"|"agent.repair.started"|"agent.repair.completed"|"agent.verification.started"|"agent.completed"|"agent.failed"|"agent.cancelled";
+
 export interface AgentEvent {
   id: number;
   timestamp: number;
   iteration: number;
   type: "thinking" | "tool-start" | "tool-success" | "tool-error" | "completed" | "failed";
+  name?: AgentEventName;
   phase: AgentPhase;
   tool?: string;
   message: string;
@@ -131,7 +140,8 @@ export class AgentLoop {
     private readonly onStep?: (step: AgentStep) => void,
     private readonly onEvent?: (event: AgentEvent) => void,
     private readonly onPlan?: (plan: ProductPlan) => void,
-    private readonly journalContext?: { requestId?: string; agentRunId?: string; projectId?: string; provider?: string; model?: string },
+    private readonly journalContext?: { requestId?: string; agentRunId?: string; taskId?: string; projectId?: string; provider?: string; model?: string },
+    private readonly onExecutionUpdate?: (snapshot: AgentExecutionSnapshot) => void,
   ) {}
 
   async run(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
@@ -143,6 +153,32 @@ export class AgentLoop {
     let eventId = 0;
     let phase: AgentPhase = "analyze";
     const taskState = createAgentTaskState(task);
+    const intent = createAgentIntent(task, {
+      requestId: this.journalContext?.requestId,
+      projectId: this.journalContext?.projectId,
+      taskId: this.journalContext?.taskId ?? this.journalContext?.agentRunId,
+    });
+    const executionSnapshot: AgentExecutionSnapshot = {
+      state: "IDLE",
+      plan: createExecutionPlan(intent),
+      observations: [],
+      completedStepIds: [],
+      repairAttempts: 0,
+      startedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    const publishExecution = () => {
+      executionSnapshot.updatedAt = Date.now();
+      this.onExecutionUpdate?.(structuredClone(executionSnapshot));
+    };
+    const setAgentState = (next: AgentState, name?: AgentEventName, message?: string) => {
+      const changed = transitionAgentState(executionSnapshot, next, (warning, severity = "warn") => {
+        this.onEvent?.({ id: ++eventId, timestamp: Date.now(), iteration: 0, type: "failed", phase, name: "agent.failed", message: warning, errorCode: severity === "error" ? "INTERNAL_ERROR" : undefined });
+      });
+      if (changed) publishExecution();
+      if (name && message) emit({ iteration: 0, type: "thinking", name, message, phase });
+      return changed;
+    };
     let productPlan: ProductPlan | null = null;
     let productReviewAttempts = 0;
     let remotePlannerRateLimited = false;
@@ -179,11 +215,17 @@ export class AgentLoop {
       if (phase === next) return;
       phase = next;
       taskState.phase = next;
+      const stateByPhase: Record<AgentPhase, AgentState> = { analyze: "UNDERSTANDING", plan: "PLANNING", implement: "EXECUTING", validate: "VALIDATING", repair: "REPAIRING", verify: "VERIFYING", finish: "COMPLETED" };
+      const nextState = stateByPhase[next];
+      if (executionSnapshot.state !== nextState) setAgentState(nextState, undefined, undefined);
       emit({ iteration: 0, type: "thinking", phase, message: `Стадия агента: ${phase}.` });
     };
     const emit = (event: Omit<AgentEvent, "id" | "timestamp" | "phase"> & { phase?: AgentPhase }) => {
       this.onEvent?.({ ...event, phase: event.phase ?? phase, id: ++eventId, timestamp: Date.now() });
     };
+    setAgentState("UNDERSTANDING", "agent.started", "Agent execution started.");
+    emit({ iteration: 0, type: "thinking", name: "agent.intent.created", phase: "analyze", message: "Нормализовал запрос в структурированный Intent и закрепил project/task ownership." });
+    publishExecution();
     emit({ iteration: 0, type: "thinking", phase: "analyze", message: "Принял запрос. Анализирую проект и выбираю следующий шаг." });
 
     for (let iteration = 1; iteration <= this.maxIterations; iteration += 1) {
