@@ -358,6 +358,11 @@ export class AgentLoop {
       if (next === "analyze" && executionSnapshot.state !== "IDLE" && executionSnapshot.state !== "UNDERSTANDING") {
         nextState = "EXECUTING";
       }
+      if (next === "plan" && executionSnapshot.state === "VALIDATING") {
+        // Validation failures re-enter planning through the explicit repair state;
+        // this prevents VALIDATING -> PLANNING from becoming an implicit edge.
+        nextState = "REPAIRING";
+      }
       setAgentState(nextState);
       phase = next;
       taskState.phase = next;
@@ -605,6 +610,10 @@ export class AgentLoop {
       }
 
       if (plan.done) {
+        if (!executionSnapshot.completedStepIds.includes("observe")) {
+          setAgentState("FAILED", "agent.failed", "Completion was requested before execution/observation evidence existed.");
+          return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Completion blocked: no execution evidence.", errorInfo: { code: "VALIDATION_ERROR", message: "Agent cannot complete before at least one observed execution step.", retryable: false, repairable: true, fatal: false, category: "completion", summary: "NO_EXECUTION_EVIDENCE", recoveryStrategy: "Execute and observe a concrete plan step, then validate again." } };
+        }
         transition("validate");
         const buildTask = /создай|сделай|разработай|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(task);
         const scaffoldedProject = previousResults.some((item) => item.tool === "scaffoldProject" && item.result.success);
