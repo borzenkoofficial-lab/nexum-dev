@@ -25,7 +25,7 @@ import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
 import { pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
-import { acquireProjectLock, cancelChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
+import { acquireProjectLock, cancelChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
 
@@ -192,9 +192,10 @@ async function runChatJob(
   conversation: Array<{ role: "user" | "assistant"; content: string }>,
   requestId?: string,
   signal?: AbortSignal,
+  runtimeTaskId?: string,
 ) {
-  const runtimeTask = serverRuntime.createTask({ projectId, operation: "chat-job", priority: 10, maxRetries: 1 });
-  serverRuntime.updateTask(runtimeTask.id, "RUNNING");
+  const runtimeTask = runtimeTaskId ? serverRuntime.tasks.get(runtimeTaskId) : undefined;
+  if (!runtimeTask) throw new Error("Canonical Runtime Task is unavailable for Agent Job");
   const job = await getChatJob(jobId, userId);
   if (!job) { serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
   chatJobCache.set(jobId, job);
@@ -328,6 +329,7 @@ ${attachment.content.slice(0, 80_000)}`);
       {
         requestId,
         agentRunId: jobId,
+        taskId: runtimeTask.id,
         projectId: project.id,
         provider,
         model,
@@ -357,17 +359,34 @@ ${attachment.content.slice(0, 80_000)}`);
       job.errorInfo = result.errorInfo;
       void agentHistory.record({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
-      await persistChatJob(job);
+      await failChatJob(jobId, userId, { error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, steps: job.steps, productPlan: job.productPlan, stage: job.stage, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry });
       return;
     }
 
-    job.status = "completed";
-    job.stage = "completed";
-    if (result.finalResponse !== undefined) job.reply = result.finalResponse;
-    void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
+    if (signal?.aborted || (await getChatJob(jobId, userId))?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
     job.steps = result.steps;
     job.productPlan = result.productPlan;
-    await persistChatJob(job);
+    job.agentIntent = result.intent;
+    job.executionPlan = result.executionPlan;
+    job.executionState = result.finalState;
+    job.validation = result.validation;
+    job.telemetry = result.telemetry;
+    if (result.finalResponse !== undefined) job.reply = result.finalResponse;
+    const completed = await completeChatJob(jobId, userId, {
+      reply: job.reply,
+      steps: job.steps,
+      productPlan: job.productPlan,
+      agentIntent: job.agentIntent,
+      executionPlan: job.executionPlan,
+      executionState: job.executionState,
+      validation: job.validation,
+      telemetry: job.telemetry,
+      stage: "completed",
+    });
+    if (!completed || completed.status !== "completed") throw new DOMException("Agent completion lost a race with cancellation", "AbortError");
+    job.status = "completed";
+    job.stage = "completed";
+    void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
     const successfulBuild = result.steps.some((step) =>
       step.success &&
       (step.tool === "runCommand" || step.tool === "runSandbox") &&
@@ -403,7 +422,7 @@ ${attachment.content.slice(0, 80_000)}`);
     job.error = normalizedError.userSafeMessage;
     job.errorCode = normalizedError.code;
     job.errorInfo = { code: normalizedError.code, message: normalizedError.userSafeMessage, retryable: normalizedError.retryable };
-    await persistChatJob(job).catch((persistenceError) => console.error("[Nexum] failed to persist job exception", persistenceError));
+    await failChatJob(jobId, userId, { stage: "error", error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry }).catch((persistenceError) => console.error("[Nexum] failed to persist job exception", persistenceError));
     void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
     serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: normalizedError.userSafeMessage });
     console.error("[Nexum] chat job failed", jobId, error);
@@ -1056,6 +1075,8 @@ app.post("/api/chat", async (req, res) => {
 
     await cleanupChatJobs();
     const jobId = randomUUID();
+    const runtimeTask = serverRuntime.createTask({ projectId: typeof projectId === "string" ? projectId : undefined, operation: "chat-job", priority: 10, maxRetries: 1 });
+    serverRuntime.updateTask(runtimeTask.id, "RUNNING");
     const now = Date.now();
     const newJob: ChatJob = {
       id: jobId,
@@ -1067,6 +1088,7 @@ app.post("/api/chat", async (req, res) => {
       productPlan: undefined,
       userId: getAuthUser(req).id,
       projectId: typeof projectId === "string" ? projectId : undefined,
+      runtimeTaskId: runtimeTask.id,
     };
     await createChatJob(newJob);
     chatJobCache.set(jobId, newJob);
@@ -1086,11 +1108,13 @@ app.post("/api/chat", async (req, res) => {
       normalizedConversation,
       getRequestId(req),
       controller.signal,
+      runtimeTask.id,
     );
 
     return res.status(202).json({
       success: true,
       jobId,
+      runtimeTaskId: runtimeTask.id,
       status: "queued",
     });
   } catch (error) {
@@ -1115,6 +1139,9 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   }
   chatJobCache.set(job.id, cancelled);
   chatJobControllers.get(job.id)?.abort();
+  chatJobControllers.get(job.id)?.abort();
+  const runtimeTaskId = job.runtimeTaskId;
+  if (runtimeTaskId) serverRuntime.cancelTask(runtimeTaskId);
   return res.json({ success: true, cancelled: true, job: cancelled });
 });
 
