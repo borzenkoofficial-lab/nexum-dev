@@ -8,14 +8,15 @@ export class ValidateProjectTool implements Tool {
   description = "Performs lightweight static validation of project files before Preview.";
   constructor(private readonly workspace: ProjectWorkspace) {}
 
-  async execute(_input = "."): Promise<ToolResult> {
+  async execute(_input = ".", signal?: AbortSignal): Promise<ToolResult> {
     try {
       const root = await this.workspace.existing(".");
       const files: string[] = [];
-      await this.collect(root, files);
+      await this.collect(root, files, signal);
 
       const problems: string[] = [];
       for (const file of files) {
+        if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
         const relative = this.workspace.relative(file);
         const extension = extname(file).toLowerCase();
         if (![".html", ".css", ".js", ".mjs", ".cjs", ".json"].includes(extension)) continue;
@@ -78,11 +79,12 @@ export class ValidateProjectTool implements Tool {
     return depth === 0 && quote === null;
   }
 
-  private async collect(dir: string, files: string[]): Promise<void> {
+  private async collect(dir: string, files: string[], signal?: AbortSignal): Promise<void> {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     for (const entry of await readdir(dir, { withFileTypes: true })) {
       if ([".git", "node_modules", "dist", ".nexum"].includes(entry.name)) continue;
       const path = join(dir, entry.name);
-      if (entry.isDirectory()) await this.collect(path, files);
+      if (entry.isDirectory()) await this.collect(path, files, signal);
       else files.push(path);
     }
   }
