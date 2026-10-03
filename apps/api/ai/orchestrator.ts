@@ -53,7 +53,7 @@ export class AIOrchestrator {
 
     const candidates = requested || explicitProvider
       ? [selected]
-      : (await this.registry.list(selected.provider)).filter((candidate) => this.matchesRole(candidate, role));
+      : (await this.registry.list(selected.provider, options?.signal)).filter((candidate) => this.matchesRole(candidate, role));
 
     let lastError: unknown;
     for (const candidate of candidates) {
@@ -88,8 +88,8 @@ export class AIOrchestrator {
     return this.gateway.getDefaultModel();
   }
 
-  async getRoleModel(role: AIOrchestratorRole, provider?: string): Promise<string | null> {
-    const selected = await this.registry.select(ROLE_REQUIREMENTS[role], provider ? { provider } : {});
+  async getRoleModel(role: AIOrchestratorRole, provider?: string, signal?: AbortSignal): Promise<string | null> {
+    const selected = await this.registry.select(ROLE_REQUIREMENTS[role], provider ? { provider } : {}, signal);
     return selected?.model ?? null;
   }
 
