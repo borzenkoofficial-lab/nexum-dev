@@ -258,9 +258,10 @@ export class AgentLoop {
       const changed = transitionAgentState(executionSnapshot, next, (warning, severity = "warn") => {
         this.onEvent?.({ id: ++eventId, timestamp: Date.now(), iteration: 0, type: "failed", phase, name: "agent.failed", message: warning, errorCode: severity === "error" ? "INTERNAL_ERROR" : undefined });
       });
-      if (changed) publishExecution();
+      if (!changed) throw new Error(`Invalid Agent state transition ${executionSnapshot.state} -> ${next}`);
+      publishExecution();
       if (name && message) emit({ iteration: 0, type: "thinking", name, message, phase });
-      return changed;
+      return true;
     };
     let productPlan: ProductPlan | null = null;
     const onAbort = () => {
