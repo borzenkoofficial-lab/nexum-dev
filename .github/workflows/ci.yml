@@ -24,6 +24,8 @@ jobs:
           cache-dependency-path: |
             apps/api/package-lock.json
             apps/web/package-lock.json
+      - name: Audit Agent Loop
+        run: npm run audit:agent-loop
       - name: Install API
         run: npm install --prefix apps/api
       - name: Install Web
