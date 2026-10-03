@@ -510,8 +510,6 @@ function App() {
       setАгентStage("error");
       setCurrentActivity("Agent отменён пользователем.");
       setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
-      if (runtimeTaskId) nexumRuntime.tasks.cancel(runtimeTaskId);
-      setRuntimeTaskId(null);
       setChatJobId(null);
       pushOSEvent("info", "Agent cancelled", "Выполнение задачи остановлено пользователем.");
     } catch (error) {
@@ -673,8 +671,7 @@ function App() {
           setПредпросмотрKey((key) => key + 1);
           setАгентStage("completed");
           setChatJobId(null);
-          setRuntimeTaskId(null);
-          return;
+              return;
         }
 
         if (status === "cancelled") {
@@ -682,8 +679,7 @@ function App() {
           setCurrentActivity(data?.job?.error ?? "Agent отменён.");
           setАгентStage("error");
           setChatJobId(null);
-          setRuntimeTaskId(null);
-          return;
+            return;
         }
 
         if (status === "failed") {
