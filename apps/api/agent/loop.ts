@@ -196,6 +196,7 @@ export class AgentLoop {
     };
     options?.signal?.addEventListener("abort", onAbort, { once: true });
     let productReviewAttempts = 0;
+    let forceCompletionNextIteration = false;
     let remotePlannerRateLimited = false;
     let aiPlannerCalls = 0;
     let productPlannerCreated = false;
@@ -327,6 +328,10 @@ export class AgentLoop {
       }
       emit({ iteration, type: "thinking", message: `Шаг ${iteration}: анализирую состояние проекта и результаты предыдущего действия.` });
       let modelPlan: AgentPlan | null = null;
+      if (forceCompletionNextIteration) {
+        forceCompletionNextIteration = false;
+        modelPlan = { tool: "", input: "", done: true, finalResponse: "Задача проверена и завершена." };
+      }
       const compactHistory = compactAgentHistory(previousResults);
       const plannerContextFingerprint = JSON.stringify({
         task,
@@ -342,7 +347,7 @@ export class AgentLoop {
         })),
       });
       const plannerContextSeen = seenPlannerContexts.has(plannerContextFingerprint);
-      if (this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < MAX_AI_PLANNER_CALLS && !plannerContextSeen) {
+      if (!modelPlan && this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < MAX_AI_PLANNER_CALLS && !plannerContextSeen) {
         try {
           if (agentFailureInjection.isEnabled("MODEL_FAILURE")) throw new Error("Injected model failure");
           seenPlannerContexts.add(plannerContextFingerprint);
@@ -380,6 +385,13 @@ export class AgentLoop {
       // Prefer the model plan when available. If it repeats an action that
       // already failed, switch to the deterministic planner so recovery can continue.
       let plan = modelPlan ?? this.runtime.plan(task, previousResults);
+      if (!plan && !builderTask && previousResults.length > 0 && previousResults[previousResults.length - 1]?.result.success) {
+        const followUp = this.runtime.plan(task, previousResults);
+        if (!followUp) {
+          forceCompletionNextIteration = true;
+          plan = { tool: "", input: "", done: true, finalResponse: "Задача проверена и завершена." };
+        }
+      }
       if (plan && !executionSnapshot.completedStepIds.includes("plan")) {
         markPlanStepCompletedLocal("plan", `Next action: ${plan.done ? "completion candidate" : plan.tool}`);
         emit({ iteration, type: "thinking", name: "agent.plan.created", message: "Выбран следующий bounded action с учётом наблюдений.", phase });
