@@ -8,6 +8,7 @@ import { OpenRouterProvider } from "./ai/providers/openrouter.js";
 import { OpenAIProvider } from "./ai/providers/openai.js";
 import { AnthropicProvider } from "./ai/providers/anthropic.js";
 import { OrcaRouterProvider } from "./ai/providers/orcarouter.js";
+import { MockProvider } from "./ai/providers/mock.js";
 import { NexumAgent } from "./agent/agent.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
 import type { ProductPlan } from "./agent/types.js";
@@ -65,8 +66,11 @@ void recoverStaleChatJobs(0).catch((error) => console.error("[Nexum] stale Agent
 serverRuntime.start();
 app.use((req, _res, next) => { const requestId = getRequestId(req); const started = Date.now(); _res.on("finish", () => serverRuntime.record("NETWORK", _res.statusCode >= 500 ? "error" : "info", "HTTP request completed", { operation: req.method + " " + req.path }, _res.statusCode >= 500 ? new Error("HTTP " + _res.statusCode) : undefined)); void requestId; void started; next(); });
 const configuredProvider = process.env.AI_PROVIDER?.toLowerCase();
-const defaultProvider = configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai" || configuredProvider === "anthropic" || configuredProvider === "orcarouter"
-  ? configuredProvider
+const e2eMockAI = process.env.NEXUM_E2E_MOCK_AI === "true" && process.env.NODE_ENV === "test";
+const defaultProvider = e2eMockAI && configuredProvider === "mock"
+  ? "mock"
+  : configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai" || configuredProvider === "anthropic" || configuredProvider === "orcarouter"
+    ? configuredProvider
   : process.env.ORCAROUTER_API_KEY?.trim()
     ? "orcarouter"
     : process.env.OPENAI_API_KEY?.trim()
@@ -119,7 +123,7 @@ const fallbackProvider = process.env.AI_FALLBACK_PROVIDER?.toLowerCase() ||
   (defaultProvider === "ollama" ? "openrouter" : defaultProvider === "orcarouter" ? "openrouter" : undefined);
 
 const aiGateway = new AIGateway(
-  [new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider()],
+  [new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider(), ...(e2eMockAI ? [new MockProvider()] : [])],
   defaultProvider,
   {
     fallbackProviderId: fallbackProvider,
@@ -140,7 +144,7 @@ const aiGateway = new AIGateway(
 const userAIGateways = new Map<string, AIGateway>();
 
 function createProviderGateway(runtimeProvider?: string, runtimeCredential?: string): AIGateway {
-  const providers = [new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider()];
+  const providers = [new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider(), ...(e2eMockAI ? [new MockProvider()] : [])];
   if (runtimeProvider && runtimeCredential) {
     const target = providers.find((provider) => provider.id === runtimeProvider);
     const setter = target && (target as unknown as { setRuntimeApiKey?: (value: string) => void }).setRuntimeApiKey;
