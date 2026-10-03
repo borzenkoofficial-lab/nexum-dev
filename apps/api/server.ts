@@ -24,7 +24,7 @@ import { AgentHistory } from "./agent/history.js";
 import { CheckpointManager } from "./agent/checkpoint.js";
 import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
-import { pingDatabase } from "./db.js";
+import { closeDatabase, pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
@@ -518,8 +518,36 @@ ${attachment.content.slice(0, 80_000)}`);
 
 // Project managers are initialized lazily per authenticated user.
 
-process.once("SIGTERM", () => serverRuntime.shutdown());
-process.once("SIGINT", () => serverRuntime.shutdown());
+let httpServer: ReturnType<typeof app.listen> | undefined;
+let shutdownPromise: Promise<void> | undefined;
+
+async function shutdownServer(signal: "SIGTERM" | "SIGINT"): Promise<void> {
+  if (shutdownPromise) return shutdownPromise;
+  shutdownPromise = (async () => {
+    console.log(`[Nexum] ${signal} received; shutting down HTTP server and runtime.`);
+    // Abort background Agent jobs first so no model/tool work can keep the
+    // process alive while Playwright or a production supervisor waits for exit.
+    for (const controller of chatJobControllers.values()) controller.abort();
+    chatJobControllers.clear();
+    serverRuntime.shutdown();
+
+    await new Promise<void>((resolve) => {
+      if (!httpServer || !httpServer.listening) {
+        resolve();
+        return;
+      }
+      httpServer.close(() => resolve());
+    });
+
+    await closeDatabase().catch((error) => {
+      console.error("[Nexum] database shutdown failed", error);
+    });
+  })();
+  return shutdownPromise;
+}
+
+process.once("SIGTERM", () => { void shutdownServer("SIGTERM"); });
+process.once("SIGINT", () => { void shutdownServer("SIGINT"); });
 
 const configuredCorsOrigins = (process.env.NEXUM_CORS_ORIGINS || "")
   .split(",")
@@ -1356,6 +1384,6 @@ app.use((error: unknown, req: express.Request, res: Response, next: express.Next
 
 const PORT = Number(process.env.PORT || 3001);
 const HOST = process.env.HOST || "0.0.0.0";
-app.listen(PORT, HOST, () => {
+httpServer = app.listen(PORT, HOST, () => {
   console.log(`NEXUM API running on http://${HOST}:${PORT}`);
 });
