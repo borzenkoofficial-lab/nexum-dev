@@ -1,5 +1,5 @@
 
-import {RuntimeEventBus} from "./EventBus";import {RuntimeDiagnostics} from "./Diagnostics";import type{RuntimeContext}from"./types";
+import {RuntimeEventBus} from "./EventBus.ts";import {RuntimeDiagnostics} from "./Diagnostics.ts";import type{RuntimeContext}from "./types.ts";
 import { failureInjection } from "./FailureInjection.ts";
 export type PreviewState="STOPPED"|"STARTING"|"READY"|"UNHEALTHY"|"RESTARTING"|"FAILED"|"STOPPING";
 export interface PreviewAdapter{start:(context:RuntimeContext)=>Promise<void>;stop:()=>Promise<void>;health:()=>Promise<boolean>;restart?:()=>Promise<void>}
