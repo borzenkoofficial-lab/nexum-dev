@@ -169,6 +169,7 @@ export interface AgentRuntime {
   planWithAI?(task: string, previousResults: AgentToolResult[], options?: AgentModelOptions, productPlan?: ProductPlan): Promise<AgentPlan | null>;
   reviewProduct?(task: string, previousResults: AgentToolResult[], productPlan: ProductPlan, options?: AgentModelOptions): Promise<ProductReview>;
   executeTool(tool: string, input: string, signal?: AbortSignal): Promise<ToolResult>;
+  validateRuntime?(signal?: AbortSignal): Promise<ToolResult>;
 }
 
 export interface AgentStep {
