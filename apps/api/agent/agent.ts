@@ -411,8 +411,8 @@ export class NexumAgent implements AgentRuntime {
           projectId: this.runtimeContext.projectId,
           taskId: this.runtimeContext.taskId,
           durationMs,
-          ...(typeof (result as { exitCode?: unknown }).exitCode === "number" || (result as { exitCode?: unknown }).exitCode === null
-            ? { exitCode: (result as { exitCode: number | null }).exitCode }
+          ...(typeof result.metadata?.exitCode === "number" || result.metadata?.exitCode === null
+            ? { exitCode: result.metadata.exitCode }
             : {}),
         },
         ...(result.success ? {} : {
