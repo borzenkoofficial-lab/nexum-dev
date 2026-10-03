@@ -89,7 +89,7 @@ export class AnthropicProvider implements AIProvider {
       if (controller.signal.aborted) throw new Error("Anthropic request timed out");
       if (error instanceof Error && error.message.startsWith("Anthropic")) throw error;
       throw new Error("Anthropic network error");
-    } finally { clearTimeout(timeout); }
+    } finally { clearTimeout(timeout); callerSignal?.removeEventListener("abort", abortFromCaller); }
   }
 
   private httpError(status: number): string {
