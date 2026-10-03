@@ -43,6 +43,54 @@ export interface ProductReview {
 }
 
 export type AgentPhase = "analyze" | "plan" | "implement" | "validate" | "repair" | "verify" | "finish";
+
+export type AgentState =
+  | "IDLE" | "UNDERSTANDING" | "PLANNING" | "EXECUTING" | "OBSERVING"
+  | "VALIDATING" | "REPAIRING" | "VERIFYING" | "COMPLETED" | "FAILED" | "CANCELLED";
+
+export type AgentIntentType = "create" | "modify" | "debug" | "refactor" | "analyze" | "configure" | "unknown";
+
+export interface AgentIntent {
+  requestId: string;
+  projectId: string;
+  taskId: string;
+  agentJobId: string;
+  type: AgentIntentType;
+  objective: string;
+  requirements: string[];
+  constraints: string[];
+  acceptanceCriteria: string[];
+  explicitFiles?: string[];
+  unknowns: string[];
+  confidence?: number;
+  createdAt: number;
+}
+
+export type AgentPlanStepStatus = "PENDING" | "READY" | "RUNNING" | "COMPLETED" | "FAILED" | "SKIPPED" | "CANCELLED";
+
+export interface AgentPlanStep {
+  id: string;
+  description: string;
+  tool?: string;
+  input?: string;
+  dependencies: string[];
+  status: AgentPlanStepStatus;
+  attempts: number;
+  result?: string;
+  startedAt?: number;
+  completedAt?: number;
+}
+
+export interface AgentExecutionPlan {
+  planId: string;
+  taskId: string;
+  agentJobId: string;
+  goal: string;
+  steps: AgentPlanStep[];
+  acceptanceCriteria: string[];
+  risks: string[];
+  createdAt: number;
+}
 export type AgentState =
   | "IDLE"
   | "UNDERSTANDING"
@@ -129,6 +177,7 @@ export interface AgentPlan {
   input: string;
   done?: boolean;
   finalResponse?: string;
+  planStepId?: string;
 }
 
 export interface AgentModelOptions {
@@ -142,6 +191,8 @@ export interface AgentToolResult {
   tool: string;
   input: string;
   result: ToolResult;
+  toolCallId?: string;
+  observedAt?: number;
 }
 
 export interface AgentRuntime {
@@ -158,6 +209,9 @@ export interface AgentStep {
   tool: string;
   input: string;
   success: boolean;
+  toolCallId?: string;
+  durationMs?: number;
+  planStepId?: string;
 }
 
 export interface AgentErrorInfo {
