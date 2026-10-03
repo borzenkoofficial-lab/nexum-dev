@@ -185,8 +185,10 @@ export interface AgentStep {
 export type AgentErrorCategory =
   | "MODEL_ERROR" | "TOOL_ERROR" | "NETWORK_ERROR" | "PROJECT_ERROR"
   | "VALIDATION_ERROR" | "RUNTIME_ERROR" | "DEPENDENCY_ERROR"
-  | "PERMISSION_ERROR" | "CANCELLATION" | "TIMEOUT" | "UNKNOWN";
-
+  | "PERMISSION_ERROR" | "CANCELLATION" | "TIMEOUT" | "UNKNOWN"
+  | "typescript" | "syntax" | "dependency" | "build" | "runtime"
+  | "path" | "tool" | "network" | "permission" | "validation"
+  | "cancellation" | "timeout" | "completion" | "loop";
 export interface AgentErrorInfo {
   code:
     | "USER_ERROR"
