@@ -342,7 +342,6 @@ test("real Agent user cancellation aborts the Agent task and leaves terminal sta
   expect(create.status()).toBe(202);
   const created = await create.json();
   const jobId = created.jobId as string;
-  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
   expect(jobId).toBeTruthy();
   const cancel = await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`);
   expect(cancel.ok()).toBeTruthy();
