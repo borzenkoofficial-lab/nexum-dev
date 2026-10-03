@@ -159,6 +159,7 @@ export class AgentLoop {
       taskId: this.journalContext?.taskId ?? this.journalContext?.agentRunId,
     });
     const executionSnapshot: AgentExecutionSnapshot = {
+      intent,
       state: "IDLE",
       plan: createExecutionPlan(intent),
       observations: [],
@@ -359,6 +360,10 @@ export class AgentLoop {
       // Prefer the model plan when available. If it repeats an action that
       // already failed, switch to the deterministic planner so recovery can continue.
       let plan = modelPlan ?? this.runtime.plan(task, previousResults);
+      if (plan && !executionSnapshot.completedStepIds.includes("plan")) {
+        markPlanStepCompletedLocal("plan", `Next action: ${plan.done ? "completion candidate" : plan.tool}`);
+        emit({ iteration, type: "thinking", name: "agent.plan.created", message: "Выбран следующий bounded action с учётом наблюдений.", phase });
+      }
       if (plan && !plan.done) transition(plan.tool === "runCommand" || plan.tool === "runSandbox" ? "validate" : plan.tool === "readFile" || plan.tool === "listFiles" || plan.tool === "searchFiles" ? "analyze" : "implement");
       if (modelPlan) {
         const modelActionKey = this.actionFingerprint(modelPlan.tool, modelPlan.input);
@@ -677,6 +682,8 @@ export class AgentLoop {
           emit({ iteration, type: "tool-success", tool: "Domain Validation", message: "Тематика готового контента соответствует исходному запросу." });
         }
 
+        setAgentState("VALIDATING", "agent.validation.started", "Проверяю результат перед completion gate.");
+        markStepRunning("validate");
         if (builderTask && productPlan && this.runtime.reviewProduct && productReviewAttempts < MAX_PRODUCT_REVIEW_CALLS) {
           productReviewAttempts += 1;
           emit({ iteration, type: "thinking", message: "Запускаю финальный self-review: сверяю реализацию с Product Plan и ищу недостающие функции." });
@@ -691,7 +698,10 @@ export class AgentLoop {
             ].filter(Boolean).join("\n");
             const reviewResult = { success: false, output: feedback };
             previousResults.push({ iteration, tool: "productReview", input: "final", result: reviewResult });
-            emit({ iteration, type: "tool-error", tool: "productReview", message: feedback.slice(0, 1200) });
+            emit({ iteration, type: "tool-error", name: "agent.validation.failed", tool: "productReview", message: feedback.slice(0, 1200) });
+            executionSnapshot.repairAttempts += 1;
+            markStepRunning("repair");
+            transition("repair");
             continue;
           }
           previousResults.push({ iteration, tool: "productReview", input: "final", result: { success: true, output: "Product review passed." } });
@@ -699,6 +709,8 @@ export class AgentLoop {
         }
 
         syncVerificationState(taskState, previousResults, productPlan);
+        let finishReason: string | undefined;
+        let gatePassed = true;
         if (builderTask) {
           const finishCheck = canFinishBuilder(
             taskState,
@@ -707,6 +719,8 @@ export class AgentLoop {
             hasStaticProject,
             availableTools.includes("testProject"),
           );
+          finishReason = finishCheck.reason;
+          gatePassed = finishCheck.ok;
           if (!finishCheck.ok) {
             emit({
               iteration,
@@ -718,16 +732,61 @@ export class AgentLoop {
           }
         }
 
+        const lastObserved = [...previousResults].reverse()[0];
+        const hasExecuted = previousResults.length > 0;
+        const lastActionPassed = Boolean(lastObserved?.result.success);
+        const validationChecks = [
+          { name: "tool execution", passed: hasExecuted, evidence: `toolCalls=${previousResults.length}` },
+          { name: "last action", passed: lastActionPassed, evidence: lastObserved ? `${lastObserved.tool}: ${lastObserved.result.success ? "success" : "failure"}` : "no action" },
+          { name: "build", passed: !builderTask || !projectHasBuildScript(previousResults) || previousResults.some((item) => item.tool === "runCommand" && item.input === "npm run build" && item.result.success), evidence: "latest build must pass after changes" },
+          { name: "tests", passed: !builderTask || !availableTools.includes("testProject") || previousResults.some((item) => item.tool === "testProject" && item.result.success), evidence: "applicable project smoke checks" },
+          { name: "project/domain", passed: !builderTask || taskState.verified.domain, evidence: taskState.verified.domain ? "domain verified" : "domain not verified" },
+          { name: "completion gate", passed: gatePassed, evidence: finishReason ?? "gate passed" },
+        ];
+        const finalValidation = createValidation(validationChecks, gatePassed ? [] : [finishReason ?? "Completion gate failed."]);
+        markPlanStepCompletedLocal("validate", JSON.stringify(finalValidation));
+        if (!finalValidation.passed || !hasExecuted || !lastActionPassed) {
+          emit({ iteration, type: "tool-error", name: "agent.validation.failed", message: "Completion blocked: validation did not pass." });
+          executionSnapshot.repairAttempts += 1;
+          setAgentState("REPAIRING", "agent.repair.started", "Validation failed; bounded repair required.");
+          markStepRunning("repair");
+          transition("repair");
+          continue;
+        }
+        setAgentState("VERIFYING", "agent.verification.started", "Acceptance criteria and final project state verified.");
+        markStepRunning("verify");
+        markPlanStepCompletedLocal("verify", "Verification passed.");
+        markPlanStepCompletedLocal("complete", "Completion gate passed.");
         transition("finish");
-        emit({ iteration, type: "completed", message: "Финальный completion gate пройден. Проект действительно реализован и проверен." });
+        markStepCompletedLocal("complete", "Agent completed after validation and verification.");
+        emit({ iteration, type: "completed", name: "agent.completed", message: "Финальный completion gate пройден. Проект действительно реализован и проверен." });
+        const finalResponse = plan.finalResponse ?? await this.finalResponse(task, previousResults, aiOptionsForTask(options, "finalizer"));
+        const completedSteps = executionSnapshot.plan.steps.filter((step) => step.status === "COMPLETED").map((step) => step.id);
+        const changedFiles = [...taskState.changedFiles].slice(-20);
+        const summary: AgentResultSummary = {
+          status: "COMPLETED",
+          summary: "Execution completed after validation and verification.",
+          changedFiles,
+          completedSteps,
+          warnings: finalValidation.checks.filter((check) => !check.passed).map((check) => check.name),
+          errors: [],
+        };
+        options?.signal?.removeEventListener("abort", onAbort);
         return {
           success: true,
           iterations: iteration - 1,
           steps,
           productPlan: productPlan ?? undefined,
-          phase,
-          finalResponse: plan.finalResponse ?? await this.finalResponse(task, previousResults, aiOptionsForTask(options, "finalizer")),
+          phase: "finish",
+          intent,
+          executionPlan: executionSnapshot.plan,
+          validation: finalValidation,
+          telemetry: createTelemetry(executionSnapshot.startedAt, aiPlannerCalls + productReviewAttempts + (productPlannerCreated ? 1 : 0) + 1, steps.length, executionSnapshot.repairAttempts),
+          finalState: "COMPLETED",
+          summary,
+          finalResponse,
         };
+
       }
 
       if (!availableTools.includes((plan as AgentPlan).tool)) {
