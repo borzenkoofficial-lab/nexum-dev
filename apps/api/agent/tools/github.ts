@@ -235,10 +235,12 @@ export class GitHubTool implements Tool {
     const lower = error.toLowerCase();
     const code = /authentication|forbidden|permission/.test(lower)
       ? "PERMISSION_ERROR"
-      : /rate limit|429|timed out|network/.test(lower)
-        ? "NETWORK_ERROR"
-        : "TOOL_ERROR";
-    const retryable = code === "NETWORK_ERROR" && !/authentication|permission|forbidden/.test(lower);
+      : /timed out|timeout/.test(lower)
+        ? "TIMEOUT"
+        : /rate limit|429|network/.test(lower)
+          ? "NETWORK_ERROR"
+          : "TOOL_ERROR";
+    const retryable = code === "NETWORK_ERROR" || code === "TIMEOUT";
     return {
       success: false,
       operation,
