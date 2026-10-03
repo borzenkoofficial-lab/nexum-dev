@@ -130,14 +130,14 @@ test("E2E-04 validation failure is repaired and bounded", async ({ page }) => {
 });
 
 test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime task", async ({ page }) => {
-  const input = page.getByLabel("Опишите задачу");
-  await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
-  await input.press("Enter");
+  await setFailure(page, "enable", "TOOL_CHECKPOINT");
+  const { jobId } = await submitAgent(page, "Проверь структуру текущего проекта и ничего не изменяй.", e2eWorkspaceId);
+  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
 
+  await page.reload();
+  await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 10_000 });
   const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
   await expect(cancel).toBeVisible({ timeout: 5_000 });
-  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
-  expect(jobId).toBeTruthy();
   await cancel.click();
 
   await expect.poll(async () => (await getJob(page, jobId)).status, { timeout: 10_000 }).toBe("cancelled");
@@ -153,18 +153,15 @@ test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime tas
 });
 
 test("E2E-06 cancellation is idempotent and cannot be resurrected by late completion", async ({ page }) => {
-  const input = page.getByLabel("Опишите задачу");
-  await input.fill("Покажи структуру проекта.");
-  await input.press("Enter");
+  await setFailure(page, "enable", "TOOL_CHECKPOINT");
+  const { jobId } = await submitAgent(page, "Покажи структуру проекта.", e2eWorkspaceId);
+  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
 
-  await expect(page.getByRole("button", { name: "Отменить задачу Agent" })).toBeVisible({ timeout: 5_000 });
-  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   const first = await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`);
   const second = await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`);
   expect(first.ok()).toBeTruthy();
   expect(second.ok()).toBeTruthy();
 
-  await page.waitForTimeout(300);
   const job = await getJob(page, jobId);
   expect(job.status).toBe("cancelled");
   const runtime = await (await page.request.get("/api/runtime/status")).json();
@@ -172,16 +169,12 @@ test("E2E-06 cancellation is idempotent and cannot be resurrected by late comple
 });
 
 test("E2E-07 cancellation during real tool execution aborts before completion", async ({ page }) => {
-  await setFailure(page, "enable", "TOOL_DELAY");
-  const input = page.getByLabel("Опишите задачу");
-  await input.fill("Покажи структуру текущего проекта.");
-  await input.press("Enter");
+  await setFailure(page, "enable", "TOOL_CHECKPOINT");
+  const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.", e2eWorkspaceId);
+  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
 
-  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
-  await expect(cancel).toBeVisible({ timeout: 5_000 });
-  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
-  await page.waitForTimeout(150);
-  await cancel.click();
+  const cancel = await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`);
+  expect(cancel.ok()).toBeTruthy();
 
   await expect.poll(async () => (await getJob(page, jobId)).status, { timeout: 10_000 }).toBe("cancelled");
   const job = await getJob(page, jobId);
