@@ -1137,13 +1137,25 @@ export class AgentLoop {
       };
       if (!result.success) {
         const diagnosis = diagnoseError(result.output);
-        result.error = {
-          code: ERROR_CODE_BY_CATEGORY[diagnosis.category] ?? "TOOL_ERROR",
-          message: result.output.slice(0, 2000),
-          retryable: ["network", "tool", "timeout", "dependency"].includes(diagnosis.category),
-          repairable: !["permission", "cancellation", "timeout", "path"].includes(diagnosis.category),
-          fatal: ["permission", "cancellation"].includes(diagnosis.category),
-        };
+        result.error = result.error
+          ? {
+              ...result.error,
+              code: result.error.code ?? ERROR_CODE_BY_CATEGORY[diagnosis.category] ?? "TOOL_ERROR",
+              message: result.error.message ?? result.output.slice(0, 2000),
+              category: result.error.category ?? diagnosis.category,
+              summary: result.error.summary ?? diagnosis.summary,
+              recoveryStrategy: result.error.recoveryStrategy ?? diagnosis.strategy,
+            }
+          : {
+              code: ERROR_CODE_BY_CATEGORY[diagnosis.category] ?? "TOOL_ERROR",
+              message: result.output.slice(0, 2000),
+              retryable: ["network", "tool", "timeout", "dependency"].includes(diagnosis.category),
+              repairable: !["permission", "cancellation", "timeout", "path"].includes(diagnosis.category),
+              fatal: ["permission", "cancellation"].includes(diagnosis.category),
+              category: diagnosis.category,
+              summary: diagnosis.summary,
+              recoveryStrategy: diagnosis.strategy,
+            };
       }
       previousResults.push({ iteration, tool: plan.tool, input: plan.input, result, toolCallId: step.toolCallId, observedAt: Date.now() });
       if (result.success) markPlanStepCompleted(executionSnapshot.plan, actionPlanStepId, result.output);
