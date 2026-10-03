@@ -160,6 +160,7 @@ export class AgentLoop {
         requestId: this.journalContext?.requestId,
         projectId: this.journalContext?.projectId,
         taskId: this.journalContext?.taskId ?? this.journalContext?.agentRunId,
+        agentJobId: this.journalContext?.agentRunId,
       });
       const finalState: AgentState = result.finalState ?? (result.success ? "COMPLETED" : "FAILED");
       const executionPlan = result.executionPlan ?? createExecutionPlan(intent);
