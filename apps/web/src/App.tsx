@@ -90,7 +90,6 @@ function App() {
   const [previewKey, setПредпросмотрKey] = useState(0);
   const [builderStarted, setBuilderStarted] = useState(false);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
-  const [runtimeTaskId, setRuntimeTaskId] = useState<string | null>(null);
   const [projectTaskMeta, setProjectTaskMeta] = useState<Record<string, { task: string; timestamp: number; status: "queued" | "running" | "completed" | "failed" }>>(() => { try { return JSON.parse(localStorage.getItem("nexum:project-task-meta") || "{}"); } catch { return {}; } });
   const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news" | "diagnostics">(() => {
     const path = window.location.pathname;
@@ -550,9 +549,6 @@ function App() {
       if (!data.jobId) throw new Error(data.error || "API чата не вернул идентификатор задачи");
 
       setChatJobId(data.jobId);
-      const runtimeTask = nexumRuntime.tasks.create({ projectId: targetПроектId, operation: "ai-agent-job", priority: 10 });
-      nexumRuntime.tasks.update(runtimeTask.id, "RUNNING");
-      setRuntimeTaskId(runtimeTask.id);
       setProjectTaskMeta((items) => ({ ...items, [targetПроектId]: { ...(items[targetПроектId] ?? { task: task.trim(), timestamp: Date.now() }), status: "running" } }));
     } catch (error) {
       console.error("[Nexum] Chat job creation failed:", error);
@@ -648,7 +644,6 @@ function App() {
           setПредпросмотрOnline(previewReady);
           setПредпросмотрKey((key) => key + 1);
           setАгентStage("completed");
-          if (runtimeTaskId) nexumRuntime.tasks.update(runtimeTaskId, "COMPLETED", { progress: 1 });
           setChatJobId(null);
           setRuntimeTaskId(null);
           return;
@@ -658,7 +653,6 @@ function App() {
           setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
           setCurrentActivity(data?.job?.error ?? "Agent отменён.");
           setАгентStage("error");
-          if (runtimeTaskId) nexumRuntime.tasks.cancel(runtimeTaskId);
           setChatJobId(null);
           setRuntimeTaskId(null);
           return;
@@ -688,7 +682,6 @@ function App() {
         setApiError(error instanceof Error ? error.message : "Ошибка получения статуса задачи чата");
         setАгентStage("error");
         pushOSEvent("error", "Agent error", error instanceof Error ? error.message : "Не удалось получить статус задачи");
-        if (runtimeTaskId) nexumRuntime.tasks.update(runtimeTaskId, "FAILED", { error: error instanceof Error ? error.message : "Chat job failed" });
         setChatJobId(null);
         setRuntimeTaskId(null);
       }
@@ -699,7 +692,7 @@ function App() {
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [chatJobId, runtimeTaskId]);
+  }, [chatJobId]);
 
   async function connectAIKey() {
     if (!aiApiKey.trim()) return;
