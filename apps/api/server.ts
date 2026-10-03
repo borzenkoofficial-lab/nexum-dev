@@ -193,6 +193,10 @@ async function loadChatJob(id: string, userId: string): Promise<ChatJob | null> 
   return persisted;
 }
 
+function throwIfAgentAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException("Agent task cancelled by user.", "AbortError");
+}
+
 async function runChatJob(
   jobId: string,
   message: string,
@@ -208,6 +212,7 @@ async function runChatJob(
 ) {
   const runtimeTask = runtimeTaskId ? serverRuntime.tasks.get(runtimeTaskId) : undefined;
   if (!runtimeTask) throw new Error("Canonical Runtime Task is unavailable for Agent Job");
+  throwIfAgentAborted(signal);
   const existingJob = await getChatJob(jobId, userId);
   if (!existingJob) { serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
   const job = existingJob.status === "queued" ? await claimChatJob(jobId, userId) : existingJob;
@@ -218,6 +223,8 @@ async function runChatJob(
     return;
   }
   chatJobCache.set(jobId, job);
+  serverRuntime.updateTask(runtimeTask.id, "RUNNING");
+  throwIfAgentAborted(signal);
   let lockedProjectId: string | undefined;
   let lockHeartbeat: ReturnType<typeof setInterval> | undefined;
   let lockHeartbeatResourceId: string | undefined;
@@ -230,8 +237,11 @@ async function runChatJob(
   job.stage = "analyzing";
 
   try {
+    throwIfAgentAborted(signal);
     const project = await getProjectManager(userId).getActiveProject(projectId);
+    throwIfAgentAborted(signal);
     const lockAcquired = await acquireProjectLock(project.id, userId, jobId);
+    throwIfAgentAborted(signal);
     if (!lockAcquired) {
       job.status = "failed";
       job.stage = "error";
@@ -248,7 +258,9 @@ async function runChatJob(
     lockedProjectId = project.id;
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
+    throwIfAgentAborted(signal);
     const checkpoint = await checkpointManager.create(project.id, project.path, `before agent job ${jobId}`);
+    throwIfAgentAborted(signal);
     job.checkpointId = checkpoint.id;
     serverRuntime.updateTask(runtimeTask.id, "WAITING", { checkpointId: checkpoint.id, progress: 0.1 });
     serverRuntime.updateTask(runtimeTask.id, "RUNNING", { progress: 0.2 });
@@ -265,6 +277,7 @@ async function runChatJob(
     const attachmentNames: string[] = [];
     const attachmentContext: string[] = [];
     if (attachments.length) {
+      throwIfAgentAborted(signal);
       await mkdir(attachmentDir, { recursive: true });
       for (const attachment of attachments.slice(0, 5)) {
         const safeName = attachment.name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 120) || "attachment";
@@ -298,6 +311,7 @@ ${attachment.content.slice(0, 80_000)}`);
       message,
       attachmentContext.length ? `ATTACHED FILES:\n${attachmentContext.join("\n\n")}` : "",
     ].filter(Boolean).join("\n\n");
+    throwIfAgentAborted(signal);
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const userGateway = getAIGatewayForUser(userId);
     const agent = new NexumAgent(userGateway, project.path, serverRuntime, { projectId: project.id, taskId: runtimeTask.id });
@@ -372,6 +386,7 @@ ${attachment.content.slice(0, 80_000)}`);
         signal?.addEventListener("abort", () => { clearTimeout(timer); reject(new DOMException("Agent task cancelled", "AbortError")); }, { once: true });
       });
     }
+    throwIfAgentAborted(signal);
     const result = await agentLoop.run(agentMessage, {
       ...(signal ? { signal } : {}),
       ...(provider === undefined ? {} : { provider }),
@@ -1133,8 +1148,14 @@ app.post("/api/chat", async (req, res) => {
 
     await cleanupChatJobs();
     const jobId = randomUUID();
-    const runtimeTask = serverRuntime.createTask({ projectId: typeof projectId === "string" ? projectId : undefined, operation: "chat-job", priority: 10, maxRetries: 1 });
-    serverRuntime.updateTask(runtimeTask.id, "RUNNING");
+    const runtimeTask = serverRuntime.createTask({
+      projectId: typeof projectId === "string" ? projectId : undefined,
+      requestId: getRequestId(req),
+      agentJobId: jobId,
+      operation: "chat-job",
+      priority: 10,
+      maxRetries: 1,
+    });
     const now = Date.now();
     const newJob: ChatJob = {
       id: jobId,
