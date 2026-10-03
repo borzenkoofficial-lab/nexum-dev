@@ -28,6 +28,7 @@ import { TestProjectTool } from "./tools/testProject.js";
 import { buildAgentContext, formatAgentContext } from "./context.js";
 import type { ServerRuntime } from "../runtime/runtime.js";
 import { assertCompleteToolPolicy, validateToolInvocation } from "./toolPolicy.js";
+import { AgentLoop } from "./loop.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -62,23 +63,10 @@ export class NexumAgent implements AgentRuntime {
   }
 
   async handle(task: string, options?: GatewayGenerateOptions): Promise<string> {
-    console.log(`[agent] projectRoot: ${this.projectRoot}`);
-    console.log(`[agent] task: ${task}`);
-    const selection = this.plan(task, []);
-
-    if (!selection) {
-      return this.gateway.generate(task, options);
-    }
-
-    const result = await this.executeTool(selection.tool, selection.input);
-
-    return this.gateway.generate(
-      result.success
-        ? `Инструмент ${selection.tool} выполнен. Результат:
-${result.output}`
-        : `Инструмент ${selection.tool} не выполнен: ${result.output}`,
-      options,
-    );
+    const loop = new AgentLoop(this, this.gateway, undefined, undefined, undefined, undefined, this.runtimeContext);
+    const result = await loop.run(task, options);
+    if (!result.success) throw new Error(result.error ?? "Agent execution failed");
+    return result.finalResponse ?? result.summary?.summary ?? "Задача завершена после проверки.";
   }
 
   getAvailableTools(): string[] {
