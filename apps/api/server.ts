@@ -1273,7 +1273,6 @@ app.post("/api/chat", async (req, res) => {
       getRequestId(req),
       controller.signal,
       runtimeTask.id,
-      e2ePlannerCheckpoint,
     );
 
     return res.status(202).json({
