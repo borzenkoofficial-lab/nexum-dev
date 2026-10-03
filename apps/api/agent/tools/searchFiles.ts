@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { Tool,ToolResult } from "../types.js";
 import { ProjectWorkspace } from "./workspace.js";
 const IGNORED_DIRECTORIES=new Set([".git","node_modules","dist"]);
-const SENSITIVE_FILE=/(^|\\/)(?:\\.env(?:\\..*)?|.*(?:secret|credential|private[-_]?key|id_rsa).*)(?:$)/i;
+const SENSITIVE_FILE=/(^|\/)(?:\.env(?:\..*)?|.*(?:secret|credential|private[-_]?key|id_rsa).*)(?:$)/i;
 export class SearchFilesTool implements Tool {
  name="searchFiles"; description="Searches text inside the active project.";
  constructor(private readonly workspace:ProjectWorkspace){}
