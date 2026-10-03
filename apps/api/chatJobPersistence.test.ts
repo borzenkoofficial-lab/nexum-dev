@@ -57,3 +57,49 @@ test("multiple event persistence operations are settled before terminal transiti
 
   assert.deepEqual(order, ["validation.failed", "repair.started", "terminal"]);
 });
+
+test("failure terminal transition waits for the emitted failure event", async () => {
+  const jobId = "job-persistence-ordering-failed";
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  const persisted: string[] = [];
+
+  const event = enqueueChatJobPersistence(jobId, async () => {
+    await held;
+    persisted.push("agent.validation.failed");
+  });
+  const terminal = (async () => {
+    await waitForChatJobPersistence(jobId);
+    persisted.push("FAILED");
+  })();
+
+  await Promise.resolve();
+  assert.deepEqual(persisted, []);
+  release();
+  await Promise.all([event, terminal]);
+
+  assert.deepEqual(persisted, ["agent.validation.failed", "FAILED"]);
+});
+
+test("cancellation terminal transition waits for the emitted event", async () => {
+  const jobId = "job-persistence-ordering-cancelled";
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  const persisted: string[] = [];
+
+  const event = enqueueChatJobPersistence(jobId, async () => {
+    await held;
+    persisted.push("agent.repair.started");
+  });
+  const terminal = (async () => {
+    await waitForChatJobPersistence(jobId);
+    persisted.push("CANCELLED");
+  })();
+
+  await Promise.resolve();
+  assert.deepEqual(persisted, []);
+  release();
+  await Promise.all([event, terminal]);
+
+  assert.deepEqual(persisted, ["agent.repair.started", "CANCELLED"]);
+});
