@@ -24,18 +24,20 @@ interface ChatPanelProps {
   onProviderChange: (id: string) => void;
   onModelChange: (model: string) => void;
   projectName: string;
+  jobId: string | null;
 }
 
 
 export function ChatPanel({
   message, reply, stage, apiError, messages, attachments, providers, models, provider, model, aiStatus,
   onMessageChange, onSubmit, onCancel, onRetry, onQuickTask, onFilesSelected, onRemoveAttachment, onOpenAgent,
-  onProviderChange, onModelChange, projectName,
+  onProviderChange, onModelChange, projectName, jobId,
 }: ChatPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef<number | null>(null);
   const [modelOpen, setModelOpen] = useState(false);
   const busy = Boolean(stage && !["completed", "error"].includes(stage));
+  const liveJob = Boolean(jobId);
   const selectedProvider = providers.find((item) => item.id === provider);
   const modelList = models.length > 0 ? models : [model];
 
@@ -105,8 +107,8 @@ export function ChatPanel({
         {reply && messages.length === 0 && <div className="reply" aria-live="polite">{reply}</div>}
         <div className={"agent-activity agent-activity-live " + (busy ? "active" : "")} aria-live="polite">
           <span className={"activity-dot " + (busy ? "working" : "")} />
-          <div className="activity-copy"><strong>{busy ? "NEXUM выполняет задачу" : "Готов к следующей задаче"}</strong><span>{busy ? "Откройте Agent справа для деталей" : "Опишите следующую итерацию ниже"}</span></div>
-          <button type="button" onClick={onOpenAgent}>Открыть</button>{busy && <button type="button" className="composer-cancel" onClick={onCancel} aria-label="Отменить задачу Agent">Отменить</button>}
+          <div className="activity-copy"><strong>{liveJob && busy ? "NEXUM выполняет задачу" : "Готов к следующей задаче"}</strong><span>{busy ? "Откройте Agent справа для деталей" : "Опишите следующую итерацию ниже"}</span></div>
+          <button type="button" onClick={onOpenAgent}>Открыть</button>{liveJob && busy && <button type="button" className="composer-cancel" onClick={onCancel} aria-label="Отменить задачу Agent">Отменить</button>}
         </div>
       </div>
 
