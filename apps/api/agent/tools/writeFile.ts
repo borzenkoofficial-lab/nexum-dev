@@ -47,7 +47,8 @@ export class WriteFileTool implements Tool {
       };
     } catch (error) {
       if (error instanceof ProjectPathError || (error instanceof Error && /path must stay inside the active project|project directory/i.test(error.message))) {
-        return { success:false, output:error.message, error:{ code:"PERMISSION_ERROR", message:error.message, retryable:false, repairable:false, fatal:false } };
+        const message = /path must stay inside the active project/i.test(error.message) ? "Path must stay inside the active project directory" : error.message;
+        return { success:false, output:message, error:{ code:"PERMISSION_ERROR", message, retryable:false, repairable:false, fatal:false } };
       }
       return { success:false, output:error instanceof Error ? error.message : "Unable to write file" };
     }
