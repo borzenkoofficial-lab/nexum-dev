@@ -1,12 +1,28 @@
+export type AgentIntentType = "create" | "modify" | "debug" | "refactor" | "analyze" | "configure" | "unknown";
+
+export type AgentPlanStepStatus = "PENDING" | "READY" | "RUNNING" | "COMPLETED" | "FAILED" | "SKIPPED" | "CANCELLED";
+
 export interface ToolResult {
   success: boolean;
   output: string;
+  toolCallId?: string;
+  error?: {
+    code: string;
+    message: string;
+    retryable: boolean;
+  };
+  metadata?: {
+    projectId?: string;
+    taskId?: string;
+    durationMs?: number;
+    exitCode?: number | null;
+  };
 }
 
 export interface Tool {
   name: string;
   description: string;
-  execute(input: string): Promise<ToolResult>;
+  execute(input: string, signal?: AbortSignal): Promise<ToolResult>;
 }
 
 export interface ProductPlan {
@@ -30,6 +46,25 @@ export interface ProductReview {
 }
 
 export type AgentPhase = "analyze" | "plan" | "implement" | "validate" | "repair" | "verify" | "finish";
+
+export interface AgentPlanStep {
+  id: string;
+  description: string;
+  dependencies: string[];
+  status: AgentPlanStepStatus;
+  attempts: number;
+  result?: string;
+}
+
+export interface AgentPlanDocument {
+  planId: string;
+  taskId: string;
+  goal: string;
+  steps: AgentPlanStep[];
+  acceptanceCriteria: string[];
+  risks: string[];
+  createdAt: number;
+}
 
 export interface AgentPlan {
   tool: string;
@@ -56,7 +91,7 @@ export interface AgentRuntime {
   createProductPlan?(task: string, previousResults: AgentToolResult[], options?: AgentModelOptions): Promise<ProductPlan>;
   planWithAI?(task: string, previousResults: AgentToolResult[], options?: AgentModelOptions, productPlan?: ProductPlan): Promise<AgentPlan | null>;
   reviewProduct?(task: string, previousResults: AgentToolResult[], productPlan: ProductPlan, options?: AgentModelOptions): Promise<ProductReview>;
-  executeTool(tool: string, input: string): Promise<ToolResult>;
+  executeTool(tool: string, input: string, signal?: AbortSignal): Promise<ToolResult>;
 }
 
 export interface AgentStep {
@@ -84,4 +119,6 @@ export interface AgentLoopResult {
   finalResponse?: string;
   error?: string;
   errorInfo?: AgentErrorInfo;
+  intent?: import("./intent.js").AgentIntent;
+  plan?: AgentPlanDocument;
 }
