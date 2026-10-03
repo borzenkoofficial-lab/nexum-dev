@@ -209,13 +209,13 @@ export class AIGateway {
     }));
   }
 
-  async getModels(): Promise<Record<string, string[]>> {
+  async getModels(signal?: AbortSignal): Promise<Record<string, string[]>> {
     const models: Record<string, string[]> = {};
 
     for (const provider of this.providers.values()) {
       try {
         models[provider.id] = provider.listModels
-          ? await provider.listModels()
+          ? await provider.listModels(signal)
           : [provider.model];
       } catch {
         models[provider.id] = [provider.model];
@@ -225,7 +225,7 @@ export class AIGateway {
     return models;
   }
 
-  async getStatus(providerId = this.defaultProviderId, model?: string): Promise<AIProviderStatus & { provider: string }> {
+  async getStatus(providerId = this.defaultProviderId, model?: string, signal?: AbortSignal): Promise<AIProviderStatus & { provider: string }> {
     const provider = this.providers.get(providerId);
 
     if (!provider) {
