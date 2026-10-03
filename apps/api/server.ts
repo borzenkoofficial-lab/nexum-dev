@@ -335,7 +335,10 @@ ${attachment.content.slice(0, 80_000)}`);
       attachmentContext.length ? `ATTACHED FILES:\n${attachmentContext.join("\n\n")}` : "",
     ].filter(Boolean).join("\n\n");
     throwIfAgentAborted(signal);
-    console.log("[Nexum] chat job started", jobId, project.id, project.path);
+    if (e2ePlannerCheckpoint) {
+    agentFailureInjection.enableFailure("PLANNER_CHECKPOINT", { projectId: project.id });
+  }
+  console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const userGateway = getAIGatewayForUser(userId);
     const agent = new NexumAgent(userGateway, project.path, serverRuntime, { projectId: project.id, taskId: runtimeTask.id });
     const agentLoop = new AgentLoop(
@@ -1176,6 +1179,7 @@ app.get("/api/projects/:id/preview/status", async (req, res) => {
 });
 
 app.post("/api/chat", async (req, res) => {
+  const e2ePlannerCheckpoint = process.env.NODE_ENV !== "production" && req.get("x-nexum-e2e-planner-checkpoint") === "1";
   const { message, projectId, provider, model, attachments, conversation } = req.body as {
     message?: unknown;
     projectId?: unknown;
