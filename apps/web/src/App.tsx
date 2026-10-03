@@ -90,6 +90,23 @@ function App() {
   const [previewKey, setПредпросмотрKey] = useState(0);
   const [builderStarted, setBuilderStarted] = useState(false);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
+  const chatJobIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (import.meta.env.VITE_E2E === "true") {
+      const testWindow = window as unknown as { __NEXUM_E2E_ACTIVE_CHAT_JOB_ID__?: string | null };
+      testWindow.__NEXUM_E2E_ACTIVE_CHAT_JOB_ID__ = chatJobId;
+    }
+  }, [chatJobId]);
+  const setAuthoritativeChatJobId = (jobId: string | null) => {
+    chatJobIdRef.current = jobId;
+    setChatJobId(jobId);
+  };
+  const clearAuthoritativeChatJobIfOwned = (jobId: string) => {
+    if (chatJobIdRef.current !== jobId) return false;
+    chatJobIdRef.current = null;
+    setChatJobId(null);
+    return true;
+  };
   const [projectTaskMeta, setProjectTaskMeta] = useState<Record<string, { task: string; timestamp: number; status: "queued" | "running" | "completed" | "failed" | "cancelled" }>>(() => { try { return JSON.parse(localStorage.getItem("nexum:project-task-meta") || "{}"); } catch { return {}; } });
   const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news" | "diagnostics">(() => {
     const path = window.location.pathname;
@@ -318,8 +335,8 @@ function App() {
         if (!response.ok || cancelled) return;
         const data = await response.json() as { jobs?: Array<{ id: string; projectId?: string; status?: string; stage?: string; currentMessage?: string }> };
         const job = (data.jobs ?? []).find((item) => (item.status === "queued" || item.status === "running") && (!item.projectId || item.projectId === activeПроектId));
-        if (!job || cancelled) return;
-        setChatJobId(job.id);
+        if (!job || cancelled || chatJobIdRef.current !== null) return;
+        setAuthoritativeChatJobId(job.id);
         setBuilderStarted(true);
         setRightTab("agent");
         setWorkspaceMode("agent");
@@ -421,12 +438,15 @@ function App() {
   }
 
   async function selectПроект(projectId: string): Promise<boolean> {
+    const jobIdAtSelectionStart = chatJobIdRef.current;
     setПроектActionLoading(true);
     try {
       const response = await nexumRuntime.network.fetch(`/api/projects/${projectId}/select`, { method: "POST" });
       if (!response.ok) throw new Error(`API выбора проекта: HTTP ${response.status}`);
-      setChatJobId(null);
-      setАгентStage(null);
+      if (chatJobIdRef.current === jobIdAtSelectionStart) {
+        setAuthoritativeChatJobId(null);
+        setАгентStage(null);
+      }
       setActiveПроектId(projectId);
       setReply("");
       await loadПроектs(projectId);
@@ -501,7 +521,7 @@ function App() {
   }
 
   async function cancelAgent() {
-    const jobId = chatJobId;
+    const jobId = chatJobIdRef.current;
     if (!jobId) return;
     try {
       const response = await nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
@@ -509,8 +529,8 @@ function App() {
       if (!response.ok || !data.success) throw new Error(data.job?.error || `Cancel API: HTTP ${response.status}`);
       setАгентStage("error");
       setCurrentActivity("Agent отменён пользователем.");
-      setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
-      setChatJobId(null);
+      setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "cancelled" } }));
+      clearAuthoritativeChatJobIfOwned(jobId);
       pushOSEvent("info", "Agent cancelled", "Выполнение задачи остановлено пользователем.");
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Не удалось отменить Agent");
@@ -569,7 +589,7 @@ function App() {
       };
       if (!data.jobId) throw new Error(data.error || "API чата не вернул идентификатор задачи");
 
-      setChatJobId(data.jobId);
+      setAuthoritativeChatJobId(data.jobId);
       if (import.meta.env.VITE_E2E === "true") {
         const testWindow = window as unknown as { __NEXUM_E2E_LAST_JOB_ID__?: string; __NEXUM_E2E_RUNTIME_TASK_ID__?: string };
         testWindow.__NEXUM_E2E_LAST_JOB_ID__ = data.jobId;
@@ -617,7 +637,7 @@ function App() {
             }
           : null;
 
-        if (cancelled) return;
+        if (cancelled || chatJobIdRef.current !== activeJobId) return;
 
         if (!response.ok) {
           throw new Error(data?.error || `Chat job API: HTTP ${response.status}`);
@@ -670,7 +690,7 @@ function App() {
           setПредпросмотрOnline(previewReady);
           setПредпросмотрKey((key) => key + 1);
           setАгентStage("completed");
-          setChatJobId(null);
+          clearAuthoritativeChatJobIfOwned(activeJobId);
               return;
         }
 
@@ -678,7 +698,7 @@ function App() {
           setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "cancelled" } }));
           setCurrentActivity(data?.job?.error ?? "Agent отменён.");
           setАгентStage("error");
-          setChatJobId(null);
+          clearAuthoritativeChatJobIfOwned(activeJobId);
             return;
         }
 
@@ -706,7 +726,7 @@ function App() {
         setApiError(error instanceof Error ? error.message : "Ошибка получения статуса задачи чата");
         setАгентStage("error");
         pushOSEvent("error", "Agent error", error instanceof Error ? error.message : "Не удалось получить статус задачи");
-        setChatJobId(null);
+        clearAuthoritativeChatJobIfOwned(activeJobId);
       }
     }
 
@@ -849,7 +869,7 @@ function App() {
         {view !== "home" && <OSSystemChrome
           appName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал NEXUM" : "Диагностика"}
           appIcon={view === "project" ? (activeПроект?.name?.slice(0, 1).toUpperCase() ?? "N") : view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : "⌁"}
-          status={agentStage && !["completed", "error"].includes(agentStage) ? "NEXUM выполняет задачу" : aiStatus?.available ? "AI Core подключён" : "Система готова"}
+          status={aiStatus?.available ? "AI Core подключён" : "Система готова"}
           activeView={view}
           onHome={() => navigate("home")}
           onSearch={() => setPaletteOpen(true)}
@@ -1077,7 +1097,7 @@ function App() {
           <div className="os-workspace-layer" aria-hidden={codeMode}>
             <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}${mobileToolOpen ? " mobile-tool-open" : " mobile-chat-open"}`}>
               <div className="main-column">
-                <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onCancel={() => void cancelAgent()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => { setRightTab("agent"); setMobileToolOpen(true); setWorkspaceMode("agent"); }} onProviderChange={selectAIProvider} onModelChange={setAIModel} />
+                <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} jobId={chatJobId} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onCancel={() => void cancelAgent()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => { setRightTab("agent"); setMobileToolOpen(true); setWorkspaceMode("agent"); }} onProviderChange={selectAIProvider} onModelChange={setAIModel} />
               </div>
               <RightPanel tab={rightTab} onTabChange={(tab) => { setRightTab(tab); setMobileToolOpen(true); setWorkspaceMode(tab); }} onOpenChat={() => setMobileToolOpen(false)} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onRepair={repairLastTask} />
             </div>

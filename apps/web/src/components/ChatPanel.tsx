@@ -24,18 +24,20 @@ interface ChatPanelProps {
   onProviderChange: (id: string) => void;
   onModelChange: (model: string) => void;
   projectName: string;
+  jobId: string | null;
 }
 
 
 export function ChatPanel({
   message, reply, stage, apiError, messages, attachments, providers, models, provider, model, aiStatus,
   onMessageChange, onSubmit, onCancel, onRetry, onQuickTask, onFilesSelected, onRemoveAttachment, onOpenAgent,
-  onProviderChange, onModelChange, projectName,
+  onProviderChange, onModelChange, projectName, jobId,
 }: ChatPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef<number | null>(null);
   const [modelOpen, setModelOpen] = useState(false);
   const busy = Boolean(stage && !["completed", "error"].includes(stage));
+  const liveJob = Boolean(jobId);
   const selectedProvider = providers.find((item) => item.id === provider);
   const modelList = models.length > 0 ? models : [model];
 
@@ -105,15 +107,15 @@ export function ChatPanel({
         {reply && messages.length === 0 && <div className="reply" aria-live="polite">{reply}</div>}
         <div className={"agent-activity agent-activity-live " + (busy ? "active" : "")} aria-live="polite">
           <span className={"activity-dot " + (busy ? "working" : "")} />
-          <div className="activity-copy"><strong>{busy ? "NEXUM выполняет задачу" : "Готов к следующей задаче"}</strong><span>{busy ? "Откройте Agent справа для деталей" : "Опишите следующую итерацию ниже"}</span></div>
-          <button type="button" onClick={onOpenAgent}>Открыть</button>{busy && <button type="button" className="composer-cancel" onClick={onCancel} aria-label="Отменить задачу Agent">Отменить</button>}
+          <div className="activity-copy"><strong>{liveJob && busy ? "NEXUM выполняет задачу" : "Готов к следующей задаче"}</strong><span>{busy ? "Откройте Agent справа для деталей" : "Опишите следующую итерацию ниже"}</span></div>
+          <button type="button" onClick={onOpenAgent}>Открыть</button>{liveJob && <button type="button" className="composer-cancel" onClick={onCancel}>Отменить задачу Agent</button>}
         </div>
       </div>
 
       <form className="message-form" onSubmit={(event) => { event.preventDefault(); handleSubmit(); }}>
         <div className="message-box">
           {attachments.length > 0 && <div className="attachment-strip">{attachments.map((item) => <span className="attachment-chip" key={item.id}>{item.name}<button type="button" aria-label={"Удалить " + item.name} onClick={() => onRemoveAttachment(item.id)}>×</button></span>)}</div>}
-          <textarea value={message} onChange={(event) => onMessageChange(event.target.value)} placeholder="Опишите, что создать или изменить…" aria-label="Опишите задачу" disabled={busy} />
+          <textarea value={message} onChange={(event) => onMessageChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); handleSubmit(); } }} placeholder="Опишите, что создать или изменить…" aria-label="Опишите задачу" disabled={busy} />
           <div className="composer-toolbar">
             <div className="composer-left-actions">
               <button type="button" className="composer-tool" disabled={busy} onClick={() => inputRef.current?.click()}><span>＋</span>Файл</button>

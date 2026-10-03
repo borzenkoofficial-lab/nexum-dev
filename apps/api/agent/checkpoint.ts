@@ -122,7 +122,7 @@ export class CheckpointManager {
     const checkpointRoot = resolve(this.root(projectPath), checkpointId);
     const rawManifest: unknown = JSON.parse(await readFile(resolve(checkpointRoot, "manifest.json"), "utf8"));
     validateCheckpointManifest(rawManifest, projectId, checkpointId);
-    const temp = resolve(checkpointRoot, `agent-state.tmp-${process.pid}`);
+    const temp = resolve(checkpointRoot, `agent-state.tmp-${process.pid}-${randomUUID()}`);
     const target = resolve(checkpointRoot, "agent-state.json");
     await writeFile(temp, JSON.stringify(state, null, 2), "utf8");
     await rename(temp, target);

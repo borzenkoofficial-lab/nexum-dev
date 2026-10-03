@@ -43,8 +43,9 @@ export class MockProvider implements AIProvider {
     if (/You are the NEXUM\.DEV autonomous project builder/i.test(message)) {
       // The first model action performs real project inspection. After that,
       // the canonical AgentLoop completion/validation path takes over.
-      return /listFiles:/i.test(message)
-        ? JSON.stringify({ done: true, finalResponse: "Проверка завершена." })
+      if (/Previous tool results:[\s\S]*searchFiles:/i.test(message)) return JSON.stringify({ done: true, finalResponse: "Проверка завершена." });
+      return /listFiles:\s*\./i.test(message)
+        ? JSON.stringify({ tool: "searchFiles", input: "export" })
         : JSON.stringify({ tool: "listFiles", input: "." });
     }
 

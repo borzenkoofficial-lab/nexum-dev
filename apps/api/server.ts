@@ -27,9 +27,11 @@ import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAu
 import { closeDatabase, pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
+import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
+import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 
 dotenv.config();
 
@@ -202,31 +204,14 @@ function getAIGatewayForUser(userId: string): AIGateway {
   return userAIGateways.get(userId) ?? aiGateway;
 }
 
-const chatJobCache = new Map<string, ChatJob>();
 const chatJobControllers = new Map<string, AbortController>();
-const chatJobPersistQueues = new Map<string, Promise<void>>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
 
 async function persistChatJob(job: ChatJob): Promise<void> {
-  const previous = chatJobPersistQueues.get(job.id) ?? Promise.resolve();
-  const next = previous.then(async () => {
+  await enqueueChatJobPersistence(job.id, async () => {
     const persisted = await updateChatJob(job.id, job.userId, job);
     if (persisted) chatJobCache.set(job.id, persisted);
   });
-  chatJobPersistQueues.set(job.id, next.catch(() => undefined));
-  try {
-    await next;
-  } finally {
-    if (chatJobPersistQueues.get(job.id) === next) chatJobPersistQueues.delete(job.id);
-  }
-}
-
-async function loadChatJob(id: string, userId: string): Promise<ChatJob | null> {
-  const cached = chatJobCache.get(id);
-  if (cached && cached.userId === userId) return cached;
-  const persisted = await getChatJob(id, userId);
-  if (persisted) chatJobCache.set(id, persisted);
-  return persisted;
 }
 
 function throwIfAgentAborted(signal?: AbortSignal): void {
@@ -282,7 +267,9 @@ async function runChatJob(
       job.status = "failed";
       job.stage = "error";
       job.error = "Project is already being modified by another Agent Run.";
-      await failChatJob(jobId, userId, { error: job.error, stage: job.stage });
+      await waitForChatJobPersistence(jobId);
+      const failed = await failChatJob(jobId, userId, { error: job.error, stage: job.stage });
+      syncTerminalChatJobCache(failed);
       serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: job.error });
       void agentHistory.record({ type: "job-rejected-lock", jobId, projectId: project.id, status: "failed", message: job.error });
       return;
@@ -456,7 +443,9 @@ ${attachment.content.slice(0, 80_000)}`);
       job.error = result.error ?? "Agent task cancelled by user.";
       job.validation = result.validation;
       job.telemetry = result.telemetry;
-      await cancelChatJob(jobId, userId, job.error);
+      await waitForChatJobPersistence(jobId);
+      const cancelled = await cancelChatJob(jobId, userId, job.error);
+      syncTerminalChatJobCache(cancelled);
       serverRuntime.cancelTask(runtimeTask.id);
       void agentHistory.record({ type: "job-cancelled", jobId, projectId, provider, model, status: "cancelled", message: job.error });
       return;
@@ -469,7 +458,9 @@ ${attachment.content.slice(0, 80_000)}`);
       job.errorInfo = result.errorInfo;
       void agentHistory.record({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
-      await failChatJob(jobId, userId, { error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, steps: job.steps, productPlan: job.productPlan, stage: job.stage, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry });
+      await waitForChatJobPersistence(jobId);
+      const failed = await failChatJob(jobId, userId, { error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, steps: job.steps, productPlan: job.productPlan, stage: job.stage, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry });
+      syncTerminalChatJobCache(failed);
       return;
     }
 
@@ -488,6 +479,7 @@ ${attachment.content.slice(0, 80_000)}`);
       /npm run build/.test(step.input),
     );
     if (signal?.aborted || (await getChatJob(jobId, userId))?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
+    await waitForChatJobPersistence(jobId);
     const completed = await completeChatJob(jobId, userId, {
       reply: job.reply,
       steps: job.steps,
@@ -500,6 +492,7 @@ ${attachment.content.slice(0, 80_000)}`);
       stage: "completed",
     });
     if (!completed || completed.status !== "completed") throw new DOMException("Agent completion lost a race with cancellation", "AbortError");
+    syncTerminalChatJobCache(completed);
     if (successfulBuild) await stateManager.markBuildSucceeded();
     await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
       try {
@@ -531,7 +524,12 @@ ${attachment.content.slice(0, 80_000)}`);
     job.error = normalizedError.userSafeMessage;
     job.errorCode = normalizedError.code;
     job.errorInfo = { code: normalizedError.code, message: normalizedError.userSafeMessage, retryable: normalizedError.retryable };
-    await failChatJob(jobId, userId, { stage: "error", error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry }).catch((persistenceError) => console.error("[Nexum] failed to persist job exception", persistenceError));
+    await waitForChatJobPersistence(jobId);
+    const failed = await failChatJob(jobId, userId, { stage: "error", error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry }).catch((persistenceError) => {
+      console.error("[Nexum] failed to persist job exception", persistenceError);
+      return null;
+    });
+    syncTerminalChatJobCache(failed);
     void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
     serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: normalizedError.userSafeMessage });
     console.error("[Nexum] chat job failed", jobId, error);
@@ -698,8 +696,9 @@ if (agentFailureControlEnabled) {
     const operation = typeof req.body?.operation === "string" ? req.body.operation : "";
     const name = typeof req.body?.name === "string" ? req.body.name as AgentFailure : undefined;
     if (operation === "reset") agentFailureInjection.resetFailures();
-    else if (operation === "enable" && name) agentFailureInjection.enableFailure(name, { times: Number(req.body?.times) || undefined });
+    else if (operation === "enable" && name) agentFailureInjection.enableFailure(name, { times: Number(req.body?.times) || undefined, projectId: typeof req.body?.projectId === "string" ? req.body.projectId : undefined });
     else if (operation === "disable" && name) agentFailureInjection.disableFailure(name);
+    else if (operation === "release" && name) agentFailureInjection.releaseFailure(name);
     else return res.status(400).json({ success: false, error: "Invalid failure injection operation" });
     return res.json({ success: true, active: agentFailureInjection.list(), diagnostics: agentFailureInjection.diagnostics().slice(-50) });
   });
@@ -866,6 +865,8 @@ app.delete("/api/projects/:id", async (req, res) => {
     return sendProjectError(res, error);
   }
 });
+
+app.use("/api/preview", authMiddleware);
 
 // Static project preview. The agent writes the project files, and the preview
 // renders index.html directly without requiring a separate dev server.
@@ -1290,17 +1291,18 @@ app.post("/api/chat", async (req, res) => {
 app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   const userId = getAuthUser(req).id;
   await cleanupChatJobs();
-  const job = await loadChatJob(req.params.id, userId);
+  const job = await loadChatJob(req.params.id, userId, getChatJob);
   if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired" });
   if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
     return res.json({ success: true, cancelled: job.status === "cancelled", job });
   }
+  await waitForChatJobPersistence(job.id);
   const cancelled = await cancelChatJob(job.id, userId);
   if (!cancelled) {
-    const current = await loadChatJob(job.id, userId);
+    const current = await loadChatJob(job.id, userId, getChatJob);
     return res.json({ success: true, cancelled: current?.status === "cancelled", job: current });
   }
-  chatJobCache.set(job.id, cancelled);
+  syncTerminalChatJobCache(cancelled);
   chatJobControllers.get(job.id)?.abort();
   const runtimeTaskId = job.runtimeTaskId;
   if (runtimeTaskId) serverRuntime.cancelTask(runtimeTaskId);
@@ -1373,12 +1375,10 @@ app.get("/api/chat/jobs", async (req, res) => {
 app.get("/api/chat/jobs/:id", async (req, res) => {
   await cleanupChatJobs();
   const userId = getAuthUser(req).id;
-  const job = await loadChatJob(req.params.id, userId);
+  const job = await loadChatJob(req.params.id, userId, getChatJob);
   if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired" });
   return res.json({ success: true, job });
 });
-
-const webDist = resolve(workspaceRoot, "apps/web/dist");
 
 app.use(express.static(webDist));
 

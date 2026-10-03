@@ -375,6 +375,9 @@ export class AgentLoop {
 
     for (let iteration = 1; iteration <= this.maxIterations; iteration += 1) {
       throwIfAborted(options?.signal);
+      if (agentFailureInjection.consumeFailure("PLANNER_CHECKPOINT", this.journalContext?.projectId)) {
+        await agentFailureInjection.waitForCheckpoint("PLANNER_CHECKPOINT", this.journalContext?.projectId, options?.signal);
+      }
       if (agentFailureInjection.isEnabled("TIMEOUT")) {
         setAgentState("FAILED", "agent.failed", "Injected Agent timeout.");
         options?.signal?.removeEventListener("abort", onAbort);

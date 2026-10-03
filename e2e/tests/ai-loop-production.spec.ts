@@ -1,11 +1,22 @@
 import { test, expect } from "@playwright/test";
 
-async function setFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number) {
+async function setFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number, projectId?: string) {
   const response = await page.request.post("/api/test/agent-failures", {
-    data: { operation, ...(name ? { name } : {}), ...(times ? { times } : {}) },
+    data: { operation, ...(name ? { name } : {}), ...(times ? { times } : {}), ...(projectId ? { projectId } : {}) },
   });
   expect(response.ok()).toBeTruthy();
   return response.json();
+}
+
+async function waitForFailurePhase(page: any, name: string, phase: "consumed" | "released") {
+  await expect.poll(async () => {
+    const response = await page.request.get("/api/test/agent-failures");
+    if (!response.ok()) return false;
+    const data = await response.json();
+    const events = (data.diagnostics ?? []).filter((entry: any) => entry.name === name);
+    const latestEnable = [...events].reverse().find((entry: any) => entry.phase === "enabled");
+    return Boolean(latestEnable && events.some((entry: any) => entry.phase === phase && entry.timestamp >= latestEnable.timestamp && (!latestEnable.projectId || entry.projectId === latestEnable.projectId)));
+  }, { timeout: 5_000 }).toBeTruthy();
 }
 
 async function submitAgent(page: any, message: string, projectId?: string) {
@@ -41,14 +52,16 @@ async function waitForTerminal(page: any, jobId: string, timeout = 20_000) {
   return getJob(page, jobId);
 }
 
+let e2eWorkspaceId = "";
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("nexum:onboarding-complete", "1");
     sessionStorage.clear();
   });
   await page.request.post("/api/test/agent-failures", { data: { operation: "reset" } }).catch(() => {});
-  const workspaceId = await createE2EWorkspace(page);
-  await page.goto("/projects/" + encodeURIComponent(workspaceId));
+  e2eWorkspaceId = await createE2EWorkspace(page);
+  await page.goto("/projects/" + encodeURIComponent(e2eWorkspaceId));
   await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 10_000 });
 });
 
@@ -57,7 +70,6 @@ test.afterEach(async ({ page }) => {
 });
 
 test("E2E-01 user request creates one Agent Job and one canonical Runtime Task", async ({ page }) => {
-  await page.goto("/");
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Покажи структуру текущего проекта.");
   await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
@@ -78,7 +90,6 @@ test("E2E-01 user request creates one Agent Job and one canonical Runtime Task",
 });
 
 test("E2E-02 intent → plan → execution state is persisted", async ({ page }) => {
-  await page.goto("/");
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   const job = await waitForTerminal(page, jobId);
 
@@ -91,7 +102,6 @@ test("E2E-02 intent → plan → execution state is persisted", async ({ page })
 });
 
 test("E2E-03 tool execution is structured and observable", async ({ page }) => {
-  await page.goto("/");
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   const job = await waitForTerminal(page, jobId);
 
@@ -108,7 +118,6 @@ test("E2E-03 tool execution is structured and observable", async ({ page }) => {
 });
 
 test("E2E-04 validation failure is repaired and bounded", async ({ page }) => {
-  await page.goto("/");
   await setFailure(page, "enable", "VALIDATION_FAILURE", 1);
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   const job = await waitForTerminal(page, jobId, 30_000);
@@ -121,15 +130,19 @@ test("E2E-04 validation failure is repaired and bounded", async ({ page }) => {
 });
 
 test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime task", async ({ page }) => {
-  await page.goto("/");
+  await setFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, e2eWorkspaceId);
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
   await input.press("Enter");
 
-  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
-  await expect(cancel).toBeVisible({ timeout: 5_000 });
+  await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   expect(jobId).toBeTruthy();
+  await expect.poll(async () => page.evaluate(() => (window as any).__NEXUM_E2E_ACTIVE_CHAT_JOB_ID__ ?? null), { timeout: 5_000 }).toBe(jobId);
+  const cancel = page.locator(".composer-cancel");
+  await expect(cancel).toHaveCount(1);
+  await expect(cancel).toBeVisible({ timeout: 5_000 });
+  await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
   await cancel.click();
 
   await expect.poll(async () => (await getJob(page, jobId)).status, { timeout: 10_000 }).toBe("cancelled");
@@ -145,19 +158,15 @@ test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime tas
 });
 
 test("E2E-06 cancellation is idempotent and cannot be resurrected by late completion", async ({ page }) => {
-  await page.goto("/");
-  const input = page.getByLabel("Опишите задачу");
-  await input.fill("Покажи структуру проекта.");
-  await input.press("Enter");
+  await setFailure(page, "enable", "TOOL_CHECKPOINT");
+  const { jobId } = await submitAgent(page, "Покажи структуру проекта.", e2eWorkspaceId);
+  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
 
-  await expect(page.getByRole("button", { name: "Отменить задачу Agent" })).toBeVisible({ timeout: 5_000 });
-  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   const first = await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`);
   const second = await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`);
   expect(first.ok()).toBeTruthy();
   expect(second.ok()).toBeTruthy();
 
-  await page.waitForTimeout(300);
   const job = await getJob(page, jobId);
   expect(job.status).toBe("cancelled");
   const runtime = await (await page.request.get("/api/runtime/status")).json();
@@ -165,17 +174,12 @@ test("E2E-06 cancellation is idempotent and cannot be resurrected by late comple
 });
 
 test("E2E-07 cancellation during real tool execution aborts before completion", async ({ page }) => {
-  await page.goto("/");
-  await setFailure(page, "enable", "TOOL_DELAY");
-  const input = page.getByLabel("Опишите задачу");
-  await input.fill("Покажи структуру текущего проекта.");
-  await input.press("Enter");
+  await setFailure(page, "enable", "TOOL_CHECKPOINT");
+  const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.", e2eWorkspaceId);
+  await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
 
-  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
-  await expect(cancel).toBeVisible({ timeout: 5_000 });
-  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
-  await page.waitForTimeout(150);
-  await cancel.click();
+  const cancel = await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`);
+  expect(cancel.ok()).toBeTruthy();
 
   await expect.poll(async () => (await getJob(page, jobId)).status, { timeout: 10_000 }).toBe("cancelled");
   const job = await getJob(page, jobId);
@@ -188,7 +192,6 @@ test("E2E-07 cancellation during real tool execution aborts before completion", 
 });
 
 test("E2E-08 completion gate blocks injected validation failure before final completion", async ({ page }) => {
-  await page.goto("/");
   await setFailure(page, "enable", "VALIDATION_FAILURE", 10);
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   const terminal = await waitForTerminal(page, jobId, 30_000);
@@ -198,7 +201,6 @@ test("E2E-08 completion gate blocks injected validation failure before final com
 });
 
 test("E2E-09 browser reload preserves one Agent Job without duplicate submission", async ({ page }) => {
-  await page.goto("/");
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   await page.reload();
   const final = await waitForTerminal(page, jobId, 30_000);
@@ -210,7 +212,6 @@ test("E2E-09 browser reload preserves one Agent Job without duplicate submission
 });
 
 test("E2E-10 project isolation keeps independent Agent Jobs independent", async ({ page }) => {
-  await page.goto("/");
   const projectNames = ["ai-loop-project-A", "ai-loop-project-B", "ai-loop-project-C"];
   const projects = [];
   for (const name of projectNames) {
@@ -242,7 +243,6 @@ test("E2E-10 project isolation keeps independent Agent Jobs independent", async 
 });
 
 test("E2E-11 concurrent Agent Jobs create isolated Runtime Tasks", async ({ page }) => {
-  await page.goto("/");
   const jobs = await Promise.all([
     submitAgent(page, "Покажи структуру текущего проекта."),
     submitAgent(page, "Покажи структуру текущего проекта."),
@@ -256,7 +256,6 @@ test("E2E-11 concurrent Agent Jobs create isolated Runtime Tasks", async ({ page
 });
 
 test("E2E-12 model failure follows controlled recovery without infinite retries", async ({ page }) => {
-  await page.goto("/");
   await setFailure(page, "enable", "MODEL_FAILURE", 1);
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   const job = await waitForTerminal(page, jobId, 30_000);
@@ -266,7 +265,6 @@ test("E2E-12 model failure follows controlled recovery without infinite retries"
 });
 
 test("E2E-13 network failure uses bounded provider recovery", async ({ page }) => {
-  await page.goto("/");
   await setFailure(page, "enable", "NETWORK_FAILURE", 1);
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   const job = await waitForTerminal(page, jobId, 30_000);
@@ -276,7 +274,6 @@ test("E2E-13 network failure uses bounded provider recovery", async ({ page }) =
 });
 
 test("E2E-14 permanent tool failure reaches FAILED without infinite loop", async ({ page }) => {
-  await page.goto("/");
   await setFailure(page, "enable", "TOOL_FAILURE");
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   const job = await waitForTerminal(page, jobId, 30_000);
@@ -287,7 +284,6 @@ test("E2E-14 permanent tool failure reaches FAILED without infinite loop", async
 });
 
 test("E2E-15 repeated failing actions are detected as LOOP_DETECTED", async ({ page }) => {
-  await page.goto("/");
   await setFailure(page, "enable", "TOOL_FAILURE");
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   const job = await waitForTerminal(page, jobId, 30_000);
@@ -297,7 +293,6 @@ test("E2E-15 repeated failing actions are detected as LOOP_DETECTED", async ({ p
 });
 
 test("E2E-16 final verification is persisted before completion", async ({ page }) => {
-  await page.goto("/");
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   const job = await waitForTerminal(page, jobId, 30_000);
 
@@ -309,7 +304,6 @@ test("E2E-16 final verification is persisted before completion", async ({ page }
 });
 
 test("E2E-17 one transient tool failure enters repair and then completes", async ({ page }) => {
-  await page.goto("/");
   await setFailure(page, "enable", "TOOL_FAILURE", 1);
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   const job = await waitForTerminal(page, jobId, 30_000);
