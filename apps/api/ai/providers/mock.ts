@@ -44,7 +44,7 @@ export class MockProvider implements AIProvider {
       // The first model action performs real project inspection. After that,
       // the canonical AgentLoop completion/validation path takes over.
       return /listFiles:/i.test(message)
-        ? JSON.stringify({ done: true, finalResponse: "Проверка завершена." })
+        ? JSON.stringify({ tool: "searchFiles", input: "export" })
         : JSON.stringify({ tool: "listFiles", input: "." });
     }
 
