@@ -230,6 +230,7 @@ async function runChatJob(
   requestId?: string,
   signal?: AbortSignal,
   runtimeTaskId?: string,
+  e2ePlannerCheckpoint = false,
 ) {
   const runtimeTask = runtimeTaskId ? serverRuntime.tasks.get(runtimeTaskId) : undefined;
   if (!runtimeTask) throw new Error("Canonical Runtime Task is unavailable for Agent Job");
@@ -1277,6 +1278,7 @@ app.post("/api/chat", async (req, res) => {
       getRequestId(req),
       controller.signal,
       runtimeTask.id,
+      e2ePlannerCheckpoint,
     );
 
     return res.status(202).json({
