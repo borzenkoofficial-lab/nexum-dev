@@ -5,7 +5,7 @@ import type { ChildProcess } from "node:child_process";
 export type RuntimeLifecycle="BOOTING"|"READY"|"BUSY"|"DEGRADED"|"RECOVERING"|"SHUTTING_DOWN";
 export type TaskStatus="QUEUED"|"PLANNING"|"RUNNING"|"WAITING"|"VALIDATING"|"RECOVERING"|"COMPLETED"|"FAILED"|"CANCELLED";
 export type ResourceKind="timer"|"process"|"worker"|"stream"|"request"|"subscription";
-export interface RuntimeContext{projectId?:string;taskId?:string;operation?:string}
+export interface RuntimeContext{projectId?:string;taskId?:string;agentJobId?:string;requestId?:string;planId?:string;operation?:string}
 export interface RuntimeTask extends RuntimeContext{id:string;status:TaskStatus;parentTaskId?:string;children:string[];priority:number;progress:number;createdAt:number;startedAt?:number;completedAt?:number;timeoutMs?:number;retryCount:number;maxRetries:number;error?:string;checkpointId?:string}
 export interface RuntimeDiagnostic extends RuntimeContext{timestamp:number;subsystem:string;severity:"info"|"warn"|"error"|"fatal";operation?:string;message:string;error?:string;recoveryAction?:string}
 interface Resource extends RuntimeContext{id:string;kind:ResourceKind;release:()=>void;createdAt:number}
