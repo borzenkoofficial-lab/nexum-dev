@@ -24,7 +24,7 @@ export class WriteFileTool implements Tool {
       if (previous === next) {
         return {
           success: true,
-          output: JSON.stringify({ path: this.workspace.relative(filePath), changed: false, idempotent: true, previousBytes: Buffer.byteLength(next), newBytes: Buffer.byteLength(next), previousSha256: hash(next), newSha256: hash(next) }),
+          output: JSON.stringify({ path: this.workspace.relative(filePath), changed: false, idempotent: true, previousBytes: Buffer.byteLength(next), newBytes: Buffer.byteLength(next), previousSha256: hash(next), newSha256: hash(next), verified: true }),
         };
       }
       await mkdir(dirname(filePath), { recursive:true });
@@ -45,6 +45,11 @@ export class WriteFileTool implements Tool {
           verified: true,
         }),
       };
-    } catch (error) { return { success:false, output:error instanceof Error ? error.message : "Unable to write file" }; }
+    } catch (error) {
+      if (error instanceof ProjectPathError) {
+        return { success:false, output:error.message, error:{ code:"PERMISSION_ERROR", message:error.message, retryable:false, repairable:false, fatal:false } };
+      }
+      return { success:false, output:error instanceof Error ? error.message : "Unable to write file" };
+    }
   }
 }
