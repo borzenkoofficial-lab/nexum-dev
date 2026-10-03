@@ -60,19 +60,19 @@ export class OllamaProvider implements AIProvider {
     return content;
   }
 
-  async listModels(): Promise<string[]> {
-    const data = await this.request<OllamaTagsResponse>("/api/tags", { method: "GET" });
+  async listModels(signal?: AbortSignal): Promise<string[]> {
+    const data = await this.request<OllamaTagsResponse>("/api/tags", { method: "GET", ...(signal ? { signal } : {}) });
     return (data.models ?? [])
       .map((model) => model.name)
       .filter((model): model is string => typeof model === "string" && model.length > 0);
   }
 
-  async getStatus(model = this.model): Promise<AIProviderStatus> {
+  async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
     const startedAt = Date.now();
 
     try {
       const selectedModel = this.validateModel(model);
-      const models = await this.listModels();
+      const models = await this.listModels(signal);
       const modelAvailable = models.some(
         (installedModel) =>
           installedModel === selectedModel ||
