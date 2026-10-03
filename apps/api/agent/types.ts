@@ -202,8 +202,12 @@ export interface AgentErrorInfo {
     | "CONFIG_ERROR"
     | "INTERNAL_ERROR"
     | "VALIDATION_ERROR"
+    | "DEPENDENCY_ERROR"
+    | "PERMISSION_ERROR"
+    | "PROJECT_ERROR"
     | "CANCELLATION"
-    | "TIMEOUT";
+    | "TIMEOUT"
+    | "UNKNOWN";
   message: string;
   retryable: boolean;
   repairable?: boolean;
