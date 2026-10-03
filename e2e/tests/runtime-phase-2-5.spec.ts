@@ -1,5 +1,13 @@
 import { test, expect } from "@playwright/test";
 
+async function setAgentFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number) {
+  const response = await page.request.post("/api/test/agent-failures", {
+    data: { operation, ...(name ? { name } : {}), ...(times ? { times } : {}) },
+  });
+  expect(response.ok()).toBeTruthy();
+  return response.json();
+}
+
 async function createStaticProject(page: any, name: string): Promise<string> {
   let response = await page.request.post("/api/projects", {
     data: { name, description: "Runtime Phase 2.5 E2E", type: "static" },
@@ -23,9 +31,11 @@ test.beforeEach(async ({ page }) => {
     localStorage.setItem("nexum:onboarding-complete", "1");
     sessionStorage.clear();
   });
+  await page.request.post("/api/test/agent-failures", { data: { operation: "reset" } }).catch(() => {});
 });
 
 test.afterEach(async ({ page }, testInfo) => {
+  await page.request.post("/api/test/agent-failures", { data: { operation: "reset" } }).catch(() => {});
   if (testInfo.status === testInfo.expectedStatus) return;
   const status = await page.evaluate(() => (window as any).__NEXUM_E2E__?.status?.()).catch(() => null);
   await testInfo.attach("runtime-diagnostics.json", {
@@ -288,7 +298,61 @@ test.fixme("real browser main thread pressure recovery is NOT VERIFIED yet", asy
   expect(recovered.performance.health).toBe("NORMAL");
 });
 
-test.fixme("agent cancellation E2E is NOT VERIFIED: current UI has no user-cancellation path for an active chat job", async () => {});
+test("Agent Job creation produces exactly one canonical Runtime Task", async ({ page }) => {
+  await page.goto("/");
+  const input = page.getByLabel("Опишите задачу");
+  await input.fill("Покажи статус Git");
+  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+
+  await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
+  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
+  const runtimeTaskId = await page.evaluate(() => (window as any).__NEXUM_E2E_RUNTIME_TASK_ID__);
+  expect(jobId).toBeTruthy();
+  expect(runtimeTaskId).toBeTruthy();
+
+  const jobResponse = await page.request.get(`/api/chat/jobs/${encodeURIComponent(jobId)}`);
+  expect(jobResponse.ok()).toBeTruthy();
+  const jobData = await jobResponse.json();
+  expect(jobData.job.runtimeTaskId).toBe(runtimeTaskId);
+
+  const runtimeResponse = await page.request.get("/api/runtime/status");
+  expect(runtimeResponse.ok()).toBeTruthy();
+  const runtimeData = await runtimeResponse.json();
+  expect(runtimeData.tasks.filter((task: any) => task.operation === "chat-job" && task.id === runtimeTaskId)).toHaveLength(1);
+  expect(runtimeData.tasks.filter((task: any) => task.operation === "ai-agent-job")).toHaveLength(0);
+});
+
+test("real Agent user cancellation aborts the Agent task and leaves terminal state", async ({ page }) => {
+  await page.goto("/");
+  const input = page.getByLabel("Опишите задачу");
+  await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
+  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+
+  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
+  await expect(cancel).toBeVisible({ timeout: 5_000 });
+  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
+  expect(jobId).toBeTruthy();
+
+  await cancel.click();
+
+  await expect.poll(async () => (await (await page.request.get(`/api/chat/jobs/${encodeURIComponent(jobId)}`)).json()).job?.status, { timeout: 8_000 }).toBe("cancelled");
+  const job = await (await page.request.get(`/api/chat/jobs/${encodeURIComponent(jobId)}`)).json();
+  const runtime = await (await page.request.get("/api/runtime/status")).json();
+
+  expect(job.job.status).toBe("cancelled");
+  const task = runtime.tasks.find((item: any) => item.id === job.job.runtimeTaskId);
+  expect(task?.status).toBe("CANCELLED");
+  expect(runtime.tasks.filter((item: any) => item.id === job.job.runtimeTaskId && item.status === "RUNNING")).toHaveLength(0);
+  expect(runtime.resources).toBe(0);
+  expect(runtime.processes).toHaveLength(0);
+
+  const diagnostics = await page.request.get("/api/agent/diagnostics?limit=100");
+  expect(diagnostics.ok()).toBeTruthy();
+  const diagnosticData = await diagnostics.json();
+  expect(diagnosticData.recent.some((entry: any) => entry.type === "job-cancelled" && entry.jobId === jobId)).toBeTruthy();
+});
+
+
 test.fixme("process crash recovery E2E is NOT VERIFIED: current Preview is an Express static route, not a supervised child process", async () => {});
 test.skip("Worker lifecycle is NOT APPLICABLE: no production Worker exists in current NEXUM runtime", async () => {});
 
