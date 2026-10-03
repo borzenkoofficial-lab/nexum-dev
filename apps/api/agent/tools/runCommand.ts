@@ -184,7 +184,7 @@ export class RunCommandTool implements Tool {
       let timedOut = false;
       let outputLimitReached = false;
       const processId = this.runtime?.registerProcess(`runCommand:${command.slice(0, 120)}`, child, { ...this.context, operation: command });
-      const abort = () => { if (child.exitCode === null) child.kill("SIGTERM"); };
+      const abort = () => { if (processId) this.runtime?.stopProcess(processId); else if (child.exitCode === null) child.kill("SIGTERM"); };
       if (signal) { if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true }); }
 
       const append = (target: "stdout" | "stderr", chunk: Buffer): void => {
