@@ -9,7 +9,7 @@ function classify(task: string): AgentIntent["type"] {
   if (/рефактор|refactor|перепиши архитект|restructure/.test(text)) return "refactor";
   if (/измени|добавь|удали|поменя|update|modify|change|add|remove/.test(text)) return "modify";
   if (/настрой|configure|config|подключ|integration|интеграц/.test(text)) return "configure";
-  if (/проанализ|проверь|исслед|analy[sz]e|review|audit/.test(text)) return "analyze";
+  if (/проанализ|проверь|исслед|покажи|показать|статус|analy[sz]e|review|audit/.test(text)) return "analyze";
   return "unknown";
 }
 
