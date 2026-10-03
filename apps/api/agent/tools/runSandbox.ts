@@ -44,8 +44,8 @@ export class RunSandboxTool implements Tool {
         stderr: "",
         durationMs: 0,
         command: input,
-        error: message,
         output: JSON.stringify({ success: false, error: message }),
+        error: { code: "TOOL_ERROR", message, retryable: /timeout|temporar|network|busy/i.test(message), repairable: true, fatal: false },
       };
       return result;
     }
