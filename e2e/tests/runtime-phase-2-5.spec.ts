@@ -96,6 +96,7 @@ test("boot, runtime inspection and browser-visible navigation", async ({ page })
 });
 
 test("real Agent user cancellation aborts the Agent task and releases Runtime ownership", async ({ page }) => {
+  page.on("console", (msg) => { if (msg.text().includes("[Nexum UI]")) console.log(msg.text()); });
   await setFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, runtimeWorkspaceId);
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
