@@ -1,6 +1,19 @@
 export interface ToolResult {
   success: boolean;
   output: string;
+  toolCallId?: string;
+  toolName?: string;
+  error?: {
+    code: string;
+    message: string;
+    retryable: boolean;
+  };
+  metadata?: {
+    projectId?: string;
+    taskId?: string;
+    durationMs?: number;
+    exitCode?: number | null;
+  };
 }
 
 export interface Tool {
@@ -30,6 +43,77 @@ export interface ProductReview {
 }
 
 export type AgentPhase = "analyze" | "plan" | "implement" | "validate" | "repair" | "verify" | "finish";
+export type AgentState =
+  | "IDLE"
+  | "UNDERSTANDING"
+  | "PLANNING"
+  | "EXECUTING"
+  | "OBSERVING"
+  | "VALIDATING"
+  | "REPAIRING"
+  | "VERIFYING"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
+
+export interface AgentIntent {
+  requestId: string;
+  projectId: string;
+  taskId: string;
+  type: "create" | "modify" | "debug" | "refactor" | "analyze" | "configure" | "unknown";
+  objective: string;
+  requirements: string[];
+  constraints: string[];
+  acceptanceCriteria: string[];
+  explicitFiles?: string[];
+  unknowns: string[];
+  confidence?: number;
+}
+
+export type AgentPlanStepStatus = "PENDING" | "READY" | "RUNNING" | "COMPLETED" | "FAILED" | "SKIPPED" | "CANCELLED";
+
+export interface AgentPlanStep {
+  id: string;
+  description: string;
+  dependencies: string[];
+  status: AgentPlanStepStatus;
+  attempts: number;
+  result?: string;
+}
+
+export interface AgentExecutionPlan {
+  planId: string;
+  taskId: string;
+  goal: string;
+  steps: AgentPlanStep[];
+  acceptanceCriteria: string[];
+  risks: string[];
+  createdAt: number;
+  currentStepId?: string;
+}
+
+export interface AgentValidation {
+  passed: boolean;
+  categories: {
+    static: boolean;
+    runtime: boolean;
+    functional: boolean;
+    project: boolean;
+  };
+  checks: Array<{ name: string; passed: boolean; evidence: string }>;
+  failedCriteria: string[];
+}
+
+export interface AgentTelemetry {
+  modelCalls: number;
+  toolCalls: number;
+  steps: number;
+  repairAttempts: number;
+  durationMs: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+}
 
 export interface AgentPlan {
   tool: string;
@@ -41,6 +125,7 @@ export interface AgentPlan {
 export interface AgentModelOptions {
   provider?: string;
   model?: string;
+  signal?: AbortSignal;
 }
 
 export interface AgentToolResult {
@@ -56,7 +141,7 @@ export interface AgentRuntime {
   createProductPlan?(task: string, previousResults: AgentToolResult[], options?: AgentModelOptions): Promise<ProductPlan>;
   planWithAI?(task: string, previousResults: AgentToolResult[], options?: AgentModelOptions, productPlan?: ProductPlan): Promise<AgentPlan | null>;
   reviewProduct?(task: string, previousResults: AgentToolResult[], productPlan: ProductPlan, options?: AgentModelOptions): Promise<ProductReview>;
-  executeTool(tool: string, input: string): Promise<ToolResult>;
+  executeTool(tool: string, input: string, signal?: AbortSignal): Promise<ToolResult>;
 }
 
 export interface AgentStep {
@@ -76,6 +161,11 @@ export interface AgentErrorInfo {
 }
 
 export interface AgentLoopResult {
+  intent?: AgentIntent;
+  executionPlan?: AgentExecutionPlan;
+  validation?: AgentValidation;
+  telemetry?: AgentTelemetry;
+  finalState?: AgentState;
   phase: AgentPhase;
   success: boolean;
   iterations: number;
