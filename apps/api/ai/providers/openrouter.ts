@@ -125,14 +125,14 @@ export class OpenRouterProvider implements AIProvider {
     return [...new Set([preferred])];
   }
 
-  async listModels(): Promise<string[]> {
-    const data = await this.request<OpenRouterModelsResponse>("/models", { method: "GET" });
+  async listModels(signal?: AbortSignal): Promise<string[]> {
+    const data = await this.request<OpenRouterModelsResponse>("/models", { method: "GET", ...(signal ? { signal } : {}) });
     return (data.data ?? [])
       .map((model) => model.id)
       .filter((model): model is string => typeof model === "string" && model.length > 0);
   }
 
-  async getStatus(model = this.model): Promise<AIProviderStatus> {
+  async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
     const startedAt = Date.now();
     if (!this.runtimeApiKey) {
       return {
@@ -143,7 +143,7 @@ export class OpenRouterProvider implements AIProvider {
       };
     }
     try {
-      const models = await this.listModels();
+      const models = await this.listModels(signal);
       return {
         available: true,
         model: this.validateModel(model),
