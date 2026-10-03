@@ -1110,7 +1110,7 @@ export class AgentLoop {
           taskId: this.journalContext?.taskId,
           agentJobId: this.journalContext?.agentRunId,
           durationMs: toolDurationMs,
-          ...(typeof (result as { exitCode?: unknown }).exitCode === "number" ? { exitCode: (result as { exitCode: number }).exitCode } : {}),
+          ...(typeof (result as { exitCode?: unknown }).exitCode === "number" ? { exitCode: (result as unknown as { exitCode: number }).exitCode } : {}),
         },
       };
       if (!result.success) {
