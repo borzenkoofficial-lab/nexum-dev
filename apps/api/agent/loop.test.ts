@@ -104,6 +104,60 @@ test("completes a multi-operation project task", async () => {
   assert.deepEqual(result.steps.map((step) => step.tool), ["listFiles", "runSandbox"]);
 });
 
+test("creates structured Intent and execution plan for every Agent run", async () => {
+  const agent = new NexumAgent(gateway);
+  const runtime = fakeRuntime(
+    (task, previousResults) => agent.plan(task, previousResults),
+    async () => ({ success: true, output: "git status passed" }),
+  );
+  runtime.getAvailableTools = () => agent.getAvailableTools();
+  const result = await new AgentLoop(runtime, gateway).run("Покажи статус Git");
+
+  assert.equal(result.success, true);
+  assert.equal(result.finalState, "COMPLETED");
+  assert.equal(result.intent?.type, "analyze");
+  assert.equal(result.intent?.objective, "Покажи статус Git");
+  assert.ok(result.intent?.requestId);
+  assert.ok(result.executionPlan?.planId);
+  assert.equal(result.executionPlan?.taskId, result.intent?.taskId);
+  assert.equal(result.validation?.passed, true);
+  assert.equal(result.summary?.status, "COMPLETED");
+});
+
+test("does not accept model done without executed and validated evidence", async () => {
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["fake"],
+    plan: () => ({ tool: "", input: "", done: true, finalResponse: "Done" }),
+    executeTool: async () => ({ success: true, output: "should never run" }),
+  };
+  const result = await new AgentLoop(runtime, gateway, 3).run("Анализируй задачу");
+
+  assert.equal(result.success, false);
+  assert.notEqual(result.finalState, "COMPLETED");
+  assert.match(result.error ?? "", /actionable|implementation|validation|completion|plan/i);
+});
+
+test("returns a terminal CANCELLED result and never resurrects execution", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const runtime = fakeRuntime(
+    () => ({ tool: "fake", input: "x" }),
+    async () => ({ success: true, output: "ok" }),
+  );
+
+  const result = await new AgentLoop(runtime, gateway, 3, undefined, undefined, undefined, {
+    requestId: "req-cancel",
+    agentRunId: "job-cancel",
+    taskId: "task-cancel",
+    projectId: "project-cancel",
+  }).run("Отмени задачу", { signal: controller.signal });
+
+  assert.equal(result.success, false);
+  assert.equal(result.finalState, "CANCELLED");
+  assert.equal(result.summary?.status, "CANCELLED");
+  assert.equal(result.steps.length, 0);
+});
+
 test("stops when a tool returns an error", async () => {
   const result = await new AgentLoop(new NexumAgent(gateway), gateway).run(
     "Прочитай файл ../package.json",
