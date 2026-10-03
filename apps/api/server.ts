@@ -373,6 +373,21 @@ ${attachment.content.slice(0, 80_000)}`);
         job.executionPlan = snapshot.plan;
         job.executionState = snapshot;
         job.updatedAt = Date.now();
+        const runtimeStatus = snapshot.state === "VALIDATING"
+          ? "VALIDATING"
+          : snapshot.state === "REPAIRING"
+            ? "RECOVERING"
+            : snapshot.state === "COMPLETED"
+              ? "COMPLETED"
+              : snapshot.state === "FAILED"
+                ? "FAILED"
+                : snapshot.state === "CANCELLED"
+                  ? "CANCELLED"
+                  : "RUNNING";
+        if (runtimeStatus === "CANCELLED") serverRuntime.cancelTask(runtimeTask.id);
+        else serverRuntime.updateTask(runtimeTask.id, runtimeStatus, {
+          progress: Math.min(0.95, snapshot.completedStepIds.length / Math.max(1, snapshot.plan.steps.length)),
+        });
         void persistChatJob(job).catch((error) => console.error("[Nexum] execution state persistence failed", error));
         if (job.checkpointId) {
           void checkpointManager.writeExecutionState(project.id, project.path, job.checkpointId, snapshot)
