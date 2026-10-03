@@ -380,6 +380,18 @@ ${attachment.content.slice(0, 80_000)}`);
     const persistedAfterRun = await getChatJob(jobId, userId);
     if (persistedAfterRun?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
     job.updatedAt = Date.now();
+    if (result.finalState === "CANCELLED") {
+      job.status = "cancelled";
+      job.stage = "error";
+      job.error = result.error ?? "Agent task cancelled by user.";
+      job.executionState = result.finalState;
+      job.validation = result.validation;
+      job.telemetry = result.telemetry;
+      await cancelChatJob(jobId, userId, job.error);
+      serverRuntime.cancelTask(runtimeTask.id);
+      void agentHistory.record({ type: "job-cancelled", jobId, projectId, provider, model, status: "cancelled", message: job.error });
+      return;
+    }
     if (!result.success) {
       job.status = "failed";
       job.stage = "error";
