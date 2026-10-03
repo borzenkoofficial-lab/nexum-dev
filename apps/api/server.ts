@@ -64,7 +64,37 @@ function sendSafeError(res: Response, error: unknown, requestId: string, fallbac
 const app = express();
 void recoverStaleChatJobs(0).catch((error) => console.error("[Nexum] stale Agent recovery failed", error));
 serverRuntime.start();
-app.use((req, _res, next) => { const requestId = getRequestId(req); const started = Date.now(); _res.on("finish", () => serverRuntime.record("NETWORK", _res.statusCode >= 500 ? "error" : "info", "HTTP request completed", { operation: req.method + " " + req.path }, _res.statusCode >= 500 ? new Error("HTTP " + _res.statusCode) : undefined)); void requestId; void started; next(); });
+app.use((req, _res, next) => {
+  const requestId = getRequestId(req);
+  const started = Date.now();
+  _res.on("finish", () => {
+    const operation = req.method + " " + req.originalUrl;
+    serverRuntime.record(
+      "NETWORK",
+      _res.statusCode >= 500 ? "error" : "info",
+      "HTTP request completed",
+      { operation },
+      _res.statusCode >= 500 ? new Error("HTTP " + _res.statusCode) : undefined,
+    );
+    if (req.path === "/index.html" || req.originalUrl.includes("/index.html")) {
+      void stat(webIndex)
+        .then((details) => console.error("[Nexum] index request diagnostic", {
+          requestId, operation, status: _res.statusCode,
+          cwd: process.cwd(), nodeEnv: process.env.NODE_ENV ?? "undefined",
+          workspaceRoot, webDist, webIndex, indexExists: details.isFile(),
+          indexSize: details.size, durationMs: Date.now() - started,
+        }))
+        .catch((error) => console.error("[Nexum] index request diagnostic", {
+          requestId, operation, status: _res.statusCode,
+          cwd: process.cwd(), nodeEnv: process.env.NODE_ENV ?? "undefined",
+          workspaceRoot, webDist, webIndex, indexExists: false,
+          durationMs: Date.now() - started,
+          statError: error instanceof Error ? error.message : String(error),
+        }));
+    }
+  });
+  next();
+});
 const configuredProvider = process.env.AI_PROVIDER?.toLowerCase();
 const e2eMockAI = process.env.NEXUM_E2E_MOCK_AI === "true" && process.env.NODE_ENV === "test";
 const defaultProvider = e2eMockAI && configuredProvider === "mock"
@@ -87,6 +117,8 @@ if (!defaultProvider) {
   throw new Error("NEXUM AI is not configured. Set AI_PROVIDER to a real provider or configure a real provider API key. Mock AI is disabled.");
 }
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const webDist = resolve(workspaceRoot, "apps/web/dist");
+const webIndex = resolve(webDist, "index.html");
 const projectManagers = new Map<string, ProjectManager>();
 
 function getProjectManager(userId: string): ProjectManager {
@@ -1345,8 +1377,6 @@ app.get("/api/chat/jobs/:id", async (req, res) => {
   if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired" });
   return res.json({ success: true, job });
 });
-
-const webDist = resolve(workspaceRoot, "apps/web/dist");
 
 app.use(express.static(webDist));
 
