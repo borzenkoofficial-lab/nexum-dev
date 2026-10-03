@@ -1168,6 +1168,7 @@ app.post("/api/chat", async (req, res) => {
       userId: getAuthUser(req).id,
       projectId: typeof projectId === "string" ? projectId : undefined,
       runtimeTaskId: runtimeTask.id,
+      requestId: getRequestId(req),
     };
     try {
       await createChatJob(newJob);
