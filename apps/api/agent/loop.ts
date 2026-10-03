@@ -39,6 +39,21 @@ const MAX_DURATION_MS = 15 * 60 * 1000;
 // The budget is based on requested max tokens, so a long agent run cannot
 // silently accumulate several independent per-call limits.
 const DEFAULT_TASK_TOKEN_BUDGET = 18_000;
+const ERROR_CODE_BY_CATEGORY: Record<string, AgentErrorInfo["code"] | string> = {
+  typescript: "BUILD_ERROR",
+  syntax: "VALIDATION_ERROR",
+  dependency: "BUILD_ERROR",
+  build: "BUILD_ERROR",
+  runtime: "RUNTIME_ERROR",
+  path: "TOOL_ERROR",
+  tool: "TOOL_ERROR",
+  network: "NETWORK_ERROR",
+  permission: "AUTH_ERROR",
+  validation: "VALIDATION_ERROR",
+  cancellation: "CANCELLATION",
+  timeout: "TIMEOUT",
+  unknown: "INTERNAL_ERROR",
+};
 const MAX_RESULT_LENGTH = 8_000;
 const MAX_CONTEXT_RESULTS = 6;
 const MAX_ACTION_FINGERPRINT_LENGTH = 1800;
@@ -1101,11 +1116,11 @@ export class AgentLoop {
       if (!result.success) {
         const diagnosis = diagnoseError(result.output);
         result.error = {
-          code: diagnosis.category === "network" ? "NETWORK_ERROR" : diagnosis.category === "permission" ? "PERMISSION_ERROR" : diagnosis.category === "validation" ? "VALIDATION_ERROR" : "TOOL_ERROR",
+          code: ERROR_CODE_BY_CATEGORY[diagnosis.category] ?? "TOOL_ERROR",
           message: result.output.slice(0, 2000),
-          retryable: diagnosis.priority >= 3,
-          repairable: diagnosis.priority <= 2,
-          fatal: diagnosis.priority === 1 && diagnosis.category === "permission",
+          retryable: ["network", "tool", "timeout", "dependency"].includes(diagnosis.category),
+          repairable: !["permission", "cancellation", "timeout"].includes(diagnosis.category),
+          fatal: ["permission", "cancellation"].includes(diagnosis.category),
         };
       }
       previousResults.push({ iteration, tool: plan.tool, input: plan.input, result, toolCallId: step.toolCallId, observedAt: Date.now() });
