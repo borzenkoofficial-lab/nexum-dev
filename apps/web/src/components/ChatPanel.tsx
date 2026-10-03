@@ -113,7 +113,7 @@ export function ChatPanel({
       <form className="message-form" onSubmit={(event) => { event.preventDefault(); handleSubmit(); }}>
         <div className="message-box">
           {attachments.length > 0 && <div className="attachment-strip">{attachments.map((item) => <span className="attachment-chip" key={item.id}>{item.name}<button type="button" aria-label={"Удалить " + item.name} onClick={() => onRemoveAttachment(item.id)}>×</button></span>)}</div>}
-          <textarea value={message} onChange={(event) => onMessageChange(event.target.value)} placeholder="Опишите, что создать или изменить…" aria-label="Опишите задачу" disabled={busy} />
+          <textarea value={message} onChange={(event) => onMessageChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); handleSubmit(); } }} placeholder="Опишите, что создать или изменить…" aria-label="Опишите задачу" disabled={busy} />
           <div className="composer-toolbar">
             <div className="composer-left-actions">
               <button type="button" className="composer-tool" disabled={busy} onClick={() => inputRef.current?.click()}><span>＋</span>Файл</button>
