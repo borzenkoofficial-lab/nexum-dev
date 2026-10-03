@@ -35,7 +35,6 @@ export default defineConfig({
         NEXUM_DATABASE_URL: "postgresql://nexum:nexum@127.0.0.1:5432/nexum",
         NEXUM_DB_SSL: "false",
         NEXUM_E2E_AGENT_DELAY_MS: "0",
-        NEXUM_E2E_TOOL_DELAY_MS: "1500",
       },
     },
     {
