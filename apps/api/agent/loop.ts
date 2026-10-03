@@ -1,6 +1,7 @@
 function phaseAfterIteration(current: AgentPhase, hasHistory: boolean): AgentPhase {
   if (!hasHistory) return "analyze";
-  return current === "repair" ? "repair" : "plan";
+  // Repair always re-enters concrete execution: REPAIRING -> EXECUTING.
+  return current === "repair" ? "implement" : current === "verify" ? "finish" : "plan";
 }
 
 import type { AIGateway } from "../ai/gateway.js";
@@ -343,27 +344,12 @@ export class AgentLoop {
       if (phase === next) return;
       const stateByPhase: Record<AgentPhase, AgentState> = { analyze: "UNDERSTANDING", plan: "PLANNING", implement: "EXECUTING", validate: "VALIDATING", repair: "REPAIRING", verify: "VERIFYING", finish: "COMPLETED" };
       let nextState = stateByPhase[next];
-      // Existing tool-first recovery paths can begin with a direct execution
-      // (e.g. git status, readFile) without a separate user-visible planning turn.
-      if (next === "implement" && executionSnapshot.state === "UNDERSTANDING") {
-        setAgentState("PLANNING");
-      }
-      // A validation command is still an execution action; move through EXECUTING
-      // before entering VALIDATING so terminal-state rules remain strict.
-      if (next === "validate" && executionSnapshot.state === "PLANNING") {
-        setAgentState("EXECUTING");
-      }
-      // Once the agent has started, "analyze" means gathering more context while
-      // executing/re-observing, not resurrecting the initial UNDERSTANDING state.
-      if (next === "analyze" && executionSnapshot.state !== "IDLE" && executionSnapshot.state !== "UNDERSTANDING") {
-        nextState = "EXECUTING";
-      }
-      if (next === "plan" && executionSnapshot.state === "VALIDATING") {
-        // Validation failures re-enter planning through the explicit repair state;
-        // this prevents VALIDATING -> PLANNING from becoming an implicit edge.
-        nextState = "REPAIRING";
-      }
-      setAgentState(nextState);
+      if (next === "analyze" && executionSnapshot.state !== "IDLE" && executionSnapshot.state !== "UNDERSTANDING") nextState = "EXECUTING";
+      if (next === "implement" && executionSnapshot.state === "UNDERSTANDING") setAgentState("PLANNING");
+      if (next === "validate" && executionSnapshot.state === "PLANNING") setAgentState("EXECUTING");
+      if (next === "plan" && executionSnapshot.state === "VALIDATING") nextState = "REPAIRING";
+      const changed = executionSnapshot.state === nextState || transitionAgentState(executionSnapshot, nextState, (warning, severity = "warn") => this.onEvent?.({ id: ++eventId, timestamp: Date.now(), iteration: 0, type: "failed", name: "agent.failed", phase, message: warning, errorCode: severity === "error" ? "INTERNAL_ERROR" : undefined }));
+      if (!changed) throw new Error(`Invalid Agent state transition ${executionSnapshot.state} -> ${nextState}`);
       phase = next;
       taskState.phase = next;
       publishExecution();
@@ -913,21 +899,31 @@ export class AgentLoop {
           addObservation("runtimeValidation: " + runtimeCheck.output);
         }
         const lastObserved = previousResults.filter((item) => item.tool !== "runtimeValidation").slice(-1)[0];
-        const hasExecuted = Boolean(lastObserved);
         const lastActionPassed = Boolean(lastObserved?.result.success);
+        const hasExecuted = executionSnapshot.completedStepIds.includes("execute");
+        const planStepCreated = executionSnapshot.plan.steps.some((step) => step.id === "plan" && step.status === "COMPLETED");
+        const lastMutationIndex = previousResults.reduce((index, item, currentIndex) =>
+          ["writeFile", "patchFile", "scaffoldProject"].includes(item.tool) && item.result.success ? currentIndex : index, -1);
+        const lastValidationIndex = previousResults.reduce((index, item, currentIndex) => {
+          const validationTool = ["validateProject", "testProject"].includes(item.tool) ||
+            (item.tool === "runCommand" && /npm run (build|test|lint|typecheck)/.test(item.input)) || item.tool === "runSandbox";
+          return validationTool && item.result.success ? currentIndex : index;
+        }, -1);
+        const postChangeValidationPassed = lastMutationIndex < 0 || lastValidationIndex > lastMutationIndex;
         const reviewPassed = !productPlan || !builderTask || previousResults.some(
           (item) => item.tool === "productReview" && item.result.success,
         );
         const noCriticalErrors = !previousResults.some(
-          (item) => !item.result.success && /permission|security|fatal|credential|secret/i.test(item.result.output),
+          (item) => !item.result.success && (item.result.error?.fatal === true || /permission|security|credential|secret/i.test(item.result.output)),
         );
+        const acceptanceCriteriaSatisfied = reviewPassed && (intent.type === "analyze" ? lastActionPassed : postChangeValidationPassed);
         const completionGate = evaluateCompletionGate({
-          hasPlan: executionSnapshot.plan.steps.some((step) => step.status === "COMPLETED" && ["plan", "execute", "observe", "validate", "verify"].includes(step.id)),
+          hasPlan: planStepCreated,
           hasExecuted,
-          validationPassed: gatePassed && lastActionPassed && runtimeValidationPassed,
-          acceptanceCriteriaSatisfied: reviewPassed,
+          validationPassed: gatePassed && lastActionPassed && runtimeValidationPassed && postChangeValidationPassed,
+          acceptanceCriteriaSatisfied,
           noCriticalErrors,
-          projectStateConsistent: lastActionPassed,
+          projectStateConsistent: postChangeValidationPassed,
         });
         if (!completionGate.ok) {
           gatePassed = false;
@@ -1384,7 +1380,7 @@ export class AgentLoop {
         })
         .filter(Boolean)
         .slice(-6);
-      return `Готово. Проект реально изменён. Файлов изменено: ${writes}.${changedFiles.length ? ` Изменения: ${changedFiles.join(", ")}.` : ""} Production-сборка: ${builds > 0 ? "проверена" : "не запускалась"}. Откройте Preview и AI Activity.`;
+      return `Проверка завершена. Проект изменён и прошёл финальный validation gate. Файлов изменено: ${writes}.${changedFiles.length ? ` Изменения: ${changedFiles.join(", ")}.` : ""} Production-сборка: ${builds > 0 ? "проверена" : "не запускалась"}. Откройте Preview и AI Activity.`;
     }
 
     const summary = compactAgentHistory(results)
