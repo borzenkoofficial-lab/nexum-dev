@@ -132,14 +132,12 @@ export class ProjectStateManager {
         // .nexum is runtime metadata/checkpoint storage, not project source.
         // Excluding it prevents transient atomic checkpoint temp files from
         // entering source-revision snapshots while they are being replaced.
-        for (const entry of entries) {
-          if ([".git", "node_modules", "dist", ".nexum"].includes(entry.name)) continue;
-          const full = resolve(dir, entry.name);
-          if (entry.isDirectory()) result.push(...await walk(full));
-          else result.push(full.slice(root.length + 1).replace(/\\/g, "/"));
-        }
-        return result;
-      };
+        if ([".git", "node_modules", "dist", ".nexum"].includes(entry.name)) continue;
+        const full = resolve(dir, entry.name);
+        if (entry.isDirectory()) result.push(...await walk(full));
+        else result.push(full.slice(root.length + 1).replace(/\\/g, "/"));
+      }
+      return result;
       return result;
     };
     return (await walk(root)).sort();
