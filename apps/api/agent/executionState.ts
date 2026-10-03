@@ -41,6 +41,7 @@ export function createExecutionPlan(intent: AgentIntent): AgentExecutionPlan {
   return {
     planId: crypto.randomUUID(),
     taskId: intent.taskId,
+    agentJobId: intent.agentJobId,
     goal: intent.objective,
     steps,
     acceptanceCriteria: [...intent.acceptanceCriteria],
