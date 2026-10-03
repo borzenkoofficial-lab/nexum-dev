@@ -46,18 +46,20 @@ async function ensureTable(): Promise<void> {
       CREATE TABLE IF NOT EXISTS agent_chat_jobs (
         id UUID PRIMARY KEY,
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        project_id UUID NULL,
+        project_id TEXT NULL,
         status TEXT NOT NULL CHECK (status IN ('queued','running','completed','failed','cancelled')),
         created_at BIGINT NOT NULL,
         updated_at BIGINT NOT NULL,
         payload JSONB NOT NULL DEFAULT '{}'::jsonb
       );
+      ALTER TABLE agent_chat_jobs ALTER COLUMN project_id TYPE TEXT USING project_id::text;
+      ALTER TABLE agent_project_locks ALTER COLUMN project_id TYPE TEXT USING project_id::text;
       ALTER TABLE agent_chat_jobs DROP CONSTRAINT IF EXISTS agent_chat_jobs_status_check;
       ALTER TABLE agent_chat_jobs ADD CONSTRAINT agent_chat_jobs_status_check CHECK (status IN ('queued','running','completed','failed','cancelled'));
       CREATE INDEX IF NOT EXISTS agent_chat_jobs_user_updated_idx
         ON agent_chat_jobs(user_id, updated_at DESC);
       CREATE TABLE IF NOT EXISTS agent_project_locks (
-        project_id UUID PRIMARY KEY,
+        project_id TEXT PRIMARY KEY,
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         job_id UUID NOT NULL,
         expires_at TIMESTAMPTZ NOT NULL
