@@ -16,7 +16,7 @@ export interface GitHubToolResult extends ToolResult {
   success: boolean;
   operation: GitHubOperation | string;
   data?: unknown;
-  error?: string;
+  githubError?: string;
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -235,7 +235,7 @@ export class GitHubTool implements Tool {
     return {
       success: false,
       operation,
-      error,
+      githubError: error,
       output: JSON.stringify({ success: false, operation, error }),
     };
   }
