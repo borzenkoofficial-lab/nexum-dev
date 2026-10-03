@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, rm, stat, writeFile, cp } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, stat, writeFile, cp, rename } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -115,6 +115,17 @@ export class CheckpointManager {
     };
     await writeFile(resolve(checkpointRoot, "manifest.json"), JSON.stringify(checkpoint, null, 2), "utf8");
     return checkpoint;
+  }
+
+  async writeExecutionState(projectId: string, projectPath: string, checkpointId: string, state: unknown): Promise<void> {
+    if (!/^[a-z0-9-]+$/i.test(checkpointId)) throw new Error("Invalid checkpoint id");
+    const checkpointRoot = resolve(this.root(projectPath), checkpointId);
+    const rawManifest: unknown = JSON.parse(await readFile(resolve(checkpointRoot, "manifest.json"), "utf8"));
+    validateCheckpointManifest(rawManifest, projectId, checkpointId);
+    const temp = resolve(checkpointRoot, `agent-state.tmp-${process.pid}`);
+    const target = resolve(checkpointRoot, "agent-state.json");
+    await writeFile(temp, JSON.stringify(state, null, 2), "utf8");
+    await rename(temp, target);
   }
 
   async list(projectId: string, projectPath: string): Promise<ProjectCheckpoint[]> {
