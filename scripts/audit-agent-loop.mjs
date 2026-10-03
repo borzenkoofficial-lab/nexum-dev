@@ -41,7 +41,7 @@ const canonical = {
 };
 console.log(JSON.stringify({ canonical, scannedFiles: files.length, counts, hitFiles }, null, 2));
 
-const serverLoops = hitFiles.filter((item) => /apps\/api\/.*(loop|agent)/i.test(item.file) && /AgentLoop/.test(readFileSync(join(root, item.file), 'utf8'))).map((item) => item.file);
+const serverLoops = hitFiles.filter((item) => /apps\/api\/.*(loop|agent)/i.test(item.file) && !/\.test\.(?:ts|tsx|js|mjs)$/.test(item.file) && /export class AgentLoop\b/.test(readFileSync(join(root, item.file), 'utf8'))).map((item) => item.file);
 if (!serverLoops.includes(canonical.agentLoop)) { console.error('Canonical AgentLoop implementation not found.'); process.exit(2); }
 if (serverLoops.filter((p) => p.startsWith('apps/api/')).length > 1) {
   console.error('Potential duplicate server AgentLoop implementations:', serverLoops);
