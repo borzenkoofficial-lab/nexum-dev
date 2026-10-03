@@ -58,13 +58,13 @@ export const agentFailureInjection = {
         resolve: () => {
           signal?.removeEventListener("abort", abort);
           waiters.delete(wrapped);
-          if (waiters.size === 0) checkpointWaiters.delete(name);
+          if (waiters.size === 0) checkpointWaiters.delete(key);
           resolve();
         },
         reject: (error: unknown) => {
           signal?.removeEventListener("abort", abort);
           waiters.delete(wrapped);
-          if (waiters.size === 0) checkpointWaiters.delete(name);
+          if (waiters.size === 0) checkpointWaiters.delete(key);
           reject(error);
         },
       };
@@ -86,8 +86,15 @@ export const agentFailureInjection = {
   },
   disableFailure(name: AgentFailure) {
     if (!active) return;
+    const entry = enabled.get(name);
     enabled.delete(name);
-    record(name, false);
+    for (const [key, waiters] of checkpointWaiters) {
+      if (key.startsWith(name + ":")) {
+        for (const waiter of [...waiters]) waiter.resolve();
+        checkpointWaiters.delete(key);
+      }
+    }
+    record(name, false, undefined, entry?.projectId);
   },
   resetFailures() {
     if (!active) return;
