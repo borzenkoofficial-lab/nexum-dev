@@ -30,3 +30,20 @@ test("CheckpointManager excludes protected runtime dependencies", async () => {
     const checkpoint = await manager.create("p2", root);
     assert.equal(checkpoint.files.some((file) => file.path.startsWith("node_modules/")), false);
   });
+
+test("CheckpointManager serializes concurrent execution-state writes without temp-file races", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nexum-checkpoint-concurrency-"));
+    await writeFile(join(root, "app.txt"), "stable", "utf8");
+    const manager = new CheckpointManager();
+    const checkpoint = await manager.create("concurrent", root, "concurrency");
+    const states = Array.from({ length: 12 }, (_, index) => ({ writer: index, state: "VALIDATING", timestamp: Date.now() + index }));
+
+    await Promise.all(states.map((state) => manager.writeExecutionState("concurrent", root, checkpoint.id, state)));
+
+    const persisted = await manager.readExecutionState("concurrent", root, checkpoint.id) as { writer?: number; state?: string };
+    assert.ok(persisted);
+    assert.equal(persisted.state, "VALIDATING");
+    assert.equal(typeof persisted.writer, "number");
+    assert.ok(persisted.writer! >= 0 && persisted.writer! < states.length);
+    await assert.rejects(readFile(join(root, ".nexum", "checkpoints", checkpoint.id, "agent-state.tmp"), "utf8"));
+  });
