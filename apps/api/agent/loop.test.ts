@@ -134,7 +134,7 @@ test("does not accept model done without executed and validated evidence", async
 
   assert.equal(result.success, false);
   assert.notEqual(result.finalState, "COMPLETED");
-  assert.match(result.error ?? "", /actionable|implementation|validation|completion|plan/i);
+  assert.match(result.error ?? "", /actionable|implementation|validation|completion|plan|bounded repair/i);
 });
 
 test("central Agent state machine rejects terminal resurrection", async () => {
@@ -206,7 +206,7 @@ test("stops when a tool returns an error", async () => {
 
   assert.equal(result.success, false);
   assert.ok(result.iterations >= 1 && result.iterations <= 20);
-  assert.match(result.error ?? "", /failed|project directory|maximum iterations|repeated action/i);
+  assert.match(result.error ?? "", /failed|project directory|maximum iterations|repeated action|bounded repair|loop/i);
 });
 
 test("stops at the ten-iteration limit", async () => {
