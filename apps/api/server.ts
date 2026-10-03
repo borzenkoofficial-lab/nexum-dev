@@ -336,7 +336,7 @@ ${attachment.content.slice(0, 80_000)}`);
           ];
         }
         void persistChatJob(job).catch((error) => console.error("[Nexum] job event persistence failed", error));
-        void agentHistory.record({ type: "agent-event", jobId, projectId, provider, model, iteration: event.iteration, tool: event.tool, status: event.name ?? event.type, message: event.message });
+        void agentHistory.record({ type: "agent-event", jobId, projectId, provider, model, requestId: event.requestId ?? requestId, taskId: event.taskId ?? runtimeTask.id, planId: event.planId, iteration: event.iteration, tool: event.tool, status: event.name ?? event.type, message: event.message });
       },
       (snapshot) => {
         job.agentIntent = snapshot.intent;
