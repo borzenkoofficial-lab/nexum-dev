@@ -55,12 +55,22 @@ export function createExecutionPlan(intent: AgentIntent): AgentExecutionPlan {
   };
 }
 
+export const TERMINAL_AGENT_STATES: readonly AgentState[] = ["COMPLETED", "FAILED", "CANCELLED"];
+
+export function isTerminalAgentState(state: AgentState): boolean {
+  return TERMINAL_AGENT_STATES.includes(state);
+}
+
 export function transitionAgentState(
   snapshot: AgentExecutionSnapshot,
   next: AgentState,
   record: (message: string, severity?: "warn" | "error") => void,
 ): boolean {
   if (snapshot.state === next) return true;
+  if (isTerminalAgentState(snapshot.state)) {
+    record(`Terminal Agent state cannot transition ${snapshot.state} -> ${next}`, "error");
+    return false;
+  }
   if (!AGENT_STATE_TRANSITIONS[snapshot.state].includes(next)) {
     record(`Invalid Agent state transition ${snapshot.state} -> ${next}`, "error");
     return false;
@@ -88,8 +98,12 @@ export function setPlanStep(
   const step = plan.steps.find((item) => item.id === id);
   if (!step) return;
   step.status = status;
-  step.attempts += status === "RUNNING" ? 1 : 0;
+  if (status === "RUNNING") {
+    step.attempts += 1;
+    step.startedAt ??= Date.now();
+  }
   if (result) step.result = result.slice(0, 1600);
+  if (["COMPLETED", "FAILED", "SKIPPED", "CANCELLED"].includes(status)) step.completedAt = Date.now();
   plan.currentStepId = id;
 }
 
