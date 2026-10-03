@@ -34,6 +34,7 @@ export interface ChatJob {
   telemetry?: unknown;
   userId: string;
   projectId?: string;
+  runtimeTaskId?: string;
 }
 
 let initialized: Promise<void> | null = null;
