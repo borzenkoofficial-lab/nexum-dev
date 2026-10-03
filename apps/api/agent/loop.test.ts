@@ -137,6 +137,47 @@ test("does not accept model done without executed and validated evidence", async
   assert.match(result.error ?? "", /actionable|implementation|validation|completion|plan/i);
 });
 
+test("central Agent state machine rejects terminal resurrection", async () => {
+  const { transitionAgentState } = await import("./executionState.js");
+  const { createAgentIntent } = await import("./intent.js");
+  const intent = createAgentIntent("Проверить проект", { requestId: "r", projectId: "p", taskId: "t", agentJobId: "j" });
+  const snapshot: any = {
+    intent,
+    state: "IDLE",
+    plan: (await import("./executionState.js")).createExecutionPlan(intent),
+    observations: [],
+    completedStepIds: [],
+    repairAttempts: 0,
+    startedAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  assert.equal(transitionAgentState(snapshot, "UNDERSTANDING", () => undefined), true);
+  assert.equal(transitionAgentState(snapshot, "PLANNING", () => undefined), true);
+  assert.equal(transitionAgentState(snapshot, "FAILED", () => undefined), true);
+  assert.equal(transitionAgentState(snapshot, "RUNNING" as any, () => undefined), false);
+  assert.equal(snapshot.state, "FAILED");
+});
+
+test("completion gate requires validation, execution and consistent state", async () => {
+  const { evaluateCompletionGate } = await import("./executionState.js");
+  assert.equal(evaluateCompletionGate({
+    hasPlan: true,
+    hasExecuted: true,
+    validationPassed: false,
+    acceptanceCriteriaSatisfied: true,
+    noCriticalErrors: true,
+    projectStateConsistent: true,
+  }).ok, false);
+  assert.equal(evaluateCompletionGate({
+    hasPlan: true,
+    hasExecuted: true,
+    validationPassed: true,
+    acceptanceCriteriaSatisfied: true,
+    noCriticalErrors: true,
+    projectStateConsistent: true,
+  }).ok, true);
+});
+
 test("returns a terminal CANCELLED result and never resurrects execution", async () => {
   const controller = new AbortController();
   controller.abort();
@@ -417,4 +458,45 @@ test("does not finish an automotive site when generated content is construction-
   const result = await new AgentLoop(runtime, gateway).run("Сделай сайт по ремонту авто");
   assert.equal(domainValidationSeen, true);
   assert.equal(result.success, true);
+});
+
+test("detects alternating failing tool loops", async () => {
+  let calls = 0;
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["a", "b"],
+    plan: (_task, previousResults) => ({ tool: previousResults.length % 2 === 0 ? "a" : "b", input: "same" }),
+    executeTool: async () => { calls += 1; return { success: false, output: "transient tool failure" }; },
+  };
+  const result = await new AgentLoop(runtime, gateway, 8).run("alternate tools");
+  assert.equal(result.success, false);
+  assert.equal(result.finalState, "FAILED");
+  assert.equal(result.error, "LOOP_DETECTED");
+  assert.equal(calls, 4);
+});
+
+test("cancellation returns the last canonical execution snapshot", async () => {
+  const controller = new AbortController();
+  let callbackSnapshot: any;
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["fake"],
+    plan: () => ({ tool: "fake", input: "x" }),
+    executeTool: async (_tool, _input, signal) => {
+      await new Promise<void>((resolve, reject) => {
+        if (signal?.aborted) return reject(new DOMException("Aborted", "AbortError"));
+        signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+      });
+    },
+  };
+  const promise = new AgentLoop(runtime, gateway, 8, undefined, undefined, undefined, {
+    requestId: "req-cancel-snapshot",
+    agentRunId: "job-cancel-snapshot",
+    taskId: "task-cancel-snapshot",
+    projectId: "project-cancel-snapshot",
+  }, snapshot => { callbackSnapshot = snapshot; }).run("cancel during action", { signal: controller.signal });
+  await new Promise(resolve => setTimeout(resolve, 10));
+  controller.abort();
+  const result = await promise;
+  assert.equal(result.finalState, "CANCELLED");
+  assert.equal(result.executionPlan?.planId, callbackSnapshot?.plan.planId);
+  assert.deepEqual(result.intent?.projectId, "project-cancel-snapshot");
 });
