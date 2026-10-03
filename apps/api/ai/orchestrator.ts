@@ -37,7 +37,7 @@ export class AIOrchestrator {
     const selected = await this.registry.select(ROLE_REQUIREMENTS[role], {
       ...(explicitProvider ? { provider: explicitProvider } : {}),
       ...(requested ? { model: requested } : {}),
-    });
+    }, options?.signal);
 
     if (requested && !selected) {
       throw new Error(`Selected model does not satisfy the ${role} capability contract: ${requested}`);
