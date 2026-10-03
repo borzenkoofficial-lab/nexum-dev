@@ -137,3 +137,24 @@ export function createTelemetry(startedAt: number, modelCalls: number, toolCalls
     durationMs: Date.now() - startedAt,
   };
 }
+
+
+export interface CompletionGateInput {
+  hasPlan: boolean;
+  hasExecuted: boolean;
+  validationPassed: boolean;
+  acceptanceCriteriaSatisfied: boolean;
+  noCriticalErrors: boolean;
+  projectStateConsistent: boolean;
+}
+
+export function evaluateCompletionGate(input: CompletionGateInput): { ok: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  if (!input.hasPlan) reasons.push("execution plan is missing");
+  if (!input.hasExecuted) reasons.push("no execution step completed");
+  if (!input.validationPassed) reasons.push("validation did not pass");
+  if (!input.acceptanceCriteriaSatisfied) reasons.push("acceptance criteria are not satisfied");
+  if (!input.noCriticalErrors) reasons.push("critical errors remain");
+  if (!input.projectStateConsistent) reasons.push("project state is inconsistent");
+  return { ok: reasons.length === 0, reasons };
+}
