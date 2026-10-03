@@ -864,9 +864,18 @@ export class AgentLoop {
           }
         }
 
+        let runtimeValidationPassed = true;
+        let runtimeValidationEvidence = "Runtime validation not required for this task.";
+        if (builderTask && this.runtime.validateRuntime) {
+          const runtimeCheck = await this.runtime.validateRuntime(options?.signal);
+          runtimeValidationPassed = runtimeCheck.success;
+          runtimeValidationEvidence = runtimeCheck.output.slice(0, 1600);
+          previousResults.push({ iteration, tool: "runtimeValidation", input: ".", result: runtimeCheck, observedAt: Date.now() });
+          addObservation("runtimeValidation: " + runtimeCheck.output);
+        }
         const lastObserved = [...previousResults].reverse()[0];
-        const hasExecuted = previousResults.length > 0;
-        const lastActionPassed = Boolean(lastObserved?.result.success);
+        const hasExecuted = previousResults.some((item) => item.tool !== "runtimeValidation");
+        const lastActionPassed = Boolean(previousResults.filter((item) => item.tool !== "runtimeValidation").slice(-1)[0]?.result.success);
         const reviewPassed = !productPlan || !builderTask || previousResults.some(
           (item) => item.tool === "productReview" && item.result.success,
         );
@@ -889,6 +898,7 @@ export class AgentLoop {
           { name: "tool execution", passed: hasExecuted, evidence: `toolCalls=${previousResults.length}` },
           { name: "last action", passed: lastActionPassed, evidence: lastObserved ? `${lastObserved.tool}: ${lastObserved.result.success ? "success" : "failure"}` : "no action" },
           { name: "build", passed: !builderTask || !projectHasBuildScript(previousResults) || previousResults.some((item) => item.tool === "runCommand" && item.input === "npm run build" && item.result.success), evidence: "latest build must pass after changes" },
+          { name: "runtime", passed: runtimeValidationPassed, evidence: runtimeValidationEvidence },
           { name: "tests", passed: !builderTask || !availableTools.includes("testProject") || previousResults.some((item) => item.tool === "testProject" && item.result.success), evidence: "applicable project smoke checks" },
           { name: "project/domain", passed: !builderTask || taskState.verified.domain, evidence: taskState.verified.domain ? "domain verified" : "domain not verified" },
           { name: "acceptance criteria", passed: reviewPassed, evidence: reviewPassed ? "criteria verified" : "product review evidence missing" },
