@@ -78,7 +78,7 @@ export class TestProjectTool implements Tool {
       child.on("close", (code) => { if (processId) this.runtime?.completeProcess(processId); signal?.removeEventListener("abort", abort); resolveResult({
         success: code === 0,
         output: (stage + " exit=" + (code ?? "unknown") + "\n" + stdout + "\n" + stderr).slice(-16000),
-      })); });
+      }); });
     });
   }
 }
