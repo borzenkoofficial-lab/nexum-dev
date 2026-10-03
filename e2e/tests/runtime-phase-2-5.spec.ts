@@ -32,6 +32,9 @@ test.beforeEach(async ({ page }) => {
     sessionStorage.clear();
   });
   await page.request.post("/api/test/agent-failures", { data: { operation: "reset" } }).catch(() => {});
+  const workspaceId = await createStaticProject(page, "runtime-agent-workspace-" + Date.now());
+  await page.goto("/projects/" + encodeURIComponent(workspaceId));
+  await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 10_000 });
 });
 
 test.afterEach(async ({ page }, testInfo) => {
