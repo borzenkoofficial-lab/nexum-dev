@@ -342,7 +342,23 @@ export class AgentLoop {
     const transition = (next: AgentPhase) => {
       if (phase === next) return;
       const stateByPhase: Record<AgentPhase, AgentState> = { analyze: "UNDERSTANDING", plan: "PLANNING", implement: "EXECUTING", validate: "VALIDATING", repair: "REPAIRING", verify: "VERIFYING", finish: "COMPLETED" };
-      setAgentState(stateByPhase[next]);
+      let nextState = stateByPhase[next];
+      // Existing tool-first recovery paths can begin with a direct execution
+      // (e.g. git status, readFile) without a separate user-visible planning turn.
+      if (next === "implement" && executionSnapshot.state === "UNDERSTANDING") {
+        setAgentState("PLANNING");
+      }
+      // A validation command is still an execution action; move through EXECUTING
+      // before entering VALIDATING so terminal-state rules remain strict.
+      if (next === "validate" && executionSnapshot.state === "PLANNING") {
+        setAgentState("EXECUTING");
+      }
+      // Once the agent has started, "analyze" means gathering more context while
+      // executing/re-observing, not resurrecting the initial UNDERSTANDING state.
+      if (next === "analyze" && executionSnapshot.state !== "IDLE" && executionSnapshot.state !== "UNDERSTANDING") {
+        nextState = "EXECUTING";
+      }
+      setAgentState(nextState);
       phase = next;
       taskState.phase = next;
       publishExecution();
