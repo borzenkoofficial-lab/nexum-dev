@@ -804,11 +804,14 @@ export class AgentLoop {
       }
       seenActions.add(actionKey);
 
-      emit({ iteration, type: "tool-start", tool: plan.tool, message: this.describeToolStart(plan.tool, plan.input) });
+      setAgentState("EXECUTING", "agent.tool.started", this.describeToolStart(plan.tool, plan.input));
+      markStepRunning("execute");
+      emit({ iteration, type: "tool-start", name: "agent.tool.started", tool: plan.tool, message: this.describeToolStart(plan.tool, plan.input) });
       const fingerprint = this.actionFingerprint(plan.tool, plan.input);
       actionAttempts.set(fingerprint, (actionAttempts.get(fingerprint) ?? 0) + 1);
       seenActions.add(fingerprint);
       const toolStartedAt = Date.now();
+      throwIfAborted(options?.signal);
       let result: AgentToolResult["result"];
       try {
         result = await this.runtime.executeTool(plan.tool, plan.input, options?.signal);
@@ -817,6 +820,7 @@ export class AgentLoop {
         const normalized = toNexumError(error, "TOOL_ERROR", "Инструмент агента завершился с ошибкой.");
         result = { success: false, output: normalized.userSafeMessage };
       }
+      if (options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
       const toolDurationMs = Date.now() - toolStartedAt;
       const step: AgentStep = {
         iteration,
@@ -827,6 +831,13 @@ export class AgentLoop {
       steps.push(step);
       this.onStep?.(step);
       previousResults.push({ iteration, tool: plan.tool, input: plan.input, result });
+      setAgentState("OBSERVING", "agent.observation.created", `Observed ${plan.tool}: ${result.success ? "success" : "failure"}.`);
+      markPlanStepCompleted(executionSnapshot.plan, "execute", `${plan.tool}: ${result.success ? "success" : "failure"}`);
+      markPlanStepCompleted(executionSnapshot.plan, "observe", result.output);
+      if (!executionSnapshot.completedStepIds.includes("execute")) executionSnapshot.completedStepIds.push("execute");
+      if (!executionSnapshot.completedStepIds.includes("observe")) executionSnapshot.completedStepIds.push("observe");
+      publishExecution();
+      addObservation(`${plan.tool}: ${result.output}`);
       const runtimeRoot = this.runtime instanceof Object && "projectRoot" in this.runtime ? (this.runtime as { projectRoot?: string }).projectRoot : undefined;
       if (runtimeRoot) {
         const errorInfo = result.success ? undefined : diagnoseError(result.output);
@@ -885,6 +896,9 @@ export class AgentLoop {
         message: result.success ? this.describeToolSuccess(plan.tool, result.output) : this.describeToolError(plan.tool, result.output),
       });
       if (!result.success) {
+        executionSnapshot.repairAttempts += 1;
+        markStepRunning("observe");
+        emit({ iteration, type: "thinking", name: "agent.repair.started", phase: "repair", message: "Ошибка исполнения обнаружена; запускаю bounded repair path." });
         const diagnosis = diagnoseError(result.output);
         emit({
           iteration,
