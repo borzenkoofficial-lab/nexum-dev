@@ -27,10 +27,10 @@ export function OSSystemChrome({ appName, appIcon = "N", status = "Систем�
 
   return (
     <>
-      <header className="nx-system-chrome" aria-label="NEXUM OS system bar">
+      <header className="nx-system-chrome" aria-label="NEXUM workspace navigation">
         <div className="nx-system-left">
-          <button type="button" className="nx-system-brand" onClick={onHome} aria-label="Открыть рабочий стол NEXUM OS">
-            <span>N</span><strong>NEXUM OS</strong>
+          <button type="button" className="nx-system-brand" onClick={onHome} aria-label="Открыть NEXUM Workspace">
+            <span>N</span><strong>NEXUM</strong>
           </button>
           <span className="nx-system-divider" />
           <div className="nx-system-app">
@@ -70,7 +70,7 @@ export function OSSystemChrome({ appName, appIcon = "N", status = "Систем�
         </div>
       )}
 
-      <nav className="nx-mobile-system-nav" aria-label="NEXUM OS mobile navigation">
+      <nav className="nx-mobile-system-nav" aria-label="NEXUM workspace navigation">
         <button type="button" className={activeView === "home" ? "active" : ""} onClick={onHome}><span>⌂</span><b>Домой</b></button>
         <button type="button" onClick={onNewProject}><span>＋</span><b>Проект</b></button>
         <button type="button" onClick={onSearch}><span>⌕</span><b>Поиск</b></button>
