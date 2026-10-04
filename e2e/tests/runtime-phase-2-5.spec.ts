@@ -191,7 +191,11 @@ test("network cancellation race leaves no active request or task", async ({ page
 
 test("preview health failure is bounded and recovers when real preview is available", async ({ page }) => {
   const projectId = await createStaticProject(page, "runtime-preview-e2e");
-  await page.request.post(`/api/projects/${encodeURIComponent(projectId)}/select`);
+  // Project selection through the API does not change the browser's active-project
+  // React state. Navigate through the real workspace route so PreviewManager is
+  // attached to the same project whose preview is being verified.
+  await page.goto("/projects/" + encodeURIComponent(projectId));
+  await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 10_000 });
   await page.waitForFunction(() => {
     const status = (window as any).__NEXUM_E2E__?.status?.();
     return Boolean(status && status.preview.state !== "STOPPED");
