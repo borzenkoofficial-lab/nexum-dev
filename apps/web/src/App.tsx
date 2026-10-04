@@ -13,6 +13,9 @@ import { DiagnosticsPage } from "./components/DiagnosticsPage";
 import { RightPanel } from "./components/RightPanel";
 import { OSDesktop } from "./components/OSDesktop";
 import { BuilderShell } from "./components/BuilderShell";
+import { BuilderChat } from "./components/BuilderChat";
+import { BuilderTools } from "./components/BuilderTools";
+import { BuilderCode } from "./components/BuilderCode";
 import { NexumApplicationManager } from "./components/NexumApplicationManager";
 import { NexumOSEventCenter, type NexumOSEventItem } from "./components/NexumOSEventCenter";
 import { OSSystemChrome } from "./components/OSSystemChrome";
@@ -1065,41 +1068,44 @@ function App() {
           agentStage={agentStage}
           onToolChange={(tool) => {
             if (tool === "code") { setCodeMode(true); setProjectMode("code"); return; }
-            setCodeMode(false);
-            setRightTab(tool);
-            setMobileToolOpen(true);
-            setProjectMode(tool);
+            setCodeMode(false); setRightTab(tool as "preview" | "files" | "agent");
+            setMobileToolOpen(true); setProjectMode(tool);
           }}
-          onClose={() => {
-            setProjectWindowMinimizedByProject((items) => { const next = { ...items }; delete next[activeПроектId]; return next; });
-            setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId));
-            navigate("home");
-          }}
+          onClose={() => { setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId)); navigate("home"); }}
           onConnect={() => setConnectorModal("Интеграция проекта")}
           onShare={async () => {
             const url = window.location.origin + "/api/preview/" + activeПроектId + "/index.html";
             try { await navigator.clipboard.writeText(url); setNotice("Ссылка на предпросмотр скопирована"); } catch { setNotice(url); }
           }}
-          onOpenPreview={() => {
-            const url = "/api/preview/" + activeПроектId + "/index.html";
-            window.open(url, "_blank", "noopener,noreferrer");
-            setNotice("Предпросмотр открыт в новой вкладке");
-          }}
+          onOpenPreview={() => { window.open("/api/preview/" + activeПроектId + "/index.html", "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }}
         >
-        <div className={`os-workspace-stage ${codeMode ? "is-code" : "is-builder"}`}>
-          <div className="os-workspace-layer" aria-hidden={codeMode}>
-            <div className={`workspace ${builderStarted ? "builder-started" : "builder-idle"}${mobileToolOpen ? " mobile-tool-open" : " mobile-chat-open"}`}>
-              <div className="main-column">
-                <ChatPanel projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel} aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} jobId={chatJobId} messages={conversation} attachments={pendingAttachments} onMessageChange={setMessage} onSubmit={() => void sendMessage()} onCancel={() => void cancelAgent()} onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask} onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))} onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))} onOpenAgent={() => { setRightTab("agent"); setMobileToolOpen(true); setWorkspaceMode("agent"); }} onProviderChange={selectAIProvider} onModelChange={setAIModel} />
-              </div>
-              <RightPanel tab={rightTab} onTabChange={(tab) => { setRightTab(tab); setMobileToolOpen(true); setWorkspaceMode(tab); }} onOpenChat={() => setMobileToolOpen(false)} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId} previewOnline={previewOnline} previewKey={previewKey} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} jobId={chatJobId} stage={agentStage} activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity} problems={problems} productPlan={productPlan} onRepair={repairLastTask} />
+          {codeMode ? (
+            <BuilderCode projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline}
+              onRefresh={() => setПредпросмотрKey((key) => key + 1)} onClose={() => { setCodeMode(false); setProjectMode("files"); }} />
+          ) : (
+            <div className="nx-builder-grid">
+              <BuilderChat
+                projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel}
+                aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} jobId={chatJobId}
+                messages={conversation} attachments={pendingAttachments}
+                onMessageChange={setMessage} onSubmit={() => void sendMessage()} onCancel={() => void cancelAgent()}
+                onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask}
+                onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))}
+                onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))}
+                onOpenAgent={() => { setRightTab("agent"); setMobileToolOpen(true); setProjectMode("agent"); }}
+                onProviderChange={selectAIProvider} onModelChange={setAIModel}
+              />
+              <BuilderTools
+                tab={rightTab} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId}
+                previewOnline={previewOnline} previewKey={previewKey} stage={agentStage} jobId={chatJobId}
+                activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity}
+                problems={problems} productPlan={productPlan}
+                onTabChange={(tab) => { setRightTab(tab); setProjectMode(tab); setMobileToolOpen(true); }}
+                onRefresh={() => setПредпросмотрKey((key) => key + 1)} onRepair={repairLastTask} onOpenChat={() => { setMobileToolOpen(false); setProjectMode("preview"); }}
+              />
             </div>
-          </div>
-          <div className="os-workspace-layer os-workspace-code" aria-hidden={!codeMode}>
-            <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} onClose={() => { setCodeMode(false); setProjectMode("files"); }} />
-          </div>
-        </div>
-        </BuilderShell>
+          )}
+        </BuilderShell>erShell>
         )}
       </main>
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
