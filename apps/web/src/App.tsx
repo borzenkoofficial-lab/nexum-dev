@@ -1,5 +1,6 @@
 import "./App.css";
 import "./nexum-os.css";
+import "./nexum-builder.css";
 import { NexumWelcome } from "./components/NexumWelcome";
 import { useEffect, useRef, useState } from "react";
 import { ChatPanel } from "./components/ChatPanel";
