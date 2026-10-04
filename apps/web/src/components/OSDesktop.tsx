@@ -4,6 +4,7 @@ import type { Project } from "./types";
 import "../nexum-desktop-v3.css";
 import "../nexum-desktop-v4.css";
 import "../nexum-liquid-glass.css";
+import "../nexum-workspace.css";
 
 interface OSDesktopProps {
   projects: Project[];
@@ -117,19 +118,19 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
   };
 
   return (
-    <section className="nexum-os-desktop" aria-label="NEXUM OS Desktop" onMouseMove={handlePointerMove} onContextMenu={handleDesktopContextMenu} onClick={() => desktopMenu && setDesktopMenu(null)}>
+    <section className="nexum-os-desktop" aria-label="NEXUM Workspace" onMouseMove={handlePointerMove} onContextMenu={handleDesktopContextMenu} onClick={() => desktopMenu && setDesktopMenu(null)}>
       <div className="os-menubar">
-        <div className="os-brand"><span>N</span><strong>NEXUM OS</strong></div>
+        <div className="os-brand"><span>N</span><strong>NEXUM</strong></div>
         <div className="os-menu-center"><span>Workspace</span><span>Window</span><span>Help</span></div>
         <div className="os-system">
-          <span>{active.length} projects</span><i /><span>AI Ready</span>
+          <span>{active.length} projects</span><i /><span>Workspace ready</span>
           <button type="button" className="os-clock-menu" onClick={() => setCalendarOpen((value) => !value)} aria-expanded={calendarOpen}>
             <b>{time}</b><small>{capitalDate}</small>
           </button>
           <button type="button" className="os-control-center" onClick={() => setControlCenterOpen((v) => !v)} aria-expanded={controlCenterOpen}>•••</button>
           <button type="button" className="os-search-button" onClick={() => setLauncherOpen(true)} aria-label="Open NEXUM Search">⌕</button>
-          {onLaunchWelcome && <button type="button" className="os-welcome-button" onClick={(event) => { event.stopPropagation(); onLaunchWelcome(); }} aria-label="Запустить приветствие NEXUM OS" title="Запустить приветствие NEXUM OS"><span>✦</span><small>Hello</small></button>}
-          {onToggleOS && <button type="button" className={"os-power-button" + (osEnabled ? " on" : "")} onClick={(event) => { event.stopPropagation(); onToggleOS(); }} aria-label={osEnabled ? "Выключить NEXUM OS" : "Включить NEXUM OS"} title={osEnabled ? "Выключить NEXUM OS" : "Включить NEXUM OS"}><span>⏻</span></button>}
+          {onLaunchWelcome && <button type="button" className="os-welcome-button" onClick={(event) => { event.stopPropagation(); onLaunchWelcome(); }} aria-label="Открыть приветствие NEXUM" title="Открыть приветствие NEXUM"><span>✦</span><small>Hello</small></button>}
+          {onToggleOS && <button type="button" className={"os-power-button" + (osEnabled ? " on" : "")} onClick={(event) => { event.stopPropagation(); onToggleOS(); }} aria-label={osEnabled ? "Выключить workspace shell" : "Включить workspace shell"} title={osEnabled ? "Выключить workspace shell" : "Включить workspace shell"}><span>⏻</span></button>}
         </div>
         {controlCenterOpen && (
           <div className="os-control-popover" role="dialog" aria-label="Control Center">
@@ -200,7 +201,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
       <div className="os-desktop-content">
         <div className="os-desktop-topline">
           <div className="os-desktop-location"><span className="os-location-dot" /> NEXUM Workspace</div>
-          <div className="os-desktop-status"><span>{active.length} projects</span><span className="status-live"><i /> AI Core Ready</span></div>
+          <div className="os-desktop-status"><span>{active.length} projects</span><span className="status-live"><i /> Workspace ready</span></div>
         </div>
 
         <div className="os-desktop-icons" aria-label="Desktop applications">
@@ -251,7 +252,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
         )}
       </div>
 
-      <div className="os-dock" aria-label="NEXUM OS Dock">
+      <div className="os-dock" aria-label="NEXUM workspace actions">
         <button type="button" className="os-dock-item" onClick={() => launch("projects")} title="Projects"><span className="os-app-glyph light"><AppIcon name="grid" /></span></button>
         <button type="button" className="os-dock-item" onClick={() => launch("agent")} title="AI Agent"><span className="os-app-glyph dark"><AppIcon name="spark" /></span></button>
         <span className="os-dock-separator" />
