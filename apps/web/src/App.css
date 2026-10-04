@@ -58,3 +58,26 @@ button:disabled{cursor:default;opacity:.5}
 .nx-system-app-icon,.nx-system-status,.nx-system-icon-button,.nx-system-clock{display:none!important}.nx-system-chrome{height:54px!important;background:#fff!important;border-bottom:1px solid var(--border)!important;box-shadow:none!important}.nx-system-nav{margin-left:auto!important}.nx-system-nav button{font-size:10px!important}.nx-mobile-system-nav span{display:none!important}.nx-system-divider{height:16px!important;background:var(--border)!important}.nx-system-app{gap:0!important}.nx-system-app small{display:none!important}.nx-app-titlebar{background:#fff!important;border-bottom:1px solid var(--border)!important;box-shadow:none!important}.nx-app-window-icon,.nx-app-window-state{display:none!important}.nx-system-calendar{border:1px solid var(--border)!important;box-shadow:0 12px 32px rgba(0,0,0,.07)!important}
 @media(max-width:900px){.integrations-page{padding:28px 18px 60px}.integrations-hero{display:block}.integration-hero-state{margin-top:18px;width:max-content}.engine-grid,.external-grid{grid-template-columns:repeat(2,1fr)}.integration-models{grid-template-columns:1fr}.integration-command-strip{flex-wrap:wrap}.nx-system-nav{display:none!important}}
 @media(max-width:560px){.integrations-page{padding:22px 14px 50px}.integrations-hero h1{font-size:28px}.engine-grid,.external-grid{grid-template-columns:1fr}.integration-section-heading{display:block}.integration-section-heading>span{display:block;margin-top:8px}.integration-footer{display:block}.integration-footer .integration-status{margin-top:8px}.model-flow{flex-wrap:wrap}}
+
+
+/* Global UI contract: one surface language across every NEXUM screen */
+html,body,#root{min-height:100%;background:var(--bg);color:var(--text)}
+body{margin:0;overflow-x:hidden}
+button,input,textarea,select{font:inherit}
+button{color:inherit}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #b8b8bd;outline-offset:2px}
+::selection{background:#e5e5e8;color:#171719}
+*{scrollbar-width:thin;scrollbar-color:#cfcfd3 transparent}
+*::-webkit-scrollbar{width:7px;height:7px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:#d1d1d5;border:2px solid transparent;background-clip:padding-box;border-radius:8px}
+input::placeholder,textarea::placeholder{color:#a0a0a5;opacity:1}
+hr{border:0;border-top:1px solid var(--border)}
+table{border-collapse:collapse}
+img,svg,video,canvas{max-width:100%}
+[hidden]{display:none!important}
+@media(max-width:700px){
+  .diagnostics-hero h1,.news-hero-editorial h1,.integrations-hero h1{letter-spacing:-.035em}
+  .nx-system-chrome{padding-inline:14px!important}
+  .nx-system-left{min-width:0}.nx-system-brand strong{font-size:11px!important}
+}
