@@ -16,6 +16,7 @@ import { BuilderShell } from "./components/BuilderShell";
 import { BuilderChat } from "./components/BuilderChat";
 import { BuilderTools } from "./components/BuilderTools";
 import { BuilderCode } from "./components/BuilderCode";
+import { BuilderHome } from "./components/BuilderHome";
 import { NexumApplicationManager } from "./components/NexumApplicationManager";
 import { NexumOSEventCenter, type NexumOSEventItem } from "./components/NexumOSEventCenter";
 import { OSSystemChrome } from "./components/OSSystemChrome";
@@ -881,28 +882,12 @@ function App() {
             <DiagnosticsPage />
           </OSAppWindow>
         ) : view === "home" ? (
-          osEnabled ? <OSDesktop
+          <BuilderHome
             projects={projects}
             onNewProject={() => setModalOpen(true)}
             onOpenProject={(id, tab) => openПроект(id, tab)}
             onOpenView={(next) => setView(next)}
-            osEnabled={osEnabled}
-            onToggleOS={() => setOsEnabled((enabled) => !enabled)}
-            onLaunchWelcome={() => setWelcomeTestMode(true)}
-            runningProjectIds={runningProjectIds}
-            minimizedProjectIds={minimizedProjectIds}
-            onRestoreProject={(id) => openПроект(id, projectWindowModes[id] ?? "agent")}
-          /> : (
-            <section className="nexum-os-disabled" aria-label="NEXUM OS disabled">
-              <div className="nexum-os-disabled-card">
-                <span className="nexum-os-disabled-mark">N</span>
-                <span className="eyebrow">NEXUM OS</span>
-                <h1>OS is off.</h1>
-                <p>Рабочий стол NEXUM OS временно выключен для тестирования обычного режима приложения.</p>
-                <button type="button" className="home-primary" onClick={() => setOsEnabled(true)}>Включить NEXUM OS</button>
-              </div>
-            </section>
-          )
+          />
         ) : view === "news" ? (
           <OSAppWindow title="Журнал NEXUM" subtitle="Новости и системные обновления" icon="✦" status="Актуально" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
             <NewsPage />
