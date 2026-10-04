@@ -94,11 +94,13 @@ function App() {
   const setAuthoritativeChatJobId = (jobId: string | null) => {
     chatJobIdRef.current = jobId;
     setChatJobId(jobId);
+    if (import.meta.env.VITE_E2E === "true") {
+      (window as unknown as { __NEXUM_E2E_ACTIVE_CHAT_JOB_ID__?: string | null }).__NEXUM_E2E_ACTIVE_CHAT_JOB_ID__ = jobId;
+    }
   };
   const clearAuthoritativeChatJobIfOwned = (jobId: string) => {
     if (chatJobIdRef.current !== jobId) return false;
-    chatJobIdRef.current = null;
-    setChatJobId(null);
+    setAuthoritativeChatJobId(null);
     return true;
   };
   const [projectTaskMeta, setProjectTaskMeta] = useState<Record<string, { task: string; timestamp: number; status: "queued" | "running" | "completed" | "failed" | "cancelled" }>>(() => { try { return JSON.parse(localStorage.getItem("nexum:project-task-meta") || "{}"); } catch { return {}; } });
