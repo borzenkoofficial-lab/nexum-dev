@@ -123,10 +123,10 @@ export function OSProjectWindow({
 
   if (minimized) {
     return (
-      <section className="nexum-os-project nexum-os-project-minimized" aria-label={"NEXUM OS project " + projectName + " minimized"}>
+      <section className="nexum-os-project nexum-os-project-minimized" aria-label={"NEXUM project " + projectName + " minimized"}>
         <div className="os-minimized-card">
           <span className="os-window-project-mark">{projectName.slice(0, 1).toUpperCase()}</span>
-          <div><strong>{projectName}</strong><small>Workspace свернут в Dock</small></div>
+          <div><strong>{projectName}</strong><small>Workspace свернут</small></div>
           <button type="button" onClick={onRestore}>Открыть</button>
         </div>
       </section>
@@ -134,7 +134,7 @@ export function OSProjectWindow({
   }
 
   return (
-    <section className="nexum-os-project" aria-label={"NEXUM OS project " + projectName}>
+    <section className="nexum-os-project" aria-label={"NEXUM project " + projectName}>
       <div className={"os-window-shell" + (focused ? " is-focused" : "") + (maximized ? " is-maximized nexum-os-maximized" : "")} style={!maximized ? ({ transform: `translate3d(${position.x}px, ${position.y}px, 0)`, ...(size ? { width: `${size.width}px`, height: `${size.height}px`, minHeight: "520px" } : {}) } as CSSProperties) : undefined} onPointerDown={() => setFocused(true)}>
         <header className="os-window-titlebar" onPointerDown={beginDrag} onDoubleClick={() => setMaximized((value) => !value)}>
           <div className="os-window-controls" aria-label="Window controls">
@@ -160,7 +160,7 @@ export function OSProjectWindow({
               <span>◫</span> Preview
             </button>
             <button type="button" role="tab" aria-selected={activeTab === "agent"} tabIndex={activeTab === "agent" ? 0 : -1} className={activeTab === "agent" ? "active" : ""} onClick={onAgent}>
-              <span>✦</span> AI Agent
+              <span>◉</span> Agent
             </button>
             <button type="button" role="tab" aria-selected={activeTab === "files"} tabIndex={activeTab === "files" ? 0 : -1} className={activeTab === "files" ? "active" : ""} onClick={onFiles}>
               <span>□</span> Files
