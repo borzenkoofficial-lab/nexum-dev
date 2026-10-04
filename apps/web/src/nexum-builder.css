@@ -1,0 +1,234 @@
+/* NEXUM BUILDER — clean product workspace
+   UI-only layer. Keeps the existing chat, agent, preview, files and code logic intact. */
+
+.nexum-builder-root{
+  --nb-bg:#f5f6f8;
+  --nb-surface:#ffffff;
+  --nb-surface-2:#fafbfc;
+  --nb-line:#e3e6eb;
+  --nb-line-strong:#d5d9df;
+  --nb-text:#17191d;
+  --nb-muted:#6d737d;
+  --nb-soft:#f0f2f5;
+  --nb-accent:#3157d5;
+  --nb-accent-soft:#eef2ff;
+  --nb-green:#25845c;
+  --nb-red:#c44752;
+  position:fixed;
+  inset:0;
+  z-index:30;
+  display:flex;
+  flex-direction:column;
+  min-width:320px;
+  min-height:100dvh;
+  background:var(--nb-bg);
+  color:var(--nb-text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",sans-serif;
+  overflow:hidden;
+}
+.nexum-builder-topbar{
+  height:58px;
+  flex:0 0 58px;
+  display:grid;
+  grid-template-columns:minmax(180px,1fr) auto minmax(300px,1fr);
+  align-items:center;
+  gap:18px;
+  padding:0 16px;
+  background:var(--nb-surface);
+  border-bottom:1px solid var(--nb-line);
+}
+.nexum-builder-brand{display:flex;align-items:center;gap:9px;min-width:0}
+.nexum-builder-brand>div{min-width:0;display:grid;gap:2px}
+.nexum-builder-brand strong{font-size:13px;line-height:1;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nexum-builder-brand small{font-size:10px;color:var(--nb-muted);line-height:1}
+.nexum-builder-mark{
+  width:28px;height:28px;flex:0 0 28px;display:grid;place-items:center;
+  border-radius:8px;background:#1b1d21;color:#fff;font-size:11px;font-weight:750;
+}
+.nexum-builder-modebar{
+  display:flex;align-items:center;gap:2px;padding:3px;
+  border:1px solid var(--nb-line);border-radius:9px;background:var(--nb-surface-2);
+}
+.nexum-builder-modebar button{
+  height:28px;padding:0 12px;border:0;border-radius:6px;background:transparent;
+  color:var(--nb-muted);font-size:11px;font-weight:600;
+}
+.nexum-builder-modebar button:hover{color:var(--nb-text);background:var(--nb-soft)}
+.nexum-builder-modebar button.active{color:var(--nb-text);background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.nexum-builder-actions{display:flex;align-items:center;justify-content:flex-end;gap:4px;min-width:0}
+.nexum-builder-actions button{
+  height:30px;padding:0 9px;border:1px solid transparent;border-radius:7px;
+  background:transparent;color:var(--nb-muted);font-size:10px;font-weight:600;white-space:nowrap;
+}
+.nexum-builder-actions button:hover{background:var(--nb-soft);color:var(--nb-text)}
+.nexum-builder-actions .nexum-builder-primary{
+  padding:0 11px;background:var(--nb-text);border-color:var(--nb-text);color:#fff;
+}
+.nexum-builder-actions .nexum-builder-primary:hover{background:#2a2d33;color:#fff}
+.nexum-builder-actions .nexum-builder-icon{width:30px;padding:0;font-size:15px;color:#8a9099}
+.nexum-builder-status{
+  display:flex;align-items:center;gap:5px;margin-right:5px;color:var(--nb-muted);font-size:9px;white-space:nowrap;
+}
+.nexum-builder-status i{width:6px;height:6px;border-radius:50%;background:#a7adb6}
+.nexum-builder-status.online i{background:var(--nb-green)}
+.nexum-builder-status.busy i{background:var(--nb-accent)}
+.nexum-builder-status.error i{background:var(--nb-red)}
+
+.nexum-builder-canvas{
+  flex:1;min-height:0;position:relative;overflow:hidden;background:var(--nb-bg);
+}
+.nexum-builder-canvas .os-workspace-stage,
+.nexum-builder-canvas .os-workspace-layer,
+.nexum-builder-canvas .workspace{
+  min-width:0!important;min-height:0!important;
+}
+.nexum-builder-canvas .os-workspace-stage{height:100%!important}
+.nexum-builder-canvas .os-workspace-layer{height:100%!important}
+.nexum-builder-canvas .workspace{
+  height:100%!important;
+  width:100%!important;
+  display:grid!important;
+  grid-template-columns:minmax(340px,43%) minmax(0,57%)!important;
+  background:var(--nb-bg)!important;
+  overflow:hidden!important;
+}
+.nexum-builder-canvas .main-column{
+  min-width:0!important;height:100%!important;min-height:0!important;
+  border-right:1px solid var(--nb-line)!important;background:#f8f9fa!important;
+}
+.nexum-builder-canvas .chat{
+  height:100%!important;min-height:0!important;background:#f8f9fa!important;
+}
+.nexum-builder-canvas .chat-history{
+  padding:34px 34px 18px!important;
+  scrollbar-gutter:stable;
+}
+.nexum-builder-canvas .chat-project-context{
+  max-width:620px!important;margin:0 auto 30px!important;
+}
+.nexum-builder-canvas .welcome{
+  max-width:620px!important;margin:0 auto!important;
+}
+.nexum-builder-canvas .welcome h1{
+  margin:0 0 10px!important;font-size:30px!important;line-height:1.08!important;
+  letter-spacing:-.045em!important;font-weight:700!important;
+}
+.nexum-builder-canvas .welcome p{
+  max-width:560px!important;color:var(--nb-muted)!important;font-size:13px!important;line-height:1.55!important;
+}
+.nexum-builder-canvas .conversation{max-width:620px!important}
+.nexum-builder-canvas .conversation-message{
+  border-color:var(--nb-line)!important;border-radius:12px!important;
+  box-shadow:0 1px 2px rgba(0,0,0,.025)!important;
+}
+.nexum-builder-canvas .conversation-message.user{
+  background:#eef2ff!important;border-color:#dce3ff!important;
+}
+.nexum-builder-canvas .message-form{
+  width:min(620px,calc(100% - 52px))!important;
+  padding:10px 0 14px!important;
+}
+.nexum-builder-canvas .message-box{
+  border-color:var(--nb-line-strong)!important;border-radius:11px!important;
+  background:#fff!important;box-shadow:0 2px 8px rgba(0,0,0,.035)!important;
+}
+.nexum-builder-canvas .message-box textarea{font-size:12px!important}
+.nexum-builder-canvas .message-send{
+  width:38px!important;height:38px!important;border-radius:10px!important;background:var(--nb-text)!important;
+}
+.nexum-builder-canvas .chat-footer{color:var(--nb-muted)!important;font-size:9px!important}
+
+.nexum-builder-canvas .right-panel{
+  min-width:0!important;min-height:0!important;height:100%!important;
+  display:flex!important;flex-direction:column!important;background:#fff!important;
+}
+.nexum-builder-canvas .right-panel-header{
+  height:44px!important;flex:0 0 44px!important;
+  background:#fff!important;border-bottom:1px solid var(--nb-line)!important;
+}
+.nexum-builder-canvas .right-panel-tabs{gap:2px!important}
+.nexum-builder-canvas .right-panel-tabs button{
+  border-radius:6px!important;background:transparent!important;color:var(--nb-muted)!important;
+  font-size:10px!important;
+}
+.nexum-builder-canvas .right-panel-tabs button.active{
+  background:var(--nb-soft)!important;color:var(--nb-text)!important;box-shadow:none!important;
+}
+.nexum-builder-canvas .preview-panel{
+  min-width:0!important;min-height:0!important;flex:1!important;background:#eef0f3!important;
+}
+.nexum-builder-canvas .preview-toolbar{
+  height:40px!important;background:#fff!important;border-bottom:1px solid var(--nb-line)!important;
+}
+.nexum-builder-canvas .preview-frame{
+  margin:16px!important;border:1px solid var(--nb-line)!important;border-radius:10px!important;
+  box-shadow:0 8px 28px rgba(20,25,35,.07)!important;background:#fff!important;
+}
+.nexum-builder-canvas .preview-browser{
+  border-radius:10px!important;overflow:hidden!important;background:#fff!important;
+}
+.nexum-builder-canvas .agent-panel,
+.nexum-builder-canvas .files-panel{
+  background:#fff!important;
+}
+.nexum-builder-canvas .agent-panel-header,
+.nexum-builder-canvas .files-panel-header{
+  border-bottom:1px solid var(--nb-line)!important;background:#fff!important;
+}
+.nexum-builder-canvas .agent-step,
+.nexum-builder-canvas .file-row{
+  border-color:var(--nb-line)!important;
+}
+.nexum-builder-canvas .os-workspace-code{
+  position:absolute!important;inset:0!important;z-index:4!important;
+  background:var(--nb-bg)!important;
+}
+.nexum-builder-canvas .os-workspace-code[aria-hidden="true"]{display:none!important}
+
+.nexum-builder-minimized{
+  position:fixed;right:18px;bottom:18px;z-index:40;
+}
+.nexum-builder-restore{
+  display:flex;align-items:center;gap:10px;min-width:220px;height:54px;padding:0 10px;
+  border:1px solid var(--nb-line);border-radius:11px;background:#fff;color:#17191d;
+  box-shadow:0 14px 36px rgba(0,0,0,.12);text-align:left;
+}
+.nexum-builder-restore>span:nth-child(2){min-width:0;flex:1;display:grid;gap:3px}
+.nexum-builder-restore strong{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nexum-builder-restore small{font-size:9px;color:#747a84}
+.nexum-builder-restore b{font-size:10px;color:#3157d5}
+
+@media(max-width:1100px){
+  .nexum-builder-topbar{grid-template-columns:1fr auto}
+  .nexum-builder-modebar{order:3;grid-column:1/-1;justify-self:start;margin-top:-4px}
+  .nexum-builder-root .nexum-builder-topbar{height:92px;flex-basis:92px}
+  .nexum-builder-canvas .workspace{height:calc(100% - 34px)!important}
+  .nexum-builder-status{display:none}
+}
+@media(max-width:760px){
+  .nexum-builder-topbar{height:54px!important;flex-basis:54px!important;padding:0 10px;display:flex;gap:6px}
+  .nexum-builder-brand{flex:1}
+  .nexum-builder-brand small{display:none}
+  .nexum-builder-modebar{display:none}
+  .nexum-builder-actions button:not(.nexum-builder-primary):not(.nexum-builder-icon){display:none}
+  .nexum-builder-actions .nexum-builder-primary{font-size:9px;padding:0 8px}
+  .nexum-builder-canvas .workspace{
+    display:block!important;position:relative!important;height:100%!important;
+  }
+  .nexum-builder-canvas .main-column{
+    position:absolute!important;inset:0!important;width:100%!important;border:0!important;
+    transform:none!important;
+  }
+  .nexum-builder-canvas .right-panel{
+    position:absolute!important;inset:0!important;width:100%!important;z-index:5!important;
+  }
+  .nexum-builder-canvas .workspace:not(.mobile-tool-open) .right-panel{display:none!important}
+  .nexum-builder-canvas .workspace.mobile-tool-open .main-column{display:none!important}
+  .nexum-builder-canvas .chat-history{padding:24px 18px 14px!important}
+  .nexum-builder-canvas .message-form{width:calc(100% - 28px)!important}
+}
+@media(max-width:480px){
+  .nexum-builder-brand strong{font-size:12px}
+  .nexum-builder-actions .nexum-builder-primary{display:none}
+  .nexum-builder-canvas .welcome h1{font-size:25px!important}
+}
