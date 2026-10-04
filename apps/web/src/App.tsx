@@ -852,8 +852,8 @@ function App() {
 
   return (
     <div className={"app app-" + view}>
-      <NexumOSEventCenter events={osEvents} onDismiss={(id) => setOsEvents((items) => items.filter((item) => item.id !== id))} />
-      {view !== "project" && <NexumApplicationManager
+      {view !== "home" && <NexumOSEventCenter events={osEvents} onDismiss={(id) => setOsEvents((items) => items.filter((item) => item.id !== id))} />}
+      {view !== "project" && view !== "home" && <NexumApplicationManager
         projectName={activeПроект?.name}
         projects={runningProjectIds.map((id) => ({ id, name: projects.find((p) => p.id === id)?.name ?? id, active: id === activeПроектId && view === "project", minimized: Boolean(projectWindowMinimizedByProject[id]) }))}
         projectModes={projectWindowModes}
