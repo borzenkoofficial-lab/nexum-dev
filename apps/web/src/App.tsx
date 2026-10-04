@@ -1105,7 +1105,7 @@ function App() {
               />
             </div>
           )}
-        </BuilderShell>erShell>
+        </BuilderShell>
         )}
       </main>
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
