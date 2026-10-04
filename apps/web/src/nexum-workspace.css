@@ -136,3 +136,176 @@
 .app-project .agent-pipeline-node.active .agent-pipeline-node-mark{background:#f0f1f4!important;border-color:#dfe0e4!important;color:#17191d!important}
 .app-project .agent-checklist-row.active{background:#f0f1f4!important}
 .app-project .agent-result-actions .agent-result-primary{background:#17191d!important;border-color:#17191d!important}
+
+
+/* NEXUM WORKSPACE 6.0 — stable full-viewport builder shell */
+.app-project{
+  position:relative!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:100vh!important;
+  height:100vh!important;
+  overflow:hidden!important;
+  background:#f7f7f8!important;
+}
+.app-project .main{
+  position:relative!important;
+  width:100%!important;
+  height:100vh!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+.app-project .nexum-os-project{
+  position:relative!important;
+  width:100%!important;
+  height:100vh!important;
+  min-height:0!important;
+  padding:0!important;
+  margin:0!important;
+  overflow:hidden!important;
+  background:#f7f7f8!important;
+}
+.app-project .os-window-shell,
+.app-project .os-window-shell.is-focused{
+  position:relative!important;
+  inset:auto!important;
+  top:auto!important;
+  left:auto!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-width:none!important;
+  margin:0!important;
+  transform:none!important;
+  overflow:hidden!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+.app-project .os-window-titlebar{
+  position:relative!important;
+  flex:0 0 44px!important;
+  height:44px!important;
+  min-height:44px!important;
+  box-sizing:border-box!important;
+  grid-template-columns:1fr auto 1fr!important;
+  padding:0 16px!important;
+}
+.app-project .os-window-controls{display:none!important}
+.app-project .os-window-title{justify-content:flex-start!important}
+.app-project .os-window-status{justify-content:flex-end!important}
+.app-project .os-window-toolbar{
+  position:relative!important;
+  flex:0 0 42px!important;
+  height:42px!important;
+  min-height:42px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+.app-project .os-window-body{
+  position:relative!important;
+  width:100%!important;
+  height:calc(100vh - 86px)!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:hidden!important;
+  background:#f7f7f8!important;
+}
+.app-project .os-window-body>.os-workspace-stage,
+.app-project .os-window-body>.os-workspace-stage>.os-workspace-layer,
+.app-project .os-window-body>.os-workspace-stage>.os-workspace-layer>.workspace{
+  position:relative!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-height:none!important;
+}
+.app-project .os-workspace-stage{overflow:hidden!important}
+.app-project .os-workspace-layer{overflow:hidden!important}
+.app-project .workspace{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(380px,44%)!important;
+  gap:0!important;
+  overflow:hidden!important;
+  background:#f7f7f8!important;
+}
+.app-project .main-column{
+  min-width:0!important;
+  min-height:0!important;
+  height:100%!important;
+  overflow:hidden!important;
+  border-right:1px solid #e4e6eb!important;
+  background:#fff!important;
+}
+.app-project .main-column>*{
+  min-width:0!important;
+  max-width:none!important;
+}
+.app-project .right-panel{
+  position:relative!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+  background:#fff!important;
+}
+.app-project .right-panel-content{
+  position:relative!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:auto!important;
+  overflow:hidden!important;
+}
+.app-project .right-panel-content>*{
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+}
+.app-project .preview-frame-wrap,
+.app-project .editor-shell,
+.app-project .agent-panel{
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.app-project .preview-viewport,
+.app-project .editor-body,
+.app-project .agent-panel{
+  min-height:0!important;
+}
+.app-project .message-form{
+  max-width:820px!important;
+  width:calc(100% - 48px)!important;
+}
+.app-project .os-window-actions{min-width:0!important}
+@media(max-width:1100px){
+  .app-project .workspace{grid-template-columns:minmax(0,1fr) minmax(340px,46%)!important}
+}
+@media(max-width:820px){
+  .app-project .os-window-titlebar{grid-template-columns:1fr auto!important}
+  .app-project .os-window-status{display:none!important}
+  .app-project .workspace{grid-template-columns:1fr!important}
+  .app-project .right-panel{position:absolute!important;inset:0!important;z-index:20!important;display:none!important}
+  .app-project .workspace.mobile-tool-open .right-panel{display:flex!important}
+  .app-project .workspace.mobile-chat-open .right-panel{display:none!important}
+}
+@media(max-width:560px){
+  .app-project .os-window-titlebar{padding:0 12px!important}
+  .app-project .os-window-toolbar{padding:0 7px!important}
+  .app-project .message-form{width:calc(100% - 24px)!important}
+}
