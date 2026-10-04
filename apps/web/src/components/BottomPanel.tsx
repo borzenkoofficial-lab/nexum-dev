@@ -69,8 +69,8 @@ export function BottomPanel({
         <div className="agent-control-identity">
           <span className="agent-control-icon">✦</span>
           <div>
-            <span className="eyebrow">NEXUM / AGENT</span>
-            <h2>{live ? "Выполняю задачу" : stage === "completed" ? "Задача завершена" : stage === "error" ? "Нужна проверка" : "AI Agent"}</h2>
+            <span className="eyebrow">AGENT</span>
+            <h2>{live ? "Выполняю задачу" : stage === "completed" ? "Задача завершена" : stage === "error" ? "Нужна проверка" : "Agent"}</h2>
           </div>
         </div>
         <div className={`agent-control-status ${live ? "live" : stage === "error" ? "error" : stage === "completed" ? "done" : ""}`}>
