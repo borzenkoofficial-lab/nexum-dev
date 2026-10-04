@@ -46,7 +46,7 @@ function App() {
   const [aiStatus, setAIStatus] = useState<AIProviderStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"preview" | "files" | "agent">("preview");
-  const [mobileToolOpen, setMobileToolOpen] = useState(false);
+  const [, setMobileToolOpen] = useState(false);
   const [workspaceMode, setWorkspaceMode] = useState<"preview" | "agent" | "files" | "code">("preview");
   const [projectWindowModes, setProjectWindowModes] = useState<Record<string, "preview" | "agent" | "files" | "code">>(() => {
     try {
@@ -66,8 +66,6 @@ function App() {
   });
   const projectWindowMinimized = Boolean(projectWindowMinimizedByProject[activeПроектId]);
   const [osBooted, setOsBooted] = useState(false);
-  // OS is enabled on every fresh page load; the switch is session-only for testing.
-  const [osEnabled, setOsEnabled] = useState(true);
   const [onboardingComplete, setOnboardingComplete] = useState(() => { try { return localStorage.getItem("nexum:onboarding-complete") === "1"; } catch { return false; } });
   const [welcomeTestMode, setWelcomeTestMode] = useState(false);
   useEffect(() => {
@@ -89,7 +87,7 @@ function App() {
   };
   const [previewOnline, setПредпросмотрOnline] = useState(false);
   const [previewKey, setПредпросмотрKey] = useState(0);
-  const [builderStarted, setBuilderStarted] = useState(false);
+  const [, setBuilderStarted] = useState(false);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
   const chatJobIdRef = useRef<string | null>(null);
   const setAuthoritativeChatJobId = (jobId: string | null) => {
@@ -152,7 +150,6 @@ function App() {
 
   const activeПроект = projects.find((project) => project.id === activeПроектId);
   useEffect(() => { nexumRuntime.setProject(activeПроектId); }, [activeПроектId]);
-  const minimizedProjectIds = runningProjectIds.filter((id) => Boolean(projectWindowMinimizedByProject[id]));
   useEffect(() => {
     try { sessionStorage.setItem("nexum:os:minimized-windows", JSON.stringify(projectWindowMinimizedByProject)); } catch {}
   }, [projectWindowMinimizedByProject]);
@@ -851,11 +848,11 @@ function App() {
       {view !== "home" && <NexumOSEventCenter events={osEvents} onDismiss={(id) => setOsEvents((items) => items.filter((item) => item.id !== id))} />}
       {view !== "project" && view !== "home" && <NexumApplicationManager
         projectName={activeПроект?.name}
-        projects={runningProjectIds.map((id) => ({ id, name: projects.find((p) => p.id === id)?.name ?? id, active: id === activeПроектId && view === "project", minimized: Boolean(projectWindowMinimizedByProject[id]) }))}
+        projects={runningProjectIds.map((id) => ({ id, name: projects.find((p) => p.id === id)?.name ?? id, active: id === activeПроектId, minimized: Boolean(projectWindowMinimizedByProject[id]) }))}
         projectModes={projectWindowModes}
         onSelectProject={(id) => openПроект(id, projectWindowModes[id] ?? "agent")}
         mode={workspaceMode}
-        running={view === "project" && runningProjectIds.includes(activeПроектId)}
+        running={runningProjectIds.includes(activeПроектId)}
         minimized={projectWindowMinimized}
         onSelectMode={setProjectMode}
         onMinimize={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: true })); }}
@@ -864,8 +861,8 @@ function App() {
       />}
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
         {view !== "home" && view !== "project" && <OSSystemChrome
-          appName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал NEXUM" : "Диагностика"}
-          appIcon={view === "project" ? (activeПроект?.name?.slice(0, 1).toUpperCase() ?? "N") : view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : "⌁"}
+          appName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал NEXUM" : "Диагностика"}
+          appIcon={view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : "⌁"}
           status={aiStatus?.available ? "AI Core подключён" : "Система готова"}
           activeView={view}
           onHome={() => navigate("home")}
