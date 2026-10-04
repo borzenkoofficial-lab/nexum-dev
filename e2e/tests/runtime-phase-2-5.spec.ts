@@ -1,12 +1,25 @@
 import { test, expect } from "@playwright/test";
 
-async function setAgentFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number) {
+async function setAgentFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number, projectId?: string) {
   const response = await page.request.post("/api/test/agent-failures", {
-    data: { operation, ...(name ? { name } : {}), ...(times ? { times } : {}) },
+    data: { operation, ...(name ? { name } : {}), ...(times ? { times } : {}), ...(projectId ? { projectId } : {}) },
   });
   expect(response.ok()).toBeTruthy();
   return response.json();
 }
+
+async function waitForFailurePhase(page: any, name: string, phase: "consumed" | "released") {
+  await expect.poll(async () => {
+    const response = await page.request.get("/api/test/agent-failures");
+    if (!response.ok()) return false;
+    const data = await response.json();
+    const events = (data.diagnostics ?? []).filter((entry: any) => entry.name === name);
+    const latestEnable = [...events].reverse().find((entry: any) => entry.phase === "enabled");
+    return Boolean(latestEnable && events.some((entry: any) => entry.phase === phase && entry.timestamp >= latestEnable.timestamp && (!latestEnable.projectId || entry.projectId === latestEnable.projectId)));
+  }, { timeout: 5_000 }).toBeTruthy();
+}
+
+let runtimeWorkspaceId = "";
 
 async function createStaticProject(page: any, name: string): Promise<string> {
   let response = await page.request.post("/api/projects", {
@@ -33,6 +46,7 @@ test.beforeEach(async ({ page }) => {
   });
   await page.request.post("/api/test/agent-failures", { data: { operation: "reset" } }).catch(() => {});
   const workspaceId = await createStaticProject(page, "runtime-agent-workspace-" + Date.now());
+  runtimeWorkspaceId = workspaceId;
   await page.goto("/projects/" + encodeURIComponent(workspaceId));
   await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 10_000 });
 });
@@ -82,13 +96,17 @@ test("boot, runtime inspection and browser-visible navigation", async ({ page })
 });
 
 test("real Agent user cancellation aborts the Agent task and releases Runtime ownership", async ({ page }) => {
-  await page.goto("/");
+  await setAgentFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, runtimeWorkspaceId);
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
   await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
 
+  await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
+  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
+  expect(jobId).toBeTruthy();
   const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
   await expect(cancel).toBeVisible({ timeout: 5_000 });
+  await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
   await cancel.click();
 
   await page.waitForFunction(async () => {
@@ -96,7 +114,12 @@ test("real Agent user cancellation aborts the Agent task and releases Runtime ow
     return Boolean(id);
   }).catch(() => {});
 
-  await page.waitForTimeout(200);
+  await expect.poll(async () => {
+    const runtime = await page.request.get("/api/runtime/status");
+    if (!runtime.ok()) return "HTTP_ERROR";
+    const data = await runtime.json();
+    return (data.tasks ?? []).some((task: any) => task.operation === "chat-job" && task.status === "CANCELLED") ? "CANCELLED" : "PENDING";
+  }, { timeout: 5_000 }).toBe("CANCELLED");
   const runtime = await page.request.get("/api/runtime/status");
   expect(runtime.ok()).toBeTruthy();
   const runtimeData = await runtime.json();
@@ -111,15 +134,20 @@ test("real Agent user cancellation aborts the Agent task and releases Runtime ow
 });
 
 test("Agent cancellation remains terminal across repeated cancel/response races", async ({ page }) => {
-  await page.goto("/");
   for (let i = 0; i < 3; i += 1) {
-    const input = page.getByLabel("Опишите задачу");
-    await input.fill(`Проверь проект, итерация ${i}, ничего не изменяй.`);
-    await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
-    const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
-    await expect(cancel).toBeVisible({ timeout: 5_000 });
-    await cancel.click();
-    await page.waitForTimeout(100);
+    await setAgentFailure(page, "enable", "TOOL_CHECKPOINT");
+    const create = await page.request.post("/api/chat", { data: { message: `Проверь проект, итерация ${i}, ничего не изменяй.`, projectId: runtimeWorkspaceId } });
+    expect(create.status()).toBe(202);
+    const created = await create.json();
+    await waitForFailurePhase(page, "TOOL_CHECKPOINT", "consumed");
+    const firstCancel = await page.request.post(`/api/chat/jobs/${encodeURIComponent(created.jobId)}/cancel`);
+    const secondCancel = await page.request.post(`/api/chat/jobs/${encodeURIComponent(created.jobId)}/cancel`);
+    expect(firstCancel.ok()).toBeTruthy();
+    expect(secondCancel.ok()).toBeTruthy();
+    await expect.poll(async () => {
+      const runtime = await (await page.request.get("/api/runtime/status")).json();
+      return (runtime.tasks ?? []).some((task: any) => task.operation === "chat-job" && task.projectId && task.status === "RUNNING");
+    }, { timeout: 5_000 }).toBe(false);
     const runtime = await (await page.request.get("/api/runtime/status")).json();
     const activeOrCompleted = (runtime.tasks ?? []).filter((task: any) =>
       task.operation === "chat-job" && task.projectId && task.status === "RUNNING"
@@ -128,7 +156,6 @@ test("Agent cancellation remains terminal across repeated cancel/response races"
   }
 });
 test("network failure recovers with bounded retries and stable request identity", async ({ page }) => {
-  await page.goto("/");
   await page.evaluate(() => (window as any).__NEXUM_E2E__.enableFailure("FAIL_NETWORK", { projectId: "A" }));
   const resultPromise = page.evaluate(async () => {
     const h = (window as any).__NEXUM_E2E__;
@@ -149,7 +176,6 @@ test("network failure recovers with bounded retries and stable request identity"
 });
 
 test("network cancellation race leaves no active request or task", async ({ page }) => {
-  await page.goto("/");
   await page.evaluate(() => (window as any).__NEXUM_E2E__.enableFailure("DELAY_REQUEST", { delayMs: 500, projectId: "race" }));
   const taskId = await page.evaluate(() => (window as any).__NEXUM_E2E__.startNetworkTask("race"));
   await page.waitForTimeout(50);
@@ -164,10 +190,12 @@ test("network cancellation race leaves no active request or task", async ({ page
 });
 
 test("preview health failure is bounded and recovers when real preview is available", async ({ page }) => {
-  await page.goto("/");
   const projectId = await createStaticProject(page, "runtime-preview-e2e");
-  await page.request.post(`/api/projects/${encodeURIComponent(projectId)}/select`);
-  await page.goto("/");
+  // Project selection through the API does not change the browser's active-project
+  // React state. Navigate through the real workspace route so PreviewManager is
+  // attached to the same project whose preview is being verified.
+  await page.goto("/projects/" + encodeURIComponent(projectId));
+  await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 10_000 });
   await page.waitForFunction(() => {
     const status = (window as any).__NEXUM_E2E__?.status?.();
     return Boolean(status && status.preview.state !== "STOPPED");
@@ -196,7 +224,6 @@ test("preview health failure is bounded and recovers when real preview is availa
 });
 
 test("multi-project concurrency and isolation", async ({ page }) => {
-  await page.goto("/");
   const projects = await Promise.all([
     createStaticProject(page, "runtime-A"),
     createStaticProject(page, "runtime-B"),
@@ -222,9 +249,7 @@ test("multi-project concurrency and isolation", async ({ page }) => {
 });
 
 
-
 test("real child-process supervision tracks running, normal exit and crash without orphaning", async ({ page }) => {
-  await page.goto("/");
   const projectId = await createStaticProject(page, "runtime-process-supervision");
   await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
     data: { path: "runtime-process-ok.js", content: "setTimeout(() => process.exit(0), 500);" },
@@ -264,10 +289,8 @@ test("real child-process supervision tracks running, normal exit and crash witho
   expect(runtimeStatus.diagnostics.some((d: any) => d.subsystem === "PROCESS" && /exited unexpectedly/.test(d.message))).toBeTruthy();
 });
 test("preview recovery failure reaches bounded FAILED state without crashing Runtime", async ({ page }) => {
-  await page.goto("/");
   const projectId = await createStaticProject(page, "runtime-preview-recovery-limit");
   await page.request.post(`/api/projects/${encodeURIComponent(projectId)}/select`);
-  await page.goto("/");
   await page.waitForFunction(() => (window as any).__NEXUM_E2E__?.status?.().preview.state !== "STOPPED");
 
   await page.evaluate((id) => {
@@ -288,7 +311,6 @@ test("preview recovery failure reaches bounded FAILED state without crashing Run
 });
 
 test.fixme("real browser main thread pressure recovery is NOT VERIFIED yet", async ({ page }) => {
-  await page.goto("/");
   await page.evaluate(() => {
     const end = performance.now() + 1600;
     while (performance.now() < end) Math.sqrt(Math.random() * 1_000_000);
@@ -303,7 +325,6 @@ test.fixme("real browser main thread pressure recovery is NOT VERIFIED yet", asy
 });
 
 test("Agent Job creation produces exactly one canonical Runtime Task", async ({ page }) => {
-  await page.goto("/");
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Покажи статус Git");
   await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
@@ -327,17 +348,13 @@ test("Agent Job creation produces exactly one canonical Runtime Task", async ({ 
 });
 
 test("real Agent user cancellation aborts the Agent task and leaves terminal state", async ({ page }) => {
-  await page.goto("/");
-  const input = page.getByLabel("Опишите задачу");
-  await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
-  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
-
-  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
-  await expect(cancel).toBeVisible({ timeout: 5_000 });
-  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
+  const create = await page.request.post("/api/chat", { data: { message: "Проверь структуру текущего проекта и ничего не изменяй.", projectId: runtimeWorkspaceId } });
+  expect(create.status()).toBe(202);
+  const created = await create.json();
+  const jobId = created.jobId as string;
   expect(jobId).toBeTruthy();
-
-  await cancel.click();
+  const cancel = await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`);
+  expect(cancel.ok()).toBeTruthy();
 
   await expect.poll(async () => (await (await page.request.get(`/api/chat/jobs/${encodeURIComponent(jobId)}`)).json()).job?.status, { timeout: 8_000 }).toBe("cancelled");
   const job = await (await page.request.get(`/api/chat/jobs/${encodeURIComponent(jobId)}`)).json();
@@ -361,7 +378,6 @@ test.fixme("process crash recovery E2E is NOT VERIFIED: current Preview is an Ex
 test.skip("Worker lifecycle is NOT APPLICABLE: no production Worker exists in current NEXUM runtime", async () => {});
 
 test("Visual Runtime deterministic CRITICAL → NORMAL recovery is repeatable and leak-free", async ({ page }) => {
-  await page.goto("/");
   const baseline = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   expect(baseline.visual.health).toBe("NORMAL");
 
@@ -384,7 +400,6 @@ test("Visual Runtime deterministic CRITICAL → NORMAL recovery is repeatable an
   expect(finalStatus.visual.activeAnimations).toBe(0);
 });
 test("Visual Runtime preserves registered animation ownership across degradation and recovery", async ({ page }) => {
-  await page.goto("/");
   const state = await page.evaluate(() => {
     const runtime = (window as any).__NEXUM_E2E__.runtimeForTest?.();
     return runtime ? runtime.visual.getState() : null;
@@ -393,7 +408,6 @@ test("Visual Runtime preserves registered animation ownership across degradation
 });
 
 test("corrupted persisted state safely falls back after hard reload", async ({ page }) => {
-  await page.goto("/");
   await page.addInitScript(() => localStorage.setItem("nexum:runtime:snapshot:v1", "{corrupted"));
   await page.reload();
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E__));
@@ -404,7 +418,6 @@ test("corrupted persisted state safely falls back after hard reload", async ({ p
 });
 
 test("shutdown releases runtime resources and prevents active work", async ({ page }) => {
-  await page.goto("/");
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E__));
   await page.evaluate(() => {
     const h = (window as any).__NEXUM_E2E__;
