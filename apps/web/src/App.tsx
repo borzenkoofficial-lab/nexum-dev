@@ -1,6 +1,6 @@
 import "./App.css";
 import "./nexum-os.css";
-import "./nexum-builder.css";
+import "./builder.css";
 import { NexumWelcome } from "./components/NexumWelcome";
 import { useEffect, useRef, useState } from "react";
 import { ChatPanel } from "./components/ChatPanel";
@@ -12,7 +12,7 @@ import { IntegrationPage } from "./components/IntegrationPage";
 import { DiagnosticsPage } from "./components/DiagnosticsPage";
 import { RightPanel } from "./components/RightPanel";
 import { OSDesktop } from "./components/OSDesktop";
-import { OSProjectWindow } from "./components/OSProjectWindow";
+import { BuilderShell } from "./components/BuilderShell";
 import { NexumApplicationManager } from "./components/NexumApplicationManager";
 import { NexumOSEventCenter, type NexumOSEventItem } from "./components/NexumOSEventCenter";
 import { OSSystemChrome } from "./components/OSSystemChrome";
@@ -849,7 +849,7 @@ function App() {
   return (
     <div className={"app app-" + view}>
       <NexumOSEventCenter events={osEvents} onDismiss={(id) => setOsEvents((items) => items.filter((item) => item.id !== id))} />
-      <NexumApplicationManager
+      {view !== "project" && <NexumApplicationManager
         projectName={activeПроект?.name}
         projects={runningProjectIds.map((id) => ({ id, name: projects.find((p) => p.id === id)?.name ?? id, active: id === activeПроектId && view === "project", minimized: Boolean(projectWindowMinimizedByProject[id]) }))}
         projectModes={projectWindowModes}
@@ -861,9 +861,9 @@ function App() {
         onMinimize={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: true })); }}
         onRestore={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false })); }}
         onClose={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false })); setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId)); navigate("home"); }}
-      />
+      />}
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
-        {view !== "home" && <OSSystemChrome
+        {view !== "home" && view !== "project" && <OSSystemChrome
           appName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал NEXUM" : "Диагностика"}
           appIcon={view === "project" ? (activeПроект?.name?.slice(0, 1).toUpperCase() ?? "N") : view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : "⌁"}
           status={aiStatus?.available ? "AI Core подключён" : "Система готова"}
@@ -1058,23 +1058,22 @@ function App() {
           </section>
           </OSAppWindow>
         ) : (
-        <OSProjectWindow
+        <BuilderShell
           projectName={activeПроект?.name ?? "NEXUM"}
-          workspaceMode={workspaceMode}
+          activeTool={codeMode ? "code" : rightTab}
           previewOnline={previewOnline}
           agentStage={agentStage}
-          activeTab={rightTab}
-            onTabChange={(tab) => { setCodeMode(false); setRightTab(tab); setMobileToolOpen(true); setProjectMode(tab); }}
+          onToolChange={(tool) => {
+            if (tool === "code") { setCodeMode(true); setProjectMode("code"); return; }
+            setCodeMode(false);
+            setRightTab(tool);
+            setMobileToolOpen(true);
+            setProjectMode(tool);
+          }}
           onClose={() => {
             setProjectWindowMinimizedByProject((items) => { const next = { ...items }; delete next[activeПроектId]; return next; });
             setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId));
             navigate("home");
-          }}
-          minimized={projectWindowMinimized}
-          onMinimize={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: true })); }}
-          onRestore={() => {
-            setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false }));
-            setRunningProjectIds((items) => items.includes(activeПроектId) ? items : [...items, activeПроектId]);
           }}
           onConnect={() => setConnectorModal("Интеграция проекта")}
           onShare={async () => {
@@ -1086,9 +1085,6 @@ function App() {
             window.open(url, "_blank", "noopener,noreferrer");
             setNotice("Предпросмотр открыт в новой вкладке");
           }}
-          onCode={() => { setCodeMode(true); setProjectMode("code"); }}
-          onAgent={() => { setCodeMode(false); setRightTab("agent"); setMobileToolOpen(true); setProjectMode("agent"); }}
-          onFiles={() => { setCodeMode(false); setRightTab("files"); setMobileToolOpen(true); setProjectMode("files"); }}
         >
         <div className={`os-workspace-stage ${codeMode ? "is-code" : "is-builder"}`}>
           <div className="os-workspace-layer" aria-hidden={codeMode}>
@@ -1103,7 +1099,7 @@ function App() {
             <CodePanel projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline} onRefreshPreview={() => setПредпросмотрKey((key) => key + 1)} onClose={() => { setCodeMode(false); setProjectMode("files"); }} />
           </div>
         </div>
-        </OSProjectWindow>
+        </BuilderShell>
         )}
       </main>
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
