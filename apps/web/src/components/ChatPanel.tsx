@@ -27,7 +27,6 @@ interface ChatPanelProps {
   jobId: string | null;
 }
 
-
 export function ChatPanel({
   message, reply, stage, apiError, messages, attachments, providers, models, provider, model, aiStatus,
   onMessageChange, onSubmit, onCancel, onRetry, onQuickTask, onFilesSelected, onRemoveAttachment, onOpenAgent,
@@ -105,7 +104,7 @@ export function ChatPanel({
         )}
 
         {reply && messages.length === 0 && <div className="reply" aria-live="polite">{reply}</div>}
-        <div className={"agent-activity agent-activity-live " + (busy ? "active" : "")} aria-live="polite">
+        <div className={"agent-activity agent-activity-live " + (liveJob ? "active" : "")} aria-live="polite">
           <span className={"activity-dot " + (busy ? "working" : "")} />
           <div className="activity-copy"><strong>{liveJob && busy ? "NEXUM выполняет задачу" : "Готов к следующей задаче"}</strong><span>{busy ? "Откройте Agent справа для деталей" : "Опишите следующую итерацию ниже"}</span></div>
           <button type="button" onClick={onOpenAgent}>Открыть</button>{liveJob && <button type="button" className="composer-cancel" onClick={onCancel}>Отменить задачу Agent</button>}
