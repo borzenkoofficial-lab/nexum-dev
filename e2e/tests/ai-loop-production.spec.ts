@@ -317,3 +317,46 @@ test("E2E-17 one transient tool failure enters repair and then completes", async
 
 
 test.skip("E2E-18 streaming cancellation is NOT APPLICABLE: all current production AI providers expose non-streaming generation", async () => {});
+
+test("E2E-19 real Builder acceptance creates, builds and previews a requested product", async ({ page }) => {
+  const { jobId } = await submitAgent(
+    page,
+    "Создай сайт автосервиса с диагностикой и ремонтом автомобилей",
+    e2eWorkspaceId,
+  );
+  const job = await waitForTerminal(page, jobId, 60_000);
+
+  expect(job.status).toBe("completed");
+  expect(job.validation?.passed).toBeTruthy();
+  expect(job.executionState?.state).toBe("COMPLETED");
+  expect(job.executionPlan.steps.some((step: any) => step.id === "understand" && step.status === "COMPLETED")).toBeTruthy();
+  expect(job.executionPlan.steps.some((step: any) => step.id === "verify" && step.status === "COMPLETED")).toBeTruthy();
+  expect(job.executionPlan.steps.some((step: any) => step.id === "complete" && step.status === "COMPLETED")).toBeTruthy();
+
+  const tools = (job.steps ?? []).map((step: any) => step.tool);
+  expect(tools).toContain("listFiles");
+  expect(tools).toContain("scaffoldProject");
+  expect(tools.filter((tool: string) => tool === "writeFile").length).toBeGreaterThanOrEqual(2);
+  expect(tools).toContain("runCommand");
+  expect(tools.filter((tool: string) => tool === "runCommand").length).toBeGreaterThanOrEqual(2);
+  expect(tools).toContain("testProject");
+
+  const validationChecks = job.validation?.checks ?? [];
+  expect(validationChecks.find((check: any) => check.name === "runtime")?.passed).toBe(true);
+  expect(validationChecks.find((check: any) => check.name === "build")?.passed).toBe(true);
+  expect(validationChecks.find((check: any) => check.name === "tests")?.passed).toBe(true);
+  expect(validationChecks.find((check: any) => check.name === "project/domain")?.passed).toBe(true);
+
+  const preview = await page.request.get(
+    `http://127.0.0.1:3001/api/preview/${encodeURIComponent(e2eWorkspaceId)}/index.html`,
+  );
+  expect(preview.ok()).toBeTruthy();
+  const html = await preview.text();
+  expect(html).toContain("<div id=\"root\"></div>");
+
+  await page.goto(
+    `http://127.0.0.1:3001/api/preview/${encodeURIComponent(e2eWorkspaceId)}/index.html`,
+  );
+  await expect(page.getByText("Диагностика и ремонт автомобилей")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("button", { name: "Записаться на диагностику" })).toBeVisible();
+});
