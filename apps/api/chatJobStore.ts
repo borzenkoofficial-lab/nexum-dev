@@ -208,7 +208,23 @@ export async function cancelChatJob(id: string, userId: string, message = "Agent
       RETURNING *`,
     [id, userId, Date.now(), message],
   );
-  return result.rows[0] ? decode(result.rows[0]) : null;
+  if (!result.rows[0]) return null;
+  const cancelled = decode(result.rows[0]);
+  const events = Array.isArray(cancelled.events) ? cancelled.events : [];
+  if (!events.some((event) => event && typeof event === "object" && (event as { name?: unknown }).name === "agent.cancelled")) {
+    cancelled.events = [...events, {
+      id: Date.now(),
+      timestamp: Date.now(),
+      type: "cancelled",
+      name: "agent.cancelled",
+      message,
+    }].slice(-100);
+    await query(
+      \`UPDATE agent_chat_jobs SET updated_at=$2, payload=jsonb_set(payload, '{events}', $3::jsonb, true) WHERE id=$1 AND user_id=$4\`,
+      [id, cancelled.updatedAt, JSON.stringify(cancelled.events), userId],
+    );
+  }
+  return cancelled;
 }
 
 export async function listChatJobs(userId?: string, limit = 20): Promise<ChatJob[]> {
