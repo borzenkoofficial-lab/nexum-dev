@@ -113,6 +113,19 @@ test("deterministic Builder recovery inspects an existing scaffold before editin
   assert.equal(appRead?.input, "src/App.jsx");
 });
 
+test("domain alignment rejects automotive content for construction tasks", async () => {
+  const { projectRoot } = await createLoop([]);
+  const gateway = new AIGateway([new ScriptedProvider([])], "openrouter");
+  const agent = new NexumAgent(gateway, projectRoot);
+  const aligned = (agent as unknown as {
+    isPlanAlignedWithTask: (task: string, plan: { tool: string; input: string }) => boolean;
+  }).isPlanAlignedWithTask(
+    "Создай сайт строительной компании",
+    { tool: "writeFile", input: JSON.stringify({ path: "index.html", content: "<h1>Автомобильный ремонт</h1>" }) },
+  );
+  assert.equal(aligned, false);
+});
+
 test("repaired AI plans cannot bypass the domain alignment contract", async () => {
   const { projectRoot } = await createLoop([
     JSON.stringify({
