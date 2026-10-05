@@ -249,6 +249,46 @@ test("multi-project concurrency and isolation", async ({ page }) => {
 });
 
 
+test("preview revision is invalidated when source changes after a successful build", async ({ page }) => {
+  const projectId = await createStaticProject(page, "runtime-preview-revision-" + Date.now());
+  await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
+    data: { path: "index.html", content: "<!doctype html><html><body><h1>v1</h1></body></html>" },
+  });
+  await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
+    data: { path: "build.mjs", content: "import { mkdir, readFile, writeFile } from 'node:fs/promises'; await mkdir('dist', { recursive: true }); await writeFile('dist/index.html', await readFile('index.html', 'utf8'));" },
+  });
+  await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
+    data: { path: "package.json", content: JSON.stringify({ scripts: { build: "node build.mjs" } }) },
+  });
+
+  const build = await page.request.post(`/api/projects/${encodeURIComponent(projectId)}/run`, {
+    data: { command: "npm run build" },
+  });
+  expect(build.ok()).toBeTruthy();
+
+  const builtStatus = await page.request.get(`/api/projects/${encodeURIComponent(projectId)}/preview/status`);
+  expect(builtStatus.ok()).toBeTruthy();
+  const built = await builtStatus.json();
+  expect(built.online).toBeTruthy();
+  expect(built.url).toContain("/api/preview/");
+
+  const builtState = await (await page.request.get(`/api/projects/${encodeURIComponent(projectId)}/state`)).json();
+  expect(builtState.state.previewRevision).toBe(builtState.state.sourceRevision);
+
+  await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
+    data: { path: "index.html", content: "<!doctype html><html><body><h1>v2</h1></body></html>" },
+  });
+
+  const staleStatus = await page.request.get(`/api/projects/${encodeURIComponent(projectId)}/preview/status`);
+  expect(staleStatus.ok()).toBeTruthy();
+  const stale = await staleStatus.json();
+  expect(stale.online).toBeFalsy();
+  expect(stale.url).toBeNull();
+  expect(stale.reason).toBe("Production build is missing");
+
+  const staleState = await (await page.request.get(`/api/projects/${encodeURIComponent(projectId)}/state`)).json();
+  expect(staleState.state.sourceRevision).not.toBe(staleState.state.previewRevision);
+});
 test("real child-process supervision tracks running, normal exit and crash without orphaning", async ({ page }) => {
   const projectId = await createStaticProject(page, "runtime-process-supervision");
   await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
