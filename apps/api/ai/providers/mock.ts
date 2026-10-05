@@ -6,7 +6,7 @@ export class MockProvider implements AIProvider {
   model = "e2e-v1";
   capabilities = {
     text: true,
-    code: false,
+    code: true,
     vision: false,
     toolCalling: false,
     streaming: false,
