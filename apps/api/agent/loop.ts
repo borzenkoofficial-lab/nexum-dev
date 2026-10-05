@@ -669,20 +669,6 @@ export class AgentLoop {
         // Every successful implementation change invalidates prior validation.
         // Re-run static validation and project tests after the latest change
         // instead of treating an earlier green check as current evidence.
-        const hasProjectChanges = previousResults.some((item) =>
-          item.tool === "scaffoldProject" &&
-          /React\/Vite scaffold created/i.test(item.result.output),
-        ) || previousResults.some((item) =>
-          (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
-        );
-        const lastProjectChangeIndex = previousResults.reduce((lastIndex, item, index) => {
-          if (
-            item.tool === "scaffoldProject" ||
-            item.tool === "writeFile" ||
-            item.tool === "patchFile"
-          ) return index;
-          return lastIndex;
-        }, -1);
         const lastSuccessfulStaticValidationIndex = previousResults.reduce((lastIndex, item, index) =>
           item.tool === "validateProject" && item.result.success ? index : lastIndex, -1);
         const hasSuccessfulStaticValidationAfterLatestChange =
