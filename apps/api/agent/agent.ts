@@ -561,7 +561,7 @@ export class NexumAgent implements AgentRuntime {
     const content = input;
     const genericDigital = /nexum\.dev|digital products|ai studio|saas|software products|web products|digital systems/.test(content);
     const domainSignal = construction
-      ? /строит|подряд|демонтаж|фасад|объект|бригада|ремонт|стяжк|штукатур|монтаж|кровл/.test(content)
+      ? /строит|подряд|демонтаж|фасад|объект|бригада|отделк|стяжк|штукатур|монтаж|кровл|бетон|инженерн/.test(content)
       : /авто|автомобил|машин|автосервис|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст|сто/.test(content);
     return domainSignal && !genericDigital;
   }
