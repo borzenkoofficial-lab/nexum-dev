@@ -18,7 +18,7 @@ test("scaffoldProject ignores NEXUM checkpoint metadata in an otherwise fresh pr
 
     assert.equal(result.success, true);
     assert.match(result.output, /React\/Vite scaffold created/i);
-    assert.match(await readFile(join(root, "package.json"), "utf8"), /"vite"/);
+    assert.match(await readFile(join(root, "index.html"), "utf8"), /Автосервис/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
