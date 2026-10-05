@@ -671,7 +671,7 @@ export class AgentLoop {
         // instead of treating an earlier green check as current evidence.
         const hasProjectChanges = previousResults.some((item) =>
           item.tool === "scaffoldProject" &&
-          /React\\/Vite scaffold created/i.test(item.result.output),
+          /React\/Vite scaffold created/i.test(item.result.output),
         ) || previousResults.some((item) =>
           (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
         );
