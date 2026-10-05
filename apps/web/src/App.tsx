@@ -46,7 +46,6 @@ function App() {
   const [aiStatus, setAIStatus] = useState<AIProviderStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"preview" | "files" | "agent">("preview");
-  const [mobileToolOpen, setMobileToolOpen] = useState(false);
   const [workspaceMode, setWorkspaceMode] = useState<"preview" | "agent" | "files" | "code">("preview");
   const [projectWindowModes, setProjectWindowModes] = useState<Record<string, "preview" | "agent" | "files" | "code">>(() => {
     try {
@@ -67,7 +66,6 @@ function App() {
   const projectWindowMinimized = Boolean(projectWindowMinimizedByProject[activeПроектId]);
   const [osBooted, setOsBooted] = useState(false);
   // OS is enabled on every fresh page load; the switch is session-only for testing.
-  const [osEnabled, setOsEnabled] = useState(true);
   const [onboardingComplete, setOnboardingComplete] = useState(() => { try { return localStorage.getItem("nexum:onboarding-complete") === "1"; } catch { return false; } });
   const [welcomeTestMode, setWelcomeTestMode] = useState(false);
   useEffect(() => {
@@ -89,7 +87,6 @@ function App() {
   };
   const [previewOnline, setПредпросмотрOnline] = useState(false);
   const [previewKey, setПредпросмотрKey] = useState(0);
-  const [builderStarted, setBuilderStarted] = useState(false);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
   const chatJobIdRef = useRef<string | null>(null);
   const setAuthoritativeChatJobId = (jobId: string | null) => {
@@ -152,7 +149,6 @@ function App() {
 
   const activeПроект = projects.find((project) => project.id === activeПроектId);
   useEffect(() => { nexumRuntime.setProject(activeПроектId); }, [activeПроектId]);
-  const minimizedProjectIds = runningProjectIds.filter((id) => Boolean(projectWindowMinimizedByProject[id]));
   useEffect(() => {
     try { sessionStorage.setItem("nexum:os:minimized-windows", JSON.stringify(projectWindowMinimizedByProject)); } catch {}
   }, [projectWindowMinimizedByProject]);
@@ -334,10 +330,10 @@ function App() {
         const job = (data.jobs ?? []).find((item) => (item.status === "queued" || item.status === "running") && (!item.projectId || item.projectId === activeПроектId));
         if (!job || cancelled || chatJobIdRef.current !== null) return;
         setAuthoritativeChatJobId(job.id);
-        setBuilderStarted(true);
+        
         setRightTab("agent");
         setWorkspaceMode("agent");
-        setMobileToolOpen(true);
+        
         setАгентStage((job.stage as typeof agentStage) ?? "running");
         setCurrentActivity(job.currentMessage ?? "Восстанавливаю активную Agent задачу после перезагрузки.");
       } catch {
@@ -417,8 +413,7 @@ function App() {
       const mode = projectWindowModes[projectId] ?? (workspaceTab === "files" ? "files" : workspaceTab);
       setCodeMode(mode === "code");
       setRightTab(mode === "code" ? "files" : mode);
-      setMobileToolOpen(mode !== "code");
-      setWorkspaceMode(mode);
+            setWorkspaceMode(mode);
       if (!projectWindowModes[projectId]) setProjectWindowModes((items) => ({ ...items, [projectId]: mode }));
       setViewState("project");
       setProjectWindowMinimizedByProject((items) => ({ ...items, [projectId]: false }));
@@ -431,7 +426,7 @@ function App() {
     setWorkspaceMode(mode);
     setProjectWindowModes((items) => ({ ...items, [activeПроектId]: mode }));
     if (mode !== "code") setCodeMode(false);
-    if (mode === "preview" || mode === "agent" || mode === "files") { setRightTab(mode); setMobileToolOpen(true); }
+    if (mode === "preview" || mode === "agent" || mode === "files") { setRightTab(mode); }
   }
 
   async function selectПроект(projectId: string): Promise<boolean> {
@@ -472,7 +467,7 @@ function App() {
       if (!selected) throw new Error("Проект создан, но рабочее пространство не удалось открыть.");
       setViewState("project");
       setRightTab("agent");
-      setMobileToolOpen(true);
+      
       setWorkspaceMode("agent");
       setCodeMode(false);
       setProjectWindowMinimizedByProject((items) => ({ ...items, [responseData.project.id]: false }));
@@ -504,7 +499,7 @@ function App() {
     const task = lastMessage.trim();
     if (!task) {
       setRightTab("preview");
-      setMobileToolOpen(true);
+      
       setWorkspaceMode("preview");
       return;
     }
@@ -512,7 +507,7 @@ function App() {
     setMessage(repairTask);
     setRightTab("agent");
     setProjectMode("agent");
-    setMobileToolOpen(true);
+    
     setWorkspaceMode("agent");
     window.setTimeout(() => void sendMessage(repairTask), 0);
   }
@@ -539,7 +534,7 @@ function App() {
     if (!task.trim() || !targetПроектId) return;
     setLastMessage(task);
     setProjectTaskMeta((items) => ({ ...items, [targetПроектId]: { task: task.trim(), timestamp: Date.now(), status: "queued" } }));
-    setBuilderStarted(true);
+    
     setRightTab("agent");
     setWorkspaceMode("agent");
     setАгентStage("thinking");
@@ -658,7 +653,7 @@ function App() {
           setReply(data?.job?.reply ?? "");
           if (data?.job?.reply) setConversation((items) => [...items, { id: `assistant-${Date.now()}`, role: "assistant", content: data.job!.reply!, timestamp: Date.now() }]);
           setRightTab("preview");
-          setMobileToolOpen(true);
+          
           setProjectMode("preview");
 
           // The agent can finish immediately after the build while the filesystem
@@ -851,11 +846,11 @@ function App() {
       {view !== "home" && <NexumOSEventCenter events={osEvents} onDismiss={(id) => setOsEvents((items) => items.filter((item) => item.id !== id))} />}
       {view !== "project" && view !== "home" && <NexumApplicationManager
         projectName={activeПроект?.name}
-        projects={runningProjectIds.map((id) => ({ id, name: projects.find((p) => p.id === id)?.name ?? id, active: id === activeПроектId && view === "project", minimized: Boolean(projectWindowMinimizedByProject[id]) }))}
+        projects={runningProjectIds.map((id) => ({ id, name: projects.find((p) => p.id === id)?.name ?? id, active: false, minimized: Boolean(projectWindowMinimizedByProject[id]) }))}
         projectModes={projectWindowModes}
         onSelectProject={(id) => openПроект(id, projectWindowModes[id] ?? "agent")}
         mode={workspaceMode}
-        running={view === "project" && runningProjectIds.includes(activeПроектId)}
+        running={false}
         minimized={projectWindowMinimized}
         onSelectMode={setProjectMode}
         onMinimize={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: true })); }}
@@ -864,8 +859,8 @@ function App() {
       />}
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
         {view !== "home" && view !== "project" && <OSSystemChrome
-          appName={view === "project" ? (activeПроект?.name ?? "NEXUM") : view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал NEXUM" : "Диагностика"}
-          appIcon={view === "project" ? (activeПроект?.name?.slice(0, 1).toUpperCase() ?? "N") : view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : "⌁"}
+          appName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал NEXUM" : "Диагностика"}
+          appIcon={view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : "⌁"}
           status={aiStatus?.available ? "AI Core подключён" : "Система готова"}
           activeView={view}
           onHome={() => navigate("home")}
@@ -1050,7 +1045,7 @@ function App() {
           onToolChange={(tool) => {
             if (tool === "code") { setCodeMode(true); setProjectMode("code"); return; }
             setCodeMode(false); setRightTab(tool as "preview" | "files" | "agent");
-            setMobileToolOpen(true); setProjectMode(tool);
+            setProjectMode(tool);
           }}
           onClose={() => { setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId)); navigate("home"); }}
           onConnect={() => setConnectorModal("Интеграция проекта")}
@@ -1073,7 +1068,7 @@ function App() {
                 onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask}
                 onFilesSelected={(files) => setPendingAttachments((items) => [...items, ...files.map((file) => ({ id: `${file.name}-${file.size}-${file.lastModified}`, name: file.name, type: file.type, size: file.size, file }))].slice(-5))}
                 onRemoveAttachment={(id) => setPendingAttachments((items) => items.filter((item) => item.id !== id))}
-                onOpenAgent={() => { setRightTab("agent"); setMobileToolOpen(true); setProjectMode("agent"); }}
+                onOpenAgent={() => { setRightTab("agent"); setProjectMode("agent"); }}
                 onProviderChange={selectAIProvider} onModelChange={setAIModel}
               />
               <BuilderTools
@@ -1081,8 +1076,8 @@ function App() {
                 previewOnline={previewOnline} previewKey={previewKey} stage={agentStage} jobId={chatJobId}
                 activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity}
                 problems={problems} productPlan={productPlan}
-                onTabChange={(tab) => { setRightTab(tab); setProjectMode(tab); setMobileToolOpen(true); }}
-                onRefresh={() => setПредпросмотрKey((key) => key + 1)} onRepair={repairLastTask} onOpenChat={() => { setMobileToolOpen(false); setProjectMode("preview"); }}
+                onTabChange={(tab) => { setRightTab(tab); setProjectMode(tab); }}
+                onRefresh={() => setПредпросмотрKey((key) => key + 1)} onRepair={repairLastTask} onOpenChat={() => { setProjectMode("preview"); }}
               />
             </div>
           )}
