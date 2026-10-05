@@ -331,7 +331,7 @@ test("E2E-18 full builder acceptance reaches generated, built and preview-ready 
   expect(filesResponse.ok()).toBeTruthy();
   const filesData = await filesResponse.json();
   const paths = (filesData.files ?? []).map((file: any) => file.path ?? file);
-  expect(paths.some((path: string) => /index\\.html|src\\/App\\.(tsx|jsx)|src\\/main\\.(tsx|jsx)/.test(path))).toBeTruthy();
+  expect(paths.some((path: string) => /index\.html|src\/App\.(tsx|jsx)|src\/main\.(tsx|jsx)/.test(path))).toBeTruthy();
   expect((job.changedFiles ?? []).length).toBeGreaterThanOrEqual(2);
 
   const stateResponse = await page.request.get(`/api/projects/${encodeURIComponent(e2eWorkspaceId)}/state`);
