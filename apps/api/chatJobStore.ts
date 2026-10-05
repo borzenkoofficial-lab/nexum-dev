@@ -220,7 +220,7 @@ export async function cancelChatJob(id: string, userId: string, message = "Agent
       message,
     }].slice(-100);
     await query(
-      \`UPDATE agent_chat_jobs SET updated_at=$2, payload=jsonb_set(payload, '{events}', $3::jsonb, true) WHERE id=$1 AND user_id=$4\`,
+      `UPDATE agent_chat_jobs SET updated_at=$2, payload=jsonb_set(payload, '{events}', $3::jsonb, true) WHERE id=$1 AND user_id=$4`,
       [id, cancelled.updatedAt, JSON.stringify(cancelled.events), userId],
     );
   }
