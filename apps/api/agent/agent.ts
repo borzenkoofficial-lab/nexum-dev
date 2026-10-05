@@ -248,7 +248,7 @@ export class NexumAgent implements AgentRuntime {
         : "planner";
     const run = await this.orchestrator.run(role, prompt, options);
     console.log(JSON.stringify({ type: "ai-role", role: run.role, provider: run.provider, model: run.model, fallback: run.fallback }));
-    const parsed = this.parseAIPlan(run.response);
+    const parsed = this.parseAIPlan(run.response, task);
     if (parsed && this.isPlanAlignedWithTask(task, parsed)) return parsed;
     if (parsed) {
       console.warn("[agent] rejected AI plan because it does not match the user's requested domain; using deterministic recovery");
@@ -281,7 +281,14 @@ export class NexumAgent implements AgentRuntime {
     try {
       const repairedRun = await this.orchestrator.run(role, repairPrompt, options);
       console.log(JSON.stringify({ type: "ai-role-repair", role: repairedRun.role, provider: repairedRun.provider, model: repairedRun.model, fallback: repairedRun.fallback }));
-      const repairedPlan = this.parseAIPlan(repairedRun.response);
+      const repairedPlan = this.parseAIPlan(repairedRun.response, task);
+      // A repair response is still model output and must pass the same domain
+      // contract as the first response. Otherwise a rejected wrong-domain plan
+      // can be reintroduced through the repair path and bypass the guard above.
+      if (repairedPlan && !this.isPlanAlignedWithTask(task, repairedPlan)) {
+        console.warn("[agent] rejected repaired AI plan because it does not match the user's requested domain; using deterministic recovery");
+        return null;
+      }
       // A repair response that only says "done" cannot erase the deterministic
       // fallback when no tool has executed yet. Prefer the concrete local plan.
       if (repairedPlan?.done && previousResults.length === 0) return null;
@@ -554,12 +561,12 @@ export class NexumAgent implements AgentRuntime {
     const content = input;
     const genericDigital = /nexum\.dev|digital products|ai studio|saas|software products|web products|digital systems/.test(content);
     const domainSignal = construction
-      ? /строит|подряд|демонтаж|фасад|объект|бригада|ремонт|стяжк|штукатур|монтаж|кровл/.test(content)
+      ? /строит|подряд|демонтаж|фасад|объект|бригада|отделк|стяжк|штукатур|монтаж|кровл|бетон|инженерн/.test(content)
       : /авто|автомобил|машин|автосервис|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст|сто/.test(content);
     return domainSignal && !genericDigital;
   }
 
-  private parseAIPlan(response: string): AgentPlan | null {
+  private parseAIPlan(response: string, task?: string): AgentPlan | null {
     const candidates = [
       response.trim(),
       response.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1]?.trim() ?? "",
@@ -576,22 +583,26 @@ export class NexumAgent implements AgentRuntime {
         };
 
         if (parsed.done === true) {
-          return {
+          const completionPlan: AgentPlan = {
             tool: "",
             input: "",
             done: true,
             ...(typeof parsed.finalResponse === "string" ? { finalResponse: parsed.finalResponse } : {}),
           };
+          if (task && !this.isPlanAlignedWithTask(task, completionPlan)) return null;
+          return completionPlan;
         }
 
         if (typeof parsed.tool !== "string" || !this.tools.has(parsed.tool) || parsed.input === undefined) {
           continue;
         }
 
-        return {
+        const plan = {
           tool: parsed.tool,
           input: typeof parsed.input === "string" ? parsed.input : JSON.stringify(parsed.input),
         };
+        if (task && !this.isPlanAlignedWithTask(task, plan)) return null;
+        return plan;
       } catch {
         continue;
       }
