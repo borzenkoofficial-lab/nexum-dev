@@ -665,12 +665,28 @@ export class AgentLoop {
           continue;
         }
 
-        // Never finish an app-building session with an unverified package project.
-        // If the agent wrote project files but did not build, perform the final
-        // install/build deterministically and let the model repair any failure.
-        const hasSuccessfulStaticValidation = previousResults.some(
-          (item) => item.tool === "validateProject" && item.result.success,
+        // Never finish an app-building session with an unverified project.
+        // Every successful implementation change invalidates prior validation.
+        // Re-run static validation and project tests after the latest change
+        // instead of treating an earlier green check as current evidence.
+        const hasProjectChanges = previousResults.some((item) =>
+          item.tool === "scaffoldProject" &&
+          /React\/Vite scaffold created/i.test(item.result.output),
+        ) || previousResults.some((item) =>
+          (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
         );
+        const lastProjectChangeIndex = previousResults.reduce((lastIndex, item, index) => {
+          if (
+            item.tool === "scaffoldProject" ||
+            item.tool === "writeFile" ||
+            item.tool === "patchFile"
+          ) return index;
+          return lastIndex;
+        }, -1);
+        const lastSuccessfulStaticValidationIndex = previousResults.reduce((lastIndex, item, index) =>
+          item.tool === "validateProject" && item.result.success ? index : lastIndex, -1);
+        const hasSuccessfulStaticValidationAfterLatestChange =
+          lastSuccessfulStaticValidationIndex > lastProjectChangeIndex;
         const hasStaticProject = previousResults.some(
           (item) => item.tool === "listFiles" && item.result.success &&
             /(?:^|\\n)index\\.html(?:\\n|$)/.test(item.result.output),
@@ -678,7 +694,7 @@ export class AgentLoop {
         if (
           builderTask &&
           hasStaticProject &&
-          !hasSuccessfulStaticValidation &&
+          !hasSuccessfulStaticValidationAfterLatestChange &&
           availableTools.includes("validateProject")
         ) {
           emit({
@@ -704,20 +720,6 @@ export class AgentLoop {
           if (!validation.success) { transition("repair"); continue; }
         }
 
-        const hasProjectChanges = previousResults.some((item) =>
-          item.tool === "scaffoldProject" &&
-          /React\/Vite scaffold created/i.test(item.result.output),
-        ) || previousResults.some((item) =>
-          (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
-        );
-        const lastProjectChangeIndex = previousResults.reduce((lastIndex, item, index) => {
-          if (
-            item.tool === "scaffoldProject" ||
-            item.tool === "writeFile" ||
-            item.tool === "patchFile"
-          ) return index;
-          return lastIndex;
-        }, -1);
         const lastSuccessfulBuildIndex = previousResults.reduce((lastIndex, item, index) => {
           if (item.tool === "runCommand" && item.input === "npm run build" && item.result.success) {
             return index;
@@ -765,10 +767,11 @@ export class AgentLoop {
           if (!buildSucceeded) { transition("repair"); continue; }
         }
 
-        const hasSuccessfulProjectTest = previousResults.some(
-          (item) => item.tool === "testProject" && item.result.success,
-        );
-        if (builderTask && !hasSuccessfulProjectTest && availableTools.includes("testProject")) {
+        const lastSuccessfulProjectTestIndex = previousResults.reduce((lastIndex, item, index) =>
+          item.tool === "testProject" && item.result.success ? index : lastIndex, -1);
+        const hasSuccessfulProjectTestAfterLatestChange =
+          lastSuccessfulProjectTestIndex > lastProjectChangeIndex;
+        if (builderTask && !hasSuccessfulProjectTestAfterLatestChange && availableTools.includes("testProject")) {
           emit({
             iteration,
             type: "tool-start",

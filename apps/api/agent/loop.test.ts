@@ -565,3 +565,92 @@ test("cancellation returns the last canonical execution snapshot", async () => {
   assert.equal(result.executionPlan?.planId, callbackSnapshot?.plan.planId);
   assert.deepEqual(result.intent?.projectId, "project-cancel-snapshot");
 });
+
+
+test("Builder cannot complete until runtime preview validation passes after the latest change", async () => {
+  let writes = 0;
+  let runtimeChecks = 0;
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["listFiles", "writeFile", "validateProject", "testProject"],
+    plan: (_task, previousResults) => {
+      if (previousResults.length === 0) return { tool: "listFiles", input: "." };
+
+      const runtimeFailure = previousResults.some(
+        (item) => item.tool === "runtimeValidation" && !item.result.success,
+      );
+
+      if (runtimeFailure && writes < 3) {
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({
+            path: "index.html",
+            content: "<!doctype html><html><body><main>Автосервис — диагностика и ремонт автомобилей.</main></body></html>",
+          }),
+        };
+      }
+
+      if (writes === 0) {
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({
+            path: "index.html",
+            content: "<!doctype html><html><body><main>Автосервис — диагностика автомобилей.</main></body></html>",
+          }),
+        };
+      }
+
+      if (writes === 1) {
+        return {
+          tool: "writeFile",
+          input: JSON.stringify({
+            path: "style.css",
+            content: "body { font-family: system-ui; } main { max-width: 900px; margin: auto; }",
+          }),
+        };
+      }
+
+      return { tool: "", input: "", done: true, finalResponse: "Готово" };
+    },
+    executeTool: async (tool, input) => {
+      if (tool === "listFiles") {
+        return { success: true, output: "index.html\nstyle.css" };
+      }
+      if (tool === "writeFile") {
+        writes += 1;
+        return { success: true, output: "written" };
+      }
+      if (tool === "validateProject") {
+        return { success: true, output: "Static validation passed." };
+      }
+      if (tool === "testProject") {
+        return { success: true, output: "Static smoke test passed." };
+      }
+      return { success: true, output: "unexpected" };
+    },
+    validateRuntime: async () => {
+      runtimeChecks += 1;
+      if (runtimeChecks === 1) {
+        return {
+          success: false,
+          output: "Preview HTTP 503",
+          error: {
+            code: "RUNTIME_ERROR",
+            message: "Preview is unavailable.",
+            retryable: true,
+            repairable: true,
+            fatal: false,
+          },
+        };
+      }
+      return { success: true, output: "Preview HTTP 200; HTML document received." };
+    },
+  };
+
+  const result = await new AgentLoop(runtime, gateway, 10).run(
+    "Сделай сайт автосервиса с диагностикой и ремонтом автомобилей",
+  );
+
+  assert.equal(result.success, true);
+  assert.ok(runtimeChecks >= 2);
+  assert.ok(writes >= 3);
+});
