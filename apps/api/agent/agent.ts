@@ -340,6 +340,24 @@ export class NexumAgent implements AgentRuntime {
       (item) => item.tool === "scaffoldProject" && item.result.success,
     );
 
+    // A newly created NEXUM project contains a tiny starter (index.html,
+    // style.css, app.js). It is not user implementation and must be treated
+    // as scaffoldable. Confirm the starter content before invoking the
+    // scaffold tool so a real three-file user site is never overwritten.
+    if (
+      /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|website|landing|web app|страниц|dashboard|marketplace|crm/i.test(task) &&
+      this.projectIsStarterOnlyFromResults(previousResults) &&
+      !scaffolded
+    ) {
+      const starterIndexRead = [...previousResults]
+        .reverse()
+        .find((item) => item.tool === "readFile" && item.input === "index.html" && item.result.success);
+      if (!starterIndexRead) return { tool: "readFile", input: "index.html" };
+      if (/Your project is ready\\. Ask the Agent to design and build it\\./i.test(starterIndexRead.result.output)) {
+        return { tool: "scaffoldProject", input: task.trim() };
+      }
+    }
+
     // Empty/new Builder projects need a real runnable baseline before the
     // model can inspect and implement the requested product. This is not a
     // template fallback: scaffoldProject only creates the project infrastructure.
@@ -717,6 +735,19 @@ export class NexumAgent implements AgentRuntime {
     }
 
     return null;
+  }
+
+  private projectIsStarterOnlyFromResults(results: AgentToolResult[]): boolean {
+    const listing = results
+      .filter((item) => item.tool === "listFiles" && item.result.success)
+      .map((item) => item.result.output.trim())
+      .filter(Boolean)
+      .at(-1) ?? "";
+    const paths = listing
+      .split(/\\r?\\n/)
+      .map((path) => path.trim().replace(/\\/$/, ""))
+      .filter(Boolean);
+    return paths.length === 3 && paths.every((path) => ["index.html", "style.css", "app.js"].includes(path));
   }
 
   private projectHasExistingFilesFromResults(results: AgentToolResult[]): boolean {
