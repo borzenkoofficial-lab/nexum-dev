@@ -40,7 +40,7 @@ export class MockProvider implements AIProvider {
       return JSON.stringify({ passed: true, missing: [], risks: [] });
     }
 
-    if (/You are the NEXUM\\.DEV autonomous project builder/i.test(message)) {
+    if (/You are the NEXUM\.DEV autonomous project builder/i.test(message)) {
       // E2E Builder mode supplies deterministic implementation actions only.
       // Production AgentLoop, filesystem tools, build, tests and Preview remain real.
       const writeCount = (message.match(/writeFile:/gi) ?? []).length;
