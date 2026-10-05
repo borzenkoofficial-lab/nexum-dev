@@ -282,6 +282,13 @@ export class NexumAgent implements AgentRuntime {
       const repairedRun = await this.orchestrator.run(role, repairPrompt, options);
       console.log(JSON.stringify({ type: "ai-role-repair", role: repairedRun.role, provider: repairedRun.provider, model: repairedRun.model, fallback: repairedRun.fallback }));
       const repairedPlan = this.parseAIPlan(repairedRun.response);
+      // A repair response is still model output and must pass the same domain
+      // contract as the first response. Otherwise a rejected wrong-domain plan
+      // can be reintroduced through the repair path and bypass the guard above.
+      if (repairedPlan && !this.isPlanAlignedWithTask(task, repairedPlan)) {
+        console.warn("[agent] rejected repaired AI plan because it does not match the user's requested domain; using deterministic recovery");
+        return null;
+      }
       // A repair response that only says "done" cannot erase the deterministic
       // fallback when no tool has executed yet. Prefer the concrete local plan.
       if (repairedPlan?.done && previousResults.length === 0) return null;
