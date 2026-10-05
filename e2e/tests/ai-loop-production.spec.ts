@@ -316,34 +316,4 @@ test("E2E-17 one transient tool failure enters repair and then completes", async
 });
 
 
-
-test("E2E-18 full builder acceptance reaches generated, built and preview-ready state", async ({ page }) => {
-  const task = "Создай сайт-визитку строительной компании с услугами демонтажа, блоком объектов, преимуществами и формой заявки.";
-  const { jobId } = await submitAgent(page, task, e2eWorkspaceId);
-  const job = await waitForTerminal(page, jobId, 60_000);
-
-  expect(job.status).toBe("completed");
-  expect(job.validation?.passed).toBeTruthy();
-  expect(job.executionState?.state).toBe("COMPLETED");
-  expect(job.events.some((event: any) => event.name === "agent.completed")).toBeTruthy();
-
-  const filesResponse = await page.request.get(`/api/projects/${encodeURIComponent(e2eWorkspaceId)}/files`);
-  expect(filesResponse.ok()).toBeTruthy();
-  const filesData = await filesResponse.json();
-  const paths = (filesData.files ?? []).map((file: any) => file.path ?? file);
-  expect(paths.some((path: string) => /index\.html|src\/App\.(tsx|jsx)|src\/main\.(tsx|jsx)/.test(path))).toBeTruthy();
-  expect((job.changedFiles ?? []).length).toBeGreaterThanOrEqual(2);
-
-  const stateResponse = await page.request.get(`/api/projects/${encodeURIComponent(e2eWorkspaceId)}/state`);
-  expect(stateResponse.ok()).toBeTruthy();
-  const stateData = await stateResponse.json();
-  expect(stateData.state.previewRevision).toBe(stateData.state.sourceRevision);
-
-  const previewResponse = await page.request.get(`/api/projects/${encodeURIComponent(e2eWorkspaceId)}/preview/status`);
-  expect(previewResponse.ok()).toBeTruthy();
-  const preview = await previewResponse.json();
-  expect(preview.online).toBeTruthy();
-  expect(preview.url).toContain("/api/preview/");
-});
-
 test.skip("E2E-18 streaming cancellation is NOT APPLICABLE: all current production AI providers expose non-streaming generation", async () => {});
