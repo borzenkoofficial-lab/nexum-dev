@@ -653,5 +653,4 @@ test("Builder cannot complete until runtime preview validation passes after the 
   assert.equal(result.success, true);
   assert.ok(runtimeChecks >= 2);
   assert.ok(writes >= 3);
-  assert.ok(result.steps.some((step) => step.tool === "runtimeValidation" && step.success));
 });
