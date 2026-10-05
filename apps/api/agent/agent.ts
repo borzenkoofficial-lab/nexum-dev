@@ -353,7 +353,7 @@ export class NexumAgent implements AgentRuntime {
         .reverse()
         .find((item) => item.tool === "readFile" && item.input === "index.html" && item.result.success);
       if (!starterIndexRead) return { tool: "readFile", input: "index.html" };
-      if (/Your project is ready\\. Ask the Agent to design and build it\\./i.test(starterIndexRead.result.output)) {
+      if (/Your project is ready\. Ask the Agent to design and build it\./i.test(starterIndexRead.result.output)) {
         return { tool: "scaffoldProject", input: task.trim() };
       }
     }
