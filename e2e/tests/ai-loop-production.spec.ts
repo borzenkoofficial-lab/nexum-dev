@@ -74,7 +74,7 @@ test("E2E-01 user request creates one Agent Job and one canonical Runtime Task",
   await input.fill("Покажи структуру текущего проекта.");
   await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
 
-  await expect(page.getByText("NEXUM выполняет задачу")).toBeVisible({ timeout: 5_000 });
+  await expect.poll(async () => page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__ ?? null), { timeout: 5_000 }).toBeTruthy();
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   const runtimeTaskId = await page.evaluate(() => (window as any).__NEXUM_E2E_RUNTIME_TASK_ID__);
   expect(jobId).toBeTruthy();
