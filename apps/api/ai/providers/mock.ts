@@ -50,19 +50,19 @@ export class MockProvider implements AIProvider {
       if (/scaffoldProject:/i.test(message) && writeCount === 0) {
         return JSON.stringify({
           tool: "writeFile",
-          input: {
+          input: JSON.stringify({
             path: "src/App.jsx",
             content: "export default function App(){return <main><h1>Диагностика и ремонт автомобилей</h1><p>Автосервис полного цикла.</p><button>Записаться на диагностику</button></main>}",
-          },
+          }),
         });
       }
       if (writeCount === 1) {
         return JSON.stringify({
           tool: "writeFile",
-          input: {
+          input: JSON.stringify({
             path: "src/styles.css",
             content: "html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#101010;color:#fff}main{min-height:100vh;padding:48px;box-sizing:border-box}h1{font-size:64px}",
-          },
+          }),
         });
       }
       if (writeCount >= 2) return JSON.stringify({ done: true, finalResponse: "Сайт автосервиса создан, собран и проверен в Preview." });
