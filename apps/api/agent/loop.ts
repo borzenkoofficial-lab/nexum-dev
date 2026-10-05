@@ -720,20 +720,6 @@ export class AgentLoop {
           if (!validation.success) { transition("repair"); continue; }
         }
 
-        const hasProjectChanges = previousResults.some((item) =>
-          item.tool === "scaffoldProject" &&
-          /React\/Vite scaffold created/i.test(item.result.output),
-        ) || previousResults.some((item) =>
-          (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
-        );
-        const lastProjectChangeIndex = previousResults.reduce((lastIndex, item, index) => {
-          if (
-            item.tool === "scaffoldProject" ||
-            item.tool === "writeFile" ||
-            item.tool === "patchFile"
-          ) return index;
-          return lastIndex;
-        }, -1);
         const lastSuccessfulBuildIndex = previousResults.reduce((lastIndex, item, index) => {
           if (item.tool === "runCommand" && item.input === "npm run build" && item.result.success) {
             return index;
