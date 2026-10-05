@@ -746,7 +746,7 @@ export class NexumAgent implements AgentRuntime {
     const paths = listing
       .split(/\r?\n/)
       .map((path) => path.trim().replace(/\/$/, ""))
-      .filter(Boolean);
+      .filter((path) => Boolean(path) && !path.startsWith(".nexum/") && path !== ".nexum");
     return paths.length === 3 && paths.every((path) => ["index.html", "style.css", "app.js"].includes(path));
   }
 
