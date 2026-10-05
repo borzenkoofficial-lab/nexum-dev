@@ -370,7 +370,11 @@ export class NexumAgent implements AgentRuntime {
       const hasPostScaffoldListing = scaffoldIndex >= 0 && previousResults.some(
         (item, index) => index > scaffoldIndex && item.tool === "listFiles" && item.result.success,
       );
-      if (!hasPostScaffoldListing) return { tool: "listFiles", input: "." };
+      const hadExistingFilesBeforeScaffold = scaffoldIndex >= 0 &&
+        this.projectHasExistingFilesFromResults(previousResults.slice(0, scaffoldIndex));
+      if (!hasPostScaffoldListing && !hadExistingFilesBeforeScaffold) {
+        return { tool: "listFiles", input: "." };
+      }
 
       const existingPath = this.existingPathsFromResults(previousResults).find(
         (candidate) => !previousResults.some(
