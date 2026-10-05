@@ -744,8 +744,8 @@ export class NexumAgent implements AgentRuntime {
       .filter(Boolean)
       .at(-1) ?? "";
     const paths = listing
-      .split(/\\r?\\n/)
-      .map((path) => path.trim().replace(/\\/$/, ""))
+      .split(/\r?\n/)
+      .map((path) => path.trim().replace(/\/$/, ""))
       .filter(Boolean);
     return paths.length === 3 && paths.every((path) => ["index.html", "style.css", "app.js"].includes(path));
   }
