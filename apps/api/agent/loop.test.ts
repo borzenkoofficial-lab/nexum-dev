@@ -455,6 +455,38 @@ test("does not let an automotive request accept a construction write plan", () =
 });
 
 
+test("fresh NEXUM starter is recognized as scaffoldable Builder baseline", async () => {
+  const calls: string[] = [];
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["listFiles", "readFile", "scaffoldProject"],
+    plan: (_task, previousResults) => {
+      const scaffold = previousResults.find((item) => item.tool === "scaffoldProject" && item.result.success);
+      if (scaffold) return null;
+      if (!previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
+        return { tool: "listFiles", input: "." };
+      }
+      if (!previousResults.some((item) => item.tool === "readFile" && item.input === "index.html" && item.result.success)) {
+        return { tool: "readFile", input: "index.html" };
+      }
+      return { tool: "scaffoldProject", input: "Сделай сайт автосервиса с диагностикой и ремонтом автомобилей" };
+    },
+    executeTool: async (tool) => {
+      calls.push(tool);
+      if (tool === "listFiles") return { success: true, output: "index.html\nstyle.css\napp.js" };
+      if (tool === "readFile") return { success: true, output: "<html><body>Your project is ready. Ask the Agent to design and build it.</body></html>" };
+      if (tool === "scaffoldProject") return { success: true, output: "React/Vite scaffold created for test" };
+      return { success: true, output: "ok" };
+    },
+  };
+
+  const result = await new AgentLoop(runtime, gateway, 6).run(
+    "Сделай сайт автосервиса с диагностикой и ремонтом автомобилей",
+  );
+
+  assert.equal(result.success, false);
+  assert.deepEqual(calls.slice(0, 3), ["listFiles", "readFile", "scaffoldProject"]);
+});
+ 
 test("does not get stuck on repeated searchFiles during Builder recovery", async () => {
   let writes = 0;
   const runtime: AgentRuntime = {

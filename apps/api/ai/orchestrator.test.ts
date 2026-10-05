@@ -59,3 +59,26 @@ test("orchestrator fails over to the next compatible model after a rate limit", 
   assert.equal(provider.calls.length, 2);
   assert.notEqual(provider.calls[0], provider.calls[1]);
 });
+
+class SimpleProvider implements AIProvider {
+  constructor(
+    public readonly id: string,
+    public readonly model: string,
+  ) {}
+  name = "Simple";
+  capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: true, reasoning: false, contextWindow: 32768 };
+  async listModels(): Promise<string[]> { return [this.model]; }
+  async generate(): Promise<string> { return JSON.stringify({ done: true, finalResponse: this.id }); }
+}
+
+test("orchestrator prefers the configured default provider for coder role", async () => {
+  const other = new SimpleProvider("other", "other-model");
+  const configured = new SimpleProvider("configured", "configured-model");
+  const gateway = new AIGateway([other, configured], "configured");
+  const orchestrator = new AIOrchestrator(gateway);
+
+  const result = await orchestrator.run("coder", "implement the UI");
+
+  assert.equal(result.provider, "configured");
+  assert.equal(result.model, "configured-model");
+});

@@ -27,7 +27,7 @@ export class ScaffoldProjectTool implements Tool {
       // mechanism. The planner may be wrong; the tool itself must still protect
       // the user's existing project.
       const entries = await readdir(dir, { withFileTypes: true });
-      const meaningfulEntries = entries.filter((entry) => ![".git", "node_modules", "dist"].includes(entry.name));
+      const meaningfulEntries = entries.filter((entry) => ![".git", "node_modules", "dist", ".nexum"].includes(entry.name));
       const starterOnly = meaningfulEntries.length > 0 && meaningfulEntries.every((entry) =>
         ["index.html", "style.css", "app.js"].includes(entry.name),
       );
