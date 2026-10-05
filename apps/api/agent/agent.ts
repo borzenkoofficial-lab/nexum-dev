@@ -583,12 +583,14 @@ export class NexumAgent implements AgentRuntime {
         };
 
         if (parsed.done === true) {
-          return {
+          const completionPlan: AgentPlan = {
             tool: "",
             input: "",
             done: true,
             ...(typeof parsed.finalResponse === "string" ? { finalResponse: parsed.finalResponse } : {}),
           };
+          if (task && !this.isPlanAlignedWithTask(task, completionPlan)) return null;
+          return completionPlan;
         }
 
         if (typeof parsed.tool !== "string" || !this.tools.has(parsed.tool) || parsed.input === undefined) {
