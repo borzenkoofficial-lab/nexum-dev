@@ -360,6 +360,70 @@ test("recovers from a failed build after a file fix", async () => {
 });
 
 
+
+test("empty Builder project selects scaffold after initial inspection", () => {
+  const agent = new NexumAgent(gateway);
+  const result = agent.plan("Создай сайт автосервиса", [
+    {
+      iteration: 1,
+      tool: "listFiles",
+      input: ".",
+      result: { success: true, output: "" },
+    },
+  ]);
+
+  assert.equal(result?.tool, "scaffoldProject");
+  assert.equal(result?.input, "Создай сайт автосервиса");
+});
+
+test("Builder refreshes the project tree after successful scaffold", () => {
+  const agent = new NexumAgent(gateway);
+  const result = agent.plan("Создай сайт автосервиса", [
+    {
+      iteration: 1,
+      tool: "listFiles",
+      input: ".",
+      result: { success: true, output: "" },
+    },
+    {
+      iteration: 2,
+      tool: "scaffoldProject",
+      input: "Создай сайт автосервиса",
+      result: { success: true, output: "React/Vite scaffold created" },
+    },
+  ]);
+
+  assert.equal(result?.tool, "listFiles");
+  assert.equal(result?.input, ".");
+});
+
+test("Builder reads the newly scaffolded entry file before implementation", () => {
+  const agent = new NexumAgent(gateway);
+  const result = agent.plan("Создай сайт автосервиса", [
+    {
+      iteration: 1,
+      tool: "listFiles",
+      input: ".",
+      result: { success: true, output: "" },
+    },
+    {
+      iteration: 2,
+      tool: "scaffoldProject",
+      input: "Создай сайт автосервиса",
+      result: { success: true, output: "React/Vite scaffold created" },
+    },
+    {
+      iteration: 3,
+      tool: "listFiles",
+      input: ".",
+      result: { success: true, output: "package.json\nsrc/App.tsx\nsrc/main.tsx" },
+    },
+  ]);
+
+  assert.equal(result?.tool, "readFile");
+  assert.equal(result?.input, "package.json");
+});
+
 test("locks auto-repair requests to the automotive domain", async () => {
   const plannerGateway = new AIGateway([new ProductPlanProvider()]);
   const agent = new NexumAgent(plannerGateway);
