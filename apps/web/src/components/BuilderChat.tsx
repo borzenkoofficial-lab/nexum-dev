@@ -31,7 +31,7 @@ export function BuilderChat(p:Props){
       <div className="nx-composer-left"><button type="button" onClick={()=>fileRef.current?.click()} disabled={busy}>＋ Attach</button><input ref={fileRef} hidden type="file" multiple onChange={e=>{if(e.target.files)p.onFilesSelected([...e.target.files]);e.currentTarget.value=""}}/>
       <div className="nx-model"><button type="button" disabled={busy} onClick={()=>setModelOpen(!modelOpen)}><b>{p.model}</b><small>{selected?.name??p.provider}</small><span>⌄</span></button>
       {modelOpen&&<div className="nx-model-pop"><strong>AI model</strong>{p.providers.map(x=><button type="button" key={x.id} className={x.id===p.provider?"selected":""} onClick={()=>p.onProviderChange(x.id)}>{x.name}</button>)}<hr/>{models.map(x=><button type="button" key={x} className={x===p.model?"selected":""} onClick={()=>{p.onModelChange(x);setModelOpen(false)}}>{x}{x===p.model?" ✓":""}</button>)}</div>}</div></div>
-      <div className="nx-composer-right">{busy?<button type="button" className="nx-cancel" aria-label="Отменить задачу Agent" onClick={p.onCancel}>Stop</button>:<button className="nx-send" type="submit" disabled={!p.message.trim()}>↑</button>}</div>
+      <div className="nx-composer-right">{busy?<button type="button" className="nx-cancel" aria-label="Отменить задачу Agent" onClick={p.onCancel}>Stop</button>:<button className="nx-send" type="submit" aria-label="Отправить задачу агенту NEXUM" disabled={!p.message.trim()}>↑</button>}</div>
     </div>
    </form>
    <footer><span>Enter to send · Shift+Enter for a new line</span><button type="button" onClick={()=>p.onQuickTask("Покажи статус Git")}>Git status</button></footer>

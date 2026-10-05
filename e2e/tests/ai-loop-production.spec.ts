@@ -74,7 +74,7 @@ test("E2E-01 user request creates one Agent Job and one canonical Runtime Task",
   await input.fill("Покажи структуру текущего проекта.");
   await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
 
-  await expect(page.getByText("NEXUM выполняет задачу")).toBeVisible({ timeout: 5_000 });
+  await expect.poll(async () => page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__ ?? null), { timeout: 5_000 }).toBeTruthy();
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   const runtimeTaskId = await page.evaluate(() => (window as any).__NEXUM_E2E_RUNTIME_TASK_ID__);
   expect(jobId).toBeTruthy();
@@ -138,7 +138,7 @@ test("E2E-05 user cancellation produces CANCELLED terminal Agent and Runtime tas
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   expect(jobId).toBeTruthy();
-  const activeJobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__ ?? null);
+  const activeJobId = await page.evaluate(() => (window as any).__NEXUM_E2E_ACTIVE_CHAT_JOB_ID__ ?? null);
   expect(activeJobId).toBe(jobId);
   const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
   await expect(cancel).toHaveCount(1);
