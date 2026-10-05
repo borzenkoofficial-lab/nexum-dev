@@ -1067,6 +1067,12 @@ app.post("/api/projects/:id/run", async (req, res) => {
     const allowed = new Set(["npm run build", "npm run test", "npm run lint", "npm run typecheck", "git status", "git diff", "git log"]);
     if (!allowed.has(command)) return res.status(400).json({ success: false, error: "Command is not allowed" });
     const result = await new RunCommandTool(resolve(project.path), 120000, serverRuntime, { projectId: project.id }).execute(command);
+    const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
+    projectStates.set(project.path, stateManager);
+    if (command === "npm run build") {
+      if (result.success) await stateManager.markBuildSucceeded();
+      else await stateManager.refresh(undefined, undefined, [], [`build: ${result.stderr || result.stdout || "Command failed"}`]);
+    }
     const problems = result.success ? [] : [{
       message: result.stderr || result.stdout || "Command failed",
       source: command,
