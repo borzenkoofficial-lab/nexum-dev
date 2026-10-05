@@ -44,7 +44,7 @@ export class MockProvider implements AIProvider {
       // E2E Builder mode supplies deterministic implementation actions only.
       // Production AgentLoop, filesystem tools, build, tests and Preview remain real.
       const writeCount = (message.match(/writeFile:/gi) ?? []).length;
-      if (/readFile:\\s*index\\.html/i.test(message) && !/scaffoldProject:/i.test(message) && writeCount === 0) {
+      if (/readFile:\s*index\.html/i.test(message) && !/scaffoldProject:/i.test(message) && writeCount === 0) {
         return JSON.stringify({ tool: "scaffoldProject", input: "Сделай сайт автосервиса с диагностикой и ремонтом автомобилей" });
       }
       if (/scaffoldProject:/i.test(message) && writeCount === 0) {
