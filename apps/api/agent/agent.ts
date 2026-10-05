@@ -340,6 +340,18 @@ export class NexumAgent implements AgentRuntime {
       (item) => item.tool === "scaffoldProject" && item.result.success,
     );
 
+    // Empty/new Builder projects need a real runnable baseline before the
+    // model can inspect and implement the requested product. This is not a
+    // template fallback: scaffoldProject only creates the project infrastructure.
+    if (
+      /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|website|landing|web app|страниц|dashboard|marketplace|crm/i.test(task) &&
+      this.hasSuccessfulResult(previousResults, "listFiles") &&
+      !scaffolded &&
+      !this.projectHasExistingFilesFromResults(previousResults)
+    ) {
+      return { tool: "scaffoldProject", input: task.trim() };
+    }
+
     // IMPORTANT: normal Builder execution must never silently fall back to a
     // hard-coded website template. That made every construction request look
     // identical and only changed the text. If the AI planner cannot produce an
@@ -350,6 +362,16 @@ export class NexumAgent implements AgentRuntime {
     if (scaffolded && !previousResults.some((item) =>
       (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success
     )) {
+      // The initial listFiles ran before scaffolding and therefore cannot tell
+      // us which baseline files now exist. Refresh the tree exactly once.
+      const scaffoldIndex = previousResults.findIndex(
+        (item) => item.tool === "scaffoldProject" && item.result.success,
+      );
+      const hasPostScaffoldListing = scaffoldIndex >= 0 && previousResults.some(
+        (item, index) => index > scaffoldIndex && item.tool === "listFiles" && item.result.success,
+      );
+      if (!hasPostScaffoldListing) return { tool: "listFiles", input: "." };
+
       const existingPath = this.existingPathsFromResults(previousResults).find(
         (candidate) => !previousResults.some(
           (item) => item.tool === "readFile" && item.input === candidate && item.result.success,
