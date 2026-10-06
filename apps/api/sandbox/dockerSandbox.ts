@@ -203,7 +203,7 @@ export class DockerSandbox {
       "--security-opt",
       "no-new-privileges:true",
       "--mount",
-      `type=bind,src=${projectPath},dst=/workspace,rw`,
+      `type=bind,src=${projectPath},dst=/workspace`,
       "--tmpfs",
       "/tmp:rw,noexec,nosuid,size=64m",
       "--workdir",
