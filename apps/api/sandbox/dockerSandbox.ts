@@ -123,8 +123,14 @@ export class DockerSandbox {
       normalizedArgs.splice(prefixIndex, 2);
     }
 
+    if (normalizedArgs[0] === "install") {
+      if (normalizedArgs.length !== 2 || normalizedArgs[1] !== "--ignore-scripts") {
+        throw new Error("Only npm install --ignore-scripts is allowed in Sandbox");
+      }
+      return { executable: "npm", args: normalizedArgs };
+    }
     if (normalizedArgs[0] !== "run" || !ALLOWED_NPM_SCRIPTS.has(normalizedArgs[1] ?? "")) {
-      throw new Error("Only npm run build/test/lint/typecheck are allowed in Sandbox");
+      throw new Error("Only npm install --ignore-scripts or npm run build/test/lint/typecheck are allowed in Sandbox");
     }
     return { executable: "npm", args: normalizedArgs };
   }
@@ -172,6 +178,7 @@ export class DockerSandbox {
     containerName: string,
     signal?: AbortSignal,
   ): Promise<SandboxResult> {
+    const needsRegistry = command.executable === "npm" && command.args[0] === "install";
     const dockerArgs = [
       "run",
       "--rm",
@@ -181,7 +188,7 @@ export class DockerSandbox {
       "--user",
       "1000:1000",
       "--network",
-      "none",
+      needsRegistry ? "bridge" : "none",
       "--memory",
       "512m",
       "--cpus",
@@ -293,6 +300,7 @@ export class DockerSandbox {
       });
       child.on("close", (exitCode) => {
         clearTimeout(timer);
+        if (processId) this.runtime?.completeProcess(processId);
         resolveResult({ exitCode, spawnError: false });
       });
     });
