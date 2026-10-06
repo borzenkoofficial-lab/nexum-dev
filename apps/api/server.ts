@@ -13,7 +13,7 @@ import { NexumAgent } from "./agent/agent.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
 import type { ProductPlan } from "./agent/types.js";
 import { ProjectManager, ProjectManagerError } from "./projects/projectManager.js";
-import { mkdir, readFile, stat, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, readdir, writeFile, rm } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -218,6 +218,43 @@ function throwIfAgentAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw new DOMException("Agent task cancelled by user.", "AbortError");
 }
 
+function createAgentCancellationBridge(jobId: string, userId: string, parentSignal?: AbortSignal): { signal: AbortSignal; stop: () => void } {
+  const controller = new AbortController();
+  let pollTimer: ReturnType<typeof setInterval> | undefined;
+
+  const abort = () => {
+    if (!controller.signal.aborted) {
+      controller.abort(new DOMException("Agent task cancelled", "AbortError"));
+    }
+  };
+
+  const poll = async () => {
+    if (controller.signal.aborted) return;
+    try {
+      const persisted = await getChatJob(jobId, userId);
+      if (persisted?.status === "cancelled") abort();
+    } catch (error) {
+      // A transient database read failure must not cancel a healthy Agent run.
+      console.error("[Nexum] cancellation bridge poll failed", { jobId, error });
+    }
+  };
+
+  if (parentSignal) {
+    if (parentSignal.aborted) abort();
+    else parentSignal.addEventListener("abort", abort, { once: true });
+  }
+  pollTimer = setInterval(() => { void poll(); }, 750);
+
+  return {
+    signal: controller.signal,
+    stop: () => {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = undefined;
+      parentSignal?.removeEventListener("abort", abort);
+    },
+  };
+}
+
 async function runChatJob(
   jobId: string,
   message: string,
@@ -228,11 +265,13 @@ async function runChatJob(
   attachments: Array<{ name: string; type: string; size: number; content?: string; data?: string }>,
   conversation: Array<{ role: "user" | "assistant"; content: string }>,
   requestId?: string,
-  signal?: AbortSignal,
+  parentSignal?: AbortSignal,
   runtimeTaskId?: string,
 ) {
   const runtimeTask = runtimeTaskId ? serverRuntime.tasks.get(runtimeTaskId) : undefined;
   if (!runtimeTask) throw new Error("Canonical Runtime Task is unavailable for Agent Job");
+  const cancellationBridge = createAgentCancellationBridge(jobId, userId, parentSignal);
+  const signal = cancellationBridge.signal;
   throwIfAgentAborted(signal);
   const existingJob = await getChatJob(jobId, userId);
   if (!existingJob) { serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
@@ -247,6 +286,7 @@ async function runChatJob(
   serverRuntime.updateTask(runtimeTask.id, "RUNNING");
   throwIfAgentAborted(signal);
   let lockedProjectId: string | undefined;
+  let attachmentDir: string | undefined;
   let lockHeartbeat: ReturnType<typeof setInterval> | undefined;
   let lockHeartbeatResourceId: string | undefined;
 
@@ -296,7 +336,7 @@ async function runChatJob(
       message: "Automatic pre-task checkpoint created",
       output: JSON.stringify({ checkpointId: checkpoint.id, files: checkpoint.files.length }),
     });
-    const attachmentDir = resolve(project.path, ".nexum", "attachments", jobId);
+    attachmentDir = resolve(project.path, ".nexum", "attachments", jobId);
     const attachmentNames: string[] = [];
     const attachmentContext: string[] = [];
     if (attachments.length) {
@@ -480,6 +520,17 @@ ${attachment.content.slice(0, 80_000)}`);
     );
     if (signal?.aborted || (await getChatJob(jobId, userId))?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
     await waitForChatJobPersistence(jobId);
+    if (successfulBuild) await stateManager.markBuildSucceeded();
+    await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
+      try {
+        const parsed = JSON.parse(step.input);
+        return typeof parsed.path === "string" ? parsed.path : "";
+      } catch { return ""; }
+    }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
+    await stateManager.markCompleted(message.slice(0, 240));
+    if (signal?.aborted || (await getChatJob(jobId, userId))?.status === "cancelled") {
+      throw new DOMException("Agent task cancelled", "AbortError");
+    }
     const completed = await completeChatJob(jobId, userId, {
       reply: job.reply,
       steps: job.steps,
@@ -493,14 +544,6 @@ ${attachment.content.slice(0, 80_000)}`);
     });
     if (!completed || completed.status !== "completed") throw new DOMException("Agent completion lost a race with cancellation", "AbortError");
     syncTerminalChatJobCache(completed);
-    if (successfulBuild) await stateManager.markBuildSucceeded();
-    await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
-      try {
-        const parsed = JSON.parse(step.input);
-        return typeof parsed.path === "string" ? parsed.path : "";
-      } catch { return ""; }
-    }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
-    await stateManager.markCompleted(message.slice(0, 240));
     job.status = "completed";
     job.stage = "completed";
     void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
@@ -541,6 +584,12 @@ ${attachment.content.slice(0, 80_000)}`);
       if (lockedProjectId) await releaseProjectLock(lockedProjectId, jobId);
     } catch (lockError) {
       console.error("[Nexum] project lock release failed", jobId, lockError);
+    }
+    cancellationBridge.stop();
+    if (attachmentDir) {
+      await rm(attachmentDir, { recursive: true, force: true }).catch((error) => {
+        console.error("[Nexum] attachment cleanup failed", { jobId, error });
+      });
     }
   }
 }
@@ -599,7 +648,7 @@ app.use(cors({
 
 app.use(express.json({ limit: "10mb" }));
 
-app.post("/api/diagnostics/events", (req, res) => {
+app.post("/api/diagnostics/events", authMiddleware, (req, res) => {
   const body = req.body ?? {};
   const sessionId = typeof body.sessionId === "string" && body.sessionId.length < 120 ? body.sessionId : createDiagnosticsSession();
   const event = recordDiagnosticsEvent({
@@ -615,16 +664,16 @@ app.post("/api/diagnostics/events", (req, res) => {
   return res.status(202).json({ success: true, sessionId: event.sessionId, eventId: event.id });
 });
 
-app.get("/api/diagnostics/session/:sessionId", (req, res) => {
+app.get("/api/diagnostics/session/:sessionId", authMiddleware, (req, res) => {
   return res.json({ success: true, ...getDiagnosticsSession(req.params.sessionId) });
 });
 
-app.get("/api/diagnostics/latest", (req, res) => {
+app.get("/api/diagnostics/latest", authMiddleware, (req, res) => {
   const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : 100;
   return res.json({ success: true, generatedAt: new Date().toISOString(), events: getLatestDiagnostics(Number.isFinite(limit) ? limit : 100) });
 });
 
-app.get("/api/runtime/status", (_req, res) => { res.json({ success: true, lifecycle: serverRuntime.lifecycle, tasks: [...serverRuntime.tasks.values()], resources: serverRuntime.resources.size, processes: [...serverRuntime.processes.values()].map(p => ({ id: p.id, name: p.name, state: p.state, projectId: p.projectId })), diagnostics: serverRuntime.diagnostics.slice(-100) }); });
+app.get("/api/runtime/status", authMiddleware, (_req, res) => { res.json({ success: true, lifecycle: serverRuntime.lifecycle, tasks: [...serverRuntime.tasks.values()], resources: serverRuntime.resources.size, processes: [...serverRuntime.processes.values()].map(p => ({ id: p.id, name: p.name, state: p.state, projectId: p.projectId })), diagnostics: serverRuntime.diagnostics.slice(-100) }); });
 
 app.get("/api/health", async (_req, res) => {
   const database = await pingDatabase();
