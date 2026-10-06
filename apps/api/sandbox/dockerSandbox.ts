@@ -182,6 +182,8 @@ export class DockerSandbox {
     signal?: AbortSignal,
   ): Promise<SandboxResult> {
     const needsRegistry = command.executable === "npm" && command.args[0] === "install";
+    const hostUid = typeof process.getuid === "function" ? process.getuid() : 1000;
+    const hostGid = typeof process.getgid === "function" ? process.getgid() : hostUid;
     const dockerArgs = [
       "run",
       "--rm",
@@ -189,7 +191,7 @@ export class DockerSandbox {
       "--name",
       containerName,
       "--user",
-      "1000:1000",
+      `${hostUid}:${hostGid}`,
       "--network",
       needsRegistry ? "bridge" : "none",
       "--memory",
