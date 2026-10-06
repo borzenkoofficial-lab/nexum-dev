@@ -665,7 +665,8 @@ app.post("/api/diagnostics/events", authMiddleware, (req, res) => {
 });
 
 app.get("/api/diagnostics/session/:sessionId", authMiddleware, (req, res) => {
-  return res.json({ success: true, ...getDiagnosticsSession(req.params.sessionId) });
+  const sessionId = typeof req.params.sessionId === "string" ? req.params.sessionId : "";
+  return res.json({ success: true, ...getDiagnosticsSession(sessionId) });
 });
 
 app.get("/api/diagnostics/latest", authMiddleware, (req, res) => {
