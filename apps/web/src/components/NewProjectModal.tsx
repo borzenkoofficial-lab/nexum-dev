@@ -4,8 +4,10 @@ import type { FormEvent } from "react";
 interface NewProjectModalProps {
   open: boolean;
   name: string;
+  description: string;
   loading: boolean;
   onNameChange: (name: string) => void;
+  onDescriptionChange: (description: string) => void;
   onClose: () => void;
   error?: string;
   onSubmit: (data: { name: string; description: string; type: string }) => void;
@@ -20,7 +22,7 @@ const PROJECT_TYPES = [
   { id: "blank", label: "Пустой проект", hint: "Чистое рабочее пространство" },
 ] as const;
 
-export function NewProjectModal({ open, name, loading, error, onNameChange, onClose, onSubmit }: NewProjectModalProps) {
+export function NewProjectModal({ open, name, description, loading, error, onNameChange, onDescriptionChange, onClose, onSubmit }: NewProjectModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -32,10 +34,10 @@ export function NewProjectModal({ open, name, loading, error, onNameChange, onCl
 
   if (!open) return null;
 
-  return <ProjectCreationForm name={name} loading={loading} error={error} onNameChange={onNameChange} onClose={onClose} onSubmit={onSubmit} />;
+  return <ProjectCreationForm name={name} description={description} loading={loading} error={error} onNameChange={onNameChange} onDescriptionChange={onDescriptionChange} onClose={onClose} onSubmit={onSubmit} />;
 }
 
-function ProjectCreationForm({ name, loading, error, onNameChange, onClose, onSubmit }: Omit<NewProjectModalProps, "open">) {
+function ProjectCreationForm({ name, description, loading, error, onNameChange, onDescriptionChange, onClose, onSubmit }: Omit<NewProjectModalProps, "open">) {
   const [selectedId, setSelectedId] = useState("webapp");
   const selected = PROJECT_TYPES.find((item) => item.id === selectedId) ?? PROJECT_TYPES[1];
 
@@ -66,7 +68,7 @@ function ProjectCreationForm({ name, loading, error, onNameChange, onClose, onSu
           <input id="project-name" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Например: сайт строительной компании" autoFocus maxLength={64} required />
 
           <label className="project-description-label" htmlFor="project-description">Что хотите создать?</label>
-          <textarea id="project-description" name="description" placeholder="Например: сайт компании с услугами, портфолио, формой заявки и адаптацией под телефон…" maxLength={500} rows={4} />
+          <textarea id="project-description" name="description" value={description} onChange={(event) => onDescriptionChange(event.target.value)} placeholder="Например: сайт компании с услугами, портфолио, формой заявки и адаптацией под телефон…" maxLength={500} rows={4} />
 
           <div className="project-type-label">Тип проекта</div>
           <div className="project-type-grid">
