@@ -66,11 +66,12 @@ function createRateLimitMiddleware(prefix: string, limit: number, windowMs: numb
   };
 }
 
-const authRegisterLimiter = createRateLimitMiddleware("auth:register", 10, 60_000);
-const authLoginLimiter = createRateLimitMiddleware("auth:login", 20, 60_000);
-const projectLimiter = createRateLimitMiddleware("projects", 120, 60_000);
-const chatLimiter = createRateLimitMiddleware("chat", 30, 60_000);
-const aiWriteLimiter = createRateLimitMiddleware("ai-write", 20, 60_000);
+const isProduction = process.env.NODE_ENV === "production";
+const authRegisterLimiter = createRateLimitMiddleware("auth:register", isProduction ? 10 : 100, 60_000);
+const authLoginLimiter = createRateLimitMiddleware("auth:login", isProduction ? 20 : 200, 60_000);
+const projectLimiter = createRateLimitMiddleware("projects", isProduction ? 120 : 1000, 60_000);
+const chatLimiter = createRateLimitMiddleware("chat", isProduction ? 30 : 300, 60_000);
+const aiWriteLimiter = createRateLimitMiddleware("ai-write", isProduction ? 20 : 200, 60_000);
 
 function sendSafeError(res: Response, error: unknown, requestId: string, fallback = "Внутренняя ошибка NEXUM.") {
   const normalized = error instanceof NexumError
