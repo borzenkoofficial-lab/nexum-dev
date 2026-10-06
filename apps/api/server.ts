@@ -1,5 +1,5 @@
 import express from "express";
-import type { Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { AIGateway, type GatewayFallbackEvent } from "./ai/gateway.js";
@@ -32,6 +32,7 @@ import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
+import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
 
 dotenv.config();
 
@@ -44,6 +45,32 @@ function getRequestId(req: express.Request): string {
   requestIds.set(req, id);
   return id;
 }
+
+function createRateLimitMiddleware(prefix: string, limit: number, windowMs: number) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const identity = req.user?.id ?? req.ip ?? "unknown";
+    try {
+      const result = await checkRateLimit(getRateLimitKey(prefix, identity), limit, windowMs);
+      res.setHeader("X-RateLimit-Limit", String(limit));
+      res.setHeader("X-RateLimit-Remaining", String(result.remaining));
+      if (!result.allowed) {
+        if (result.retryAfterSeconds) res.setHeader("Retry-After", String(result.retryAfterSeconds));
+        res.status(429).json({ success: false, error: "Too many requests. Please try again later." });
+        return;
+      }
+      next();
+    } catch (error) {
+      console.error("[Nexum] rate-limit check failed", { prefix, error });
+      res.status(503).json({ success: false, error: "Rate-limit service unavailable" });
+    }
+  };
+}
+
+const authRegisterLimiter = createRateLimitMiddleware("auth:register", 10, 60_000);
+const authLoginLimiter = createRateLimitMiddleware("auth:login", 20, 60_000);
+const projectLimiter = createRateLimitMiddleware("projects", 120, 60_000);
+const chatLimiter = createRateLimitMiddleware("chat", 30, 60_000);
+const aiWriteLimiter = createRateLimitMiddleware("ai-write", 20, 60_000);
 
 function sendSafeError(res: Response, error: unknown, requestId: string, fallback = "Внутренняя ошибка NEXUM.") {
   const normalized = error instanceof NexumError
@@ -707,7 +734,7 @@ app.get("/api/health", async (_req, res) => {
 });
 
 
-app.post("/api/auth/register", async (req, res) => {
+app.post("/api/auth/register", authRegisterLimiter, async (req, res) => {
   try {
     const email = typeof req.body?.email === "string" ? req.body.email : "";
     const name = typeof req.body?.name === "string" ? req.body.name : "";
@@ -721,7 +748,7 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", authLoginLimiter, async (req, res) => {
   try {
     const email = typeof req.body?.email === "string" ? req.body.email : "";
     const password = typeof req.body?.password === "string" ? req.body.password : "";
@@ -743,8 +770,8 @@ app.post("/api/auth/logout", (_req, res) => {
   return res.json({ success: true });
 });
 
-app.use("/api/projects", authMiddleware);
-app.use("/api/chat", authMiddleware);
+app.use("/api/projects", authMiddleware, projectLimiter);
+app.use("/api/chat", authMiddleware, chatLimiter);
 app.use("/api/agent/history", authMiddleware);
 app.use("/api/agent/diagnostics", authMiddleware);
 
@@ -778,7 +805,7 @@ app.get("/api/ai/key-status", authMiddleware, (req, res) => {
   return res.json({ success: true, providers: { openai: gateway.hasOpenAIKey(), openrouter: gateway.hasOpenRouterKey(), orcarouter: gateway.hasOrcaRouterKey() } });
 });
 
-app.post("/api/ai/connect-key", authMiddleware, async (req, res) => {
+app.post("/api/ai/connect-key", authMiddleware, aiWriteLimiter, async (req, res) => {
   const userId = getAuthUser(req).id;
   const apiKey = typeof req.body?.apiKey === "string" ? req.body.apiKey.trim() : "";
   if (!apiKey) return res.status(400).json({ success: false, error: "API key is required" });
