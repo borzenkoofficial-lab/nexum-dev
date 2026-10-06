@@ -1059,7 +1059,7 @@ function App() {
           onConnect={() => setConnectorModal("Интеграция проекта")}
           onShare={async () => {
             const url = window.location.origin + "/api/preview/" + activeПроектId + "/index.html";
-            try { await navigator.clipboard.writeText(url); setNotice("Ссылка на предпросмотр скопирована"); } catch { setNotice(url); }
+            try { await navigator.clipboard.writeText(url); setNotice("Ссылка на Preview скопирована для текущей авторизованной сессии"); } catch { setNotice(url); }
           }}
           onOpenPreview={() => { window.open("/api/preview/" + activeПроектId + "/index.html", "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }}
         >
