@@ -16,7 +16,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
     onNewProject(brief.trim());
   }
 
-  function usePrompt(value: string) {
+  function setPrompt(value: string) {
     setBrief(value);
   }
 
@@ -57,7 +57,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
           </div>
 
           <div className="builder-home-prompts">
-            <button type="button" onClick={() => usePrompt("Создай лендинг для бизнеса")}>Лендинг для бизнеса</button>
+            <button type="button" onClick={() => setPrompt("Создай лендинг для бизнеса")}>Лендинг для бизнеса</button>
             <button type="button" onClick={() => usePrompt("Создай SaaS-продукт")}>SaaS-продукт</button>
             <button type="button" onClick={() => usePrompt("Создай мобильное приложение")}>Мобильное приложение</button>
           </div>
