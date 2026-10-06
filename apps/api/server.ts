@@ -676,7 +676,21 @@ app.get("/api/diagnostics/latest", authMiddleware, (req, res) => {
   return res.json({ success: true, generatedAt: new Date().toISOString(), events: getLatestDiagnostics(Number.isFinite(limit) ? limit : 100, getAuthUser(req).id) });
 });
 
-app.get("/api/runtime/status", authMiddleware, (_req, res) => { res.json({ success: true, lifecycle: serverRuntime.lifecycle, tasks: [...serverRuntime.tasks.values()], resources: serverRuntime.resources.size, processes: [...serverRuntime.processes.values()].map(p => ({ id: p.id, name: p.name, state: p.state, projectId: p.projectId })), diagnostics: serverRuntime.diagnostics.slice(-100) }); });
+app.get("/api/runtime/status", authMiddleware, async (req, res) => {
+  const ownedProjectIds = new Set((await getProjectManager(getAuthUser(req).id).listProjects()).map((project) => project.id));
+  const tasks = [...serverRuntime.tasks.values()].filter((task) => typeof task.projectId === "string" && ownedProjectIds.has(task.projectId));
+  const processes = [...serverRuntime.processes.values()]
+    .filter((process) => typeof process.projectId === "string" && ownedProjectIds.has(process.projectId))
+    .map((process) => ({ id: process.id, name: process.name, state: process.state, projectId: process.projectId }));
+  return res.json({
+    success: true,
+    lifecycle: serverRuntime.lifecycle,
+    tasks,
+    resources: tasks.length,
+    processes,
+    diagnostics: serverRuntime.diagnostics.filter((event) => !event.projectId || ownedProjectIds.has(event.projectId)).slice(-100),
+  });
+});
 
 app.get("/api/health", async (_req, res) => {
   const database = await pingDatabase();
