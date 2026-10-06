@@ -280,6 +280,7 @@ async function runChatJob(
     if (job?.status === "cancelled") serverRuntime.cancelTask(runtimeTask.id);
     else serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Agent Job could not be claimed" });
     chatJobControllers.delete(jobId);
+    cancellationBridge.stop();
     return;
   }
   chatJobCache.set(jobId, job);
