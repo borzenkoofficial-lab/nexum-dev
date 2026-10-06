@@ -81,6 +81,8 @@ jobs:
         run: npm install --prefix e2e --no-audit --no-fund
       - name: Install Chromium
         run: npx --prefix e2e playwright install --with-deps chromium
+      - name: Provision Agent sandbox image
+        run: docker pull node:22-bookworm-slim
       - name: Run Runtime Phase 2.5 E2E
         run: npm --prefix e2e test
       - name: Upload Playwright report
