@@ -58,8 +58,8 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
 
           <div className="builder-home-prompts">
             <button type="button" onClick={() => setPrompt("Создай лендинг для бизнеса")}>Лендинг для бизнеса</button>
-            <button type="button" onClick={() => usePrompt("Создай SaaS-продукт")}>SaaS-продукт</button>
-            <button type="button" onClick={() => usePrompt("Создай мобильное приложение")}>Мобильное приложение</button>
+            <button type="button" onClick={() => setPrompt("Создай SaaS-продукт")}>SaaS-продукт</button>
+            <button type="button" onClick={() => setPrompt("Создай мобильное приложение")}>Мобильное приложение</button>
           </div>
         </div>
 
