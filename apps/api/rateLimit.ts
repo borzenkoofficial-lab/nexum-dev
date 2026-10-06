@@ -27,7 +27,6 @@ export async function checkRateLimit(
   windowMs: number,
 ): Promise<{ allowed: boolean; remaining: number; retryAfterSeconds?: number }> {
   await ensureTable();
-  const now = new Date();
   const windowStart = new Date(Date.now() - windowMs);
   const result = await query<{ hits: number; started_at: string; elapsed_seconds: number }>(
     `
