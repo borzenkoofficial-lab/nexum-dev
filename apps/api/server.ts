@@ -654,6 +654,7 @@ app.post("/api/diagnostics/events", authMiddleware, (req, res) => {
   const sessionId = typeof body.sessionId === "string" && body.sessionId.length < 120 ? body.sessionId : createDiagnosticsSession();
   const event = recordDiagnosticsEvent({
     sessionId,
+    userId: getAuthUser(req).id,
     type: typeof body.type === "string" ? body.type.slice(0, 120) : "unknown",
     level: body.level === "error" || body.level === "warn" ? body.level : "info",
     message: typeof body.message === "string" ? body.message.slice(0, 4000) : "Unknown diagnostics event",
@@ -667,12 +668,12 @@ app.post("/api/diagnostics/events", authMiddleware, (req, res) => {
 
 app.get("/api/diagnostics/session/:sessionId", authMiddleware, (req, res) => {
   const sessionId = typeof req.params.sessionId === "string" ? req.params.sessionId : "";
-  return res.json({ success: true, ...getDiagnosticsSession(sessionId) });
+  return res.json({ success: true, ...getDiagnosticsSession(sessionId, getAuthUser(req).id) });
 });
 
 app.get("/api/diagnostics/latest", authMiddleware, (req, res) => {
   const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : 100;
-  return res.json({ success: true, generatedAt: new Date().toISOString(), events: getLatestDiagnostics(Number.isFinite(limit) ? limit : 100) });
+  return res.json({ success: true, generatedAt: new Date().toISOString(), events: getLatestDiagnostics(Number.isFinite(limit) ? limit : 100, getAuthUser(req).id) });
 });
 
 app.get("/api/runtime/status", authMiddleware, (_req, res) => { res.json({ success: true, lifecycle: serverRuntime.lifecycle, tasks: [...serverRuntime.tasks.values()], resources: serverRuntime.resources.size, processes: [...serverRuntime.processes.values()].map(p => ({ id: p.id, name: p.name, state: p.state, projectId: p.projectId })), diagnostics: serverRuntime.diagnostics.slice(-100) }); });
