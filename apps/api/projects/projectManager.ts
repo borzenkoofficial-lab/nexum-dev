@@ -108,7 +108,15 @@ export class ProjectManager {
     const newId = this.createId(name);
     const projectPath = resolveProjectPath(this.projectsRoot, newId);
     await this.assertProjectPath(projectPath);
-    await cp(source.path, projectPath, { recursive: true, force: false });
+    await cp(source.path, projectPath, {
+      recursive: true,
+      force: false,
+      filter: (sourcePath) => {
+        const rel = relative(source.path, sourcePath).replace(/\\/g, "/");
+        const first = rel.split("/")[0];
+        return ![".git", ".nexum", "dist", "node_modules"].includes(first);
+      },
+    });
     const now = new Date().toISOString();
     const project: Project = { id: newId, name, description: source.description, type: source.type, path: projectPath, status: "active", createdAt: now, updatedAt: now };
     store.projects.push(project);
