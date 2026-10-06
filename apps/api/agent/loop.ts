@@ -728,7 +728,7 @@ export class AgentLoop {
         }, -1);
         const hasSuccessfulBuild = lastSuccessfulBuildIndex > lastProjectChangeIndex;
         if (hasProjectChanges && projectHasBuildScript(previousResults) && !hasSuccessfulBuild && availableTools.includes("runCommand")) {
-          for (const command of ["npm install", "npm run build"]) {
+          for (const command of ["npm install --ignore-scripts", "npm run build"]) {
             const alreadySuccessful = previousResults.some(
               (item) => item.tool === "runCommand" && item.input === command && item.result.success,
             );
@@ -737,7 +737,7 @@ export class AgentLoop {
               iteration,
               type: "tool-start",
               tool: "runCommand",
-              message: command === "npm install"
+              message: command === "npm install --ignore-scripts"
                 ? "Финализирую приложение: устанавливаю зависимости."
                 : "Финализирую приложение: выполняю production-сборку перед Preview.",
             });
@@ -752,7 +752,7 @@ export class AgentLoop {
               type: result.success ? "tool-success" : "tool-error",
               tool: "runCommand",
               message: result.success
-                ? (command === "npm install" ? "Зависимости установлены." : "Production-сборка завершена. Preview готов.")
+                ? (command === "npm install --ignore-scripts" ? "Зависимости установлены безопасным способом." : "Production-сборка завершена. Preview готов.")
                 : `Не удалось выполнить «${command}»: ${result.output.slice(0, 500)}`,
             });
             if (!result.success) {
