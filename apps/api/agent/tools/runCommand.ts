@@ -43,6 +43,17 @@ export class RunCommandTool implements Tool {
 
     try {
       const { executable, args } = this.validateCommand(command);
+      if ((executable === "node" || executable === "npm") && (args[0] === "--version" || args[0] === "-v")) {
+        const result: RunCommandResult = {
+          success: true,
+          exitCode: 0,
+          stdout: executable === "node" ? process.version + "\n" : "",
+          stderr: "",
+          command,
+          output: JSON.stringify({ exitCode: 0, stdout: executable === "node" ? process.version + "\n" : "", stderr: "" }),
+        };
+        return result;
+      }
       if (executable === "git") {
         const result = await this.runGit(args, command, signal);
         console.log(
