@@ -714,7 +714,9 @@ app.get("/api/runtime/status", authMiddleware, async (req, res) => {
     success: true,
     lifecycle: serverRuntime.lifecycle,
     tasks,
-    resources: tasks.length,
+    resources: serverRuntime.listResources().filter((resource) =>
+      typeof resource.projectId === "string" && ownedProjectIds.has(resource.projectId)
+    ).length,
     processes,
     diagnostics: serverRuntime.diagnostics.filter((event) => !event.projectId || ownedProjectIds.has(event.projectId)).slice(-100),
   });

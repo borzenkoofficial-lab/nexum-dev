@@ -22,6 +22,22 @@ import { diagnosticsEvent, getDiagnosticsSessionId, startDiagnostics } from "./d
 import { nexumRuntime } from "./runtime";
 // UI controls persist locally; server-side credentials remain outside the client bundle.
 
+function ConnectorModal({ name, onClose }: { name: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  return <div className="modal-backdrop connector-backdrop" onMouseDown={onClose}>
+    <section className="connector-modal" role="dialog" aria-modal="true" aria-labelledby="connector-modal-title" onMouseDown={(event) => event.stopPropagation()}>
+      <div className="modal-top"><div><span className="eyebrow">ИНТЕГРАЦИЯ</span><h2 id="connector-modal-title">{name}</h2></div><button type="button" aria-label="Закрыть" onClick={onClose}>×</button></div>
+      <p>Подключение этой интеграции пока не реализовано на серверной стороне. Никакие OAuth/API-данные не создаются и не сохраняются.</p>
+      <div className="connector-modal-actions"><button type="button" onClick={onClose}>Закрыть</button><button className="home-primary" type="button" disabled aria-disabled="true">Недоступно</button></div>
+    </section>
+  </div>;
+}
+
 function App() {
   useEffect(() => { startDiagnostics(); diagnosticsEvent({ type: "app-mounted", level: "info", message: "NEXUM application mounted" }); }, []);
   const [projects, setПроектs] = useState<Проект[]>([]);
@@ -817,23 +833,6 @@ function App() {
     { label: "Настройки", hint: "", run: () => setView("settings") },
   ];
 
-  function ConnectorModal() {
-    useEffect(() => {
-      if (!connectorModal) return;
-      const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setConnectorModal(null); };
-      window.addEventListener("keydown", onKeyDown);
-      return () => window.removeEventListener("keydown", onKeyDown);
-    }, [connectorModal]);
-    if (!connectorModal) return null;
-    return <div className="modal-backdrop connector-backdrop" onMouseDown={() => setConnectorModal(null)}>
-      <section className="connector-modal" role="dialog" aria-modal="true" aria-labelledby="connector-modal-title" onMouseDown={(event) => event.stopPropagation()}>
-        <div className="modal-top"><div><span className="eyebrow">ИНТЕГРАЦИЯ</span><h2 id="connector-modal-title">{connectorModal}</h2></div><button type="button" aria-label="Закрыть" onClick={() => setConnectorModal(null)}>×</button></div>
-        <p>Подключение этой интеграции пока не реализовано на серверной стороне. Никакие OAuth/API-данные не создаются и не сохраняются.</p>
-        <div className="connector-modal-actions"><button type="button" onClick={() => setConnectorModal(null)}>Закрыть</button><button className="home-primary" type="button" disabled aria-disabled="true">Недоступно</button></div>
-      </section>
-    </div>;
-  }
-
   if (!onboardingComplete || welcomeTestMode) {
     return <NexumWelcome onComplete={() => { setOnboardingComplete(true); setWelcomeTestMode(false); }} />;
   }
@@ -1093,7 +1092,7 @@ function App() {
         onClose={() => { setProjectCreationError(""); setModalOpen(false); setNewПроектDescription(""); }}
         onSubmit={(data) => void createПроект(data)}
       />
-      {connectorModal && <ConnectorModal />}
+      {connectorModal && <ConnectorModal name={connectorModal} onClose={() => setConnectorModal(null)} />}
       {notice && <div className="toast" role="status">{notice}</div>}
     </div>
   );
