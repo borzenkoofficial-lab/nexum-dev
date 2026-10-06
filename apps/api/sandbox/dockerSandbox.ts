@@ -147,6 +147,9 @@ export class DockerSandbox {
   }
 
   private validateNode(args: string[], projectPath: string): { executable: string; args: string[] } {
+    if (args[0] === "--version" || args[0] === "-v") {
+      return { executable: "node", args };
+    }
     if (!args[0] || args[0].startsWith("-") || args.some((argument) => ["-e", "--eval", "-p", "--print"].includes(argument))) {
       throw new Error("node evaluation flags are not allowed in Sandbox");
     }
