@@ -344,7 +344,7 @@ test("recovers from a failed build after a file fix", async () => {
       if (tool === "readFile") return { success: true, output: JSON.stringify({ scripts: { build: "vite build" } }) };
       if (tool === "writeFile") return { success: true, output: input.includes('"content":"fixed"') ? "fixed App.jsx" : "initial App.jsx" };
       commands.push(input);
-      if (input === "npm install") return { success: true, output: "installed" };
+      if (input === "npm install --ignore-scripts") return { success: true, output: "installed" };
       buildAttempts += 1;
       return buildAttempts === 1
         ? { success: false, output: "vite compilation error" }
