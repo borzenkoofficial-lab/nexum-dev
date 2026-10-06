@@ -1,4 +1,5 @@
 import { isAbsolute } from "node:path";
+import { resolveProjectPath } from "./path.js";
 import type { Tool } from "../types.js";
 import type { ToolResult } from "../types.js";
 import type { ServerRuntime } from "../../runtime/runtime.js";
@@ -150,7 +151,7 @@ export class RunCommandTool implements Tool {
     }
 
     if (normalizedArgs[0] !== "run") {
-      throw new Error("Only npm install, npm --version and npm run <script> are allowed");
+      throw new Error("Only npm --version and allowlisted npm run scripts are permitted");
     }
 
     // "npm run" without a script only prints package scripts; it does not
