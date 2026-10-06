@@ -828,7 +828,6 @@ function App() {
   ];
 
   function ConnectorModal() {
-    const connected = connectorModal ? connectedConnectors.includes(connectorModal) : false;
     useEffect(() => {
       if (!connectorModal) return;
       const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setConnectorModal(null); };
