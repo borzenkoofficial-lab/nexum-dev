@@ -48,11 +48,22 @@ export class DockerSandbox {
       }
 
       if (!dockerStatus.imageAvailable) {
-        return this.finish(
-          { ...baseResult, error: `Docker image is not available: ${this.image}` },
-          startedAt,
-          false,
-        );
+        const canAutoPull = process.env.NODE_ENV !== "production" && process.env.NEXUM_SANDBOX_AUTO_PULL !== "false";
+        if (!canAutoPull) {
+          return this.finish(
+            { ...baseResult, error: `Docker image is not available: ${this.image}. Provision the configured sandbox image before production use.` },
+            startedAt,
+            false,
+          );
+        }
+        const pulled = await this.pullImage(timeoutMs);
+        if (!pulled) {
+          return this.finish(
+            { ...baseResult, error: `Docker image is not available: ${this.image}` },
+            startedAt,
+            false,
+          );
+        }
       }
 
       const containerName = `nexum-sandbox-${randomUUID()}`;
@@ -137,6 +148,11 @@ export class DockerSandbox {
     return { executable: "node", args };
   }
 
+  private async pullImage(timeoutMs: number): Promise<boolean> {
+    const pull = await this.runProcess(["pull", this.image], Math.min(timeoutMs, 120_000));
+    return !pull.spawnError && pull.exitCode === 0;
+  }
+
   private async checkDocker(timeoutMs: number): Promise<{ available: boolean; imageAvailable: boolean }> {
     const version = await this.runProcess(
       ["version", "--format", "{{.Server.Version}}"],
@@ -177,11 +193,19 @@ export class DockerSandbox {
       "--security-opt",
       "no-new-privileges:true",
       "--mount",
-      `type=bind,src=${projectPath},dst=/workspace`,
+      `type=bind,src=${projectPath},dst=/workspace,rw`,
       "--tmpfs",
       "/tmp:rw,noexec,nosuid,size=64m",
       "--workdir",
       "/workspace",
+      "--env",
+      "NODE_ENV=production",
+      "--env",
+      "PATH=/usr/local/bin:/usr/bin:/bin",
+      "--env",
+      "HOME=/tmp",
+      "--env",
+      "npm_config_cache=/tmp/.npm",
       this.image,
       command.executable,
       ...command.args,
@@ -232,7 +256,6 @@ export class DockerSandbox {
 
       child.on("close", (exitCode) => {
         clearTimeout(timer);
-        if (processId) this.runtime?.completeProcess(processId);
         if (processId) this.runtime?.completeProcess(processId);
         signal?.removeEventListener("abort", abort);
         const success = exitCode === 0 && !timedOut && !outputLimitReached;
