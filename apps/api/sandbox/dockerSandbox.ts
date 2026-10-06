@@ -273,7 +273,16 @@ export class DockerSandbox {
           ? "Sandbox timeout"
           : outputLimitReached
             ? "Sandbox output limit exceeded"
-            : undefined;
+            : exitCode !== 0
+              ? (stderr.trim().slice(-2000) || `Sandbox command exited with code ${exitCode}`)
+              : undefined;
+        if (exitCode !== 0) {
+          console.error("[Nexum] Docker sandbox failed", {
+            command: requestedCommand,
+            exitCode,
+            stderr: stderr.trim().slice(-2000),
+          });
+        }
         resolveResult({
           success,
           exitCode,
