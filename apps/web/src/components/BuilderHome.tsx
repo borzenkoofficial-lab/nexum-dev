@@ -1,14 +1,24 @@
+import { useState } from "react";
 import type { Project as Проект } from "./types";
 
 type Props = {
   projects: Проект[];
-  onNewProject: () => void;
+  onNewProject: (description?: string) => void;
   onOpenProject: (id: string, tab?: "preview" | "files" | "agent" | "code") => void;
   onOpenView: (view: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics") => void;
 };
 
 export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView }: Props) {
   const recent = projects.slice(0, 6);
+  const [brief, setBrief] = useState("");
+
+  function createFromBrief() {
+    onNewProject(brief.trim());
+  }
+
+  function usePrompt(value: string) {
+    setBrief(value);
+  }
 
   return (
     <section className="builder-home">
@@ -30,21 +40,26 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
           <div className="builder-home-composer">
             <textarea
               aria-label="Describe what you want to build"
+              value={brief}
+              onChange={(event) => setBrief(event.target.value)}
               placeholder="Создай сайт, приложение или интерфейс…"
               onKeyDown={(event) => {
-                if ((event.metaKey || event.ctrlKey) && event.key === "Enter") onNewProject();
+                if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                  event.preventDefault();
+                  createFromBrief();
+                }
               }}
             />
             <div className="builder-home-composer-footer">
               <span>⌘ Enter</span>
-              <button type="button" onClick={onNewProject}>Создать</button>
+              <button type="button" onClick={createFromBrief}>Создать</button>
             </div>
           </div>
 
           <div className="builder-home-prompts">
-            <button type="button" onClick={onNewProject}>Лендинг для бизнеса</button>
-            <button type="button" onClick={onNewProject}>SaaS-продукт</button>
-            <button type="button" onClick={onNewProject}>Мобильное приложение</button>
+            <button type="button" onClick={() => usePrompt("Создай лендинг для бизнеса")}>Лендинг для бизнеса</button>
+            <button type="button" onClick={() => usePrompt("Создай SaaS-продукт")}>SaaS-продукт</button>
+            <button type="button" onClick={() => usePrompt("Создай мобильное приложение")}>Мобильное приложение</button>
           </div>
         </div>
 
