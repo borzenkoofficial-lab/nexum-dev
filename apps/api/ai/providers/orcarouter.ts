@@ -88,12 +88,15 @@ export class OrcaRouterProvider implements AIProvider {
     }
 
     try {
-      const models = await this.listModels(signal);
+      const data = await this.request<ModelsResponse>("/models", { method: "GET", ...(signal ? { signal } : {}) });
+      const remote = (data.data ?? [])
+        .map((item) => item.id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
       return {
-        available: models.length > 0,
+        available: remote.length > 0,
         model: this.validateModel(model),
         latencyMs: Date.now() - startedAt,
-        ...(models.length === 0 ? { error: "OrcaRouter returned no models" } : {}),
+        ...(remote.length === 0 ? { error: "OrcaRouter returned no models" } : {}),
       };
     } catch (error) {
       return {
