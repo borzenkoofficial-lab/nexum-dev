@@ -39,6 +39,13 @@ function App() {
   const [projectCreationError, setProjectCreationError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [newПроектName, setNewПроектName] = useState("");
+  const [newПроектDescription, setNewПроектDescription] = useState("");
+  function openNewProject(description = "") {
+    setNewПроектDescription(description);
+    setProjectCreationError("");
+    setModalOpen(true);
+  }
+
   const [aiProviders, setAIProviders] = useState<AIProviderInfo[]>([]);
   const [aiModels, setAIModels] = useState<Record<string, string[]>>({});
   const [aiProvider, setAIProvider] = useState("mock");
@@ -482,6 +489,7 @@ function App() {
       ].join("\n");
       setMessage("");
       setNewПроектName("");
+      setNewПроектDescription("");
       setModalOpen(false);
       setProjectCreationError("");
       setRunningProjectIds((items) => items.includes(responseData.project.id) ? items : [...items, responseData.project.id]);
@@ -803,7 +811,7 @@ function App() {
 
   const runTask = (task: string) => void sendMessage(task);
   const paletteActions = [
-    { label: "New Проект", hint: "N", run: () => setModalOpen(true) },
+    { label: "New Проект", hint: "N", run: () => openNewProject() },
     { label: "Open Проект", hint: "O", run: openПроектPicker },
     { label: "Поиск файлов", hint: "S", run: () => focusTask("Найди ") },
     { label: "Open Агент Activity", hint: "A", run: () => { if (!activeПроектId) return; setProjectMode("agent"); } },
@@ -866,7 +874,7 @@ function App() {
           onHome={() => navigate("home")}
           onSearch={() => setPaletteOpen(true)}
           onSettings={() => navigate("settings")}
-          onNewProject={() => setModalOpen(true)}
+          onNewProject={() => openNewProject()}
         />}
         {view === "diagnostics" ? (
           <OSAppWindow title="Диагностика" subtitle="Системное состояние и события" icon="⌁" status="Система готова" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
@@ -875,7 +883,7 @@ function App() {
         ) : view === "home" ? (
           <BuilderHome
             projects={projects}
-            onNewProject={() => setModalOpen(true)}
+            onNewProject={(description) => openNewProject(description)}
             onOpenProject={(id, tab) => openПроект(id, tab)}
             onOpenView={(next) => setView(next)}
           />
@@ -1085,7 +1093,17 @@ function App() {
         )}
       </main>
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
-      <NewProjectModal open={modalOpen} name={newПроектName} loading={projectActionLoading} error={projectCreationError} onNameChange={setNewПроектName} onClose={() => { setProjectCreationError(""); setModalOpen(false); }} onSubmit={(data) => void createПроект(data)} />
+      <NewProjectModal
+        open={modalOpen}
+        name={newПроектName}
+        description={newПроектDescription}
+        loading={projectActionLoading}
+        error={projectCreationError}
+        onNameChange={setNewПроектName}
+        onDescriptionChange={setNewПроектDescription}
+        onClose={() => { setProjectCreationError(""); setModalOpen(false); setNewПроектDescription(""); }}
+        onSubmit={(data) => void createПроект(data)}
+      />
       {connectorModal && <ConnectorModal />}
       {notice && <div className="toast" role="status">{notice}</div>}
     </div>
