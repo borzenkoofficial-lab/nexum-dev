@@ -1116,6 +1116,9 @@ app.put("/api/projects/:id/file", async (req, res) => {
     const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const { path: requested, content } = req.body as { path?: unknown; content?: unknown };
     if (typeof requested !== "string" || typeof content !== "string") return res.status(400).json({ success: false, error: "path and content are required" });
+    if (Buffer.byteLength(content, "utf8") > 1_000_000) {
+      return res.status(413).json({ success: false, error: "File content exceeds the 1 MB project-file limit" });
+    }
     const filePath = resolve(project.path, requested);
     const projectRelative = relative(project.path, filePath);
     if (projectRelative.startsWith("..") || projectRelative.includes("../") || projectRelative.includes("..\\") || projectRelative.startsWith(".git/") || projectRelative.includes("node_modules/")) {
