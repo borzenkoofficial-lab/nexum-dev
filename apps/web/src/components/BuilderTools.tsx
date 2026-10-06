@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentStage } from "./types";
 interface Props{tab:"preview"|"files"|"agent";projectName:string;projectId:string;previewOnline:boolean;previewKey:number;stage:AgentStage;jobId:string|null;activitySteps:Array<{iteration:number;tool:string;success:boolean}>;activityEvents:Array<{id:number;timestamp:number;iteration:number;type:string;tool?:string;message:string}>;currentActivity:string;problems:Array<{message:string;source?:string}>;productPlan:{goal:string;productType:string;pages:string[];components:string[];acceptanceCriteria:string[]}|null;onTabChange:(x:"preview"|"files"|"agent")=>void;onRefresh:()=>void;onRepair:()=>void;onOpenChat:()=>void}
 const stages=[["analyzing","Analyze"],["planning","Plan"],["editing","Build"],["testing","Verify"],["completed","Done"]] as const;
 export function BuilderTools(p:Props){
  const [device,setDevice]=useState<"desktop"|"tablet"|"mobile">("desktop"),[files,setFiles]=useState<string[]>([]),[selected,setSelected]=useState(""),[content,setContent]=useState(""),[saved,setSaved]=useState(""),[loading,setLoading]=useState(false),[error,setError]=useState(""); const frame=useRef<HTMLIFrameElement>(null); const dirty=content!==saved;
- const loadFiles=async()=>{
+ const loadFiles=useCallback(async()=>{
    setLoading(true);
    setError("");
    try{
@@ -15,8 +15,8 @@ export function BuilderTools(p:Props){
      setFiles(next);
      setSelected(current=>current && next.includes(current)?current:(next[0]??""));
    }catch(e){setError(e instanceof Error?e.message:String(e))}finally{setLoading(false)}
- };
- useEffect(()=>{if(p.tab!=="files")return;void loadFiles()},[p.tab,p.projectId,p.previewKey]);
+ },[p.projectId]);
+ useEffect(()=>{if(p.tab!=="files")return;void loadFiles()},[p.tab,loadFiles,p.previewKey]);
  useEffect(()=>{if(!selected)return;setLoading(true);fetch("/api/projects/"+encodeURIComponent(p.projectId)+"/file?path="+encodeURIComponent(selected)).then(r=>r.json()).then(d=>{setContent(d.content??"");setSaved(d.content??"")}).catch(e=>setError(String(e))).finally(()=>setLoading(false))},[selected,p.projectId]);
  const save=async()=>{if(!selected||!dirty)return;setLoading(true);try{const r=await fetch("/api/projects/"+encodeURIComponent(p.projectId)+"/file",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:selected,content})});if(!r.ok)throw new Error("Save failed");setSaved(content);p.onRefresh()}catch(e){setError(String(e))}finally{setLoading(false)}};
  if(p.tab==="preview")return <section className="nx-tool"><div className="nx-tool-head"><div><span>PREVIEW</span><strong>{p.previewOnline?"Live application":"Waiting for first build"}</strong></div><div className="nx-tool-actions"><button type="button" onClick={p.onRefresh}>↻ Refresh</button><button type="button" onClick={()=>window.open("/api/preview/"+p.projectId+"/index.html","_blank","noopener,noreferrer")}>Open ↗</button></div></div>{p.previewOnline?<><div className="nx-device-tabs">{(["desktop","tablet","mobile"] as const).map(x=><button key={x} className={device===x?"selected":""} onClick={()=>setDevice(x)} type="button">{x}</button>)}</div><div className={"nx-preview "+device}><div className="nx-browser"><span>● ● ●</span><small>preview / {p.projectId}</small><b>{p.stage==="building"||p.stage==="editing"?"BUILDING":"LIVE"}</b></div><iframe ref={frame} title={p.projectName+" preview"} src={"/api/preview/"+p.projectId+"/index.html?v="+p.previewKey} sandbox="allow-scripts"/></div></>:<div className="nx-preview-empty"><div><span>PREVIEW</span><h2>Your app will appear here</h2><p>Send a request in the chat to start building the project.</p></div></div>}</section>;
