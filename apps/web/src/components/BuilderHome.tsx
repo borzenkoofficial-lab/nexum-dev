@@ -25,7 +25,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
         <div className="builder-home-hero">
           <p className="builder-home-kicker">NEXUM.DEV</p>
           <h1>Что создадим?</h1>
-          <p className="builder-home-subtitle">Опишите идею. NEXUM спланирует продукт, создаст код и покажет результат в реальном времени.</p>
+          <p className="builder-home-subtitle">Опишите задачу. NEXUM превратит её в рабочий проект и покажет результат в Preview.</p>
 
           <div className="builder-home-composer">
             <textarea
@@ -74,7 +74,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
 
       <footer className="builder-home-footer">
         <span>Build with NEXUM</span>
-        <span>AI-powered development</span>
+        <span>Professional development workspace</span>
       </footer>
     </section>
   );
