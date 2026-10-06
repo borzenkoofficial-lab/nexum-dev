@@ -274,7 +274,7 @@ async function runChatJob(
   const signal = cancellationBridge.signal;
   throwIfAgentAborted(signal);
   const existingJob = await getChatJob(jobId, userId);
-  if (!existingJob) { serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
+  if (!existingJob) { cancellationBridge.stop(); serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
   const job = existingJob.status === "queued" ? await claimChatJob(jobId, userId) : existingJob;
   if (!job || job.status !== "running") {
     if (job?.status === "cancelled") serverRuntime.cancelTask(runtimeTask.id);
