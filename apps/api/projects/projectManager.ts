@@ -113,7 +113,7 @@ export class ProjectManager {
       force: false,
       filter: (sourcePath) => {
         const rel = relative(source.path, sourcePath).replace(/\\/g, "/");
-        const first = rel.split("/")[0];
+        const first = rel.split("/")[0] ?? "";
         if ([".git", ".nexum", "dist", "node_modules"].includes(first)) return false;
         if (/^\.env(?:\.|$)/i.test(first)) return false;
         return true;
