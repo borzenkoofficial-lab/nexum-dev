@@ -143,7 +143,10 @@ export class RunCommandTool implements Tool {
     }
 
     if (normalizedArgs[0] === "install") {
-      throw new Error("npm install is not allowed from Agent RunCommand; use the controlled dependency installer.");
+      if (normalizedArgs.length !== 2 || normalizedArgs[1] !== "--ignore-scripts") {
+        throw new Error("Only npm install --ignore-scripts is allowed for Agent dependency bootstrap.");
+      }
+      return { executable: "npm", args: normalizedArgs };
     }
 
     if (normalizedArgs[0] === "--version" || normalizedArgs[0] === "-v") {
