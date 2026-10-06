@@ -114,7 +114,9 @@ export class ProjectManager {
       filter: (sourcePath) => {
         const rel = relative(source.path, sourcePath).replace(/\\/g, "/");
         const first = rel.split("/")[0];
-        return ![".git", ".nexum", "dist", "node_modules"].includes(first);
+        if ([".git", ".nexum", "dist", "node_modules"].includes(first)) return false;
+        if (/^\.env(?:\.|$)/i.test(first)) return false;
+        return true;
       },
     });
     const now = new Date().toISOString();
