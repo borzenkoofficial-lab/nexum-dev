@@ -8,12 +8,15 @@ export const chatJobCache = new Map<string, ChatJob>();
 function evictStaleJobs(): void {
   const now = Date.now();
   for (const [id, job] of chatJobCache) {
-    if (now - job.updatedAt > CACHE_TTL_MS) chatJobCache.delete(id);
+    if ((job.status === "completed" || job.status === "failed" || job.status === "cancelled") &&
+        now - job.updatedAt > CACHE_TTL_MS) chatJobCache.delete(id);
   }
   while (chatJobCache.size > MAX_CACHE_ENTRIES) {
-    const oldest = chatJobCache.keys().next().value as string | undefined;
-    if (!oldest) break;
-    chatJobCache.delete(oldest);
+    const oldestTerminal = [...chatJobCache.entries()]
+      .filter(([, job]) => job.status === "completed" || job.status === "failed" || job.status === "cancelled")
+      .sort(([, a], [, b]) => a.updatedAt - b.updatedAt)[0]?.[0];
+    if (!oldestTerminal) break;
+    chatJobCache.delete(oldestTerminal);
   }
 }
 
