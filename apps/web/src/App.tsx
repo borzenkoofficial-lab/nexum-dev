@@ -751,15 +751,15 @@ function App() {
       const response = await nexumRuntime.network.fetch("/api/ai/connect-key", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: aiApiKey.trim() }),
+        body: JSON.stringify({ apiKey: aiApiKey.trim(), provider: aiProvider }),
       });
       const data = await response.json().catch(() => ({})) as { success?: boolean; provider?: string; model?: string; error?: string };
       if (!response.ok || !data.success) throw new Error(data.error || "Не удалось проверить API-ключ");
       const provider = data.provider || "openai";
       setAiApiKey("");
       setAIProvider(provider);
-      setAIModel(data.model || aiModels[provider]?.[0] || (provider === "openai" ? "gpt-5" : provider === "orcarouter" ? "deepseek/deepseek-v4-flash-free" : "openrouter/free"));
-      setNotice(provider === "openai" ? "OpenAI подключён — модели GPT готовы" : "OpenRouter подключён");
+      setAIModel(data.model || aiModels[provider]?.[0] || (provider === "openai" ? "gpt-5" : provider === "anymodel" ? "gpt-6-astra" : provider === "orcarouter" ? "deepseek/deepseek-v4-flash-free" : "openrouter/free"));
+      setNotice(provider === "openai" ? "OpenAI подключён — модели GPT готовы" : provider === "anymodel" ? "AnyModel подключён — модели готовы" : provider === "orcarouter" ? "OrcaRouter подключён" : "OpenRouter подключён");
       window.setTimeout(() => setNotice(""), 3200);
       const modelsResponse = await nexumRuntime.network.fetch("/api/ai/models");
       if (modelsResponse.ok) {
@@ -1011,7 +1011,7 @@ function App() {
                   <div className="settings-section-head"><span>07</span><div><h2>API access</h2><p>Подключение внешней AI-модели.</p></div></div>
                   <div className="settings-card settings-card-wide">
                     <strong>ИИ API key</strong><span>Автоматическое определение провайдера</span>
-                    <small>Вставьте ключ OpenAI, OpenRouter или OrcaRouter. NEXUM проверит его и сохранит только в памяти текущего сервера.</small>
+                    <small>Выберите провайдера выше и вставьте его API-ключ. NEXUM проверит ключ и подключит выбранный AI-маршрут.</small>
                     <div className="settings-api-row">
                       <input type="password" value={aiApiKey} onChange={(event) => setAiApiKey(event.target.value)} placeholder="Вставьте API-ключ" autoComplete="off" />
                       <button type="button" className="home-primary" disabled={aiApiKeyLoading || !aiApiKey.trim()} onClick={() => void connectAIKey()}>{aiApiKeyLoading ? "Проверяю…" : "Подключить ИИ"}</button>
