@@ -209,7 +209,7 @@ const aiGateway = new AIGateway(
 const userAIGateways = new Map<string, AIGateway>();
 
 function createProviderGateway(runtimeProvider?: string, runtimeCredential?: string): AIGateway {
-  const providers = [new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider(), ...(e2eMockAI ? [new MockProvider()] : [])];
+  const providers = [new OllamaProvider(), new OpenRouterProvider(), new AnyModelProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider(), ...(e2eMockAI ? [new MockProvider()] : [])];
   if (runtimeProvider && runtimeCredential) {
     const target = providers.find((provider) => provider.id === runtimeProvider);
     const setter = target && (target as unknown as { setRuntimeApiKey?: (value: string) => void }).setRuntimeApiKey;
