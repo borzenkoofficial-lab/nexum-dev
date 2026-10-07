@@ -9,7 +9,7 @@ test("AnyModel sends an OpenAI-compatible chat completion request", async () => 
     "gpt-6-astra",
     5_000,
     async (url, init) => {
-      calls.push({ url, init });
+      calls.push({ url: typeof url === "string" ? url : url instanceof URL ? url.toString() : url.url, init: init ?? {} });
       return new Response(JSON.stringify({
         choices: [{ message: { content: "ok" } }],
       }), { status: 200, headers: { "content-type": "application/json" } });
