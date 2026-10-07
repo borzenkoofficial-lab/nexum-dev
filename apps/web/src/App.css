@@ -640,6 +640,17 @@ html,body,#root{
   color:var(--accent);
 }
 .settings-status-ok{color:var(--green)!important}
+.anymodel-api-card{gap:10px}
+.anymodel-api-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.anymodel-api-head>div:first-child{display:grid;gap:4px}
+.anymodel-connection-sensor{display:inline-flex;align-items:center;gap:7px;min-height:30px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface-3);color:var(--text-2);font-size:11px;font-weight:650;white-space:nowrap}
+.anymodel-connection-dot{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 12%,transparent)}
+.anymodel-connection-sensor.connected{color:var(--green);border-color:color-mix(in srgb,var(--green) 28%,var(--line))}
+.anymodel-connection-sensor.checking{color:var(--accent)}
+.anymodel-connection-sensor.error{color:var(--danger,#d85b6a)}
+.anymodel-connection-sensor.ready{color:var(--text-2)}
+.anymodel-connection-sensor.checking .anymodel-connection-dot{animation:anymodel-pulse 1s ease-in-out infinite}
+@keyframes anymodel-pulse{0%,100%{opacity:.45;transform:scale(.9)}50%{opacity:1;transform:scale(1.15)}}
 .settings-status-muted{color:var(--text-2)!important}
 .settings-shortcuts{
   display:grid;
