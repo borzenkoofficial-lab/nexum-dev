@@ -299,6 +299,7 @@ export class AgentLoop {
       return maxTokens > 0 ? { ...(base ?? {}), maxTokens } : undefined;
     };
     const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
+    const repairRequested = /исправь результат последней задачи|исправь последнюю задачу|продолжи исправление|repair the last task|fix the last task|fix the previous task/i.test(task);
     const requiresProjectUnderstanding = builderTask || /analy[sz]e|audit|review|проверь|проанализ|исправ|debug|debugger|рефактор|refactor|настрой|configure|измен|добав|удал|fix|bug/i.test(task);
     const markStepRunning = (id: string) => {
       if (!canRunPlanStep(executionSnapshot.plan, id)) {
@@ -420,7 +421,7 @@ export class AgentLoop {
         continue;
       }
 
-      if (builderTask && !productPlan && !productPlannerCreated && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
+      if (builderTask && !repairRequested && !productPlan && !productPlannerCreated && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
         emit({ iteration, type: "thinking", message: "Формирую Product Plan: страницы, компоненты, визуальную систему и критерии готовности." });
         try {
           if (++modelTurns > MAX_MODEL_TURNS) throw new Error("Agent model-turn limit reached");
