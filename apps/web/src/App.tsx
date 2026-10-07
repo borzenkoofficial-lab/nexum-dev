@@ -955,8 +955,42 @@ function App() {
                     <div><h2>AI Engine</h2><p>Провайдер, модель и ключи доступа.</p></div>
                   </div>
                   <div className="settings-grid">
-                    <div className="settings-card"><strong>Активная модель</strong><span>{aiProvider} · {aiModel}</span><small>Текущий маршрут AI Agent.</small></div>
-                    <div className="settings-card"><strong>Статус</strong><span className={aiStatus?.available ? "settings-status-ok" : "settings-status-muted"}>{aiStatus?.available ? "Подключено" : "Ожидание подключения"}</span><small>{aiStatus?.error || "NEXUM проверяет доступность выбранной модели."}</small></div>
+                    <div className="settings-card settings-card-wide">
+                      <strong>AI provider</strong>
+                      <span>{aiProviders.length ? "Выберите маршрут, который будет использовать Agent." : "Загрузка списка провайдеров…"}</span>
+                      <div className="settings-api-row">
+                        <select
+                          aria-label="AI provider"
+                          value={aiProvider}
+                          disabled={!aiProviders.length || aiApiKeyLoading}
+                          onChange={(event) => selectAIProvider(event.target.value)}
+                        >
+                          {aiProviders.map((provider) => (
+                            <option key={provider.id} value={provider.id}>{provider.name}</option>
+                          ))}
+                        </select>
+                        <select
+                          aria-label="AI model"
+                          value={aiModel}
+                          disabled={!aiProvider || aiApiKeyLoading}
+                          onChange={(event) => setAIModel(event.target.value)}
+                        >
+                          {(aiModels[aiProvider] ?? [aiModel]).map((model) => (
+                            <option key={model} value={model}>{model}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="settings-card">
+                      <strong>Активная модель</strong>
+                      <span>{aiProvider} · {aiModel}</span>
+                      <small>Текущий маршрут AI Agent.</small>
+                    </div>
+                    <div className="settings-card">
+                      <strong>Статус</strong>
+                      <span className={aiStatus?.available ? "settings-status-ok" : "settings-status-muted"}>{aiStatus?.available ? "Подключено" : "Ожидание подключения"}</span>
+                      <small>{aiStatus?.error || "NEXUM проверяет доступность выбранной модели."}</small>
+                    </div>
                   </div>
                 </section>
 
