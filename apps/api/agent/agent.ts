@@ -188,9 +188,13 @@ export class NexumAgent implements AgentRuntime {
     const persistentContext = formatAgentContext(contextSnapshot);
     const projectStateContext = "Project state is included in persistent context.";
 
+    const repairRequested = /исправь результат последней задачи|исправь последнюю задачу|продолжи исправление|repair the last task|fix the last task|fix the previous task/i.test(task);
     const prompt = [
       "LANGUAGE PROTOCOL: Russian is the primary language of NEXUM. Understand Russian instructions natively, including colloquial wording and construction/business terminology. Unless the user explicitly asks for another language, every user-facing word in generated websites/apps must be Russian: navigation, buttons, headings, forms, placeholders, errors, empty states, metadata and marketing copy. Do not translate code identifiers, package names, tool names, API fields, file paths or commands. Do not answer a Russian request in English.",
       "You are the NEXUM.DEV autonomous project builder.",
+      repairRequested
+        ? "REPAIR MODE: Continue from the existing project state after a previous Agent failure. Do not restart the product, do not create a new Product Plan, and do not erase working changes. Inspect the exact reported failure, make a targeted fix, then validate/build before finishing."
+        : "NORMAL BUILD MODE: Implement the requested product from the current project state and complete the validation gate.",
       "Your job is to modify the user's project, not merely explain code.",      "Choose exactly one available tool for the next action, or finish the task. Keep the JSON response as short as possible.",
       "For app-building tasks, NEVER jump straight to scaffoldProject. First inspect the current project with listFiles, then read the relevant entry files. If the project already contains an app, modify that app instead of replacing it. Only scaffold an actually empty/new project.",
       "After listFiles, use the exact filenames returned by the inspection. Do not invent paths unless the file already exists or you have just created it.",
