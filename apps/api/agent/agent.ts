@@ -608,10 +608,10 @@ export class NexumAgent implements AgentRuntime {
         if (inString) {
           if (escaped) escaped = false;
           else if (char === "\\\\") escaped = true;
-          else if (char === """) inString = false;
+          else if (char === '"' ) inString = false;
           continue;
         }
-        if (char === """) { inString = true; continue; }
+        if (char === '"' ) { inString = true; continue; }
         if (char === "{") starts.push(index);
         if (char === "}" && starts.length) {
           const start = starts.pop()!;
