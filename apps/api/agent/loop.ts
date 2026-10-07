@@ -1044,25 +1044,64 @@ export class AgentLoop {
               message: "Повторная инспекция " + currentTool + " обнаружена. Читаю следующий реальный файл: " + unread + ".",
             });
           } else {
-            const recoveryPlan = this.runtime.plan(task, previousResults);
-            const recoveryKey = recoveryPlan && !recoveryPlan.done
-              ? this.actionFingerprint(recoveryPlan.tool, recoveryPlan.input)
-              : "";
-            const currentKey = this.actionFingerprint(plan.tool, plan.input);
-            if (recoveryPlan && !recoveryPlan.done && recoveryKey !== currentKey) {
-              const nextTool = recoveryPlan.tool;
-              plan = recoveryPlan;
+            const preferredFiles = [
+              ...(productPlan?.filesToChange ?? []),
+              ...(productPlan?.filesToInspect ?? []),
+            ].filter((file, index, all) => typeof file === "string" && file.trim() && all.indexOf(file) === index);
+            const listing = [...previousResults]
+              .reverse()
+              .find((item) => item.tool === "listFiles" && item.result.success)?.result.output ?? "";
+            const nextPreferredFile = preferredFiles.find((file) =>
+              listing.includes(file) &&
+              !previousResults.some((item) => item.tool === "readFile" && item.input === file && item.result.success),
+            );
+            if (nextPreferredFile && availableTools.includes("readFile")) {
+              plan = { tool: "readFile", input: nextPreferredFile };
               emit({
                 iteration,
                 type: "thinking",
-                message: "Повторная инспекция обнаружена. Перехожу к следующему действию Builder: " + nextTool + ".",
+                message: "Повторный поиск пропущен. Читаю следующий файл из Product Plan: " + nextPreferredFile + ".",
               });
             } else {
-              const error = "Agent stopped: repeated successful action detected (" + plan.tool + ")";
-              this.log(iteration, plan.tool, "error");
-              const normalizedError = toNexumError(error, "TOOL_ERROR", "Инструмент агента завершился с ошибкой.");
-          emit({ iteration, type: "failed", tool: plan.tool, message: normalizedError.userSafeMessage, errorCode: normalizedError.code, retryable: normalizedError.retryable });
-              return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
+              const recoveryPlan = this.runtime.plan(task, previousResults);
+              const recoveryKey = recoveryPlan && !recoveryPlan.done
+                ? this.actionFingerprint(recoveryPlan.tool, recoveryPlan.input)
+                : "";
+              const currentKey = this.actionFingerprint(plan.tool, plan.input);
+              if (recoveryPlan && !recoveryPlan.done && recoveryKey !== currentKey) {
+                const nextTool = recoveryPlan.tool;
+                plan = recoveryPlan;
+                emit({
+                  iteration,
+                  type: "thinking",
+                  message: "Повторная инспекция обнаружена. Перехожу к следующему действию Builder: " + nextTool + ".",
+                });
+              } else if (plan.tool === "searchFiles") {
+                const fallbackQuery = [
+                  productPlan?.productType,
+                  productPlan?.goal,
+                  task,
+                ].filter(Boolean).map((value) => String(value).slice(0, 180)).join(" ");
+                if (fallbackQuery && fallbackQuery !== plan.input) {
+                  plan = { tool: "searchFiles", input: fallbackQuery.slice(0, 500) };
+                  emit({
+                    iteration,
+                    type: "thinking",
+                    message: "Повторный searchFiles обнаружен. Выполняю новый предметный поиск по Product Plan.",
+                  });
+                } else {
+                  const error = "Agent stopped: repeated successful action detected (" + plan.tool + ")";
+                  this.log(iteration, plan.tool, "error");
+                  const normalizedError = toNexumError(error, "TOOL_ERROR", "Инструмент агента завершился с ошибкой.");
+                  emit({ iteration, type: "failed", tool: plan.tool, message: normalizedError.userSafeMessage, errorCode: normalizedError.code, retryable: normalizedError.retryable });
+                  return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
+                }
+              } else {
+                const error = "Agent stopped: repeated successful action detected (" + plan.tool + ")";
+                this.log(iteration, plan.tool, "error");
+                emit({ iteration, type: "failed", tool: plan.tool, message: error });
+                return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
+              }
             }
           }
         } else {
