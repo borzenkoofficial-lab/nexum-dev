@@ -528,15 +528,29 @@ function App() {
     const task = lastMessage.trim();
     if (!task) {
       setRightTab("preview");
-      
       setWorkspaceMode("preview");
       return;
     }
-    const repairTask = `Исправь результат последней задачи. Проверь Preview, найди ошибки и внеси необходимые исправления: ${task}`;
+
+    const failureEvidence = problems
+      .slice(-5)
+      .map((item) => (item.source ? item.source + ": " : "") + item.message)
+      .filter(Boolean)
+      .join("\n");
+
+    const repairTask = [
+      "ИСПРАВЛЕНИЕ ПОСЛЕ ОШИБКИ АГЕНТА.",
+      "Не начинай новый продукт и не создавай новый Product Plan.",
+      "Продолжи работу с текущим проектом и текущими файлами.",
+      "Сначала изучи текущее состояние проекта и точную причину последней ошибки.",
+      "Затем внеси минимальные необходимые исправления, повтори проверку/сборку и доведи задачу до завершения.",
+      "Исходная задача: " + task,
+      failureEvidence ? "Последние ошибки Agent:\n" + failureEvidence : "",
+    ].filter(Boolean).join("\n");
+
     setMessage(repairTask);
     setRightTab("agent");
     setProjectMode("agent");
-    
     setWorkspaceMode("agent");
     window.setTimeout(() => void sendMessage(repairTask), 0);
   }
@@ -725,6 +739,17 @@ function App() {
 
         if (status === "failed") {
           setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
+          setActivitySteps(data?.job?.steps ?? []);
+          setActivityEvents(data?.job?.events ?? []);
+          setProblems(data?.job?.problems ?? []);
+          setCurrentActivity(data?.job?.error || data?.job?.currentMessage || "ИИ-агент завершил работу с ошибкой.");
+          if (data?.job?.productPlan) setProductPlan({
+            goal: data.job.productPlan.goal ?? "",
+            productType: data.job.productPlan.productType ?? "Product",
+            pages: data.job.productPlan.pages ?? [],
+            components: data.job.productPlan.components ?? [],
+            acceptanceCriteria: data.job.productPlan.acceptanceCriteria ?? [],
+          });
           throw new Error(data?.job?.error || "ИИ-агент завершил работу с ошибкой");
         }
 
