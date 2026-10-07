@@ -188,7 +188,7 @@ export class NexumAgent implements AgentRuntime {
     const persistentContext = formatAgentContext(contextSnapshot);
     const projectStateContext = "Project state is included in persistent context.";
 
-    const repairRequested = /исправь результат последней задачи|исправь последнюю задачу|продолжи исправление|repair the last task|fix the last task|fix the previous task/i.test(task);
+    const repairRequested = /ИСПРАВЛЕНИЕ ПОСЛЕ ОШИБКИ АГЕНТА|исправь результат последней задачи|исправь последнюю задачу|продолжи исправление|repair the last task|fix the last task|fix the previous task/i.test(task);
     const prompt = [
       "LANGUAGE PROTOCOL: Russian is the primary language of NEXUM. Understand Russian instructions natively, including colloquial wording and construction/business terminology. Unless the user explicitly asks for another language, every user-facing word in generated websites/apps must be Russian: navigation, buttons, headings, forms, placeholders, errors, empty states, metadata and marketing copy. Do not translate code identifiers, package names, tool names, API fields, file paths or commands. Do not answer a Russian request in English.",
       "You are the NEXUM.DEV autonomous project builder.",
