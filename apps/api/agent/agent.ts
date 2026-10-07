@@ -666,9 +666,14 @@ export class NexumAgent implements AgentRuntime {
           continue;
         }
 
+        const rawInput = typeof parsed.input === "string" ? parsed.input : JSON.stringify(parsed.input);
+        const safeInput = normalizedTool === "searchFiles"
+          ? rawInput.replace(/\s+/g, " ").trim().slice(0, 500)
+          : rawInput;
+        if (!safeInput && normalizedTool === "searchFiles") continue;
         const plan = {
           tool: normalizedTool,
-          input: typeof parsed.input === "string" ? parsed.input : JSON.stringify(parsed.input),
+          input: safeInput,
         };
         if (task && !this.isPlanAlignedWithTask(task, plan)) return null;
         return plan;
@@ -823,7 +828,8 @@ export class NexumAgent implements AgentRuntime {
 
   private extractSearchQuery(task: string): string {
     const match = task.match(/(?:найди|поиск|ищи|search|find)\s+["`']?([\s\S]+?)["`']?$/i);
-    return match?.[1]?.trim() ?? task;
+    const query = match?.[1]?.trim() ?? task.trim();
+    return query.replace(/\s+/g, " ").slice(0, 500);
   }
 
   private extractCommand(task: string): string {
