@@ -93,7 +93,12 @@ function sendSafeError(res: Response, error: unknown, requestId: string, fallbac
 }
 
 const app = express();
-void recoverStaleChatJobs(0).catch((error) => console.error("[Nexum] stale Agent recovery failed", error));
+const databaseConfigured = Boolean(process.env.NEXUM_DATABASE_URL?.trim());
+if (databaseConfigured) {
+  void recoverStaleChatJobs(0).catch((error) => console.error("[Nexum] stale Agent recovery failed", error));
+} else {
+  console.warn("[Nexum] PostgreSQL is not configured; persistent ChatJob recovery is disabled for this process.");
+}
 serverRuntime.start();
 app.use((req, _res, next) => {
   const requestId = getRequestId(req);
