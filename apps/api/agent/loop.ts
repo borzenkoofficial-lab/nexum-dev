@@ -564,11 +564,22 @@ export class AgentLoop {
                 message: `Планировщик не выбрал действие. Для Builder-задачи принудительно читаю ${nextPath}, чтобы продолжить реализацию.`,
               });
             } else if (availableTools.includes("searchFiles")) {
-              plan = { tool: "searchFiles", input: task };
+              const searchQuery = [
+                productPlan?.productType,
+                productPlan?.goal,
+                "главная страница",
+                "компоненты",
+                "стили",
+              ]
+                .filter(Boolean)
+                .map((value) => String(value).replace(/\\s+/g, " ").trim())
+                .join(" ")
+                .slice(0, 500);
+              plan = { tool: "searchFiles", input: searchQuery || "главная страница компоненты стили" };
               emit({
                 iteration,
                 type: "thinking",
-                message: "Планировщик не выбрал действие. Ищу связанные файлы перед реализацией.",
+                message: "Планировщик не выбрал действие. Ищу коротким предметным запросом.",
               });
             }
           }
@@ -1006,6 +1017,26 @@ export class AgentLoop {
         const normalizedError = toNexumError(error, "TOOL_ERROR", "Инструмент агента завершился с ошибкой.");
         emit({ iteration, type: "failed", tool: (plan as AgentPlan).tool, message: normalizedError.userSafeMessage, errorCode: normalizedError.code, retryable: normalizedError.retryable });
         return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
+      }
+
+      if ((plan as AgentPlan).tool === "searchFiles" && (plan as AgentPlan).input.length > 500) {
+        const safeQuery = [
+          productPlan?.productType,
+          productPlan?.goal,
+          "главная страница",
+          "компоненты",
+          "стили",
+        ]
+          .filter(Boolean)
+          .map((value) => String(value).replace(/\\s+/g, " ").trim())
+          .join(" ")
+          .slice(0, 500);
+        plan = { ...(plan as AgentPlan), input: safeQuery || "главная страница компоненты стили" };
+        emit({
+          iteration,
+          type: "thinking",
+          message: "Слишком длинный поисковый запрос модели сокращён до безопасного project-specific запроса.",
+        });
       }
 
       const actionKey = `${(plan as AgentPlan).tool}:${(plan as AgentPlan).input}`;
