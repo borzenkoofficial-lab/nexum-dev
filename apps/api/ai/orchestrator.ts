@@ -100,7 +100,9 @@ export class AIOrchestrator {
   private maxTokensFor(role: AIOrchestratorRole): number {
     switch (role) {
       case "director":
+        return 1_200;
       case "planner":
+        return 2_400;
       case "reviewer":
       case "tester":
         return 1_200;
