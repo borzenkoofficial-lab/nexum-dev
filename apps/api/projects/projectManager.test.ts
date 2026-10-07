@@ -35,6 +35,22 @@ test("creates safe ids for Cyrillic project names", async () => {
   assert.equal(project.status, "active");
 });
 
+test("allows duplicate project names by allocating unique ids", async () => {
+  const { manager } = await createManager();
+  await manager.initialize();
+
+  const first = await manager.createProject("Stroyka");
+  const second = await manager.createProject("Stroyka");
+  const third = await manager.createProject("Stroyka");
+
+  assert.equal(first.name, "Stroyka");
+  assert.equal(second.name, "Stroyka");
+  assert.equal(third.name, "Stroyka");
+  assert.equal(first.id, "stroyka");
+  assert.equal(second.id, "stroyka-2");
+  assert.equal(third.id, "stroyka-3");
+});
+
 test("selects and permanently deletes a project and its files", async () => {
   const { manager } = await createManager();
   await manager.initialize();
