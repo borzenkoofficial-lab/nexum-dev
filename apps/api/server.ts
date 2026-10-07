@@ -1495,6 +1495,10 @@ app.get("/api/agent/diagnostics", async (req, res) => {
 });
 
 app.get("/api/chat/jobs", async (req, res) => {
+  // Local development can run without PostgreSQL. The persistent Agent Job
+  // store is optional for idle UI/preview work; report no active jobs instead
+  // of turning the background poll into repeated HTTP 500 errors.
+  if (!databaseConfigured) return res.json({ success: true, jobs: [] });
   await cleanupChatJobs();
   const userId = getAuthUser(req).id;
   const jobs = await listChatJobs(userId, 50);
