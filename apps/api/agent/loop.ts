@@ -592,7 +592,7 @@ export class AgentLoop {
           return {
             phase,
             success: false,
-            iterations: iteration - 1,
+            iterations: Math.max(1, iteration),
             steps,
             productPlan: productPlan ?? undefined,
             error: "Builder stopped before implementation: no actionable plan.",
@@ -1039,35 +1039,6 @@ export class AgentLoop {
           type: "thinking",
           message: "Слишком длинный поисковый запрос модели сокращён до безопасного project-specific запроса.",
         });
-      }
-
-      if ((plan as AgentPlan).tool === "searchFiles" && builderTask && availableTools.includes("readFile")) {
-        const latestListing = [...previousResults]
-          .reverse()
-          .find((item) => item.tool === "listFiles" && item.result.success)?.result.output ?? "";
-        const entryCandidates = [
-          "src/App.tsx",
-          "src/App.jsx",
-          "src/main.tsx",
-          "src/main.jsx",
-          "index.html",
-          "src/App.css",
-          "src/styles.css",
-          "style.css",
-          "package.json",
-        ];
-        const unreadEntry = entryCandidates.find((candidate) =>
-          latestListing.includes(candidate) &&
-          !previousResults.some((item) => item.tool === "readFile" && item.input === candidate && item.result.success),
-        );
-        if (unreadEntry) {
-          plan = { tool: "readFile", input: unreadEntry };
-          emit({
-            iteration,
-            type: "thinking",
-            message: "Для Builder-задачи заменяю ненужный поиск на чтение следующего реального файла.",
-          });
-        }
       }
 
       const actionKey = `${(plan as AgentPlan).tool}:${(plan as AgentPlan).input}`;
