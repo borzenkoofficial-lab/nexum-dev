@@ -145,6 +145,8 @@ function App() {
   const [localAIKey, setLocalAIKey] = useState("");
   const [aiApiKey, setAiApiKey] = useState("");
   const [aiApiKeyLoading, setAiApiKeyLoading] = useState(false);
+  const [anyModelApiKey, setAnyModelApiKey] = useState("");
+  const [anyModelApiKeyLoading, setAnyModelApiKeyLoading] = useState(false);
   const localAITestEnabled = true;
   const [localAIConfigured, setLocalAIConfigured] = useState(false);
   const [localAIKeyLoading, setLocalAIKeyLoading] = useState(false);
@@ -773,6 +775,46 @@ function App() {
     }
   }
 
+  async function connectAnyModelKey() {
+    if (!anyModelApiKey.trim()) return;
+    setAnyModelApiKeyLoading(true);
+    setApiError("");
+    try {
+      const response = await nexumRuntime.network.fetch("/api/ai/connect-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: anyModelApiKey.trim(), provider: "anymodel" }),
+      });
+      const data = await response.json().catch(() => ({})) as {
+        success?: boolean;
+        provider?: string;
+        model?: string;
+        status?: { available?: boolean; error?: string };
+        error?: string;
+      };
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.status?.error || "Не удалось подключить AnyModel");
+      }
+
+      setAnyModelApiKey("");
+      setAIProvider("anymodel");
+      setAIModel(data.model || "gpt-6-astra");
+      setAIStatus(data.status ? { ...data.status, provider: "anymodel", model: data.model || "gpt-6-astra" } as AIProviderStatus : null);
+      setNotice("AnyModel подключён — gpt-6-astra готов");
+      window.setTimeout(() => setNotice(""), 3200);
+
+      const modelsResponse = await nexumRuntime.network.fetch("/api/ai/models");
+      if (modelsResponse.ok) {
+        const modelsData = await modelsResponse.json() as { models?: Record<string, string[]> };
+        setAIModels(modelsData.models ?? {});
+      }
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Не удалось подключить AnyModel");
+    } finally {
+      setAnyModelApiKeyLoading(false);
+    }
+  }
+
   async function saveLocalAIKey() {
     if (!localAIKey.trim()) return;
     setLocalAIKeyLoading(true);
@@ -1042,13 +1084,33 @@ function App() {
                 </section>
 
                 <section className="settings-section">
-                  <div className="settings-section-head"><span>07</span><div><h2>API access</h2><p>Подключение внешней AI-модели.</p></div></div>
+                  <div className="settings-section-head"><span>07</span><div><h2>API access</h2><p>Подключение внешних AI-моделей.</p></div></div>
                   <div className="settings-card settings-card-wide">
-                    <strong>ИИ API key</strong><span>Автоматическое определение провайдера</span>
-                    <small>Выберите провайдера выше и вставьте его API-ключ. NEXUM проверит ключ и подключит выбранный AI-маршрут.</small>
+                    <strong>AnyModel API</strong>
+                    <span>GPT-6 Astra · прямое подключение</span>
+                    <small>Отдельный канал подключения AnyModel. Вставьте ключ AnyModel — NEXUM проверит его через API и активирует маршрут <b>gpt-6-astra</b>.</small>
                     <div className="settings-api-row">
-                      <input type="password" value={aiApiKey} onChange={(event) => setAiApiKey(event.target.value)} placeholder="Вставьте API-ключ" autoComplete="off" />
-                      <button type="button" className="home-primary" disabled={aiApiKeyLoading || !aiApiKey.trim()} onClick={() => void connectAIKey()}>{aiApiKeyLoading ? "Проверяю…" : "Подключить ИИ"}</button>
+                      <input
+                        type="password"
+                        value={anyModelApiKey}
+                        onChange={(event) => setAnyModelApiKey(event.target.value)}
+                        placeholder="Вставьте AnyModel API key"
+                        autoComplete="off"
+                        aria-label="AnyModel API key"
+                      />
+                      <button type="button" className="home-primary" disabled={anyModelApiKeyLoading || !anyModelApiKey.trim()} onClick={() => void connectAnyModelKey()}>
+                        {anyModelApiKeyLoading ? "Проверяю AnyModel…" : "Подключить AnyModel"}
+                      </button>
+                    </div>
+                    <small>Ключ используется только для подключения сессии и не вшивается в web bundle.</small>
+                  </div>
+                  <div className="settings-card settings-card-wide">
+                    <strong>Другой AI-провайдер</strong>
+                    <span>{aiProvider} · {aiModel}</span>
+                    <small>Для OpenAI / OpenRouter / Ollama и других маршрутов используйте общий API-доступ.</small>
+                    <div className="settings-api-row">
+                      <input type="password" value={aiApiKey} onChange={(event) => setAiApiKey(event.target.value)} placeholder="API-ключ выбранного провайдера" autoComplete="off" />
+                      <button type="button" className="home-primary" disabled={aiApiKeyLoading || !aiApiKey.trim()} onClick={() => void connectAIKey()}>{aiApiKeyLoading ? "Проверяю…" : "Подключить"}</button>
                     </div>
                   </div>
                   {localAITestEnabled && (
