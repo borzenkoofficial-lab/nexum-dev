@@ -79,8 +79,19 @@ export class ProjectManager {
       suffix += 1;
     }
 
-    const projectPath = resolveProjectPath(this.projectsRoot, id);
-    await this.assertProjectPath(projectPath);
+    let projectPath = resolveProjectPath(this.projectsRoot, id);
+    while (true) {
+      try {
+        await this.assertProjectPath(projectPath);
+        break;
+      } catch (error) {
+        if (!(error instanceof ProjectManagerError) || error.statusCode !== 409) throw error;
+        const suffixText = "-" + suffix++;
+        id = baseId.slice(0, Math.max(1, 64 - suffixText.length)) + suffixText;
+        this.validateId(id);
+        projectPath = resolveProjectPath(this.projectsRoot, id);
+      }
+    }
     await mkdir(projectPath);
 
     const now = new Date().toISOString();
