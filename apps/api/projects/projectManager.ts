@@ -68,11 +68,15 @@ export class ProjectManager {
   async createProject(name: string, description = "", type = "Веб-приложение"): Promise<Project> {
     await this.initialize();
     const validName = this.validateName(name);
-    const id = this.createId(validName);
     const store = await this.requireStore();
-
-    if (store.projects.some((project) => project.id === id)) {
-      throw new ProjectManagerError(`Project already exists: ${id}`, 409);
+    const baseId = this.createId(validName);
+    let id = baseId;
+    let suffix = 2;
+    while (store.projects.some((project) => project.id === id)) {
+      const suffixText = "-" + suffix;
+      id = baseId.slice(0, Math.max(1, 64 - suffixText.length)) + suffixText;
+      this.validateId(id);
+      suffix += 1;
     }
 
     const projectPath = resolveProjectPath(this.projectsRoot, id);
