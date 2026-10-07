@@ -76,6 +76,39 @@ test("replans when project context changes after an action", async () => {
   assert.equal(localPlans, 1);
 });
 
+test("repair mode bypasses Product Planner after a previous Agent failure", async () => {
+  let productPlannerCalls = 0;
+  let aiPlannerCalls = 0;
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["listFiles", "fake"],
+    plan: (task, previousResults) => {
+      if (!previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
+        return { tool: "listFiles", input: "." };
+      }
+      return { tool: "fake", input: "fallback" };
+    },
+    createProductPlan: async () => {
+      productPlannerCalls += 1;
+      throw new Error("Product Planner should not run in repair mode");
+    },
+    planWithAI: async () => {
+      aiPlannerCalls += 1;
+      return { tool: "fake", input: "repair" };
+    },
+    executeTool: async (tool) => tool === "listFiles"
+      ? { success: true, output: "index.html\nstyle.css" }
+      : { success: true, output: "repair action completed" },
+  };
+
+  const result = await new AgentLoop(runtime, gateway, 2).run(
+    "ИСПРАВЛЕНИЕ ПОСЛЕ ОШИБКИ АГЕНТА. Исправь результат последней задачи. Продолжи работу с текущим проектом."
+  );
+
+  assert.equal(productPlannerCalls, 0);
+  assert.equal(aiPlannerCalls, 1);
+  assert.ok(result.steps.some((step) => step.tool === "fake"));
+});
+
 test("completes a one-operation task", async () => {
   const agent = new NexumAgent(gateway);
   const runtime = fakeRuntime(
