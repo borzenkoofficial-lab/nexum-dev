@@ -147,6 +147,8 @@ function App() {
   const [aiApiKeyLoading, setAiApiKeyLoading] = useState(false);
   const [anyModelApiKey, setAnyModelApiKey] = useState("");
   const [anyModelApiKeyLoading, setAnyModelApiKeyLoading] = useState(false);
+  const [anyModelConnectionState, setAnyModelConnectionState] = useState<"unknown" | "ready" | "checking" | "connected" | "error">("unknown");
+  const [anyModelConnectionMessage, setAnyModelConnectionMessage] = useState("Проверка подключения ещё не выполнялась.");
   const localAITestEnabled = true;
   const [localAIConfigured, setLocalAIConfigured] = useState(false);
   const [localAIKeyLoading, setLocalAIKeyLoading] = useState(false);
@@ -362,14 +364,25 @@ function App() {
   useEffect(() => {
     async function loadAIConfig() {
       try {
-        const [providersResponse, modelsResponse] = await Promise.all([
+        const [providersResponse, modelsResponse, keyStatusResponse] = await Promise.all([
           nexumRuntime.network.fetch("/api/ai/providers"),
           nexumRuntime.network.fetch("/api/ai/models"),
+          nexumRuntime.network.fetch("/api/ai/key-status"),
         ]);
         if (!providersResponse.ok || !modelsResponse.ok) throw new Error(`AI config API: HTTP ${!providersResponse.ok ? providersResponse.status : modelsResponse.status}`);
         const providersData = (await providersResponse.json()) as { providers?: AIProviderInfo[] };
         const modelsData = (await modelsResponse.json()) as { models?: Record<string, string[]> };
+        const keyStatusData = keyStatusResponse.ok
+          ? (await keyStatusResponse.json()) as { providers?: { anymodel?: boolean } }
+          : null;
         const providers = providersData.providers ?? [];
+        if (keyStatusData?.providers?.anymodel) {
+          setAnyModelConnectionState("connected");
+          setAnyModelConnectionMessage("AnyModel подключён и готов к работе.");
+        } else {
+          setAnyModelConnectionState("ready");
+          setAnyModelConnectionMessage("AnyModel API-ключ не подключён.");
+        }
         const defaultProvider = providers.find((provider) => provider.isDefault) ?? providers[0];
         setAIProviders(providers);
         setAIModels(modelsData.models ?? {});
@@ -778,6 +791,8 @@ function App() {
   async function connectAnyModelKey() {
     if (!anyModelApiKey.trim()) return;
     setAnyModelApiKeyLoading(true);
+    setAnyModelConnectionState("checking");
+    setAnyModelConnectionMessage("Проверяю ключ AnyModel через API…");
     setApiError("");
     try {
       const response = await nexumRuntime.network.fetch("/api/ai/connect-key", {
@@ -797,6 +812,8 @@ function App() {
       }
 
       setAnyModelApiKey("");
+      setAnyModelConnectionState("connected");
+      setAnyModelConnectionMessage("AnyModel подключён и готов к работе.");
       setAIProvider("anymodel");
       setAIModel(data.model || "gpt-6-astra");
       setAIStatus(data.status ? { ...data.status, provider: "anymodel", model: data.model || "gpt-6-astra" } as AIProviderStatus : null);
@@ -809,7 +826,10 @@ function App() {
         setAIModels(modelsData.models ?? {});
       }
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : "Не удалось подключить AnyModel");
+      const message = error instanceof Error ? error.message : "Не удалось подключить AnyModel";
+      setAnyModelConnectionState("error");
+      setAnyModelConnectionMessage(message);
+      setApiError(message);
     } finally {
       setAnyModelApiKeyLoading(false);
     }
@@ -1085,15 +1105,42 @@ function App() {
 
                 <section className="settings-section">
                   <div className="settings-section-head"><span>07</span><div><h2>API access</h2><p>Подключение внешних AI-моделей.</p></div></div>
-                  <div className="settings-card settings-card-wide">
-                    <strong>AnyModel API</strong>
-                    <span>GPT-6 Astra · прямое подключение</span>
-                    <small>Отдельный канал подключения AnyModel. Вставьте ключ AnyModel — NEXUM проверит его через API и активирует маршрут <b>gpt-6-astra</b>.</small>
+                  <div className="settings-card settings-card-wide anymodel-api-card">
+                    <div className="anymodel-api-head">
+                      <div>
+                        <strong>AnyModel API</strong>
+                        <span>GPT-6 Astra · прямое подключение</span>
+                      </div>
+                      <div className={"anymodel-connection-sensor " + anyModelConnectionState} role="status" aria-live="polite">
+                        <span className="anymodel-connection-dot" />
+                        <span>
+                          {anyModelConnectionState === "connected" ? "Подключено"
+                            : anyModelConnectionState === "checking" ? "Проверяю…"
+                            : anyModelConnectionState === "error" ? "Не подключено"
+                            : anyModelApiKey ? "Ключ введён" : "Не подключено"}
+                        </span>
+                      </div>
+                    </div>
+                    <small>{anyModelConnectionMessage}</small>
                     <div className="settings-api-row">
                       <input
                         type="password"
                         value={anyModelApiKey}
-                        onChange={(event) => setAnyModelApiKey(event.target.value)}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setAnyModelApiKey(value);
+                          if (!value.trim()) {
+                            setAnyModelConnectionState("ready");
+                            setAnyModelConnectionMessage("Введите AnyModel API-ключ для проверки.");
+                          } else if (anyModelConnectionState === "connected") {
+                            setAnyModelConnectionState("ready");
+                            setAnyModelConnectionMessage("Ключ изменён — подключение нужно проверить заново.");
+                          } else {
+                            setAnyModelConnectionState("ready");
+                            setAnyModelConnectionMessage("Ключ введён. Нажмите «Подключить AnyModel» для реальной проверки.");
+                          }
+                          setApiError("");
+                        }}
                         placeholder="Вставьте AnyModel API key"
                         autoComplete="off"
                         aria-label="AnyModel API key"
@@ -1102,7 +1149,7 @@ function App() {
                         {anyModelApiKeyLoading ? "Проверяю AnyModel…" : "Подключить AnyModel"}
                       </button>
                     </div>
-                    <small>Ключ используется только для подключения сессии и не вшивается в web bundle.</small>
+                    <small>После проверки индикатор станет зелёным. Ключ не вшивается в web bundle.</small>
                   </div>
                   <div className="settings-card settings-card-wide">
                     <strong>Другой AI-провайдер</strong>
