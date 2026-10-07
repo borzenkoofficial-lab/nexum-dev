@@ -73,18 +73,14 @@ export class AnyModelProvider implements AIProvider {
   }
 
   async listModels(signal?: AbortSignal): Promise<string[]> {
-    try {
-      const data = await this.request<ModelsResponse>("/models", {
-        method: "GET",
-        ...(signal ? { signal } : {}),
-      });
-      const remote = (data.data ?? [])
-        .map((item) => item.id)
-        .filter((id): id is string => typeof id === "string" && id.length > 0);
-      return [...new Set([this.model, ...remote])];
-    } catch {
-      return [this.model];
-    }
+    const data = await this.request<ModelsResponse>("/models", {
+      method: "GET",
+      ...(signal ? { signal } : {}),
+    });
+    const remote = (data.data ?? [])
+      .map((item) => item.id)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+    return [...new Set([this.model, ...remote])];
   }
 
   async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
