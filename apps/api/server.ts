@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { AIGateway, type GatewayFallbackEvent } from "./ai/gateway.js";
 import { OllamaProvider } from "./ai/providers/ollama.js";
 import { OpenRouterProvider } from "./ai/providers/openrouter.js";
+import { AnyModelProvider } from "./ai/providers/anymodel.js";
 import { OpenAIProvider } from "./ai/providers/openai.js";
 import { AnthropicProvider } from "./ai/providers/anthropic.js";
 import { OrcaRouterProvider } from "./ai/providers/orcarouter.js";
@@ -129,11 +130,13 @@ const configuredProvider = process.env.AI_PROVIDER?.toLowerCase();
 const e2eMockAI = process.env.NEXUM_E2E_MOCK_AI === "true" && process.env.NODE_ENV === "test";
 const defaultProvider = e2eMockAI && configuredProvider === "mock"
   ? "mock"
-  : configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai" || configuredProvider === "anthropic" || configuredProvider === "orcarouter"
+  : configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai" || configuredProvider === "anthropic" || configuredProvider === "orcarouter" || configuredProvider === "anymodel"
     ? configuredProvider
   : process.env.ORCAROUTER_API_KEY?.trim()
     ? "orcarouter"
-    : process.env.OPENAI_API_KEY?.trim()
+    : process.env.ANYMODEL_API_KEY?.trim()
+      ? "anymodel"
+      : process.env.OPENAI_API_KEY?.trim()
       ? "openai"
       : process.env.ANTHROPIC_API_KEY?.trim()
         ? "anthropic"
@@ -182,10 +185,10 @@ const agentHistory = new AgentHistory(workspaceRoot);
 const checkpointManager = new CheckpointManager();
 const projectStates = new Map<string, ProjectStateManager>();
 const fallbackProvider = process.env.AI_FALLBACK_PROVIDER?.toLowerCase() ||
-  (defaultProvider === "ollama" ? "openrouter" : defaultProvider === "orcarouter" ? "openrouter" : undefined);
+  (defaultProvider === "ollama" || defaultProvider === "orcarouter" || defaultProvider === "anymodel" ? "openrouter" : undefined);
 
 const aiGateway = new AIGateway(
-  [new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider(), ...(e2eMockAI ? [new MockProvider()] : [])],
+  [new OllamaProvider(), new OpenRouterProvider(), new AnyModelProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider(), ...(e2eMockAI ? [new MockProvider()] : [])],
   defaultProvider,
   {
     fallbackProviderId: fallbackProvider,
@@ -805,7 +808,7 @@ const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM
 
 app.get("/api/ai/key-status", authMiddleware, (req, res) => {
   const gateway = getAIGatewayForUser(getAuthUser(req).id);
-  return res.json({ success: true, providers: { openai: gateway.hasOpenAIKey(), openrouter: gateway.hasOpenRouterKey(), orcarouter: gateway.hasOrcaRouterKey() } });
+  return res.json({ success: true, providers: { anymodel: gateway.hasAnyModelKey(), openai: gateway.hasOpenAIKey(), openrouter: gateway.hasOpenRouterKey(), orcarouter: gateway.hasOrcaRouterKey() } });
 });
 
 app.post("/api/ai/connect-key", authMiddleware, aiWriteLimiter, async (req, res) => {
@@ -816,9 +819,11 @@ app.post("/api/ai/connect-key", authMiddleware, aiWriteLimiter, async (req, res)
   const requestedProvider = typeof req.body?.provider === "string" ? req.body.provider.toLowerCase() : "";
   const candidates = requestedProvider === "openai" ? ["openai"]
     : requestedProvider === "openrouter" ? ["openrouter"]
+    : requestedProvider === "anymodel" ? ["anymodel"]
     : requestedProvider === "orcarouter" ? ["orcarouter"]
     : /sk-orca-|orcarouter/i.test(apiKey) ? ["orcarouter", "openrouter", "openai"]
     : /or-|openrouter/i.test(apiKey) ? ["openrouter", "orcarouter", "openai"]
+    : /anymodel/i.test(apiKey) ? ["anymodel", "openai", "openrouter", "orcarouter"]
     : ["openai", "orcarouter", "openrouter"];
 
   const errors: string[] = [];
@@ -831,6 +836,14 @@ app.post("/api/ai/connect-key", authMiddleware, aiWriteLimiter, async (req, res)
         if (!status.available) throw new Error(status.error ?? "OpenAI key verification failed");
         userAIGateways.set(userId, createProviderGateway("openai", apiKey));
         return res.json({ success: true, provider: "openai", model: status.model, status });
+      }
+      if (providerId === "anymodel") {
+        const provider = new AnyModelProvider();
+        provider.setRuntimeApiKey(apiKey);
+        const status = await provider.getStatus();
+        if (!status.available) throw new Error(status.error ?? "AnyModel key verification failed");
+        userAIGateways.set(userId, createProviderGateway("anymodel", apiKey));
+        return res.json({ success: true, provider: "anymodel", model: status.model, status });
       }
       if (providerId === "orcarouter") {
         const provider = new OrcaRouterProvider();
