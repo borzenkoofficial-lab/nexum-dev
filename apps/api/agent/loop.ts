@@ -293,6 +293,7 @@ export class AgentLoop {
     let aiPlannerCalls = 0;
     let modelTurns = 0;
     let productPlannerCreated = false;
+    let productPlannerAttempts = 0;
     const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
     const aiOptionsForTask = (base?: GatewayGenerateOptions, role: "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" = "general"): GatewayGenerateOptions | undefined => {
       const maxTokens = adaptiveBudget.reserve(role, typeof base?.maxTokens === "number" && base.maxTokens > 0 ? base.maxTokens : undefined);
@@ -421,14 +422,15 @@ export class AgentLoop {
         continue;
       }
 
-      if (builderTask && !repairRequested && !productPlan && !productPlannerCreated && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
+      if (builderTask && !repairRequested && !productPlan && !productPlannerCreated && productPlannerAttempts < 2 && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
         emit({ iteration, type: "thinking", message: "Формирую Product Plan: страницы, компоненты, визуальную систему и критерии готовности." });
         try {
           if (++modelTurns > MAX_MODEL_TURNS) throw new Error("Agent model-turn limit reached");
-          productPlannerCreated = true;
+          productPlannerAttempts += 1;
           const aiOptions = aiOptionsForTask(options, "planner");
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           productPlan = await this.runtime.createProductPlan(task, compactAgentHistory(previousResults), aiOptions as AgentModelOptions);
+          productPlannerCreated = true;
           intent.requirements = [...new Set([...intent.requirements, ...productPlan.components, ...productPlan.interactions])].slice(0, 40);
           intent.constraints = [...new Set([...intent.constraints, ...productPlan.visualSystem])].slice(0, 30);
           intent.acceptanceCriteria = [...new Set([...intent.acceptanceCriteria, ...productPlan.acceptanceCriteria])].slice(0, 30);
@@ -1037,6 +1039,35 @@ export class AgentLoop {
           type: "thinking",
           message: "Слишком длинный поисковый запрос модели сокращён до безопасного project-specific запроса.",
         });
+      }
+
+      if ((plan as AgentPlan).tool === "searchFiles" && builderTask && availableTools.includes("readFile")) {
+        const latestListing = [...previousResults]
+          .reverse()
+          .find((item) => item.tool === "listFiles" && item.result.success)?.result.output ?? "";
+        const entryCandidates = [
+          "src/App.tsx",
+          "src/App.jsx",
+          "src/main.tsx",
+          "src/main.jsx",
+          "index.html",
+          "src/App.css",
+          "src/styles.css",
+          "style.css",
+          "package.json",
+        ];
+        const unreadEntry = entryCandidates.find((candidate) =>
+          latestListing.includes(candidate) &&
+          !previousResults.some((item) => item.tool === "readFile" && item.input === candidate && item.result.success),
+        );
+        if (unreadEntry) {
+          plan = { tool: "readFile", input: unreadEntry };
+          emit({
+            iteration,
+            type: "thinking",
+            message: "Для Builder-задачи заменяю ненужный поиск на чтение следующего реального файла.",
+          });
+        }
       }
 
       const actionKey = `${(plan as AgentPlan).tool}:${(plan as AgentPlan).input}`;
