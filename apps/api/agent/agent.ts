@@ -251,8 +251,9 @@ export class NexumAgent implements AgentRuntime {
         ? "coder"
         : "planner";
     const run = await this.orchestrator.run(role, prompt, options);
-    console.log(JSON.stringify({ type: "ai-role", role: run.role, provider: run.provider, model: run.model, fallback: run.fallback }));
+    console.log(JSON.stringify({ type: "ai-role", role: run.role, provider: run.provider, model: run.model, fallback: run.fallback, responseLength: run.response.length }));
     const parsed = this.parseAIPlan(run.response, task);
+    console.log(JSON.stringify({ type: "ai-plan-parse", role: run.role, provider: run.provider, model: run.model, parsed: Boolean(parsed), responseLength: run.response.length }));
     if (parsed && this.isPlanAlignedWithTask(task, parsed)) return parsed;
     if (parsed) {
       console.warn("[agent] rejected AI plan because it does not match the user's requested domain; using deterministic recovery");
@@ -597,11 +598,35 @@ export class NexumAgent implements AgentRuntime {
   }
 
   private parseAIPlan(response: string, task?: string): AgentPlan | null {
+    const extractBalancedJsonObjects = (text: string): string[] => {
+      const results: string[] = [];
+      const starts: number[] = [];
+      let inString = false;
+      let escaped = false;
+      for (let index = 0; index < text.length; index += 1) {
+        const char = text[index];
+        if (inString) {
+          if (escaped) escaped = false;
+          else if (char === "\\\\") escaped = true;
+          else if (char === """) inString = false;
+          continue;
+        }
+        if (char === """) { inString = true; continue; }
+        if (char === "{") starts.push(index);
+        if (char === "}" && starts.length) {
+          const start = starts.pop()!;
+          const candidate = text.slice(start, index + 1).trim();
+          if (candidate) results.push(candidate);
+        }
+      }
+      return results.reverse();
+    };
+
     const candidates = [
       response.trim(),
       response.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1]?.trim() ?? "",
-      response.match(/\{[\s\S]*\}/)?.[0] ?? "",
-    ].filter(Boolean);
+      ...extractBalancedJsonObjects(response),
+    ].filter((value, index, all) => value && all.indexOf(value) === index);
 
     for (const jsonCandidate of candidates) {
       try {
@@ -623,12 +648,25 @@ export class NexumAgent implements AgentRuntime {
           return completionPlan;
         }
 
-        if (typeof parsed.tool !== "string" || !this.tools.has(parsed.tool) || parsed.input === undefined) {
+        const toolAliases: Record<string, string> = {
+          "list_files": "listFiles",
+          "read_file": "readFile",
+          "write_file": "writeFile",
+          "search_files": "searchFiles",
+          "patch_file": "patchFile",
+          "run_command": "runCommand",
+          "run_sandbox": "runSandbox",
+          "scaffold_project": "scaffoldProject",
+          "validate_project": "validateProject",
+        };
+        const requestedTool = typeof parsed.tool === "string" ? parsed.tool.trim() : "";
+        const normalizedTool = toolAliases[requestedTool] ?? requestedTool;
+        if (!normalizedTool || !this.tools.has(normalizedTool) || parsed.input === undefined) {
           continue;
         }
 
         const plan = {
-          tool: parsed.tool,
+          tool: normalizedTool,
           input: typeof parsed.input === "string" ? parsed.input : JSON.stringify(parsed.input),
         };
         if (task && !this.isPlanAlignedWithTask(task, plan)) return null;
