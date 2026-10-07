@@ -433,7 +433,7 @@ ${attachment.content.slice(0, 80_000)}`);
             event.phase === "plan" ? "planning" :
             event.phase === "implement" ? "editing" :
             event.phase === "validate" ? "building" :
-            event.phase === "repair" ? "error" :
+            event.phase === "repair" ? "planning" :
             event.phase === "verify" ? "testing" :
             event.phase === "finish" ? "testing" :
             event.iteration === 0 ? "analyzing" : "planning";
@@ -1495,10 +1495,8 @@ app.get("/api/agent/diagnostics", async (req, res) => {
 });
 
 app.get("/api/chat/jobs", async (req, res) => {
-  // Local development can run without PostgreSQL. The persistent Agent Job
-  // store is optional for idle UI/preview work; report no active jobs instead
-  // of turning the background poll into repeated HTTP 500 errors.
-  if (!databaseConfigured) return res.json({ success: true, jobs: [] });
+  // PostgreSQL is preferred for persistent Jobs, but local development can use
+  // the in-memory ChatJob store and keep the same API contract.
   await cleanupChatJobs();
   const userId = getAuthUser(req).id;
   const jobs = await listChatJobs(userId, 50);
