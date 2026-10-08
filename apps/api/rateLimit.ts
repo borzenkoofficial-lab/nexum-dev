@@ -16,7 +16,8 @@ function pruneMemoryWindows(now: number, maxAgeMs: number): void {
     .sort((a, b) => a[1].startedAt - b[1].startedAt);
   const removeCount = memoryWindows.size - MAX_MEMORY_WINDOWS;
   for (let index = 0; index < removeCount; index += 1) {
-    memoryWindows.delete(entries[index][0]);
+    const entry = entries[index];
+    if (entry) memoryWindows.delete(entry[0]);
   }
 }
 
