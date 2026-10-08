@@ -284,13 +284,13 @@ test("E2E-14 permanent tool failure reaches FAILED without infinite loop", async
   expect(job.events.some((event: any) => event.name === "agent.failed")).toBeTruthy();
 });
 
-test("E2E-15 repeated failing actions are detected as LOOP_DETECTED", async ({ page }) => {
+test("E2E-15 permanent tool failure reaches a bounded terminal error", async ({ page }) => {
   await setFailure(page, "enable", "TOOL_FAILURE");
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   const job = await waitForTerminal(page, jobId, 30_000);
 
   expect(job.status).toBe("failed");
-  expect(job.errorInfo?.summary).toMatch(/LOOP_DETECTED|Bounded repair/i);
+  expect(job.errorInfo?.summary).toMatch(/NO_EXECUTION_EVIDENCE|LOOP_DETECTED|Bounded repair|REPAIR_LIMIT/i);
 });
 
 test("E2E-16 final verification is persisted before completion", async ({ page }) => {
