@@ -45,7 +45,7 @@ export class MockProvider implements AIProvider {
       // Production AgentLoop, filesystem tools, build, tests and Preview remain real.
       const history = message.split(/Previous tool results:\s*/i).pop() ?? "";
       const writeCount = (history.match(/writeFile:/gi) ?? []).length;
-      if (/readFile:\\s*index\\.html/i.test(history) && !/scaffoldProject:/i.test(history) && writeCount === 0) {
+      if (/readFile:\s*index\.html/i.test(history) && !/scaffoldProject:/i.test(history) && writeCount === 0) {
         return JSON.stringify({ tool: "scaffoldProject", input: "Сделай React/Vite сайт автосервиса с диагностикой и ремонтом автомобилей" });
       }
       if (/scaffoldProject:/i.test(history) && writeCount === 0) {
