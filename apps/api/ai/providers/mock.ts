@@ -88,8 +88,8 @@ export class MockProvider implements AIProvider {
     // Keep generic E2E tasks executable as well: perform one real observation,
     // then finish only after that observation succeeded. A failure is replayed
     // so AgentLoop can exercise its bounded repair/loop detection path.
-    const history = message.split(/Previous tool results:\s*/i).pop() ?? "";
-    const lastListFiles = [...history.matchAll(/listFiles:\s*([^\n]*)/gi)].pop()?.[1]?.trim() ?? "";
+    const genericHistory = message.split(/Previous tool results:\s*/i).pop() ?? "";
+    const lastListFiles = [...genericHistory.matchAll(/listFiles:\s*([^\n]*)/gi)].pop()?.[1]?.trim() ?? "";
     if (!lastListFiles || /failure|error|unable|not found|failed/i.test(lastListFiles)) {
       return JSON.stringify({ tool: "listFiles", input: "." });
     }
