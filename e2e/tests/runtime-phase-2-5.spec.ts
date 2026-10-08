@@ -1,3 +1,4 @@
+// CI trigger: full P0 runtime verification remains mandatory.
 import { test, expect } from "@playwright/test";
 
 async function setAgentFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number, projectId?: string) {
