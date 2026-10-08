@@ -87,11 +87,6 @@ jobs:
         run: npx --prefix e2e playwright install --with-deps chromium
       - name: Provision Agent sandbox image
         run: docker pull node:22-bookworm-slim
-      - name: Reclaim runner disk before sandbox E2E
-        run: |
-          npm cache clean --force || true
-          docker builder prune -af || true
-          docker image prune -af --filter "until=1h" || true
       - name: Run Runtime Phase 2.5 E2E
         run: npm --prefix e2e test
       - name: Upload Playwright report
