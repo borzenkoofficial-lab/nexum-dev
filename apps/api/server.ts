@@ -472,6 +472,7 @@ ${attachment.content.slice(0, 80_000)}`);
         model,
       },
       (snapshot) => {
+        if (signal.aborted || serverRuntime.tasks.get(runtimeTask.id)?.status === "CANCELLED") return;
         job.agentIntent = snapshot.intent;
         job.executionPlan = snapshot.plan;
         job.executionState = snapshot;
@@ -523,6 +524,9 @@ ${attachment.content.slice(0, 80_000)}`);
       job.error = result.error ?? "Agent task cancelled by user.";
       job.validation = result.validation;
       job.telemetry = result.telemetry;
+      job.executionState = result.executionPlan
+        ? { ...(job.executionState ?? {}), state: "CANCELLED", plan: result.executionPlan, updatedAt: Date.now() } as typeof job.executionState
+        : job.executionState;
       await waitForChatJobPersistence(jobId);
       const cancelled = await cancelChatJob(jobId, userId, job.error);
       syncTerminalChatJobCache(cancelled);
@@ -538,6 +542,9 @@ ${attachment.content.slice(0, 80_000)}`);
       job.errorInfo = result.errorInfo;
       void agentHistory.record({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
+      job.executionState = result.executionPlan
+        ? { ...(job.executionState ?? {}), state: "FAILED", plan: result.executionPlan, updatedAt: Date.now() } as typeof job.executionState
+        : job.executionState;
       await waitForChatJobPersistence(jobId);
       const failed = await failChatJob(jobId, userId, { error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, steps: job.steps, productPlan: job.productPlan, stage: job.stage, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry });
       syncTerminalChatJobCache(failed);
@@ -549,6 +556,9 @@ ${attachment.content.slice(0, 80_000)}`);
     job.productPlan = result.productPlan;
     job.agentIntent = result.intent;
     job.executionPlan = result.executionPlan;
+    job.executionState = result.executionPlan
+      ? { ...(job.executionState ?? {}), state: "COMPLETED", plan: result.executionPlan, updatedAt: Date.now() } as typeof job.executionState
+      : job.executionState;
     job.validation = result.validation;
     job.telemetry = result.telemetry;
     if (result.finalResponse !== undefined) job.reply = result.finalResponse;
@@ -1429,9 +1439,9 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
     return res.json({ success: true, cancelled: current?.status === "cancelled", job: current });
   }
   syncTerminalChatJobCache(cancelled);
-  chatJobControllers.get(job.id)?.abort();
   const runtimeTaskId = job.runtimeTaskId;
   if (runtimeTaskId) serverRuntime.cancelTask(runtimeTaskId);
+  chatJobControllers.get(job.id)?.abort();
   return res.json({ success: true, cancelled: true, job: cancelled });
 });
 
