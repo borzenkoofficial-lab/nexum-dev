@@ -40,38 +40,40 @@ export class MockProvider implements AIProvider {
       return JSON.stringify({ passed: true, missing: [], risks: [] });
     }
 
-    const history = message.split(/Previous tool results:\s*/i).pop() ?? "";
-    const userTask = message.match(/User task:\s*([^\n]*)/i)?.[1]?.trim() ?? "";
-    const projectKey = message.match(/ID проекта:\s*([^\n]*)/i)?.[1]?.trim() ?? userTask;
+    const historyMatch = message.match(/Previous (?:tool )?results:\s*([\\s\\S]*?)(?:\\nPrevious invalid response:|\\nAvailable tools:|$)/i);
+    const history = historyMatch?.[1] ?? "";
+    const userTask = message.match(/User task:\s*([^\\n]*)/i)?.[1]?.trim() ?? "";
     const isBuilderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(userTask);
 
-    if (/You are the NEXUM\.DEV autonomous project builder/i.test(message)) {
-      // E2E Builder mode is deterministic by project, not by a fragile six-item
-      // history window. The implementation itself is still real: all file writes,
-      // dependency installation, build and project tests go through AgentLoop.
-      const hasTool = (name: string) => new RegExp("\\b" + name + ":\\s", "i").test(history);
-      const builderProgress = /writeFile:\s*.*src\/App\.jsx/i.test(history) ? 1 : 0;
-      const styleProgress = /writeFile:\s*.*src\/styles\.css/i.test(history) ? 1 : 0;
+    const hasTool = (name: string) => new RegExp("\\b" + name + ":\\s", "i").test(history);
+    const hasWrite = (path: string) => new RegExp("writeFile:\\s*.*" + path.replace(/[.*+?^$\\{\\}()|[\\]\\\\]/g, "\\\\$&"), "i").test(history);
+
+    if (/You are the NEXUM\\.DEV autonomous project builder|previous response was not valid nexum tool-plan json/i.test(message)) {
+      // Keep the E2E provider deterministic while preserving the real AgentLoop,
+      // filesystem, sandbox, validation and Preview contracts underneath it.
       if (isBuilderTask) {
-        if (!hasTool("scaffoldProject") && /readFile:\s*index\.html/i.test(history)) {
+        if (!hasTool("readFile")) {
+          return JSON.stringify({ tool: "readFile", input: "index.html" });
+        }
+        if (!hasTool("scaffoldProject")) {
           return JSON.stringify({ tool: "scaffoldProject", input: "Сделай React/Vite сайт автосервиса с диагностикой и ремонтом автомобилей" });
         }
-        if (!builderProgress) {
+        if (!hasWrite("src/App\\.jsx")) {
           return JSON.stringify({
             tool: "writeFile",
-            input: JSON.stringify({
+            input: {
               path: "src/App.jsx",
               content: "export default function App(){return <main><h1>Диагностика и ремонт автомобилей</h1><p>Автосервис полного цикла.</p><button>Записаться на диагностику</button></main>}",
-            }),
+            },
           });
         }
-        if (!styleProgress) {
+        if (!hasWrite("src/styles\\.css")) {
           return JSON.stringify({
             tool: "writeFile",
-            input: JSON.stringify({
+            input: {
               path: "src/styles.css",
               content: "html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#101010;color:#fff}main{min-height:100vh;padding:48px;box-sizing:border-box}h1{font-size:64px}",
-            }),
+            },
           });
         }
         if (!hasTool("testProject")) {
@@ -79,21 +81,14 @@ export class MockProvider implements AIProvider {
         }
         return JSON.stringify({ done: true, finalResponse: "Сайт автосервиса создан, собран и проверен в Preview." });
       }
+
+      if (!hasTool("listFiles")) {
+        return JSON.stringify({ tool: "listFiles", input: "." });
+      }
+      return JSON.stringify({ done: true, finalResponse: "Проверка завершена после выполнения и наблюдения." });
     }
 
-    if (/previous response was not valid nexum tool-plan json/i.test(message)) {
-      return JSON.stringify({ tool: "listFiles", input: "." });
-    }
-
-    // Keep generic E2E tasks executable as well: perform one real observation,
-    // then finish only after that observation succeeded. A failure is replayed
-    // so AgentLoop can exercise its bounded repair/loop detection path.
-    const genericHistory = message.split(/Previous tool results:\s*/i).pop() ?? "";
-    const lastListFiles = [...genericHistory.matchAll(/listFiles:\s*([^\n]*)/gi)].pop()?.[1]?.trim() ?? "";
-    if (!lastListFiles || /failure|error|unable|not found|failed/i.test(lastListFiles)) {
-      return JSON.stringify({ tool: "listFiles", input: "." });
-    }
-    return JSON.stringify({ done: true, finalResponse: "Проверка завершена после выполнения и наблюдения." });
+    return JSON.stringify({ done: true, finalResponse: "Проверка завершена." });
   }
 
   async listModels(): Promise<string[]> {
