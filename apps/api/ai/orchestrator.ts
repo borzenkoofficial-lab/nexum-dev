@@ -34,10 +34,14 @@ export class AIOrchestrator {
   async run(role: AIOrchestratorRole, prompt: string, options?: GatewayGenerateOptions): Promise<AIOrchestratorRun> {
     const requested = options?.model?.trim();
     const explicitProvider = options?.provider?.trim();
-    const selected = await this.registry.select(ROLE_REQUIREMENTS[role], {
-      ...(explicitProvider ? { provider: explicitProvider } : {}),
+    const selectionOptions = {
+      ...(explicitProvider ? { provider: explicitProvider } : { provider: this.gateway.getDefaultProviderId() }),
       ...(requested ? { model: requested } : {}),
-    }, options?.signal);
+    };
+    let selected = await this.registry.select(ROLE_REQUIREMENTS[role], selectionOptions, options?.signal);
+    if (!selected && !explicitProvider && !requested) {
+      selected = await this.registry.select(ROLE_REQUIREMENTS[role], {}, options?.signal);
+    }
 
     if (requested && !selected) {
       throw new Error(`Selected model does not satisfy the ${role} capability contract: ${requested}`);
