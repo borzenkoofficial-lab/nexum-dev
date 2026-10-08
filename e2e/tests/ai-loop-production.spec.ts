@@ -228,7 +228,9 @@ test("E2E-10 project isolation keeps independent Agent Jobs independent", async 
     projects.push(project.id);
   }
 
+  await setFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, projects[0]);
   const jobs = await Promise.all(projects.map((id) => submitAgent(page, "Покажи структуру текущего проекта.", id)));
+  await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
   await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobs[0].jobId)}/cancel`);
   const a = await getJob(page, jobs[0].jobId);
   expect(a.status).toBe("cancelled");
