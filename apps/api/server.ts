@@ -154,7 +154,10 @@ const defaultProvider = e2eMockAI && configuredProvider === "mock"
 if (!defaultProvider) {
   throw new Error("NEXUM AI is not configured. Set AI_PROVIDER to a real provider or configure a real provider API key. Mock AI is disabled.");
 }
-const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const apiModuleDir = dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = apiModuleDir.endsWith("/dist") || apiModuleDir.endsWith("\\dist")
+  ? resolve(apiModuleDir, "../../..")
+  : resolve(apiModuleDir, "../..");
 const webDist = resolve(workspaceRoot, "apps/web/dist");
 const webIndex = resolve(webDist, "index.html");
 const projectManagers = new Map<string, ProjectManager>();
