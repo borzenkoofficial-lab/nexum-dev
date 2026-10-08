@@ -388,7 +388,9 @@ test("Agent Job creation produces exactly one canonical Runtime Task", async ({ 
 });
 
 test("real Agent user cancellation aborts the Agent task and leaves terminal state", async ({ page }) => {
+  await setAgentFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, runtimeWorkspaceId);
   const create = await page.request.post("/api/chat", { data: { message: "Проверь структуру текущего проекта и ничего не изменяй.", projectId: runtimeWorkspaceId } });
+  await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
   expect(create.status()).toBe(202);
   const created = await create.json();
   const jobId = created.jobId as string;
