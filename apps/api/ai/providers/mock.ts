@@ -40,14 +40,14 @@ export class MockProvider implements AIProvider {
       return JSON.stringify({ passed: true, missing: [], risks: [] });
     }
 
-    const historyMatch = message.match(/Previous (?:tool )?results:\s*([\\s\\S]*?)(?:\\nPrevious invalid response:|\\nAvailable tools:|$)/i);
+    const historyMatch = message.match(/Previous (?:tool )?results:\s*([\s\S]*?)(?:\nPrevious invalid response:|\nAvailable tools:|$)/i);
     const history = historyMatch?.[1] ?? "";
-    const userTask = message.match(/User task:\s*([^\\n]*)/i)?.[1]?.trim() ?? "";
+    const userTask = message.match(/User task:\s*([^\n]*)/i)?.[1]?.trim() ?? "";
     const isBuilderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(userTask);
 
     const hasTool = (name: string) => new RegExp("\\b" + name + ":\\s", "i").test(history);
-    const hasWrite = (path: string) => new RegExp("writeFile:\\s*.*" + path.replace(/[.*+?^$\\{\\}()|[\\]\\\\]/g, "\\\\$&"), "i").test(history);
-
+    const hasAppWrite = /writeFile:\s*.*src\/App\.jsx/i.test(history);
+    const hasStyleWrite = /writeFile:\s*.*src\/styles\.css/i.test(history);
     if (/You are the NEXUM\\.DEV autonomous project builder|previous response was not valid nexum tool-plan json/i.test(message)) {
       // Keep the E2E provider deterministic while preserving the real AgentLoop,
       // filesystem, sandbox, validation and Preview contracts underneath it.
@@ -58,7 +58,7 @@ export class MockProvider implements AIProvider {
         if (!hasTool("scaffoldProject")) {
           return JSON.stringify({ tool: "scaffoldProject", input: "Сделай React/Vite сайт автосервиса с диагностикой и ремонтом автомобилей" });
         }
-        if (!hasWrite("src/App\\.jsx")) {
+        if (!hasAppWrite) {
           return JSON.stringify({
             tool: "writeFile",
             input: {
@@ -67,7 +67,7 @@ export class MockProvider implements AIProvider {
             },
           });
         }
-        if (!hasWrite("src/styles\\.css")) {
+        if (!hasStyleWrite) {
           return JSON.stringify({
             tool: "writeFile",
             input: {
