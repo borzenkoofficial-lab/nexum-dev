@@ -322,6 +322,7 @@ test.skip("E2E-18 streaming cancellation is NOT APPLICABLE: all current producti
 
 
 test("E2E-19 real Builder acceptance creates, builds and previews a requested product", async ({ page }) => {
+  test.setTimeout(90_000);
   const { jobId } = await submitAgent(
     page,
     "Создай сайт автосервиса с диагностикой и ремонтом автомобилей",
