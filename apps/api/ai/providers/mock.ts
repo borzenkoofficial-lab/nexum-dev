@@ -48,7 +48,7 @@ export class MockProvider implements AIProvider {
     const hasTool = (name: string) => new RegExp("\\b" + name + ":\\s", "i").test(history);
     const hasAppWrite = /writeFile:\s*.*src\/App\.jsx/i.test(history);
     const hasStyleWrite = /writeFile:\s*.*src\/styles\.css/i.test(history);
-    if (/You are the NEXUM\\.DEV autonomous project builder|previous response was not valid nexum tool-plan json/i.test(message)) {
+    if (/You are the NEXUM\.DEV autonomous project builder|previous response was not valid nexum tool-plan json/i.test(message)) {
       // Keep the E2E provider deterministic while preserving the real AgentLoop,
       // filesystem, sandbox, validation and Preview contracts underneath it.
       if (isBuilderTask) {
