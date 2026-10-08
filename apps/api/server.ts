@@ -903,7 +903,7 @@ app.post("/api/ai/local-test", authMiddleware, async (req, res) => {
   }
 });
 
-app.get("/api/ai/status", async (req, res) => {
+app.get("/api/ai/status", authMiddleware, async (req, res) => {
   const provider = typeof req.query.provider === "string" ? req.query.provider : undefined;
   const model = typeof req.query.model === "string" ? req.query.model : undefined;
   try {

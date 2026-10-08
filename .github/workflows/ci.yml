@@ -27,7 +27,7 @@ jobs:
       - name: Audit Agent Loop
         run: npm run audit:agent-loop
       - name: Install API
-        run: npm install --prefix apps/api
+        run: npm ci --prefix apps/api
       - name: Install Web
         run: npm ci --prefix apps/web
       - name: Typecheck API
@@ -70,7 +70,7 @@ jobs:
             apps/api/package-lock.json
             apps/web/package-lock.json
       - name: Install API
-        run: npm install --prefix apps/api
+        run: npm ci --prefix apps/api
       - name: Install Web
         run: npm ci --prefix apps/web
       - name: Build Web

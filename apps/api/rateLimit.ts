@@ -2,7 +2,23 @@ import { query } from "./db.js";
 
 let initialized: Promise<void> | null = null;
 let callsSinceCleanup = 0;
+const MAX_MEMORY_WINDOWS = 5_000;
 const memoryWindows = new Map<string, { startedAt: number; hits: number }>();
+
+function pruneMemoryWindows(now: number, maxAgeMs: number): void {
+  const expiry = now - Math.max(maxAgeMs, 3_600_000);
+  for (const [key, window] of memoryWindows) {
+    if (window.startedAt < expiry) memoryWindows.delete(key);
+  }
+
+  if (memoryWindows.size <= MAX_MEMORY_WINDOWS) return;
+  const entries = [...memoryWindows.entries()]
+    .sort((a, b) => a[1].startedAt - b[1].startedAt);
+  const removeCount = memoryWindows.size - MAX_MEMORY_WINDOWS;
+  for (let index = 0; index < removeCount; index += 1) {
+    memoryWindows.delete(entries[index][0]);
+  }
+}
 
 async function ensureTable(): Promise<void> {
   if (!initialized) {
@@ -28,6 +44,7 @@ function checkMemoryRateLimit(
   windowMs: number,
 ): { allowed: boolean; remaining: number; retryAfterSeconds?: number } {
   const now = Date.now();
+  pruneMemoryWindows(now, windowMs);
   const existing = memoryWindows.get(key);
   const window = existing && now - existing.startedAt < windowMs
     ? existing
@@ -35,6 +52,7 @@ function checkMemoryRateLimit(
 
   window.hits += 1;
   memoryWindows.set(key, window);
+  pruneMemoryWindows(now, windowMs);
 
   if (window.hits <= limit) {
     return { allowed: true, remaining: Math.max(0, limit - window.hits) };
@@ -96,7 +114,7 @@ export async function checkRateLimit(
   }
 
   const row = result.rows[0];
-  if (!row) return { allowed: true, remaining: limit - 1 };
+  if (!row) return { allowed: true, remaining: Math.max(0, limit - 1) };
   const hits = Number(row.hits);
   if (hits <= limit) return { allowed: true, remaining: Math.max(0, limit - hits) };
 

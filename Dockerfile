@@ -4,7 +4,7 @@ WORKDIR /app
 COPY apps/api/package*.json ./apps/api/
 COPY apps/web/package*.json ./apps/web/
 
-RUN npm install --prefix apps/api
+RUN npm ci --prefix apps/api
 RUN npm ci --prefix apps/web
 
 COPY . .
