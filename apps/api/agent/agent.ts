@@ -646,7 +646,10 @@ export class NexumAgent implements AgentRuntime {
     const autoRepair = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lower);
     if (!construction && !autoRepair) return true;
     const input = String(plan.input ?? "").toLowerCase();
-    if (plan.done) return false;
+    // Completion safety is enforced by AgentLoop's execution/validation gates.
+    // Domain alignment must not discard a valid completion candidate before those
+    // gates can inspect the actual evidence accumulated by the run.
+    if (plan.done) return true;
     if (plan.tool !== "writeFile" && plan.tool !== "patchFile") return true;
     let path = "";
     try {
