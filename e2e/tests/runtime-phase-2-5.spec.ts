@@ -350,7 +350,7 @@ test("preview recovery failure reaches bounded FAILED state without crashing Run
   expect(status.diagnostics.some((d: any) => d.subsystem === "PREVIEW" && d.message.includes("restart limit"))).toBeTruthy();
 });
 
-test.fixme("real browser main thread pressure recovery is NOT VERIFIED yet", async ({ page }) => {
+test("real browser main thread pressure recovery degrades and recovers", async ({ page }) => {
   await page.evaluate(() => {
     const end = performance.now() + 1600;
     while (performance.now() < end) Math.sqrt(Math.random() * 1_000_000);
