@@ -12,14 +12,17 @@ const ollamaBaseUrl = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
 const ollamaModel = process.env.OLLAMA_MODEL ?? "qwen3:4b";
 const requestedProvider = process.env.AI_PROVIDER?.toLowerCase();
 const hasOpenRouter = Boolean(process.env.OPENROUTER_API_KEY?.trim());
-const ollamaRequested = requestedProvider === "ollama" || (!requestedProvider && !hasOpenRouter);
-const aiProvider = requestedProvider === "openrouter" || (!requestedProvider && hasOpenRouter)
-  ? "openrouter"
-  : requestedProvider === "mock"
-    ? "mock"
-    : ollamaRequested
-      ? "ollama"
-      : "mock";
+const hasAnyModel = Boolean(process.env.ANYMODEL_API_KEY?.trim());
+const ollamaRequested = requestedProvider === "ollama" || (!requestedProvider && !hasOpenRouter && !hasAnyModel);
+const aiProvider = requestedProvider === "anymodel" || (!requestedProvider && hasAnyModel)
+  ? "anymodel"
+  : requestedProvider === "openrouter" || (!requestedProvider && hasOpenRouter)
+    ? "openrouter"
+    : requestedProvider === "mock"
+      ? "mock"
+      : ollamaRequested
+        ? "ollama"
+        : "mock";
 
 function runInstall(dir) {
   const packageJson = `${root}/${dir}/package.json`;
@@ -190,9 +193,13 @@ async function main() {
   console.log("");
   console.log("[Nexum] Web: http://localhost:5173");
   console.log("[Nexum] API: http://localhost:3001");
-  console.log(aiProvider === "openrouter"
-    ? `[Nexum] AI: OpenRouter / ${process.env.OPENROUTER_MODEL ?? "openrouter/free"}`
-    : `[Nexum] AI: Ollama / ${ollamaModel} (optional)`);
+  console.log(aiProvider === "anymodel"
+    ? `[Nexum] AI: AnyModel / ${process.env.ANYMODEL_MODEL ?? "gpt-6-astra"}`
+    : aiProvider === "openrouter"
+      ? `[Nexum] AI: OpenRouter / ${process.env.OPENROUTER_MODEL ?? "openrouter/free"}`
+      : aiProvider === "ollama"
+        ? `[Nexum] AI: Ollama / ${ollamaModel} (optional)`
+        : `[Nexum] AI: ${aiProvider}`);
   console.log("[Nexum] Press Ctrl+C to stop both.");
 }
 

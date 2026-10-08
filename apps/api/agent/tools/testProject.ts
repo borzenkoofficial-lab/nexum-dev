@@ -1,9 +1,9 @@
 import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { spawn } from "node:child_process";
 import type { Tool, ToolResult } from "../types.js";
 import type { ServerRuntime } from "../../runtime/runtime.js";
 import { ProjectWorkspace } from "./workspace.js";
+import { DockerSandbox } from "../../sandbox/dockerSandbox.js";
 
 export class TestProjectTool implements Tool {
   name = "testProject";
@@ -64,21 +64,22 @@ export class TestProjectTool implements Tool {
     }
   }
 
-  private run(cwd: string, command: string, args: string[], stage: string, signal?: AbortSignal): Promise<ToolResult> {
-    return new Promise((resolveResult) => {
-      const child = spawn(command, args, { cwd, shell: process.platform === "win32", env: process.env });
-      const processId = this.runtime?.registerProcess(`testProject:${stage}`, child, { ...this.context, operation: stage });
-      const abort = () => { if (processId) this.runtime?.stopProcess(processId); else if (child.exitCode === null) child.kill("SIGTERM"); };
-      if (signal) { if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true }); }
-      let stdout = "";
-      let stderr = "";
-      child.stdout.on("data", (chunk) => { stdout += chunk.toString(); });
-      child.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
-      child.on("error", (error) => { if (processId) this.runtime?.completeProcess(processId); signal?.removeEventListener("abort", abort); resolveResult({ success: false, output: stage + ": " + error.message }); });
-      child.on("close", (code) => { if (processId) this.runtime?.completeProcess(processId); signal?.removeEventListener("abort", abort); resolveResult({
-        success: code === 0,
-        output: (stage + " exit=" + (code ?? "unknown") + "\n" + stdout + "\n" + stderr).slice(-16000),
-      }); });
-    });
-  }
-}
+  private async run(cwd: string, command: string, args: string[], stage: string, signal?: AbortSignal): Promise<ToolResult> {
+    const requested = [command, ...args].join(" ");
+    const sandbox = new DockerSandbox(cwd, undefined, this.runtime, this.context);
+    const result = await sandbox.run({
+      projectPath: ".",
+      command: requested,
+      timeoutMs: 120_000,
+    }, signal);
+    return {
+      success: result.success,
+      output: JSON.stringify({
+        stage,
+        exitCode: result.exitCode,
+        stdout: result.stdout,
+        stderr: result.stderr,
+        ...(result.error ? { error: result.error } : {}),
+      }).slice(-16000),
+    };
+  }}

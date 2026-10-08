@@ -1,10 +1,13 @@
 import { Pool, type QueryResultRow } from "pg";
 
-const databaseUrl = process.env.NEXUM_DATABASE_URL?.trim();
-
 let pool: Pool | null = null;
 
+function getDatabaseUrl(): string {
+  return process.env.NEXUM_DATABASE_URL?.trim() || "";
+}
+
 function getPool(): Pool {
+  const databaseUrl = getDatabaseUrl();
   if (!databaseUrl) {
     throw new Error("NEXUM_DATABASE_URL is not configured. Connect Nexum API to Yandex Managed PostgreSQL first.");
   }

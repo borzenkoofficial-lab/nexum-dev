@@ -1,0 +1,10 @@
+.git
+.github
+**/node_modules/
+**/dist/
+e2e/
+apps/vscode-extension/
+runtime/
+.env
+.env.*
+!**/.env.example

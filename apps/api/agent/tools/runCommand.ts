@@ -1,9 +1,10 @@
-import { spawn } from "node:child_process";
 import { isAbsolute } from "node:path";
+import { resolveProjectPath } from "./path.js";
 import type { Tool } from "../types.js";
 import type { ToolResult } from "../types.js";
-import { resolveProjectPath } from "./path.js";
 import type { ServerRuntime } from "../../runtime/runtime.js";
+import { DockerSandbox } from "../../sandbox/dockerSandbox.js";
+import { spawn } from "node:child_process";
 
 export interface RunCommandResult extends ToolResult {
   exitCode: number | null;
@@ -42,9 +43,46 @@ export class RunCommandTool implements Tool {
 
     try {
       const { executable, args } = this.validateCommand(command);
-      const result = await this.run(executable, args, command, signal);
+      if ((executable === "node" || executable === "npm") && (args[0] === "--version" || args[0] === "-v")) {
+        const result: RunCommandResult = {
+          success: true,
+          exitCode: 0,
+          stdout: executable === "node" ? process.version + "\n" : "",
+          stderr: "",
+          command,
+          output: JSON.stringify({ exitCode: 0, stdout: executable === "node" ? process.version + "\n" : "", stderr: "" }),
+        };
+        return result;
+      }
+      if (executable === "git") {
+        const result = await this.runGit(args, command, signal);
+        console.log(
+          `[agent] command: ${command}; cwd: ${this.projectRoot}; result: ${result.success ? "success" : "failed"}; exitCode: ${result.exitCode}`,
+        );
+        return result;
+      }
+
+      const sandbox = new DockerSandbox(this.projectRoot, undefined, this.runtime, this.context);
+      const sandboxResult = await sandbox.run({
+        projectPath: ".",
+        command,
+        timeoutMs: this.timeoutMs,
+      }, signal);
+      const result: RunCommandResult = {
+        success: sandboxResult.success,
+        exitCode: sandboxResult.exitCode,
+        stdout: sandboxResult.stdout,
+        stderr: sandboxResult.stderr,
+        command,
+        output: JSON.stringify({
+          exitCode: sandboxResult.exitCode,
+          stdout: sandboxResult.stdout,
+          stderr: sandboxResult.stderr,
+          ...(sandboxResult.error ? { error: sandboxResult.error } : {}),
+        }),
+      };
       console.log(
-        `[agent] command: ${command}; cwd: ${this.projectRoot}; result: ${result.success ? "success" : "failed"}; exitCode: ${result.exitCode}`,
+        `[agent] sandbox command: ${command}; cwd: ${this.projectRoot}; result: ${result.success ? "success" : "failed"}; exitCode: ${result.exitCode}`,
       );
       return result;
     } catch (error) {
@@ -116,8 +154,8 @@ export class RunCommandTool implements Tool {
     }
 
     if (normalizedArgs[0] === "install") {
-      if (normalizedArgs.slice(1).some((argument) => argument.startsWith("-"))) {
-        throw new Error("npm install flags are not allowed");
+      if (normalizedArgs.length !== 2 || normalizedArgs[1] !== "--ignore-scripts") {
+        throw new Error("Only npm install --ignore-scripts is allowed for Agent dependency bootstrap.");
       }
       return { executable: "npm", args: normalizedArgs };
     }
@@ -127,7 +165,7 @@ export class RunCommandTool implements Tool {
     }
 
     if (normalizedArgs[0] !== "run") {
-      throw new Error("Only npm install, npm --version and npm run <script> are allowed");
+      throw new Error("Only npm --version and allowlisted npm run scripts are permitted");
     }
 
     // "npm run" without a script only prints package scripts; it does not
@@ -137,7 +175,7 @@ export class RunCommandTool implements Tool {
       return { executable: "npm", args: normalizedArgs };
     }
 
-    const allowedScripts = new Set(["build", "test", "lint", "typecheck", "dev", "start", "preview"]);
+    const allowedScripts = new Set(["build", "test", "lint", "typecheck"]);
     if (!allowedScripts.has(normalizedArgs[1])) {
       throw new Error("npm script is not allowed");
     }
@@ -171,74 +209,40 @@ export class RunCommandTool implements Tool {
     return { executable: "node", args };
   }
 
-  private run(executable: string, args: string[], command: string, signal?: AbortSignal): Promise<RunCommandResult> {
+  private runGit(args: string[], command: string, signal?: AbortSignal): Promise<RunCommandResult> {
     return new Promise((resolveResult) => {
-      const child = spawn(executable, args, {
-        cwd: this.projectRoot,
-        shell: false,
-        windowsHide: true,
-      });
+      const child = spawn("git", args, { cwd: this.projectRoot, shell: false, windowsHide: true, env: { PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin", HOME: process.env.HOME ?? "/tmp", GIT_CONFIG_NOSYSTEM: "1", GIT_TERMINAL_PROMPT: "0" } });
       let stdout = "";
       let stderr = "";
-      let outputBytes = 0;
       let timedOut = false;
-      let outputLimitReached = false;
       const processId = this.runtime?.registerProcess(`runCommand:${command.slice(0, 120)}`, child, { ...this.context, operation: command });
-      const abort = () => { if (processId) this.runtime?.stopProcess(processId); else if (child.exitCode === null) child.kill("SIGTERM"); };
-      if (signal) { if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true }); }
-
-      const append = (target: "stdout" | "stderr", chunk: Buffer): void => {
-        if (outputLimitReached) return;
-
-        const remaining = MAX_OUTPUT_BYTES - outputBytes;
-        const text = chunk.subarray(0, Math.max(remaining, 0)).toString("utf8");
-        if (target === "stdout") stdout += text;
-        else stderr += text;
-        outputBytes += Buffer.byteLength(text);
-
-        if (chunk.byteLength > remaining) {
-          outputLimitReached = true;
-          stderr += "\nOutput limit exceeded";
-          child.kill("SIGTERM");
-        }
+      const abort = () => {
+        if (child.exitCode === null) child.kill("SIGTERM");
       };
-
-      child.stdout.on("data", (chunk: Buffer) => append("stdout", chunk));
-      child.stderr.on("data", (chunk: Buffer) => append("stderr", chunk));
-
+      if (signal) {
+        if (signal.aborted) abort();
+        else signal.addEventListener("abort", abort, { once: true });
+      }
       const timer = setTimeout(() => {
         timedOut = true;
         stderr += "\nCommand timed out";
         child.kill("SIGTERM");
       }, this.timeoutMs);
 
+      child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+      child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
       child.on("error", (error) => {
         clearTimeout(timer);
         if (processId) this.runtime?.completeProcess(processId);
         signal?.removeEventListener("abort", abort);
-        resolveResult({
-          success: false,
-          exitCode: null,
-          stdout,
-          stderr: `${stderr}${error.message}`,
-          command,
-          output: this.formatOutput(stdout, stderr, null),
-        });
+        resolveResult({ success: false, exitCode: null, stdout, stderr: error.message, command, output: this.formatOutput(stdout, error.message, null) });
       });
-
       child.on("close", (exitCode) => {
         clearTimeout(timer);
         if (processId) this.runtime?.completeProcess(processId);
         signal?.removeEventListener("abort", abort);
-        const success = exitCode === 0 && !timedOut && !outputLimitReached;
-        resolveResult({
-          success,
-          exitCode,
-          stdout,
-          stderr,
-          command,
-          output: this.formatOutput(stdout, stderr, exitCode),
-        });
+        const success = exitCode === 0 && !timedOut;
+        resolveResult({ success, exitCode, stdout, stderr, command, output: this.formatOutput(stdout, stderr, exitCode) });
       });
     });
   }

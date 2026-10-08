@@ -68,15 +68,30 @@ export class ProjectManager {
   async createProject(name: string, description = "", type = "Веб-приложение"): Promise<Project> {
     await this.initialize();
     const validName = this.validateName(name);
-    const id = this.createId(validName);
     const store = await this.requireStore();
-
-    if (store.projects.some((project) => project.id === id)) {
-      throw new ProjectManagerError(`Project already exists: ${id}`, 409);
+    const baseId = this.createId(validName);
+    let id = baseId;
+    let suffix = 2;
+    while (store.projects.some((project) => project.id === id)) {
+      const suffixText = "-" + suffix;
+      id = baseId.slice(0, Math.max(1, 64 - suffixText.length)) + suffixText;
+      this.validateId(id);
+      suffix += 1;
     }
 
-    const projectPath = resolveProjectPath(this.projectsRoot, id);
-    await this.assertProjectPath(projectPath);
+    let projectPath = resolveProjectPath(this.projectsRoot, id);
+    while (true) {
+      try {
+        await this.assertProjectPath(projectPath);
+        break;
+      } catch (error) {
+        if (!(error instanceof ProjectManagerError) || error.statusCode !== 409) throw error;
+        const suffixText = "-" + suffix++;
+        id = baseId.slice(0, Math.max(1, 64 - suffixText.length)) + suffixText;
+        this.validateId(id);
+        projectPath = resolveProjectPath(this.projectsRoot, id);
+      }
+    }
     await mkdir(projectPath);
 
     const now = new Date().toISOString();
@@ -108,7 +123,17 @@ export class ProjectManager {
     const newId = this.createId(name);
     const projectPath = resolveProjectPath(this.projectsRoot, newId);
     await this.assertProjectPath(projectPath);
-    await cp(source.path, projectPath, { recursive: true, force: false });
+    await cp(source.path, projectPath, {
+      recursive: true,
+      force: false,
+      filter: (sourcePath) => {
+        const rel = relative(source.path, sourcePath).replace(/\\/g, "/");
+        const first = rel.split("/")[0] ?? "";
+        if ([".git", ".nexum", "dist", "node_modules"].includes(first)) return false;
+        if (/^\.env(?:\.|$)/i.test(first)) return false;
+        return true;
+      },
+    });
     const now = new Date().toISOString();
     const project: Project = { id: newId, name, description: source.description, type: source.type, path: projectPath, status: "active", createdAt: now, updatedAt: now };
     store.projects.push(project);
