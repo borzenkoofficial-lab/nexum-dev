@@ -659,10 +659,10 @@ export class NexumAgent implements AgentRuntime {
     // Styling files carry presentation concerns rather than domain semantics.
     // They remain valid companion changes after a domain-specific implementation
     // file has established the requested product context.
-    if (/\\.(css|scss|sass|less)$/i.test(path)) return true;
+    if (/\.(css|scss|sass|less)$/i.test(path)) return true;
 
     const content = input;
-    const genericDigital = /nexum\\.dev|digital products|ai studio|saas|software products|web products|digital systems/.test(content);
+    const genericDigital = /nexum\.dev|digital products|ai studio|saas|software products|web products|digital systems/.test(content);
     const domainSignal = construction
       ? /строит|подряд|демонтаж|фасад|объект|бригада|отделк|стяжк|штукатур|монтаж|кровл|бетон|инженерн/.test(content)
       : /авто|автомобил|машин|автосервис|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст|сто/.test(content);
