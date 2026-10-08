@@ -207,7 +207,7 @@ export class DockerSandbox {
       "--mount",
       `type=bind,src=${projectPath},dst=/workspace`,
       "--tmpfs",
-      "/tmp:rw,noexec,nosuid,size=64m",
+      "/tmp:rw,noexec,nosuid,size=256m",
       "--workdir",
       "/workspace",
       "--env",
