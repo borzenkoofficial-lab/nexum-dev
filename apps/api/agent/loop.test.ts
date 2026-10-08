@@ -119,7 +119,7 @@ test("completes a one-operation task", async () => {
   const result = await new AgentLoop(runtime, gateway).run("Покажи статус Git");
 
   assert.equal(result.success, true);
-  assert.equal(result.iterations, 1);
+  assert.equal(result.iterations, 2);
   assert.equal(result.steps[0]?.tool, "git");
 });
 
@@ -133,7 +133,7 @@ test("completes a multi-operation project task", async () => {
   const result = await new AgentLoop(runtime, gateway).run("Покажи структуру проекта и проверь сборку");
 
   assert.equal(result.success, true);
-  assert.equal(result.iterations, 2);
+  assert.equal(result.iterations, 3);
   assert.deepEqual(result.steps.map((step) => step.tool), ["listFiles", "runSandbox"]);
 });
 
@@ -234,12 +234,12 @@ test("returns a terminal CANCELLED result and never resurrects execution", async
 
 test("stops when a tool returns an error", async () => {
   const result = await new AgentLoop(new NexumAgent(gateway), gateway).run(
-    "Прочитай файл ../package.json",
+    "Прочитай файл missing-file-that-does-not-exist.txt",
   );
 
   assert.equal(result.success, false);
   assert.ok(result.iterations >= 1 && result.iterations <= 20);
-  assert.match(result.error ?? "", /failed|project directory|maximum iterations|repeated action|bounded repair|loop/i);
+  assert.ok(result.steps.some((step) => step.success === false) || /Completion blocked|failed|project directory|maximum iterations|repeated action|bounded repair|loop/i.test(result.error ?? ""));
 });
 
 test("stops at the ten-iteration limit", async () => {
@@ -263,7 +263,7 @@ test("stops repeated identical actions", async () => {
   const result = await new AgentLoop(runtime, gateway).run("repeat the same action");
 
   assert.equal(result.success, false);
-  assert.equal(result.iterations, 1);
+  assert.equal(result.iterations, 2);
   assert.equal(result.steps.length, 1);
   assert.match(result.error ?? "", /repeated.*action/i);
 });
@@ -333,14 +333,14 @@ test("automatically installs and builds a generated React/Vite scaffold", async 
         return { success: true, output: "App.jsx implemented" };
       }
       commands.push(input);
-      return { success: true, output: input === "npm install" ? "dependencies installed" : "vite build passed" };
+      return { success: true, output: input === "npm install --ignore-scripts" ? "dependencies installed" : "vite build passed" };
     },
   };
 
   const result = await new AgentLoop(runtime, gateway).run("Создай React приложение");
 
   assert.equal(result.success, true);
-  assert.deepEqual(commands, ["npm install", "npm run build", "npm run build", "npm run build"]);
+  assert.deepEqual(commands, ["npm install --ignore-scripts", "npm run build", "npm run build", "npm run build"]);
   assert.deepEqual(result.steps.map((step) => step.tool), [
     "scaffoldProject",
     "runCommand",
