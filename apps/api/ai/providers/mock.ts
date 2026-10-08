@@ -55,7 +55,11 @@ export class MockProvider implements AIProvider {
       // Keep the E2E provider deterministic while preserving the real AgentLoop,
       // filesystem, sandbox, validation and Preview contracts underneath it.
       if (isBuilderTask) {
-        if (!hasTool("readFile")) {
+        // compactAgentHistory keeps only the most recent tool results, so an
+        // early readFile may legitimately disappear after scaffold/build activity.
+        // Once scaffoldProject is observed, the initial project read is no longer needed
+        // to decide the next deterministic Builder action.
+        if (!hasTool("readFile") && !hasTool("scaffoldProject")) {
           return JSON.stringify({ tool: "readFile", input: "index.html" });
         }
         if (!hasTool("scaffoldProject")) {
