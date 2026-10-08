@@ -43,7 +43,7 @@ export class MockProvider implements AIProvider {
     const historyMatch = message.match(/Previous (?:tool )?results:\s*([\s\S]*?)(?:\nPrevious invalid response:|\nAvailable tools:|$)/i);
     const history = historyMatch?.[1] ?? "";
     const userTask = message.match(/User (?:task|request):\s*([^\n]*)/i)?.[1]?.trim() ?? "";
-    const isBuilderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(userTask);
+    const isBuilderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(userTask) || /автосервис|автомобил|диагностик.*авто|ремонт.*авто/i.test(message);
 
     const hasTool = (name: string) => new RegExp("\\b" + name + ":\\s", "i").test(history);
     const hasAppWrite = /writeFile:\s*.*src\/App\.jsx/i.test(history);
