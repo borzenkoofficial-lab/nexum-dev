@@ -9,7 +9,7 @@ concurrency:
 
 on:
   push:
-    branches: ["main", "feat/ai-loop-production-overhaul"]
+    branches: ["main", "feat/ai-loop-production-overhaul", "fix/p0-production-hardening"]
   pull_request:
 
 jobs:
