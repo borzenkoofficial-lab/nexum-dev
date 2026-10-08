@@ -40,34 +40,45 @@ export class MockProvider implements AIProvider {
       return JSON.stringify({ passed: true, missing: [], risks: [] });
     }
 
+    const history = message.split(/Previous tool results:\s*/i).pop() ?? "";
+    const userTask = message.match(/User task:\s*([^\n]*)/i)?.[1]?.trim() ?? "";
+    const projectKey = message.match(/ID проекта:\s*([^\n]*)/i)?.[1]?.trim() ?? userTask;
+    const isBuilderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(userTask);
+
     if (/You are the NEXUM\.DEV autonomous project builder/i.test(message)) {
-      // E2E Builder mode supplies deterministic implementation actions only.
-      // Production AgentLoop, filesystem tools, build, tests and Preview remain real.
-      const history = message.split(/Previous tool results:\s*/i).pop() ?? "";
-      const writeCount = (history.match(/writeFile:/gi) ?? []).length;
-      if (/readFile:\s*index\.html/i.test(history) && !/scaffoldProject:/i.test(history) && writeCount === 0) {
-        return JSON.stringify({ tool: "scaffoldProject", input: "Сделай React/Vite сайт автосервиса с диагностикой и ремонтом автомобилей" });
+      // E2E Builder mode is deterministic by project, not by a fragile six-item
+      // history window. The implementation itself is still real: all file writes,
+      // dependency installation, build and project tests go through AgentLoop.
+      const hasTool = (name: string) => new RegExp("\\b" + name + ":\\s", "i").test(history);
+      const builderProgress = /writeFile:\s*.*src\/App\.jsx/i.test(history) ? 1 : 0;
+      const styleProgress = /writeFile:\s*.*src\/styles\.css/i.test(history) ? 1 : 0;
+      if (isBuilderTask) {
+        if (!hasTool("scaffoldProject") && /readFile:\s*index\.html/i.test(history)) {
+          return JSON.stringify({ tool: "scaffoldProject", input: "Сделай React/Vite сайт автосервиса с диагностикой и ремонтом автомобилей" });
+        }
+        if (!builderProgress) {
+          return JSON.stringify({
+            tool: "writeFile",
+            input: JSON.stringify({
+              path: "src/App.jsx",
+              content: "export default function App(){return <main><h1>Диагностика и ремонт автомобилей</h1><p>Автосервис полного цикла.</p><button>Записаться на диагностику</button></main>}",
+            }),
+          });
+        }
+        if (!styleProgress) {
+          return JSON.stringify({
+            tool: "writeFile",
+            input: JSON.stringify({
+              path: "src/styles.css",
+              content: "html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#101010;color:#fff}main{min-height:100vh;padding:48px;box-sizing:border-box}h1{font-size:64px}",
+            }),
+          });
+        }
+        if (!hasTool("testProject")) {
+          return JSON.stringify({ tool: "testProject", input: "." });
+        }
+        return JSON.stringify({ done: true, finalResponse: "Сайт автосервиса создан, собран и проверен в Preview." });
       }
-      if (/scaffoldProject:/i.test(history) && writeCount === 0) {
-        return JSON.stringify({
-          tool: "writeFile",
-          input: JSON.stringify({
-            path: "src/App.jsx",
-            content: "export default function App(){return <main><h1>Диагностика и ремонт автомобилей</h1><p>Автосервис полного цикла.</p><button>Записаться на диагностику</button></main>}",
-          }),
-        });
-      }
-      if (writeCount === 1) {
-        return JSON.stringify({
-          tool: "writeFile",
-          input: JSON.stringify({
-            path: "src/styles.css",
-            content: "html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#101010;color:#fff}main{min-height:100vh;padding:48px;box-sizing:border-box}h1{font-size:64px}",
-          }),
-        });
-      }
-      if (writeCount >= 2) return JSON.stringify({ done: true, finalResponse: "Сайт автосервиса создан, собран и проверен в Preview." });
-      return JSON.stringify({ tool: "listFiles", input: "." });
     }
 
     if (/previous response was not valid nexum tool-plan json/i.test(message)) {
