@@ -75,6 +75,8 @@ jobs:
         run: npm ci --prefix apps/api
       - name: Install Web
         run: npm ci --prefix apps/web
+      - name: Build API
+        run: npm --prefix apps/api run build
       - name: Build Web
         run: npm --prefix apps/web run build
       - name: Prepare E2E database
