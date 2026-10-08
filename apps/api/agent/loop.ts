@@ -1159,6 +1159,9 @@ export class AgentLoop {
       throwIfAborted(options?.signal);
       let result: AgentToolResult["result"];
       try {
+        if (agentFailureInjection.consumeFailure("TOOL_CHECKPOINT", this.journalContext?.projectId)) {
+          await agentFailureInjection.waitForCheckpoint("TOOL_CHECKPOINT", this.journalContext?.projectId, options?.signal);
+        }
         if (agentFailureInjection.consumeFailure("TOOL_FAILURE")) throw new Error("Injected tool failure");
         result = await this.runtime.executeTool(plan.tool, plan.input, options?.signal);
       } catch (error) {
