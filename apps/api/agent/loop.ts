@@ -383,17 +383,17 @@ export class AgentLoop {
       if (agentFailureInjection.isEnabled("TIMEOUT")) {
         setAgentState("FAILED", "agent.failed", "Injected Agent timeout.");
         options?.signal?.removeEventListener("abort", onAbort);
-        return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Injected Agent timeout." };
+        return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Injected Agent timeout." };
       }
       if (Date.now() - executionSnapshot.startedAt > MAX_DURATION_MS) {
         setAgentState("FAILED", "agent.failed", "Agent execution duration limit reached.");
         options?.signal?.removeEventListener("abort", onAbort);
-        return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Agent execution duration limit reached." };
+        return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Agent execution duration limit reached." };
       }
       if (steps.length >= MAX_TOOL_CALLS) {
         setAgentState("FAILED", "agent.failed", "Agent tool-call limit reached.");
         options?.signal?.removeEventListener("abort", onAbort);
-        return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Agent tool-call limit reached." };
+        return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Agent tool-call limit reached." };
       }
       const availableTools = this.runtime.getAvailableTools();
       transition(phaseAfterIteration(phase, previousResults.length > 0));
@@ -615,7 +615,7 @@ export class AgentLoop {
       if (plan.done) {
         if (!executionSnapshot.completedStepIds.includes("observe")) {
           setAgentState("FAILED", "agent.failed", "Completion was requested before execution/observation evidence existed.");
-          return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Completion blocked: no execution evidence.", errorInfo: { code: "VALIDATION_ERROR", message: "Agent cannot complete before at least one observed execution step.", retryable: false, repairable: true, fatal: false, category: "completion", summary: "NO_EXECUTION_EVIDENCE", recoveryStrategy: "Execute and observe a concrete plan step, then validate again." } };
+          return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Completion blocked: no execution evidence.", errorInfo: { code: "VALIDATION_ERROR", message: "Agent cannot complete before at least one observed execution step.", retryable: false, repairable: true, fatal: false, category: "completion", summary: "NO_EXECUTION_EVIDENCE", recoveryStrategy: "Execute and observe a concrete plan step, then validate again." } };
         }
         transition("validate");
         const buildTask = /создай|сделай|разработай|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(task);
@@ -998,7 +998,7 @@ export class AgentLoop {
         options?.signal?.removeEventListener("abort", onAbort);
         return {
           success: true,
-          iterations: iteration - 1,
+          iterations: iteration,
           steps,
           productPlan: productPlan ?? undefined,
           phase: "finish",
@@ -1018,7 +1018,7 @@ export class AgentLoop {
         this.log(iteration, (plan as AgentPlan).tool, "error");
         const normalizedError = toNexumError(error, "TOOL_ERROR", "Инструмент агента завершился с ошибкой.");
         emit({ iteration, type: "failed", tool: (plan as AgentPlan).tool, message: normalizedError.userSafeMessage, errorCode: normalizedError.code, retryable: normalizedError.retryable });
-        return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
+        return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
       }
 
       if ((plan as AgentPlan).tool === "searchFiles" && (plan as AgentPlan).input.length > 500) {
@@ -1127,13 +1127,13 @@ export class AgentLoop {
                   this.log(iteration, plan.tool, "error");
                   const normalizedError = toNexumError(error, "TOOL_ERROR", "Инструмент агента завершился с ошибкой.");
                   emit({ iteration, type: "failed", tool: plan.tool, message: normalizedError.userSafeMessage, errorCode: normalizedError.code, retryable: normalizedError.retryable });
-                  return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
+                  return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
                 }
               } else {
                 const error = "Agent stopped: repeated successful action detected (" + plan.tool + ")";
                 this.log(iteration, plan.tool, "error");
                 emit({ iteration, type: "failed", tool: plan.tool, message: error });
-                return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
+                return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
               }
             }
           }
@@ -1141,7 +1141,7 @@ export class AgentLoop {
           const error = "Agent stopped: repeated successful action detected (" + plan.tool + ")";
           this.log(iteration, plan.tool, "error");
           emit({ iteration, type: "failed", tool: plan.tool, message: error });
-          return { phase, success: false, iterations: iteration - 1, steps, productPlan: productPlan ?? undefined, error };
+          return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, error };
         }
       }
       seenActions.add(actionKey);
@@ -1371,7 +1371,7 @@ export class AgentLoop {
             type: commandResult.success ? "tool-success" : "tool-error",
             tool: "runCommand",
             message: commandResult.success
-              ? (command === "npm install" ? "Зависимости обновлены." : "Preview пересобран после изменения файла.")
+              ? (command === "npm install --ignore-scripts" ? "Зависимости обновлены." : "Preview пересобран после изменения файла.")
               : `Не удалось пересобрать Preview: ${commandResult.output.slice(0, 400)}`,
           });
           if (!commandResult.success) break;
@@ -1382,7 +1382,7 @@ export class AgentLoop {
       // bundle exists. Build it automatically instead of leaving that step
       // to the user or the model's next planning iteration.
       if (result.success && plan.tool === "scaffoldProject" && /React\/Vite scaffold created/i.test(result.output)) {
-        for (const command of ["npm install", "npm run build"]) {
+        for (const command of ["npm install --ignore-scripts", "npm run build"]) {
           if (!availableTools.includes("runCommand")) {
             const error = "React/Vite project was created, but runCommand is unavailable to install dependencies and build it.";
             const normalizedError = toNexumError(error, "BUILD_ERROR", "Команда проекта завершилась с ошибкой.");
@@ -1397,7 +1397,7 @@ export class AgentLoop {
             continue;
           }
           seenActions.add(commandKey);
-          emit({ iteration, type: "tool-start", tool: "runCommand", message: command === "npm install" ? "Устанавливаю зависимости созданного React-приложения." : "Собираю production-версию для Preview." });
+          emit({ iteration, type: "tool-start", tool: "runCommand", message: command === "npm install --ignore-scripts" ? "Устанавливаю зависимости созданного React-приложения." : "Собираю production-версию для Preview." });
           const buildResult = await this.runtime.executeTool("runCommand", command, options?.signal);
           const buildStep: AgentStep = { iteration, tool: "runCommand", input: command, success: buildResult.success };
           steps.push(buildStep);
@@ -1409,7 +1409,7 @@ export class AgentLoop {
             type: buildResult.success ? "tool-success" : "tool-error",
             tool: "runCommand",
             message: buildResult.success
-              ? (command === "npm install" ? "Зависимости установлены." : "Production-сборка завершена. Preview готов к открытию.")
+              ? (command === "npm install --ignore-scripts" ? "Зависимости установлены." : "Production-сборка завершена. Preview готов к открытию.")
               : `Не удалось выполнить «${command}»: ${buildResult.output.slice(0, 400)}`,
           });
           if (!buildResult.success) {
