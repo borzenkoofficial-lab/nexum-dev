@@ -211,7 +211,7 @@ export class DockerSandbox {
       "--workdir",
       "/workspace",
       "--env",
-      "NODE_ENV=production",
+      "NODE_ENV=development",
       "--env",
       "PATH=/usr/local/bin:/usr/bin:/bin",
       "--env",
