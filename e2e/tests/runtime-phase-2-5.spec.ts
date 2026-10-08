@@ -146,11 +146,11 @@ test("Agent cancellation remains terminal across repeated cancel/response races"
     expect(secondCancel.ok()).toBeTruthy();
     await expect.poll(async () => {
       const runtime = await (await page.request.get("/api/runtime/status")).json();
-      return (runtime.tasks ?? []).some((task: any) => task.operation === "chat-job" && task.projectId && task.status === "RUNNING");
+      return (runtime.tasks ?? []).some((task: any) => task.operation === "chat-job" && task.projectId === runtimeWorkspaceId && task.status === "RUNNING");
     }, { timeout: 5_000 }).toBe(false);
     const runtime = await (await page.request.get("/api/runtime/status")).json();
     const activeOrCompleted = (runtime.tasks ?? []).filter((task: any) =>
-      task.operation === "chat-job" && task.projectId && task.status === "RUNNING"
+      task.operation === "chat-job" && task.projectId === runtimeWorkspaceId && task.status === "RUNNING"
     );
     expect(activeOrCompleted).toHaveLength(0);
   }
