@@ -431,6 +431,23 @@ export class NexumAgent implements AgentRuntime {
       if (existingPath) return { tool: "readFile", input: existingPath };
     }
 
+    // Provider-independent Builder recovery: once at least two substantive files
+    // exist, explicitly run the project smoke test before any exploratory search.
+    // This keeps the completion path deterministic when the remote planner returns
+    // no actionable plan or repeats an already completed read/search action.
+    const builderWriteCount = previousResults.filter(
+      (item) => (item.tool === "writeFile" || item.tool === "patchFile") && item.result.success,
+    ).length;
+    if (
+      /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|website|landing|web app|страниц/i.test(task) &&
+      scaffolded &&
+      builderWriteCount >= 2 &&
+      !this.hasSuccessfulResult(previousResults, "testProject") &&
+      this.getAvailableTools().includes("testProject")
+    ) {
+      return { tool: "testProject", input: "." };
+    }
+
     // Provider-independent Builder recovery: after inspection, read the real
     // entry files before falling back to search. This prevents the offline/rate-limit
     // path from looping forever on searchFiles and gives the local planner source
