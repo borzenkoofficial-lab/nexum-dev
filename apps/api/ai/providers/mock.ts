@@ -1,5 +1,9 @@
 import type { AIProvider, AIProviderStatus } from "../types.js";
 
+type BuilderStage = "read" | "scaffold" | "app" | "style" | "test" | "done";
+
+const builderStages = new Map<string, BuilderStage>();
+
 export class MockProvider implements AIProvider {
   id = "mock";
   name = "NEXUM E2E Mock";
@@ -40,58 +44,50 @@ export class MockProvider implements AIProvider {
       return JSON.stringify({ passed: true, missing: [], risks: [] });
     }
 
-    // Agent prompts place the compacted tool history at the very end of the prompt.
-    // Parse that terminal block directly so earlier prompt instructions/tool catalog entries
-    // cannot hide or distort the observed Builder state.
-    const historyMatch = message.match(/\nPrevious tool results:\s*([\s\S]*)$/i);
-    const history = historyMatch?.[1] ?? "";
+    // Builder E2E state is tracked per active project instead of being inferred from
+    // compacted tool history. The latter is intentionally lossy and must never be the
+    // source of truth for an acceptance workflow.
     const userTask = message.match(/User (?:task|request):\s*([^\n]*)/i)?.[1]?.trim() ?? "";
     const isBuilderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(userTask) || /автосервис|автомобил|диагностик.*авто|ремонт.*авто/i.test(message);
 
-    const hasTool = (name: string) => new RegExp("\\b" + name + ":\\s", "i").test(history);
-    const hasAppWrite = /writeFile:\s*.*["']?path["']?\s*:\s*["']src\/App\.jsx["']/i.test(history);
-    const hasStyleWrite = /writeFile:\s*.*["']?path["']?\s*:\s*["']src\/styles\.css["']/i.test(history);
     if (/You are the NEXUM\.DEV autonomous project builder|previous response was not valid nexum tool-plan json/i.test(message)) {
-      // Keep the E2E provider deterministic while preserving the real AgentLoop,
-      // filesystem, sandbox, validation and Preview contracts underneath it.
       if (isBuilderTask) {
-        // compactAgentHistory keeps only the most recent tool results, so an
-        // early readFile may legitimately disappear after scaffold/build activity.
-        // Once scaffoldProject is observed, the initial project read is no longer needed
-        // to decide the next deterministic Builder action.
-        if (!hasTool("readFile") && !hasTool("scaffoldProject")) {
-          return JSON.stringify({ tool: "readFile", input: "index.html" });
+        const projectKey = message.match(/(?:ID проекта|projectId)\s*[:=]\s*([A-Za-z0-9_-]+)/i)?.[1] ?? userTask;
+        const current = builderStages.get(projectKey) ?? "read";
+
+        switch (current) {
+          case "read":
+            builderStages.set(projectKey, "scaffold");
+            return JSON.stringify({ tool: "readFile", input: "index.html" });
+          case "scaffold":
+            builderStages.set(projectKey, "app");
+            return JSON.stringify({ tool: "scaffoldProject", input: "Сделай React/Vite сайт автосервиса с диагностикой и ремонтом автомобилей" });
+          case "app":
+            builderStages.set(projectKey, "style");
+            return JSON.stringify({
+              tool: "writeFile",
+              input: {
+                path: "src/App.jsx",
+                content: "export default function App(){return <main><h1>Диагностика и ремонт автомобилей</h1><p>Автосервис полного цикла.</p><button>Записаться на диагностику</button></main>}",
+              },
+            });
+          case "style":
+            builderStages.set(projectKey, "test");
+            return JSON.stringify({
+              tool: "writeFile",
+              input: {
+                path: "src/styles.css",
+                content: "html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#101010;color:#fff}main{min-height:100vh;padding:48px;box-sizing:border-box}h1{font-size:64px}",
+              },
+            });
+          case "test":
+            builderStages.set(projectKey, "done");
+            return JSON.stringify({ tool: "testProject", input: "." });
+          case "done":
+            return JSON.stringify({ done: true, finalResponse: "Сайт автосервиса создан, собран и проверен в Preview." });
         }
-        if (!hasTool("scaffoldProject")) {
-          return JSON.stringify({ tool: "scaffoldProject", input: "Сделай React/Vite сайт автосервиса с диагностикой и ремонтом автомобилей" });
-        }
-        if (!hasAppWrite) {
-          return JSON.stringify({
-            tool: "writeFile",
-            input: {
-              path: "src/App.jsx",
-              content: "export default function App(){return <main><h1>Диагностика и ремонт автомобилей</h1><p>Автосервис полного цикла.</p><button>Записаться на диагностику</button></main>}",
-            },
-          });
-        }
-        if (!hasStyleWrite) {
-          return JSON.stringify({
-            tool: "writeFile",
-            input: {
-              path: "src/styles.css",
-              content: "html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#101010;color:#fff}main{min-height:100vh;padding:48px;box-sizing:border-box}h1{font-size:64px}",
-            },
-          });
-        }
-        if (!hasTool("testProject")) {
-          return JSON.stringify({ tool: "testProject", input: "." });
-        }
-        return JSON.stringify({ done: true, finalResponse: "Сайт автосервиса создан, собран и проверен в Preview." });
       }
 
-      if (!hasTool("listFiles")) {
-        return JSON.stringify({ tool: "listFiles", input: "." });
-      }
       return JSON.stringify({ done: true, finalResponse: "Проверка завершена после выполнения и наблюдения." });
     }
 
