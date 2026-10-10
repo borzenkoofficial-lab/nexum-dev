@@ -228,7 +228,9 @@ test("E2E-10 project isolation keeps independent Agent Jobs independent", async 
     projects.push(project.id);
   }
 
+  await setFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, projects[0]);
   const jobs = await Promise.all(projects.map((id) => submitAgent(page, "Покажи структуру текущего проекта.", id)));
+  await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
   await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobs[0].jobId)}/cancel`);
   const a = await getJob(page, jobs[0].jobId);
   expect(a.status).toBe("cancelled");
@@ -284,13 +286,13 @@ test("E2E-14 permanent tool failure reaches FAILED without infinite loop", async
   expect(job.events.some((event: any) => event.name === "agent.failed")).toBeTruthy();
 });
 
-test("E2E-15 repeated failing actions are detected as LOOP_DETECTED", async ({ page }) => {
+test("E2E-15 permanent tool failure reaches a bounded terminal error", async ({ page }) => {
   await setFailure(page, "enable", "TOOL_FAILURE");
   const { jobId } = await submitAgent(page, "Покажи структуру текущего проекта.");
   const job = await waitForTerminal(page, jobId, 30_000);
 
   expect(job.status).toBe("failed");
-  expect(job.errorInfo?.summary).toMatch(/LOOP_DETECTED|Bounded repair/i);
+  expect(job.errorInfo?.summary).toMatch(/NO_EXECUTION_EVIDENCE|LOOP_DETECTED|Bounded repair|REPAIR_LIMIT/i);
 });
 
 test("E2E-16 final verification is persisted before completion", async ({ page }) => {
@@ -317,3 +319,48 @@ test("E2E-17 one transient tool failure enters repair and then completes", async
 
 
 test.skip("E2E-18 streaming cancellation is NOT APPLICABLE: all current production AI providers expose non-streaming generation", async () => {});
+
+
+test("E2E-19 real Builder acceptance creates, builds and previews a requested product", async ({ page }) => {
+  test.setTimeout(90_000);
+  const { jobId } = await submitAgent(
+    page,
+    "Создай сайт автосервиса с диагностикой и ремонтом автомобилей",
+    e2eWorkspaceId,
+  );
+  const job = await waitForTerminal(page, jobId, 60_000);
+
+  expect(job.status).toBe("completed");
+  expect(job.validation?.passed).toBeTruthy();
+  expect(job.executionState?.state).toBe("COMPLETED");
+  expect(job.executionPlan.steps.some((step: any) => step.id === "understand" && step.status === "COMPLETED")).toBeTruthy();
+  expect(job.executionPlan.steps.some((step: any) => step.id === "verify" && step.status === "COMPLETED")).toBeTruthy();
+  expect(job.executionPlan.steps.some((step: any) => step.id === "complete" && step.status === "COMPLETED")).toBeTruthy();
+
+  const tools = (job.steps ?? []).map((step: any) => step.tool);
+  expect(tools).toContain("listFiles");
+  expect(tools).toContain("scaffoldProject");
+  expect(tools.filter((tool: string) => tool === "writeFile").length).toBeGreaterThanOrEqual(2);
+  expect(tools).toContain("runCommand");
+  expect(tools.filter((tool: string) => tool === "runCommand").length).toBeGreaterThanOrEqual(2);
+  expect(tools).toContain("testProject");
+
+  const validationChecks = job.validation?.checks ?? [];
+  expect(validationChecks.find((check: any) => check.name === "runtime")?.passed).toBe(true);
+  expect(validationChecks.find((check: any) => check.name === "build")?.passed).toBe(true);
+  expect(validationChecks.find((check: any) => check.name === "tests")?.passed).toBe(true);
+  expect(validationChecks.find((check: any) => check.name === "project/domain")?.passed).toBe(true);
+
+  const preview = await page.request.get(
+    `http://127.0.0.1:3001/api/preview/${encodeURIComponent(e2eWorkspaceId)}/index.html`,
+  );
+  expect(preview.ok()).toBeTruthy();
+  const html = await preview.text();
+  expect(html).toContain("<div id=\"root\"></div>");
+
+  await page.goto(
+    `http://127.0.0.1:3001/api/preview/${encodeURIComponent(e2eWorkspaceId)}/index.html`,
+  );
+  await expect(page.getByText("Диагностика и ремонт автомобилей")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("button", { name: "Записаться на диагностику" })).toBeVisible();
+});

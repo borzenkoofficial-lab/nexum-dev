@@ -1,10 +1,11 @@
 import express from "express";
-import type { Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { AIGateway, type GatewayFallbackEvent } from "./ai/gateway.js";
 import { OllamaProvider } from "./ai/providers/ollama.js";
 import { OpenRouterProvider } from "./ai/providers/openrouter.js";
+import { AnyModelProvider } from "./ai/providers/anymodel.js";
 import { OpenAIProvider } from "./ai/providers/openai.js";
 import { AnthropicProvider } from "./ai/providers/anthropic.js";
 import { OrcaRouterProvider } from "./ai/providers/orcarouter.js";
@@ -13,7 +14,7 @@ import { NexumAgent } from "./agent/agent.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
 import type { ProductPlan } from "./agent/types.js";
 import { ProjectManager, ProjectManagerError } from "./projects/projectManager.js";
-import { mkdir, readFile, stat, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, readdir, writeFile, rm } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -32,6 +33,7 @@ import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
+import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
 
 dotenv.config();
 
@@ -44,6 +46,33 @@ function getRequestId(req: express.Request): string {
   requestIds.set(req, id);
   return id;
 }
+
+function createRateLimitMiddleware(prefix: string, limit: number, windowMs: number) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const identity = req.user?.id ?? req.ip ?? "unknown";
+    try {
+      const result = await checkRateLimit(getRateLimitKey(prefix, identity), limit, windowMs);
+      res.setHeader("X-RateLimit-Limit", String(limit));
+      res.setHeader("X-RateLimit-Remaining", String(result.remaining));
+      if (!result.allowed) {
+        if (result.retryAfterSeconds) res.setHeader("Retry-After", String(result.retryAfterSeconds));
+        res.status(429).json({ success: false, error: "Too many requests. Please try again later." });
+        return;
+      }
+      next();
+    } catch (error) {
+      console.error("[Nexum] rate-limit check failed", { prefix, error });
+      res.status(503).json({ success: false, error: "Rate-limit service unavailable" });
+    }
+  };
+}
+
+const isProduction = process.env.NODE_ENV === "production";
+const authRegisterLimiter = createRateLimitMiddleware("auth:register", isProduction ? 10 : 100, 60_000);
+const authLoginLimiter = createRateLimitMiddleware("auth:login", isProduction ? 20 : 200, 60_000);
+const projectLimiter = createRateLimitMiddleware("projects", isProduction ? 120 : 1000, 60_000);
+const chatLimiter = createRateLimitMiddleware("chat", isProduction ? 30 : 300, 60_000);
+const aiWriteLimiter = createRateLimitMiddleware("ai-write", isProduction ? 20 : 200, 60_000);
 
 function sendSafeError(res: Response, error: unknown, requestId: string, fallback = "Внутренняя ошибка NEXUM.") {
   const normalized = error instanceof NexumError
@@ -64,7 +93,12 @@ function sendSafeError(res: Response, error: unknown, requestId: string, fallbac
 }
 
 const app = express();
-void recoverStaleChatJobs(0).catch((error) => console.error("[Nexum] stale Agent recovery failed", error));
+const databaseConfigured = Boolean(process.env.NEXUM_DATABASE_URL?.trim());
+if (databaseConfigured) {
+  void recoverStaleChatJobs(0).catch((error) => console.error("[Nexum] stale Agent recovery failed", error));
+} else {
+  console.warn("[Nexum] PostgreSQL is not configured; persistent ChatJob recovery is disabled for this process.");
+}
 serverRuntime.start();
 app.use((req, _res, next) => {
   const requestId = getRequestId(req);
@@ -101,11 +135,13 @@ const configuredProvider = process.env.AI_PROVIDER?.toLowerCase();
 const e2eMockAI = process.env.NEXUM_E2E_MOCK_AI === "true" && process.env.NODE_ENV === "test";
 const defaultProvider = e2eMockAI && configuredProvider === "mock"
   ? "mock"
-  : configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai" || configuredProvider === "anthropic" || configuredProvider === "orcarouter"
+  : configuredProvider === "ollama" || configuredProvider === "openrouter" || configuredProvider === "openai" || configuredProvider === "anthropic" || configuredProvider === "orcarouter" || configuredProvider === "anymodel"
     ? configuredProvider
   : process.env.ORCAROUTER_API_KEY?.trim()
     ? "orcarouter"
-    : process.env.OPENAI_API_KEY?.trim()
+    : process.env.ANYMODEL_API_KEY?.trim()
+      ? "anymodel"
+      : process.env.OPENAI_API_KEY?.trim()
       ? "openai"
       : process.env.ANTHROPIC_API_KEY?.trim()
         ? "anthropic"
@@ -118,7 +154,10 @@ const defaultProvider = e2eMockAI && configuredProvider === "mock"
 if (!defaultProvider) {
   throw new Error("NEXUM AI is not configured. Set AI_PROVIDER to a real provider or configure a real provider API key. Mock AI is disabled.");
 }
-const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const apiModuleDir = dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = apiModuleDir.endsWith("/dist") || apiModuleDir.endsWith("\\dist")
+  ? resolve(apiModuleDir, "../../..")
+  : resolve(apiModuleDir, "../..");
 const webDist = resolve(workspaceRoot, "apps/web/dist");
 const webIndex = resolve(webDist, "index.html");
 const projectManagers = new Map<string, ProjectManager>();
@@ -154,10 +193,10 @@ const agentHistory = new AgentHistory(workspaceRoot);
 const checkpointManager = new CheckpointManager();
 const projectStates = new Map<string, ProjectStateManager>();
 const fallbackProvider = process.env.AI_FALLBACK_PROVIDER?.toLowerCase() ||
-  (defaultProvider === "ollama" ? "openrouter" : defaultProvider === "orcarouter" ? "openrouter" : undefined);
+  (defaultProvider === "ollama" || defaultProvider === "orcarouter" || defaultProvider === "anymodel" ? "openrouter" : undefined);
 
 const aiGateway = new AIGateway(
-  [new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider(), ...(e2eMockAI ? [new MockProvider()] : [])],
+  [new OllamaProvider(), new OpenRouterProvider(), new AnyModelProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider(), ...(e2eMockAI ? [new MockProvider()] : [])],
   defaultProvider,
   {
     fallbackProviderId: fallbackProvider,
@@ -178,7 +217,7 @@ const aiGateway = new AIGateway(
 const userAIGateways = new Map<string, AIGateway>();
 
 function createProviderGateway(runtimeProvider?: string, runtimeCredential?: string): AIGateway {
-  const providers = [new OllamaProvider(), new OpenRouterProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider(), ...(e2eMockAI ? [new MockProvider()] : [])];
+  const providers = [new OllamaProvider(), new OpenRouterProvider(), new AnyModelProvider(), new OpenAIProvider(), new AnthropicProvider(), new OrcaRouterProvider(), ...(e2eMockAI ? [new MockProvider()] : [])];
   if (runtimeProvider && runtimeCredential) {
     const target = providers.find((provider) => provider.id === runtimeProvider);
     const setter = target && (target as unknown as { setRuntimeApiKey?: (value: string) => void }).setRuntimeApiKey;
@@ -218,6 +257,43 @@ function throwIfAgentAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw new DOMException("Agent task cancelled by user.", "AbortError");
 }
 
+function createAgentCancellationBridge(jobId: string, userId: string, parentSignal?: AbortSignal): { signal: AbortSignal; stop: () => void } {
+  const controller = new AbortController();
+  let pollTimer: ReturnType<typeof setInterval> | undefined;
+
+  const abort = () => {
+    if (!controller.signal.aborted) {
+      controller.abort(new DOMException("Agent task cancelled", "AbortError"));
+    }
+  };
+
+  const poll = async () => {
+    if (controller.signal.aborted) return;
+    try {
+      const persisted = await getChatJob(jobId, userId);
+      if (persisted?.status === "cancelled") abort();
+    } catch (error) {
+      // A transient database read failure must not cancel a healthy Agent run.
+      console.error("[Nexum] cancellation bridge poll failed", { jobId, error });
+    }
+  };
+
+  if (parentSignal) {
+    if (parentSignal.aborted) abort();
+    else parentSignal.addEventListener("abort", abort, { once: true });
+  }
+  pollTimer = setInterval(() => { void poll(); }, 750);
+
+  return {
+    signal: controller.signal,
+    stop: () => {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = undefined;
+      parentSignal?.removeEventListener("abort", abort);
+    },
+  };
+}
+
 async function runChatJob(
   jobId: string,
   message: string,
@@ -228,25 +304,29 @@ async function runChatJob(
   attachments: Array<{ name: string; type: string; size: number; content?: string; data?: string }>,
   conversation: Array<{ role: "user" | "assistant"; content: string }>,
   requestId?: string,
-  signal?: AbortSignal,
+  parentSignal?: AbortSignal,
   runtimeTaskId?: string,
 ) {
   const runtimeTask = runtimeTaskId ? serverRuntime.tasks.get(runtimeTaskId) : undefined;
   if (!runtimeTask) throw new Error("Canonical Runtime Task is unavailable for Agent Job");
+  const cancellationBridge = createAgentCancellationBridge(jobId, userId, parentSignal);
+  const signal = cancellationBridge.signal;
   throwIfAgentAborted(signal);
   const existingJob = await getChatJob(jobId, userId);
-  if (!existingJob) { serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
+  if (!existingJob) { cancellationBridge.stop(); serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
   const job = existingJob.status === "queued" ? await claimChatJob(jobId, userId) : existingJob;
   if (!job || job.status !== "running") {
     if (job?.status === "cancelled") serverRuntime.cancelTask(runtimeTask.id);
     else serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Agent Job could not be claimed" });
     chatJobControllers.delete(jobId);
+    cancellationBridge.stop();
     return;
   }
   chatJobCache.set(jobId, job);
   serverRuntime.updateTask(runtimeTask.id, "RUNNING");
   throwIfAgentAborted(signal);
   let lockedProjectId: string | undefined;
+  let attachmentDir: string | undefined;
   let lockHeartbeat: ReturnType<typeof setInterval> | undefined;
   let lockHeartbeatResourceId: string | undefined;
 
@@ -296,7 +376,7 @@ async function runChatJob(
       message: "Automatic pre-task checkpoint created",
       output: JSON.stringify({ checkpointId: checkpoint.id, files: checkpoint.files.length }),
     });
-    const attachmentDir = resolve(project.path, ".nexum", "attachments", jobId);
+    attachmentDir = resolve(project.path, ".nexum", "attachments", jobId);
     const attachmentNames: string[] = [];
     const attachmentContext: string[] = [];
     if (attachments.length) {
@@ -356,7 +436,7 @@ ${attachment.content.slice(0, 80_000)}`);
             event.phase === "plan" ? "planning" :
             event.phase === "implement" ? "editing" :
             event.phase === "validate" ? "building" :
-            event.phase === "repair" ? "error" :
+            event.phase === "repair" ? "planning" :
             event.phase === "verify" ? "testing" :
             event.phase === "finish" ? "testing" :
             event.iteration === 0 ? "analyzing" : "planning";
@@ -392,6 +472,7 @@ ${attachment.content.slice(0, 80_000)}`);
         model,
       },
       (snapshot) => {
+        if (signal.aborted || serverRuntime.tasks.get(runtimeTask.id)?.status === "CANCELLED") return;
         job.agentIntent = snapshot.intent;
         job.executionPlan = snapshot.plan;
         job.executionState = snapshot;
@@ -443,6 +524,9 @@ ${attachment.content.slice(0, 80_000)}`);
       job.error = result.error ?? "Agent task cancelled by user.";
       job.validation = result.validation;
       job.telemetry = result.telemetry;
+      job.executionState = result.executionPlan
+        ? { ...(job.executionState ?? {}), state: "CANCELLED", plan: result.executionPlan, updatedAt: Date.now() } as typeof job.executionState
+        : job.executionState;
       await waitForChatJobPersistence(jobId);
       const cancelled = await cancelChatJob(jobId, userId, job.error);
       syncTerminalChatJobCache(cancelled);
@@ -458,6 +542,9 @@ ${attachment.content.slice(0, 80_000)}`);
       job.errorInfo = result.errorInfo;
       void agentHistory.record({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
+      job.executionState = result.executionPlan
+        ? { ...(job.executionState ?? {}), state: "FAILED", plan: result.executionPlan, updatedAt: Date.now() } as typeof job.executionState
+        : job.executionState;
       await waitForChatJobPersistence(jobId);
       const failed = await failChatJob(jobId, userId, { error: job.error, errorCode: job.errorCode, errorInfo: job.errorInfo, steps: job.steps, productPlan: job.productPlan, stage: job.stage, agentIntent: job.agentIntent, executionPlan: job.executionPlan, executionState: job.executionState, validation: job.validation, telemetry: job.telemetry });
       syncTerminalChatJobCache(failed);
@@ -469,6 +556,9 @@ ${attachment.content.slice(0, 80_000)}`);
     job.productPlan = result.productPlan;
     job.agentIntent = result.intent;
     job.executionPlan = result.executionPlan;
+    job.executionState = result.executionPlan
+      ? { ...(job.executionState ?? {}), state: "COMPLETED", plan: result.executionPlan, updatedAt: Date.now() } as typeof job.executionState
+      : job.executionState;
     job.validation = result.validation;
     job.telemetry = result.telemetry;
     if (result.finalResponse !== undefined) job.reply = result.finalResponse;
@@ -480,6 +570,17 @@ ${attachment.content.slice(0, 80_000)}`);
     );
     if (signal?.aborted || (await getChatJob(jobId, userId))?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
     await waitForChatJobPersistence(jobId);
+    if (successfulBuild) await stateManager.markBuildSucceeded();
+    await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
+      try {
+        const parsed = JSON.parse(step.input);
+        return typeof parsed.path === "string" ? parsed.path : "";
+      } catch { return ""; }
+    }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
+    await stateManager.markCompleted(message.slice(0, 240));
+    if (signal?.aborted || (await getChatJob(jobId, userId))?.status === "cancelled") {
+      throw new DOMException("Agent task cancelled", "AbortError");
+    }
     const completed = await completeChatJob(jobId, userId, {
       reply: job.reply,
       steps: job.steps,
@@ -493,14 +594,6 @@ ${attachment.content.slice(0, 80_000)}`);
     });
     if (!completed || completed.status !== "completed") throw new DOMException("Agent completion lost a race with cancellation", "AbortError");
     syncTerminalChatJobCache(completed);
-    if (successfulBuild) await stateManager.markBuildSucceeded();
-    await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
-      try {
-        const parsed = JSON.parse(step.input);
-        return typeof parsed.path === "string" ? parsed.path : "";
-      } catch { return ""; }
-    }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
-    await stateManager.markCompleted(message.slice(0, 240));
     job.status = "completed";
     job.stage = "completed";
     void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
@@ -541,6 +634,12 @@ ${attachment.content.slice(0, 80_000)}`);
       if (lockedProjectId) await releaseProjectLock(lockedProjectId, jobId);
     } catch (lockError) {
       console.error("[Nexum] project lock release failed", jobId, lockError);
+    }
+    cancellationBridge.stop();
+    if (attachmentDir) {
+      await rm(attachmentDir, { recursive: true, force: true }).catch((error) => {
+        console.error("[Nexum] attachment cleanup failed", { jobId, error });
+      });
     }
   }
 }
@@ -599,11 +698,12 @@ app.use(cors({
 
 app.use(express.json({ limit: "10mb" }));
 
-app.post("/api/diagnostics/events", (req, res) => {
+app.post("/api/diagnostics/events", authMiddleware, (req, res) => {
   const body = req.body ?? {};
   const sessionId = typeof body.sessionId === "string" && body.sessionId.length < 120 ? body.sessionId : createDiagnosticsSession();
   const event = recordDiagnosticsEvent({
     sessionId,
+    userId: getAuthUser(req).id,
     type: typeof body.type === "string" ? body.type.slice(0, 120) : "unknown",
     level: body.level === "error" || body.level === "warn" ? body.level : "info",
     message: typeof body.message === "string" ? body.message.slice(0, 4000) : "Unknown diagnostics event",
@@ -615,16 +715,33 @@ app.post("/api/diagnostics/events", (req, res) => {
   return res.status(202).json({ success: true, sessionId: event.sessionId, eventId: event.id });
 });
 
-app.get("/api/diagnostics/session/:sessionId", (req, res) => {
-  return res.json({ success: true, ...getDiagnosticsSession(req.params.sessionId) });
+app.get("/api/diagnostics/session/:sessionId", authMiddleware, (req, res) => {
+  const sessionId = typeof req.params.sessionId === "string" ? req.params.sessionId : "";
+  return res.json({ success: true, ...getDiagnosticsSession(sessionId, getAuthUser(req).id) });
 });
 
-app.get("/api/diagnostics/latest", (req, res) => {
+app.get("/api/diagnostics/latest", authMiddleware, (req, res) => {
   const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : 100;
-  return res.json({ success: true, generatedAt: new Date().toISOString(), events: getLatestDiagnostics(Number.isFinite(limit) ? limit : 100) });
+  return res.json({ success: true, generatedAt: new Date().toISOString(), events: getLatestDiagnostics(Number.isFinite(limit) ? limit : 100, getAuthUser(req).id) });
 });
 
-app.get("/api/runtime/status", (_req, res) => { res.json({ success: true, lifecycle: serverRuntime.lifecycle, tasks: [...serverRuntime.tasks.values()], resources: serverRuntime.resources.size, processes: [...serverRuntime.processes.values()].map(p => ({ id: p.id, name: p.name, state: p.state, projectId: p.projectId })), diagnostics: serverRuntime.diagnostics.slice(-100) }); });
+app.get("/api/runtime/status", authMiddleware, async (req, res) => {
+  const ownedProjectIds = new Set((await getProjectManager(getAuthUser(req).id).listProjects()).map((project) => project.id));
+  const tasks = [...serverRuntime.tasks.values()].filter((task) => typeof task.projectId === "string" && ownedProjectIds.has(task.projectId));
+  const processes = [...serverRuntime.processes.values()]
+    .filter((process) => typeof process.projectId === "string" && ownedProjectIds.has(process.projectId))
+    .map((process) => ({ id: process.id, name: process.name, state: process.state, projectId: process.projectId }));
+  return res.json({
+    success: true,
+    lifecycle: serverRuntime.lifecycle,
+    tasks,
+    resources: serverRuntime.listResources().filter((resource) =>
+      typeof resource.projectId === "string" && ownedProjectIds.has(resource.projectId)
+    ).length,
+    processes,
+    diagnostics: serverRuntime.diagnostics.filter((event) => !event.projectId || ownedProjectIds.has(event.projectId)).slice(-100),
+  });
+});
 
 app.get("/api/health", async (_req, res) => {
   const database = await pingDatabase();
@@ -641,7 +758,7 @@ app.get("/api/health", async (_req, res) => {
 });
 
 
-app.post("/api/auth/register", async (req, res) => {
+app.post("/api/auth/register", authRegisterLimiter, async (req, res) => {
   try {
     const email = typeof req.body?.email === "string" ? req.body.email : "";
     const name = typeof req.body?.name === "string" ? req.body.name : "";
@@ -655,7 +772,7 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", authLoginLimiter, async (req, res) => {
   try {
     const email = typeof req.body?.email === "string" ? req.body.email : "";
     const password = typeof req.body?.password === "string" ? req.body.password : "";
@@ -677,8 +794,8 @@ app.post("/api/auth/logout", (_req, res) => {
   return res.json({ success: true });
 });
 
-app.use("/api/projects", authMiddleware);
-app.use("/api/chat", authMiddleware);
+app.use("/api/projects", authMiddleware, projectLimiter);
+app.use("/api/chat", authMiddleware, chatLimiter);
 app.use("/api/agent/history", authMiddleware);
 app.use("/api/agent/diagnostics", authMiddleware);
 
@@ -709,10 +826,10 @@ const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM
 
 app.get("/api/ai/key-status", authMiddleware, (req, res) => {
   const gateway = getAIGatewayForUser(getAuthUser(req).id);
-  return res.json({ success: true, providers: { openai: gateway.hasOpenAIKey(), openrouter: gateway.hasOpenRouterKey(), orcarouter: gateway.hasOrcaRouterKey() } });
+  return res.json({ success: true, providers: { anymodel: gateway.hasAnyModelKey(), openai: gateway.hasOpenAIKey(), openrouter: gateway.hasOpenRouterKey(), orcarouter: gateway.hasOrcaRouterKey() } });
 });
 
-app.post("/api/ai/connect-key", authMiddleware, async (req, res) => {
+app.post("/api/ai/connect-key", authMiddleware, aiWriteLimiter, async (req, res) => {
   const userId = getAuthUser(req).id;
   const apiKey = typeof req.body?.apiKey === "string" ? req.body.apiKey.trim() : "";
   if (!apiKey) return res.status(400).json({ success: false, error: "API key is required" });
@@ -720,9 +837,11 @@ app.post("/api/ai/connect-key", authMiddleware, async (req, res) => {
   const requestedProvider = typeof req.body?.provider === "string" ? req.body.provider.toLowerCase() : "";
   const candidates = requestedProvider === "openai" ? ["openai"]
     : requestedProvider === "openrouter" ? ["openrouter"]
+    : requestedProvider === "anymodel" ? ["anymodel"]
     : requestedProvider === "orcarouter" ? ["orcarouter"]
     : /sk-orca-|orcarouter/i.test(apiKey) ? ["orcarouter", "openrouter", "openai"]
     : /or-|openrouter/i.test(apiKey) ? ["openrouter", "orcarouter", "openai"]
+    : /anymodel/i.test(apiKey) ? ["anymodel", "openai", "openrouter", "orcarouter"]
     : ["openai", "orcarouter", "openrouter"];
 
   const errors: string[] = [];
@@ -735,6 +854,14 @@ app.post("/api/ai/connect-key", authMiddleware, async (req, res) => {
         if (!status.available) throw new Error(status.error ?? "OpenAI key verification failed");
         userAIGateways.set(userId, createProviderGateway("openai", apiKey));
         return res.json({ success: true, provider: "openai", model: status.model, status });
+      }
+      if (providerId === "anymodel") {
+        const provider = new AnyModelProvider();
+        provider.setRuntimeApiKey(apiKey);
+        const status = await provider.getStatus();
+        if (!status.available) throw new Error(status.error ?? "AnyModel key verification failed");
+        userAIGateways.set(userId, createProviderGateway("anymodel", apiKey));
+        return res.json({ success: true, provider: "anymodel", model: status.model, status });
       }
       if (providerId === "orcarouter") {
         const provider = new OrcaRouterProvider();
@@ -789,7 +916,7 @@ app.post("/api/ai/local-test", authMiddleware, async (req, res) => {
   }
 });
 
-app.get("/api/ai/status", async (req, res) => {
+app.get("/api/ai/status", authMiddleware, async (req, res) => {
   const provider = typeof req.query.provider === "string" ? req.query.provider : undefined;
   const model = typeof req.query.model === "string" ? req.query.model : undefined;
   try {
@@ -1022,6 +1149,9 @@ app.put("/api/projects/:id/file", async (req, res) => {
     const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const { path: requested, content } = req.body as { path?: unknown; content?: unknown };
     if (typeof requested !== "string" || typeof content !== "string") return res.status(400).json({ success: false, error: "path and content are required" });
+    if (Buffer.byteLength(content, "utf8") > 1_000_000) {
+      return res.status(413).json({ success: false, error: "File content exceeds the 1 MB project-file limit" });
+    }
     const filePath = resolve(project.path, requested);
     const projectRelative = relative(project.path, filePath);
     if (projectRelative.startsWith("..") || projectRelative.includes("../") || projectRelative.includes("..\\") || projectRelative.startsWith(".git/") || projectRelative.includes("node_modules/")) {
@@ -1309,15 +1439,19 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
     return res.json({ success: true, cancelled: current?.status === "cancelled", job: current });
   }
   syncTerminalChatJobCache(cancelled);
-  chatJobControllers.get(job.id)?.abort();
   const runtimeTaskId = job.runtimeTaskId;
   if (runtimeTaskId) serverRuntime.cancelTask(runtimeTaskId);
+  chatJobControllers.get(job.id)?.abort();
   return res.json({ success: true, cancelled: true, job: cancelled });
 });
 
 app.get("/api/agent/history", async (req, res) => {
   const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : 200;
-  return res.json({ success: true, entries: await agentHistory.recent(Number.isFinite(limit) ? limit : 200) });
+  const userId = getAuthUser(req).id;
+  const ownedProjectIds = new Set((await getProjectManager(userId).listProjects()).map((project) => project.id));
+  const entries = (await agentHistory.recent(Number.isFinite(limit) ? limit : 200))
+    .filter((entry) => typeof entry.projectId === "string" && ownedProjectIds.has(entry.projectId));
+  return res.json({ success: true, entries });
 });
 
 app.post("/api/agent/client-error", async (req, res) => {
@@ -1344,7 +1478,10 @@ app.post("/api/agent/client-error", async (req, res) => {
 app.get("/api/agent/diagnostics", async (req, res) => {
   const rawLimit = typeof req.query.limit === "string" ? Number(req.query.limit) : 100;
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 500) : 100;
-  const entries = await agentHistory.recent(limit);
+  const userId = getAuthUser(req).id;
+  const ownedProjectIds = new Set((await getProjectManager(userId).listProjects()).map((project) => project.id));
+  const entries = (await agentHistory.recent(limit))
+    .filter((entry) => typeof entry.projectId === "string" && ownedProjectIds.has(entry.projectId));
   const failures = entries.filter((entry) =>
     (entry.type === "agent-event" && (entry.status === "tool-error" || entry.status === "failed")) ||
     entry.type === "job-failed" ||
@@ -1371,6 +1508,8 @@ app.get("/api/agent/diagnostics", async (req, res) => {
 });
 
 app.get("/api/chat/jobs", async (req, res) => {
+  // PostgreSQL is preferred for persistent Jobs, but local development can use
+  // the in-memory ChatJob store and keep the same API contract.
   await cleanupChatJobs();
   const userId = getAuthUser(req).id;
   const jobs = await listChatJobs(userId, 50);

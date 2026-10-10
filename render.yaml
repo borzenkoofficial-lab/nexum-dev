@@ -1,16 +1,22 @@
 services:
   - type: web
     name: nexum-dev
-    runtime: node
+    runtime: docker
     plan: free
-    buildCommand: npm --prefix apps/web install && npm --prefix apps/web run build && npm --prefix apps/api install
-    startCommand: npm --prefix apps/api start
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
         value: "22"
       - key: AI_PROVIDER
         value: "openrouter"
-      # Secret is entered in Render Environment; never commit the API key.
       - key: OPENROUTER_API_KEY
+        sync: false
+      - key: NEXUM_AUTH_ENABLED
+        value: "true"
+      - key: NEXUM_AUTH_SECRET
+        sync: false
+      - key: NEXUM_DATABASE_URL
+        sync: false
+      - key: NEXUM_CORS_ORIGINS
         sync: false
