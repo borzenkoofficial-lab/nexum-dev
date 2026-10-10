@@ -88,7 +88,7 @@ export class MockProvider implements AIProvider {
         }
       }
 
-      return JSON.stringify({ done: true, finalResponse: "Проверка завершена после выполнения и наблюдения." });
+      // Non-builder tasks continue into the shared tool-history handler below.
     }
 
     // Non-builder E2E tasks must execute at least one real tool action before
