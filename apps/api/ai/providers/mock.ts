@@ -24,7 +24,7 @@ export class MockProvider implements AIProvider {
     // deterministic planner is enabled only by the E2E-only environment flag.
     if (process.env.NEXUM_E2E_MOCK_AI !== "true") return `NEXUM Demo: ${message}`;
 
-    if (/You are the NEXUM product planner/i.test(message)) {
+    if (/Turn the user's request into a concrete implementation plan for a coding agent/i.test(message)) {
       return JSON.stringify({
         goal: "Проверить и выполнить запрос пользователя в тестовом окружении NEXUM.",
         productType: "E2E validation task",
