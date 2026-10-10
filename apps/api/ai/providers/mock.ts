@@ -94,12 +94,12 @@ export class MockProvider implements AIProvider {
     // Non-builder E2E tasks must execute at least one real tool action before
     // proposing completion. This keeps the mock aligned with the Completion Gate
     // and lets failure-injection tests exercise retries and cancellation.
-    const history = message.split(/Previous tool results:\\s*/i)[1] ?? "";
-    if (/No tools have run yet\\./i.test(history)) {
+    const history = message.split(/Previous tool results:\s*/i)[1] ?? "";
+    if (/No tools have run yet\./i.test(history)) {
       return JSON.stringify({ tool: "listFiles", input: "." });
     }
 
-    const lastHistoryLine = history.trim().split("\\n").at(-1) ?? "";
+    const lastHistoryLine = history.trim().split("\n").at(-1) ?? "";
     if (/^listFiles:/i.test(lastHistoryLine) && /injected|failure|error|ошиб/i.test(lastHistoryLine)) {
       return JSON.stringify({ tool: "readFile", input: "index.html" });
     }
