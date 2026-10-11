@@ -3,7 +3,7 @@
 
 > **Актуальное состояние после исправлений P0 — 2026-10-11:** PR #35 влит в `main` коммитом `88da393937caa970f49a510351d05c3e6d4304ee`. Подтверждающий [CI run #2267](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38151338255) завершился успешно: jobs `build` и `e2e` прошли. Дополнительная проверка документационной PR-ветки [run #2269](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38152031395) также прошла успешно. Выполнение команд агента теперь направлено через Docker Sandbox, внутренние diagnostics/runtime endpoints защищены, ChatJob cache ограничен, API/Web CI используют `npm ci`, образ sandbox подготавливается в E2E, tracked `node_modules/` отсутствуют в текущем дереве main, а AnyModel provider включён в main.
 
-> **Как читать этот документ:** подробные находки ниже отражают исходный снимок до merge PR #35 (`cceea0a12737db7e903a96f91d6cbe857a9a3081`). Статусы, относящиеся к этому коммиту, не являются автоматически статусами текущего main. Непроверенные production-вопросы остаются открытыми: production Docker build/launch, rate limits, полная граница авторизации, ограничения runtime-диагностик и реальный запрос к AnyModel.
+> **Как читать этот документ:** подробные находки ниже отражают исходный снимок до merge PR #35 (`cceea0a12737db7e903a96f91d6cbe857a9a3081`). Статусы, относящиеся к этому коммиту, не являются автоматически статусами текущего main. Оставшиеся production-вопросы: обязательный Docker build/smoke в CI, покрытие rate limits по всем маршрутам, порядок загрузки auth-конфигурации, ограничение истории runtime-диагностик, фактические production-секреты и реальный запрос к AnyModel. `render.yaml` содержит декларации основных переменных окружения, но значения живого сервиса не проверялись.
 
 
 **Дата:** 2026-10-11  
@@ -66,11 +66,11 @@
 
 ### AUDIT-003 — конфигурация из .env читается слишком рано для DB и auth
 
-**Статус: CONFIRMED CODE-PATH RISK**
+**Статус: PARTIALLY RESOLVED — чтение DB URL исправлено в main; порядок загрузки auth-конфигурации остаётся открытым.**
 
 В `apps/api/server.ts` вызывается `dotenv.config()`, но статические ES-module imports выполняются до тела модуля. При этом:
-- `apps/api/db.ts` на верхнем уровне фиксирует `process.env.NEXUM_DATABASE_URL` в константу.
-- `apps/api/auth.ts` на верхнем уровне фиксирует `NEXUM_AUTH_SECRET` и `NEXUM_AUTH_ENABLED`.
+- На исходном HEAD `apps/api/db.ts` фиксировал `process.env.NEXUM_DATABASE_URL` в константу; в текущем main URL читается через `getDatabaseUrl()` при использовании.
+- `apps/api/auth.ts` по-прежнему требует отдельной проверки порядка чтения `NEXUM_AUTH_SECRET` и `NEXUM_AUTH_ENABLED`; этот файл не входил в P0 PR #35.
 
 Если значения поступают только из локального `.env`, модули могут прочитать их до вызова `dotenv.config()`. Переменные, заданные платформой до старта процесса, не страдают от этой конкретной последовательности.
 
@@ -109,9 +109,9 @@ PR #35 включает ограничение in-memory ChatJob cache и cleanu
 
 ### AUDIT-006 — нет rate limiting на критичных публичных маршрутах в main
 
-**Статус: CONFIRMED IN MAIN**
+**Статус исходного снимка: CONFIRMED; текущий main: PARTIALLY RESOLVED после PR #35.**
 
-В репозитории есть `apps/api/rateLimit.ts` и тесты, но в проверенной версии `apps/api/server.ts` нет middleware-обвязки для лимитирования регистрации, входа, AI/chat и операций записи. Открытые диагностики также принимают события без ограничения частоты.
+На исходном HEAD middleware не были подключены. В текущем main middleware проверены на регистрации/входе, `/api/projects`, `/api/chat` и `/api/ai/connect-key`. Нужно завершить route-by-route review и отдельно проверить лимитирование записи диагностических событий и остальных публичных операций.
 
 Что сделать:
 1. Подключить лимиты к регистрации и логину, AI-запросам, chat/agent и диагностической телеметрии.
@@ -119,15 +119,15 @@ PR #35 включает ограничение in-memory ChatJob cache и cleanu
 3. Проверить IP/user ключи, заголовки Retry-After и отказоустойчивое поведение при недоступности rate-limit storage.
 4. Добавить тесты превышения лимита и обхода лимита через разные маршруты.
 
-PR #35 добавляет middleware и подключение лимитов для ключевых маршрутов; проверить покрытие и фактическое применение.
+PR #35 добавил middleware для ключевых маршрутов. Остаточная задача — подтвердить полное покрытие, ключи идентификации, Retry-After и поведение при сбое хранилища лимитов.
 
 ### AUDIT-007 — шаблон Render не описывает обязательную конфигурацию production
 
-**Статус: CONFIGURATION GAP; фактические Render secrets не проверялись**
+**Статус: PARTIALLY RESOLVED — переменные объявлены в `render.yaml`; значения и запуск production не проверены.**
 
-`render.yaml` задаёт AI_PROVIDER и OpenRouter API key, но не описывает `NEXUM_DATABASE_URL`, `NEXUM_AUTH_SECRET`, `NEXUM_AUTH_ENABLED` и CORS origins. `apps/api/auth.ts` намеренно выбрасывает ошибку при запуске в production, если auth отключён. Если значения не настроены вручную в панели Render, сервис не запустится или не сможет обслуживать регистрацию и хранение данных.
+`render.yaml` в текущем main объявляет `NEXUM_DATABASE_URL`, `NEXUM_AUTH_SECRET`, `NEXUM_AUTH_ENABLED` и `NEXUM_CORS_ORIGINS`; секретные значения заданы как `sync: false`. Фактические значения и состояние живого сервиса из репозитория проверить нельзя. Provider по умолчанию всё ещё `openrouter`, поэтому для целевого AnyModel нужно отдельно согласовать deployment-конфигурацию.
 
-Кроме того, Render-конфигурация использует `npm install`, а API start script запускает TypeScript через `tsx`, который находится в devDependencies. Поведение зависит от того, устанавливает ли целевая среда devDependencies.
+Dockerfile после PR #35 использует multi-stage build, собирает API/Web и запускает `node apps/api/dist/server.js` в runtime-образе. Но Docker build и smoke test пока не являются обязательными шагами CI.
 
 Что сделать:
 1. Сверить `render.yaml` с обязательными переменными в `apps/api/.env.example`.
@@ -182,7 +182,7 @@ PR #35 удалил отслеживаемые `node_modules` и обновил 
 
 **Статус: CONFIRMED PIPELINE GAP**
 
-Текущий CI проверяет TypeScript, тесты, web build и E2E, но не строит Docker image. В текущем Dockerfile API запускается через `npm start`/tsx, а не через отдельно скомпилированный production build. Поэтому зелёный CI не доказывает, что образ собирается и стартует в чистом production-окружении.
+Текущий CI проверяет TypeScript, тесты, API/Web build и E2E, но не строит Docker image. Dockerfile после PR #35 уже компилирует API и запускает `node apps/api/dist/server.js` с production dependencies. Поэтому зелёный CI по-прежнему не доказывает, что production-образ реально собирается и стартует в чистом окружении.
 
 Что сделать:
 1. Добавить build script для API.
@@ -192,7 +192,7 @@ PR #35 удалил отслеживаемые `node_modules` и обновил 
 5. Добавить `docker build` и smoke test `/api/health` в CI.
 6. Проверить миграции и отсутствие обязательных файлов, которые не попали в образ.
 
-PR #35 содержит изменения Dockerfile и CI для сборки API; сам факт изменения ещё не заменяет тест образа.
+PR #35 обновил Dockerfile и добавил сборку API в CI, но сам `docker build` и smoke test образа остаются незакрытыми.
 
 ## P2 — важные улучшения
 

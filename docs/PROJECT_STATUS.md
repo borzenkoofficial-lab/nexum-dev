@@ -21,7 +21,7 @@
 
 **Снятый блокер тестирования:** старый E2E прогон [#2266](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38147453731), выполненный до слияния PR #35, не дождался события `TOOL_CHECKPOINT/consumed` в сценарии повторной отмены. После merge на актуальном main полный CI прошёл, включая E2E. Проверка документационной PR-ветки также прошла: [run #2269](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38152031395).
 
-**Текущий статус CI: GREEN на указанном commit. Публичный релиз: NOT READY** до отдельной проверки production-конфигурации базы и секретов, Docker runtime smoke test, rate limits/diagnostics review и реального подключения AnyModel. Локальный запуск в чистой среде и production deployment в этой проверке не выполнялись.
+**Текущий статус CI: GREEN на указанном commit. Публичный релиз: NOT READY** до отдельной проверки production-конфигурации базы и секретов, Docker runtime smoke test, проверки route-by-route rate-limit coverage, runtime diagnostics retention, Docker image smoke test и реального подключения AnyModel. Локальный запуск в чистой среде и production deployment в этой проверке не выполнялись.
 
 Основной документ с полной историей находок, их актуальными статусами и оставшимися рисками: [docs/AUDIT_REPORT_2026-10-11.md](./AUDIT_REPORT_2026-10-11.md). Дополнительная фиксация CI и P0 до исправления: [docs/AUDIT_2026-10-11.md](./AUDIT_2026-10-11.md).
 
