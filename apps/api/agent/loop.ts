@@ -8,12 +8,11 @@ import type { AIGateway } from "../ai/gateway.js";
 import { diagnoseError } from "./errorRecovery.js";
 import { toNexumError } from "../core/errors.js";
 import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVerificationState } from "./taskState.js";
-import { isValidationAction } from "./executionState.js";
 import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 import { createAgentIntent } from "./intent.js";
-import { createExecutionPlan, createTelemetry, transitionAgentState, setPlanStep, markPlanStepCompleted, markPlanStepSkipped, canRunPlanStep, createValidation, evaluateCompletionGate, type AgentExecutionSnapshot } from "./executionState.js";
+import { createExecutionPlan, createTelemetry, transitionAgentState, setPlanStep, markPlanStepCompleted, markPlanStepSkipped, canRunPlanStep, createValidation, evaluateCompletionGate, isValidationAction, type AgentExecutionSnapshot } from "./executionState.js";
 import { agentFailureInjection } from "./failureInjection.js";
 import type {
   AgentModelOptions,
