@@ -8,7 +8,7 @@
 
 - [Инструкции для всех ИИ-агентов — AGENTS.md](./AGENTS.md)
 - [Текущий статус, реализованное и оставшиеся задачи — docs/PROJECT_STATUS.md](./docs/PROJECT_STATUS.md)
-- [Технический аудит от 2026-10-11 — docs/AUDIT_2026-10-11.md](./docs/AUDIT_REPORT_2026-10-11.md)
+- [Технический аудит от 2026-10-11 — docs/AUDIT_2026-10-11.md](./docs/AUDIT_2026-10-11.md)
 
 ## 1. Что такое NEXUM.DEV
 
