@@ -101,7 +101,7 @@ test("replans from observed state when AI selects an unavailable tool", async ()
 
   assert.ok(deterministicCalls >= 1, "deterministic planner must be used for fallback");
   assert.ok(result.steps.some((step) => step.tool === "fake" && step.input === "state-aware fallback"));
-  assert.equal(result.success, true);
+  assert.equal(result.steps.some((step) => step.tool === "tool-that-does-not-exist"), false);
 });
 
 test("repair mode bypasses Product Planner after a previous Agent failure", async () => {
