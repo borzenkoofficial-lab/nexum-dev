@@ -8,6 +8,7 @@ import type { AIGateway } from "../ai/gateway.js";
 import { diagnoseError } from "./errorRecovery.js";
 import { toNexumError } from "../core/errors.js";
 import { canFinishBuilder, createAgentTaskState, recordSuccessfulChange, syncVerificationState } from "./taskState.js";
+import { isValidationAction } from "./executionState.js";
 import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
@@ -930,8 +931,7 @@ export class AgentLoop {
         const lastMutationIndex = previousResults.reduce((index, item, currentIndex) =>
           ["writeFile", "patchFile", "scaffoldProject"].includes(item.tool) && item.result.success ? currentIndex : index, -1);
         const lastValidationIndex = previousResults.reduce((index, item, currentIndex) => {
-          const validationTool = ["validateProject", "testProject"].includes(item.tool) ||
-            (item.tool === "runCommand" && /npm run (build|test|lint|typecheck)/.test(item.input)) || item.tool === "runSandbox" ||
+          const validationTool = isValidationAction(item.tool, item.input) ||
             ((item.tool === "writeFile" || item.tool === "patchFile") && /"verified"\s*:\s*true/.test(item.result.output));
           return validationTool && item.result.success ? currentIndex : index;
         }, -1);
