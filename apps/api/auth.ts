@@ -12,6 +12,10 @@ const AUTH_ENABLED = process.env.NEXUM_AUTH_ENABLED === "true";
 if (process.env.NODE_ENV === "production" && !AUTH_ENABLED) {
   throw new Error("NEXUM_AUTH_ENABLED must be true in production. Authentication cannot be disabled.");
 }
+
+if (process.env.NODE_ENV === "production" && AUTH_ENABLED && (!JWT_SECRET || JWT_SECRET.length < 32)) {
+  throw new Error("NEXUM_AUTH_SECRET must be configured and contain at least 32 characters in production.");
+}
 const DEV_USER: AuthUser = {
   id: "00000000-0000-4000-8000-000000000001",
   email: "dev@nexum.local",
