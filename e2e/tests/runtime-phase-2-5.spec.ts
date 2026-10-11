@@ -1,3 +1,4 @@
+// CI trigger: full P0 runtime verification remains mandatory.
 import { test, expect } from "@playwright/test";
 
 async function setAgentFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number, projectId?: string) {
@@ -146,11 +147,11 @@ test("Agent cancellation remains terminal across repeated cancel/response races"
     expect(secondCancel.ok()).toBeTruthy();
     await expect.poll(async () => {
       const runtime = await (await page.request.get("/api/runtime/status")).json();
-      return (runtime.tasks ?? []).some((task: any) => task.operation === "chat-job" && task.projectId && task.status === "RUNNING");
+      return (runtime.tasks ?? []).some((task: any) => task.operation === "chat-job" && task.projectId === runtimeWorkspaceId && task.status === "RUNNING");
     }, { timeout: 5_000 }).toBe(false);
     const runtime = await (await page.request.get("/api/runtime/status")).json();
     const activeOrCompleted = (runtime.tasks ?? []).filter((task: any) =>
-      task.operation === "chat-job" && task.projectId && task.status === "RUNNING"
+      task.operation === "chat-job" && task.projectId === runtimeWorkspaceId && task.status === "RUNNING"
     );
     expect(activeOrCompleted).toHaveLength(0);
   }
@@ -350,7 +351,7 @@ test("preview recovery failure reaches bounded FAILED state without crashing Run
   expect(status.diagnostics.some((d: any) => d.subsystem === "PREVIEW" && d.message.includes("restart limit"))).toBeTruthy();
 });
 
-test.fixme("real browser main thread pressure recovery is NOT VERIFIED yet", async ({ page }) => {
+test("real browser main thread pressure recovery degrades and recovers", async ({ page }) => {
   await page.evaluate(() => {
     const end = performance.now() + 1600;
     while (performance.now() < end) Math.sqrt(Math.random() * 1_000_000);
@@ -388,11 +389,14 @@ test("Agent Job creation produces exactly one canonical Runtime Task", async ({ 
 });
 
 test("real Agent user cancellation aborts the Agent task and leaves terminal state", async ({ page }) => {
-  const create = await page.request.post("/api/chat", { data: { message: "Проверь структуру текущего проекта и ничего не изменяй.", projectId: runtimeWorkspaceId } });
-  expect(create.status()).toBe(202);
-  const created = await create.json();
-  const jobId = created.jobId as string;
+  await setAgentFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, runtimeWorkspaceId);
+  const input = page.getByLabel("Опишите задачу");
+  await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
+  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+  await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
+  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   expect(jobId).toBeTruthy();
+  await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
   const cancel = await page.request.post(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`);
   expect(cancel.ok()).toBeTruthy();
 

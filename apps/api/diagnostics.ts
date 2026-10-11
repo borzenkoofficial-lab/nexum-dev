@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 export type DiagnosticsEvent = {
-  id: string; sessionId: string; timestamp: string; type: string;
+  id: string; sessionId: string; userId: string; timestamp: string; type: string;
   level: "info" | "warn" | "error"; message: string; route?: string;
   projectId?: string; jobId?: string; metadata?: Record<string, unknown>;
 };
@@ -26,5 +26,13 @@ export function recordDiagnosticsEvent(input: Omit<DiagnosticsEvent, "id" | "tim
   const event: DiagnosticsEvent = { ...input, id: randomUUID(), timestamp: new Date().toISOString(), message: sanitize(input.message) as string, metadata: sanitize(input.metadata) as Record<string, unknown> | undefined };
   const list = sessions.get(event.sessionId) ?? []; list.push(event); sessions.set(event.sessionId, list.slice(-MAX_EVENTS)); return event;
 }
-export function getDiagnosticsSession(sessionId: string) { return { sessionId, events: sessions.get(sessionId) ?? [] }; }
-export function getLatestDiagnostics(limit = 200) { return [...sessions.values()].flat().sort((a,b)=>b.timestamp.localeCompare(a.timestamp)).slice(0, Math.min(Math.max(limit,1),500)); }
+export function getDiagnosticsSession(sessionId: string, userId: string) {
+  return { sessionId, events: (sessions.get(sessionId) ?? []).filter((event) => event.userId === userId) };
+}
+export function getLatestDiagnostics(limit = 200, userId?: string) {
+  return [...sessions.values()]
+    .flat()
+    .filter((event) => userId === undefined || event.userId === userId)
+    .sort((a,b)=>b.timestamp.localeCompare(a.timestamp))
+    .slice(0, Math.min(Math.max(limit,1),500));
+}

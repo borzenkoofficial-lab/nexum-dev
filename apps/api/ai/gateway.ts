@@ -103,6 +103,19 @@ export class AIGateway {
     return Boolean(provider && typeof (provider as { hasApiKey?: () => boolean }).hasApiKey === "function" && (provider as unknown as { hasApiKey: () => boolean }).hasApiKey());
   }
 
+  setRuntimeAnyModelKey(apiKey: string): void {
+    const provider = this.providers.get("anymodel");
+    if (!provider || typeof (provider as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey !== "function") {
+      throw new Error("AnyModel provider is unavailable");
+    }
+    (provider as unknown as { setRuntimeApiKey: (key: string) => void }).setRuntimeApiKey(apiKey);
+  }
+
+  hasAnyModelKey(): boolean {
+    const provider = this.providers.get("anymodel");
+    return Boolean(provider && typeof (provider as { hasApiKey?: () => boolean }).hasApiKey === "function" && (provider as unknown as { hasApiKey: () => boolean }).hasApiKey());
+  }
+
   getDefaultProviderId(): string {
     return this.defaultProviderId;
   }

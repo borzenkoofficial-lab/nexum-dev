@@ -50,8 +50,12 @@ export class GitTool implements Tool {
       const child = spawn("git", args, {
         cwd: this.projectRoot,
         env: {
-          ...process.env,
+          PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
+          HOME: "/tmp",
           GIT_CEILING_DIRECTORIES: dirname(this.projectRoot),
+          GIT_CONFIG_NOSYSTEM: "1",
+          GIT_CONFIG_GLOBAL: "/dev/null",
+          GIT_TERMINAL_PROMPT: "0",
         },
         shell: false,
         windowsHide: true,

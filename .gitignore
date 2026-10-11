@@ -6,4 +6,9 @@ apps/api/.env.*
 .env
 .env.*
 !.env.example
-runtime/
+
+# Generated dependencies and build/runtime artifacts
+**/node_modules/
+**/dist/
+**/.nexum/
+/runtime/

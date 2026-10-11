@@ -9,6 +9,24 @@ export interface ToolSecurityPolicy {
   allowedDuringAgentRun: boolean;
 }
 
+const PROTECTED_PROJECT_PATH = /(?:^|[\\/])(?:\.env(?:\..*)?|\.git(?:[\\/]|$)|\.nexum(?:[\\/]|$)|\.github[\\/]workflows(?:[\\/]|$)|.*(?:secret|credential|private[-_]?key|id_rsa)[^\\/]*$)/i;
+
+function assertWritableProjectPath(toolName: string, input: string): void {
+  if (toolName !== "writeFile" && toolName !== "patchFile") return;
+
+  let value: unknown;
+  try {
+    value = JSON.parse(input);
+  } catch {
+    return;
+  }
+  const path = typeof value === "object" && value !== null && "path" in value
+    ? String((value as { path?: unknown }).path ?? "")
+    : "";
+  if (PROTECTED_PROJECT_PATH.test(path)) {
+    throw new Error("Protected project path cannot be modified by the Agent");
+  }
+}
 const POLICIES: Record<string, ToolSecurityPolicy> = {
   listFiles: { risk: "READ", requiresProjectScope: true, maxInputBytes: 2_000, allowedDuringAgentRun: true },
   readFile: { risk: "READ", requiresProjectScope: true, maxInputBytes: 4_000, allowedDuringAgentRun: true },
@@ -36,6 +54,7 @@ export function validateToolInvocation(tool: Tool, input: string): ToolSecurityP
   if (Buffer.byteLength(input, "utf8") > policy.maxInputBytes) {
     throw new Error(`Tool input exceeds the safety limit for ${tool.name}`);
   }
+  assertWritableProjectPath(tool.name, input);
   return policy;
 }
 

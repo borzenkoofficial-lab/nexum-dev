@@ -43,3 +43,13 @@ test("maps OrcaRouter rate-limit and auth errors distinctly", async () => {
     await assert.rejects(() => provider.generate("test"), new RegExp(expected.replace(/[()]/g, "\\$&")));
   }
 });
+
+test("reports provider outage as unavailable instead of falling back to local defaults", async () => {
+  const provider = new OrcaRouterProvider("https://orcarouter.test/v1", "deepseek/test-free", 1000, async () =>
+    new Response(JSON.stringify({ error: "down" }), { status: 503 }),
+  );
+  provider.setRuntimeApiKey("test-only-key-1234567890");
+  const status = await provider.getStatus();
+  assert.equal(status.available, false);
+  assert.match(status.error ?? "", /service error|unavailable/i);
+});

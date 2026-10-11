@@ -1,5 +1,5 @@
 import { access, readFile, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
 import { createHash } from "node:crypto";
 import type { ProductPlan } from "../agent/types.js";
 
@@ -101,7 +101,9 @@ export class ProjectStateManager {
 
   private async write(state: ProjectState) {
     await (await import("node:fs/promises")).mkdir(resolve(this.projectRoot, ".nexum"), { recursive: true });
-    await writeFile(this.path, JSON.stringify(state, null, 2) + "\n", "utf8");
+    const tempPath = resolve(dirname(this.path), `state.json.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    await writeFile(tempPath, JSON.stringify(state, null, 2) + "\n", "utf8");
+    await (await import("node:fs/promises")).rename(tempPath, this.path);
   }
 
   private async computeSourceRevision(files: string[]): Promise<string> {

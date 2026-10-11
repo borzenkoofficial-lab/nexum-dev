@@ -39,6 +39,16 @@ export interface ChatJob {
 }
 
 let initialized: Promise<void> | null = null;
+const memoryJobs = new Map<string, ChatJob>();
+const memoryLocks = new Map<string, { projectId: string; userId: string; jobId: string; expiresAt: number }>();
+
+function databaseAvailable(): boolean {
+  return Boolean(process.env.NEXUM_DATABASE_URL?.trim());
+}
+
+function cloneJob(job: ChatJob): ChatJob {
+  return JSON.parse(JSON.stringify(job)) as ChatJob;
+}
 
 async function ensureTable(): Promise<void> {
   if (!initialized) {
@@ -86,6 +96,13 @@ function decode(row: any): ChatJob {
 
 
 export async function acquireProjectLock(projectId: string, userId: string, jobId: string, ttlMs = 15 * 60 * 1000): Promise<boolean> {
+  if (!databaseAvailable()) {
+    const now = Date.now();
+    const existing = memoryLocks.get(projectId);
+    if (existing && existing.expiresAt >= now) return false;
+    memoryLocks.set(projectId, { projectId, userId, jobId, expiresAt: now + ttlMs });
+    return true;
+  }
   await ensureTable();
   const result = await query(
     `INSERT INTO agent_project_locks (project_id,user_id,job_id,expires_at)
@@ -100,6 +117,13 @@ export async function acquireProjectLock(projectId: string, userId: string, jobI
 }
 
 export async function heartbeatProjectLock(projectId: string, jobId: string, ttlMs = 15 * 60 * 1000): Promise<boolean> {
+  if (!databaseAvailable()) {
+    const existing = memoryLocks.get(projectId);
+    if (!existing || existing.jobId !== jobId) return false;
+    existing.expiresAt = Date.now() + ttlMs;
+    memoryLocks.set(projectId, existing);
+    return true;
+  }
   await ensureTable();
   const result = await query(
     `UPDATE agent_project_locks SET expires_at=$3
@@ -110,11 +134,20 @@ export async function heartbeatProjectLock(projectId: string, jobId: string, ttl
 }
 
 export async function releaseProjectLock(projectId: string, jobId: string): Promise<void> {
+  if (!databaseAvailable()) {
+    const existing = memoryLocks.get(projectId);
+    if (existing?.jobId === jobId) memoryLocks.delete(projectId);
+    return;
+  }
   await ensureTable();
   await query(`DELETE FROM agent_project_locks WHERE project_id=$1 AND job_id=$2`, [projectId, jobId]);
 }
 
 export async function createChatJob(job: ChatJob): Promise<void> {
+  if (!databaseAvailable()) {
+    memoryJobs.set(job.id, cloneJob(job));
+    return;
+  }
   await ensureTable();
   const data = encode(job);
   await query(
@@ -125,12 +158,23 @@ export async function createChatJob(job: ChatJob): Promise<void> {
 }
 
 export async function getChatJob(id: string, userId: string): Promise<ChatJob | null> {
+  if (!databaseAvailable()) {
+    const job = memoryJobs.get(id);
+    return job && job.userId === userId ? cloneJob(job) : null;
+  }
   await ensureTable();
   const result = await query(`SELECT * FROM agent_chat_jobs WHERE id=$1 AND user_id=$2 LIMIT 1`, [id, userId]);
   return result.rows[0] ? decode(result.rows[0]) : null;
 }
 
 export async function updateChatJob(id: string, userId: string, patch: Partial<ChatJob>): Promise<ChatJob | null> {
+  if (!databaseAvailable()) {
+    const current = memoryJobs.get(id);
+    if (!current || current.userId !== userId || !["queued", "running"].includes(current.status)) return current ? cloneJob(current) : null;
+    const next = cloneJob({ ...current, ...patch, id: current.id, userId: current.userId, updatedAt: patch.updatedAt ?? Date.now() });
+    memoryJobs.set(id, next);
+    return cloneJob(next);
+  }
   await ensureTable();
   const current = await getChatJob(id, userId);
   if (!current) return null;
@@ -147,6 +191,14 @@ export async function updateChatJob(id: string, userId: string, patch: Partial<C
 }
 
 export async function claimChatJob(id: string, userId: string): Promise<ChatJob | null> {
+  if (!databaseAvailable()) {
+    const current = memoryJobs.get(id);
+    if (!current || current.userId !== userId) return null;
+    if (current.status !== "queued") return cloneJob(current);
+    const next = cloneJob({ ...current, status: "running", stage: "analyzing", updatedAt: Date.now() });
+    memoryJobs.set(id, next);
+    return cloneJob(next);
+  }
   await ensureTable();
   const current = await getChatJob(id, userId);
   if (!current || current.status !== "queued") return current;
@@ -163,6 +215,13 @@ export async function claimChatJob(id: string, userId: string): Promise<ChatJob 
 }
 
 export async function completeChatJob(id: string, userId: string, patch: Partial<ChatJob>): Promise<ChatJob | null> {
+  if (!databaseAvailable()) {
+    const current = memoryJobs.get(id);
+    if (!current || current.userId !== userId || !["queued", "running"].includes(current.status)) return current ? cloneJob(current) : null;
+    const next = cloneJob({ ...current, ...patch, status: "completed", updatedAt: Date.now() });
+    memoryJobs.set(id, next);
+    return cloneJob(next);
+  }
   await ensureTable();
   const current = await getChatJob(id, userId);
   if (!current || !["queued", "running"].includes(current.status)) return current;
@@ -179,6 +238,13 @@ export async function completeChatJob(id: string, userId: string, patch: Partial
 }
 
 export async function failChatJob(id: string, userId: string, patch: Partial<ChatJob>): Promise<ChatJob | null> {
+  if (!databaseAvailable()) {
+    const current = memoryJobs.get(id);
+    if (!current || current.userId !== userId || !["queued", "running"].includes(current.status)) return current ? cloneJob(current) : null;
+    const next = cloneJob({ ...current, ...patch, status: "failed", updatedAt: Date.now() });
+    memoryJobs.set(id, next);
+    return cloneJob(next);
+  }
   await ensureTable();
   const current = await getChatJob(id, userId);
   if (!current || !["queued", "running"].includes(current.status)) return current;
@@ -195,6 +261,27 @@ export async function failChatJob(id: string, userId: string, patch: Partial<Cha
 }
 
 export async function cancelChatJob(id: string, userId: string, message = "Agent task cancelled by user."): Promise<ChatJob | null> {
+  if (!databaseAvailable()) {
+    const current = memoryJobs.get(id);
+    if (!current || current.userId !== userId || !["queued", "running"].includes(current.status)) return null;
+    const events = Array.isArray(current.events) ? current.events : [];
+    const next = cloneJob({
+      ...current,
+      status: "cancelled",
+      stage: "cancelled",
+      error: message,
+      updatedAt: Date.now(),
+      events: events.some((event) => event && typeof event === "object" && (event as { name?: unknown }).name === "agent.cancelled")
+        ? events
+        : [...events, { id: Date.now(), timestamp: Date.now(), type: "cancelled", name: "agent.cancelled", message }].slice(-100),
+    });
+    memoryJobs.set(id, next);
+    if (next.projectId) {
+      const lock = memoryLocks.get(next.projectId);
+      if (lock?.jobId === id) memoryLocks.delete(next.projectId);
+    }
+    return cloneJob(next);
+  }
   await ensureTable();
   const result = await query(
     `UPDATE agent_chat_jobs
@@ -228,6 +315,14 @@ export async function cancelChatJob(id: string, userId: string, message = "Agent
 }
 
 export async function listChatJobs(userId?: string, limit = 20): Promise<ChatJob[]> {
+  if (!databaseAvailable()) {
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    return [...memoryJobs.values()]
+      .filter((job) => !userId || job.userId === userId)
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, safeLimit)
+      .map(cloneJob);
+  }
   await ensureTable();
   const safeLimit = Math.min(Math.max(limit, 1), 100);
   const result = userId
@@ -237,6 +332,13 @@ export async function listChatJobs(userId?: string, limit = 20): Promise<ChatJob
 }
 
 export async function cleanupChatJobs(ttlMs = 30 * 60 * 1000): Promise<void> {
+  if (!databaseAvailable()) {
+    const cutoff = Date.now() - ttlMs;
+    for (const [id, job] of memoryJobs) {
+      if (job.updatedAt < cutoff && ["completed", "failed", "cancelled"].includes(job.status)) memoryJobs.delete(id);
+    }
+    return;
+  }
   await ensureTable();
   await query(
     `DELETE FROM agent_chat_jobs WHERE updated_at < $1 AND status IN ('completed','failed','cancelled')`,
@@ -246,6 +348,27 @@ export async function cleanupChatJobs(ttlMs = 30 * 60 * 1000): Promise<void> {
 
 
 export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promise<number> {
+  if (!databaseAvailable()) {
+    const cutoff = Date.now() - maxRunningMs;
+    let recovered = 0;
+    for (const [id, job] of memoryJobs) {
+      if (job.status === "running" && job.updatedAt < cutoff) {
+        memoryJobs.set(id, cloneJob({
+          ...job,
+          status: "failed",
+          stage: "error",
+          error: "API process restarted while this Agent Run was active.",
+          updatedAt: Date.now(),
+        }));
+        if (job.projectId) {
+          const lock = memoryLocks.get(job.projectId);
+          if (lock?.jobId === id) memoryLocks.delete(job.projectId);
+        }
+        recovered += 1;
+      }
+    }
+    return recovered;
+  }
   await ensureTable();
   const recovered = await query(
     `UPDATE agent_chat_jobs

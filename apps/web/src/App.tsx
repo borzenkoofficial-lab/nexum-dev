@@ -22,6 +22,22 @@ import { diagnosticsEvent, getDiagnosticsSessionId, startDiagnostics } from "./d
 import { nexumRuntime } from "./runtime";
 // UI controls persist locally; server-side credentials remain outside the client bundle.
 
+function ConnectorModal({ name, onClose }: { name: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  return <div className="modal-backdrop connector-backdrop" onMouseDown={onClose}>
+    <section className="connector-modal" role="dialog" aria-modal="true" aria-labelledby="connector-modal-title" onMouseDown={(event) => event.stopPropagation()}>
+      <div className="modal-top"><div><span className="eyebrow">ИНТЕГРАЦИЯ</span><h2 id="connector-modal-title">{name}</h2></div><button type="button" aria-label="Закрыть" onClick={onClose}>×</button></div>
+      <p>Подключение этой интеграции пока не реализовано на серверной стороне. Никакие OAuth/API-данные не создаются и не сохраняются.</p>
+      <div className="connector-modal-actions"><button type="button" onClick={onClose}>Закрыть</button><button className="home-primary" type="button" disabled aria-disabled="true">Недоступно</button></div>
+    </section>
+  </div>;
+}
+
 function App() {
   useEffect(() => { startDiagnostics(); diagnosticsEvent({ type: "app-mounted", level: "info", message: "NEXUM application mounted" }); }, []);
   const [projects, setПроектs] = useState<Проект[]>([]);
@@ -39,6 +55,13 @@ function App() {
   const [projectCreationError, setProjectCreationError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [newПроектName, setNewПроектName] = useState("");
+  const [newПроектDescription, setNewПроектDescription] = useState("");
+  function openNewProject(description = "") {
+    setNewПроектDescription(description);
+    setProjectCreationError("");
+    setModalOpen(true);
+  }
+
   const [aiProviders, setAIProviders] = useState<AIProviderInfo[]>([]);
   const [aiModels, setAIModels] = useState<Record<string, string[]>>({});
   const [aiProvider, setAIProvider] = useState("mock");
@@ -107,17 +130,7 @@ function App() {
     return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : path === "/diagnostics" ? "diagnostics" : "home";
   });
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
-  const [connectedConnectors, setConnectedConnectors] = useState<string[]>(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("nexum:connected-connectors") || "[]");
-      return Array.isArray(saved) ? saved.filter((item): item is string => typeof item === "string") : [];
-    } catch {
-      return [];
-    }
-  });
-  useEffect(() => {
-    try { localStorage.setItem("nexum:connected-connectors", JSON.stringify(connectedConnectors)); } catch {}
-  }, [connectedConnectors]);
+  const connectedConnectors: string[] = [];
   const [activitySteps, setActivitySteps] = useState<Array<{ iteration: number; tool: string; success: boolean }>>([]);
   const [activityEvents, setActivityEvents] = useState<Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>>([]);
   const [currentActivity, setCurrentActivity] = useState("");
@@ -132,6 +145,10 @@ function App() {
   const [localAIKey, setLocalAIKey] = useState("");
   const [aiApiKey, setAiApiKey] = useState("");
   const [aiApiKeyLoading, setAiApiKeyLoading] = useState(false);
+  const [anyModelApiKey, setAnyModelApiKey] = useState("");
+  const [anyModelApiKeyLoading, setAnyModelApiKeyLoading] = useState(false);
+  const [anyModelConnectionState, setAnyModelConnectionState] = useState<"unknown" | "ready" | "checking" | "connected" | "error">("unknown");
+  const [anyModelConnectionMessage, setAnyModelConnectionMessage] = useState("Проверка подключения ещё не выполнялась.");
   const localAITestEnabled = true;
   const [localAIConfigured, setLocalAIConfigured] = useState(false);
   const [localAIKeyLoading, setLocalAIKeyLoading] = useState(false);
@@ -347,14 +364,25 @@ function App() {
   useEffect(() => {
     async function loadAIConfig() {
       try {
-        const [providersResponse, modelsResponse] = await Promise.all([
+        const [providersResponse, modelsResponse, keyStatusResponse] = await Promise.all([
           nexumRuntime.network.fetch("/api/ai/providers"),
           nexumRuntime.network.fetch("/api/ai/models"),
+          nexumRuntime.network.fetch("/api/ai/key-status"),
         ]);
         if (!providersResponse.ok || !modelsResponse.ok) throw new Error(`AI config API: HTTP ${!providersResponse.ok ? providersResponse.status : modelsResponse.status}`);
         const providersData = (await providersResponse.json()) as { providers?: AIProviderInfo[] };
         const modelsData = (await modelsResponse.json()) as { models?: Record<string, string[]> };
+        const keyStatusData = keyStatusResponse.ok
+          ? (await keyStatusResponse.json()) as { providers?: { anymodel?: boolean } }
+          : null;
         const providers = providersData.providers ?? [];
+        if (keyStatusData?.providers?.anymodel) {
+          setAnyModelConnectionState("connected");
+          setAnyModelConnectionMessage("AnyModel подключён и готов к работе.");
+        } else {
+          setAnyModelConnectionState("ready");
+          setAnyModelConnectionMessage("AnyModel API-ключ не подключён.");
+        }
         const defaultProvider = providers.find((provider) => provider.isDefault) ?? providers[0];
         setAIProviders(providers);
         setAIModels(modelsData.models ?? {});
@@ -482,6 +510,7 @@ function App() {
       ].join("\n");
       setMessage("");
       setNewПроектName("");
+      setNewПроектDescription("");
       setModalOpen(false);
       setProjectCreationError("");
       setRunningProjectIds((items) => items.includes(responseData.project.id) ? items : [...items, responseData.project.id]);
@@ -499,15 +528,29 @@ function App() {
     const task = lastMessage.trim();
     if (!task) {
       setRightTab("preview");
-      
       setWorkspaceMode("preview");
       return;
     }
-    const repairTask = `Исправь результат последней задачи. Проверь Preview, найди ошибки и внеси необходимые исправления: ${task}`;
+
+    const failureEvidence = problems
+      .slice(-5)
+      .map((item) => (item.source ? item.source + ": " : "") + item.message)
+      .filter(Boolean)
+      .join("\n");
+
+    const repairTask = [
+      "ИСПРАВЛЕНИЕ ПОСЛЕ ОШИБКИ АГЕНТА.",
+      "Не начинай новый продукт и не создавай новый Product Plan.",
+      "Продолжи работу с текущим проектом и текущими файлами.",
+      "Сначала изучи текущее состояние проекта и точную причину последней ошибки.",
+      "Затем внеси минимальные необходимые исправления, повтори проверку/сборку и доведи задачу до завершения.",
+      "Исходная задача: " + task,
+      failureEvidence ? "Последние ошибки Agent:\n" + failureEvidence : "",
+    ].filter(Boolean).join("\n");
+
     setMessage(repairTask);
     setRightTab("agent");
     setProjectMode("agent");
-    
     setWorkspaceMode("agent");
     window.setTimeout(() => void sendMessage(repairTask), 0);
   }
@@ -696,6 +739,17 @@ function App() {
 
         if (status === "failed") {
           setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
+          setActivitySteps(data?.job?.steps ?? []);
+          setActivityEvents(data?.job?.events ?? []);
+          setProblems(data?.job?.problems ?? []);
+          setCurrentActivity(data?.job?.error || data?.job?.currentMessage || "ИИ-агент завершил работу с ошибкой.");
+          if (data?.job?.productPlan) setProductPlan({
+            goal: data.job.productPlan.goal ?? "",
+            productType: data.job.productPlan.productType ?? "Product",
+            pages: data.job.productPlan.pages ?? [],
+            components: data.job.productPlan.components ?? [],
+            acceptanceCriteria: data.job.productPlan.acceptanceCriteria ?? [],
+          });
           throw new Error(data?.job?.error || "ИИ-агент завершил работу с ошибкой");
         }
 
@@ -737,15 +791,15 @@ function App() {
       const response = await nexumRuntime.network.fetch("/api/ai/connect-key", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: aiApiKey.trim() }),
+        body: JSON.stringify({ apiKey: aiApiKey.trim(), provider: aiProvider }),
       });
       const data = await response.json().catch(() => ({})) as { success?: boolean; provider?: string; model?: string; error?: string };
       if (!response.ok || !data.success) throw new Error(data.error || "Не удалось проверить API-ключ");
       const provider = data.provider || "openai";
       setAiApiKey("");
       setAIProvider(provider);
-      setAIModel(data.model || aiModels[provider]?.[0] || (provider === "openai" ? "gpt-5" : provider === "orcarouter" ? "deepseek/deepseek-v4-flash-free" : "openrouter/free"));
-      setNotice(provider === "openai" ? "OpenAI подключён — модели GPT готовы" : "OpenRouter подключён");
+      setAIModel(data.model || aiModels[provider]?.[0] || (provider === "openai" ? "gpt-5" : provider === "anymodel" ? "gpt-6-astra" : provider === "orcarouter" ? "deepseek/deepseek-v4-flash-free" : "openrouter/free"));
+      setNotice(provider === "openai" ? "OpenAI подключён — модели GPT готовы" : provider === "anymodel" ? "AnyModel подключён — модели готовы" : provider === "orcarouter" ? "OrcaRouter подключён" : "OpenRouter подключён");
       window.setTimeout(() => setNotice(""), 3200);
       const modelsResponse = await nexumRuntime.network.fetch("/api/ai/models");
       if (modelsResponse.ok) {
@@ -756,6 +810,53 @@ function App() {
       setApiError(error instanceof Error ? error.message : "ИИ key setup failed");
     } finally {
       setAiApiKeyLoading(false);
+    }
+  }
+
+  async function connectAnyModelKey() {
+    if (!anyModelApiKey.trim()) return;
+    setAnyModelApiKeyLoading(true);
+    setAnyModelConnectionState("checking");
+    setAnyModelConnectionMessage("Проверяю ключ AnyModel через API…");
+    setApiError("");
+    try {
+      const response = await nexumRuntime.network.fetch("/api/ai/connect-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: anyModelApiKey.trim(), provider: "anymodel" }),
+      });
+      const data = await response.json().catch(() => ({})) as {
+        success?: boolean;
+        provider?: string;
+        model?: string;
+        status?: { available?: boolean; error?: string };
+        error?: string;
+      };
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.status?.error || "Не удалось подключить AnyModel");
+      }
+
+      setAnyModelApiKey("");
+      setAnyModelConnectionState("connected");
+      setAnyModelConnectionMessage("AnyModel подключён и готов к работе.");
+      setAIProvider("anymodel");
+      setAIModel(data.model || "gpt-6-astra");
+      setAIStatus(data.status ? { ...data.status, provider: "anymodel", model: data.model || "gpt-6-astra" } as AIProviderStatus : null);
+      setNotice("AnyModel подключён — gpt-6-astra готов");
+      window.setTimeout(() => setNotice(""), 3200);
+
+      const modelsResponse = await nexumRuntime.network.fetch("/api/ai/models");
+      if (modelsResponse.ok) {
+        const modelsData = await modelsResponse.json() as { models?: Record<string, string[]> };
+        setAIModels(modelsData.models ?? {});
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Не удалось подключить AnyModel";
+      setAnyModelConnectionState("error");
+      setAnyModelConnectionMessage(message);
+      setApiError(message);
+    } finally {
+      setAnyModelApiKeyLoading(false);
     }
   }
 
@@ -803,7 +904,7 @@ function App() {
 
   const runTask = (task: string) => void sendMessage(task);
   const paletteActions = [
-    { label: "New Проект", hint: "N", run: () => setModalOpen(true) },
+    { label: "New Проект", hint: "N", run: () => openNewProject() },
     { label: "Open Проект", hint: "O", run: openПроектPicker },
     { label: "Поиск файлов", hint: "S", run: () => focusTask("Найди ") },
     { label: "Open Агент Activity", hint: "A", run: () => { if (!activeПроектId) return; setProjectMode("agent"); } },
@@ -818,24 +919,6 @@ function App() {
     { label: "Диагностика Agent", hint: "D", run: () => setView("diagnostics") },
     { label: "Настройки", hint: "", run: () => setView("settings") },
   ];
-
-  function ConnectorModal() {
-    const connected = connectorModal ? connectedConnectors.includes(connectorModal) : false;
-    useEffect(() => {
-      if (!connectorModal) return;
-      const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setConnectorModal(null); };
-      window.addEventListener("keydown", onKeyDown);
-      return () => window.removeEventListener("keydown", onKeyDown);
-    }, [connectorModal]);
-    if (!connectorModal) return null;
-    return <div className="modal-backdrop connector-backdrop" onMouseDown={() => setConnectorModal(null)}>
-      <section className="connector-modal" role="dialog" aria-modal="true" aria-labelledby="connector-modal-title" onMouseDown={(event) => event.stopPropagation()}>
-        <div className="modal-top"><div><span className="eyebrow">ИНТЕГРАЦИЯ</span><h2 id="connector-modal-title">{connectorModal}</h2></div><button type="button" aria-label="Закрыть" onClick={() => setConnectorModal(null)}>×</button></div>
-        <p>{connected ? "Эта интеграция включена в интерфейсе рабочего пространства. OAuth/API-данные провайдера пока не сохраняются." : "Включить интеграцию для текущего рабочего пространства. OAuth/API-данные провайдера пока не сохраняются."}</p>
-        <div className="connector-modal-actions"><button type="button" onClick={() => setConnectorModal(null)}>Отмена</button><button className="home-primary" type="button" onClick={() => { setConnectedConnectors((items) => connected ? items.filter((item) => item !== connectorModal) : [...items, connectorModal]); setConnectorModal(null); setNotice(connectorModal + (connected ? " интеграция отключена" : " интеграция подключена")); }}>{connected ? "Отключить" : "Продолжить"}</button></div>
-      </section>
-    </div>;
-  }
 
   if (!onboardingComplete || welcomeTestMode) {
     return <NexumWelcome onComplete={() => { setOnboardingComplete(true); setWelcomeTestMode(false); }} />;
@@ -866,7 +949,7 @@ function App() {
           onHome={() => navigate("home")}
           onSearch={() => setPaletteOpen(true)}
           onSettings={() => navigate("settings")}
-          onNewProject={() => setModalOpen(true)}
+          onNewProject={() => openNewProject()}
         />}
         {view === "diagnostics" ? (
           <OSAppWindow title="Диагностика" subtitle="Системное состояние и события" icon="⌁" status="Система готова" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
@@ -875,7 +958,7 @@ function App() {
         ) : view === "home" ? (
           <BuilderHome
             projects={projects}
-            onNewProject={() => setModalOpen(true)}
+            onNewProject={(description) => openNewProject(description)}
             onOpenProject={(id, tab) => openПроект(id, tab)}
             onOpenView={(next) => setView(next)}
           />
@@ -959,8 +1042,42 @@ function App() {
                     <div><h2>AI Engine</h2><p>Провайдер, модель и ключи доступа.</p></div>
                   </div>
                   <div className="settings-grid">
-                    <div className="settings-card"><strong>Активная модель</strong><span>{aiProvider} · {aiModel}</span><small>Текущий маршрут AI Agent.</small></div>
-                    <div className="settings-card"><strong>Статус</strong><span className={aiStatus?.available ? "settings-status-ok" : "settings-status-muted"}>{aiStatus?.available ? "Подключено" : "Ожидание подключения"}</span><small>{aiStatus?.error || "NEXUM проверяет доступность выбранной модели."}</small></div>
+                    <div className="settings-card settings-card-wide">
+                      <strong>AI provider</strong>
+                      <span>{aiProviders.length ? "Выберите маршрут, который будет использовать Agent." : "Загрузка списка провайдеров…"}</span>
+                      <div className="settings-api-row">
+                        <select
+                          aria-label="AI provider"
+                          value={aiProvider}
+                          disabled={!aiProviders.length || aiApiKeyLoading}
+                          onChange={(event) => selectAIProvider(event.target.value)}
+                        >
+                          {aiProviders.map((provider) => (
+                            <option key={provider.id} value={provider.id}>{provider.name}</option>
+                          ))}
+                        </select>
+                        <select
+                          aria-label="AI model"
+                          value={aiModel}
+                          disabled={!aiProvider || aiApiKeyLoading}
+                          onChange={(event) => setAIModel(event.target.value)}
+                        >
+                          {(aiModels[aiProvider] ?? [aiModel]).map((model) => (
+                            <option key={model} value={model}>{model}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="settings-card">
+                      <strong>Активная модель</strong>
+                      <span>{aiProvider} · {aiModel}</span>
+                      <small>Текущий маршрут AI Agent.</small>
+                    </div>
+                    <div className="settings-card">
+                      <strong>Статус</strong>
+                      <span className={aiStatus?.available ? "settings-status-ok" : "settings-status-muted"}>{aiStatus?.available ? "Подключено" : "Ожидание подключения"}</span>
+                      <small>{aiStatus?.error || "NEXUM проверяет доступность выбранной модели."}</small>
+                    </div>
                   </div>
                 </section>
 
@@ -1012,13 +1129,60 @@ function App() {
                 </section>
 
                 <section className="settings-section">
-                  <div className="settings-section-head"><span>07</span><div><h2>API access</h2><p>Подключение внешней AI-модели.</p></div></div>
-                  <div className="settings-card settings-card-wide">
-                    <strong>ИИ API key</strong><span>Автоматическое определение провайдера</span>
-                    <small>Вставьте ключ OpenAI, OpenRouter или OrcaRouter. NEXUM проверит его и сохранит только в памяти текущего сервера.</small>
+                  <div className="settings-section-head"><span>07</span><div><h2>API access</h2><p>Подключение внешних AI-моделей.</p></div></div>
+                  <div className="settings-card settings-card-wide anymodel-api-card">
+                    <div className="anymodel-api-head">
+                      <div>
+                        <strong>AnyModel API</strong>
+                        <span>GPT-6 Astra · прямое подключение</span>
+                      </div>
+                      <div className={"anymodel-connection-sensor " + anyModelConnectionState} role="status" aria-live="polite">
+                        <span className="anymodel-connection-dot" />
+                        <span>
+                          {anyModelConnectionState === "connected" ? "Подключено"
+                            : anyModelConnectionState === "checking" ? "Проверяю…"
+                            : anyModelConnectionState === "error" ? "Не подключено"
+                            : anyModelApiKey ? "Ключ введён" : "Не подключено"}
+                        </span>
+                      </div>
+                    </div>
+                    <small>{anyModelConnectionMessage}</small>
                     <div className="settings-api-row">
-                      <input type="password" value={aiApiKey} onChange={(event) => setAiApiKey(event.target.value)} placeholder="Вставьте API-ключ" autoComplete="off" />
-                      <button type="button" className="home-primary" disabled={aiApiKeyLoading || !aiApiKey.trim()} onClick={() => void connectAIKey()}>{aiApiKeyLoading ? "Проверяю…" : "Подключить ИИ"}</button>
+                      <input
+                        type="password"
+                        value={anyModelApiKey}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setAnyModelApiKey(value);
+                          if (!value.trim()) {
+                            setAnyModelConnectionState("ready");
+                            setAnyModelConnectionMessage("Введите AnyModel API-ключ для проверки.");
+                          } else if (anyModelConnectionState === "connected") {
+                            setAnyModelConnectionState("ready");
+                            setAnyModelConnectionMessage("Ключ изменён — подключение нужно проверить заново.");
+                          } else {
+                            setAnyModelConnectionState("ready");
+                            setAnyModelConnectionMessage("Ключ введён. Нажмите «Подключить AnyModel» для реальной проверки.");
+                          }
+                          setApiError("");
+                        }}
+                        placeholder="Вставьте AnyModel API key"
+                        autoComplete="off"
+                        aria-label="AnyModel API key"
+                      />
+                      <button type="button" className="home-primary" disabled={anyModelApiKeyLoading || !anyModelApiKey.trim()} onClick={() => void connectAnyModelKey()}>
+                        {anyModelApiKeyLoading ? "Проверяю AnyModel…" : "Подключить AnyModel"}
+                      </button>
+                    </div>
+                    <small>После проверки индикатор станет зелёным. Ключ не вшивается в web bundle.</small>
+                  </div>
+                  <div className="settings-card settings-card-wide">
+                    <strong>Другой AI-провайдер</strong>
+                    <span>{aiProvider} · {aiModel}</span>
+                    <small>Для OpenAI / OpenRouter / Ollama и других маршрутов используйте общий API-доступ.</small>
+                    <div className="settings-api-row">
+                      <input type="password" value={aiApiKey} onChange={(event) => setAiApiKey(event.target.value)} placeholder="API-ключ выбранного провайдера" autoComplete="off" />
+                      <button type="button" className="home-primary" disabled={aiApiKeyLoading || !aiApiKey.trim()} onClick={() => void connectAIKey()}>{aiApiKeyLoading ? "Проверяю…" : "Подключить"}</button>
                     </div>
                   </div>
                   {localAITestEnabled && (
@@ -1051,7 +1215,7 @@ function App() {
           onConnect={() => setConnectorModal("Интеграция проекта")}
           onShare={async () => {
             const url = window.location.origin + "/api/preview/" + activeПроектId + "/index.html";
-            try { await navigator.clipboard.writeText(url); setNotice("Ссылка на предпросмотр скопирована"); } catch { setNotice(url); }
+            try { await navigator.clipboard.writeText(url); setNotice("Ссылка на Preview скопирована для текущей авторизованной сессии"); } catch { setNotice(url); }
           }}
           onOpenPreview={() => { window.open("/api/preview/" + activeПроектId + "/index.html", "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }}
         >
@@ -1085,8 +1249,18 @@ function App() {
         )}
       </main>
       <CommandPalette key={paletteOpen ? "open" : "closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
-      <NewProjectModal open={modalOpen} name={newПроектName} loading={projectActionLoading} error={projectCreationError} onNameChange={setNewПроектName} onClose={() => { setProjectCreationError(""); setModalOpen(false); }} onSubmit={(data) => void createПроект(data)} />
-      {connectorModal && <ConnectorModal />}
+      <NewProjectModal
+        open={modalOpen}
+        name={newПроектName}
+        description={newПроектDescription}
+        loading={projectActionLoading}
+        error={projectCreationError}
+        onNameChange={setNewПроектName}
+        onDescriptionChange={setNewПроектDescription}
+        onClose={() => { setProjectCreationError(""); setModalOpen(false); setNewПроектDescription(""); }}
+        onSubmit={(data) => void createПроект(data)}
+      />
+      {connectorModal && <ConnectorModal name={connectorModal} onClose={() => setConnectorModal(null)} />}
       {notice && <div className="toast" role="status">{notice}</div>}
     </div>
   );
