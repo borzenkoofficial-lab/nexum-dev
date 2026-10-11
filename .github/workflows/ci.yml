@@ -50,7 +50,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker run --detach --rm --name nexum-smoke -p 127.0.0.1:3301:3001 -e PORT=3001 -e HOST=0.0.0.0 nexum-dev:ci
+          docker run --detach --name nexum-smoke -p 127.0.0.1:3301:3001 -e PORT=3001 -e HOST=0.0.0.0 -e AI_PROVIDER=anymodel nexum-dev:ci
           trap 'docker rm -f nexum-smoke >/dev/null 2>&1 || true' EXIT
           for attempt in $(seq 1 30); do
             response="$(curl --silent --show-error --fail http://127.0.0.1:3301/api/health 2>/dev/null || true)"
