@@ -72,6 +72,7 @@ const authLoginLimiter = createRateLimitMiddleware("auth:login", isProduction ? 
 const projectLimiter = createRateLimitMiddleware("projects", isProduction ? 120 : 1000, 60_000);
 const chatLimiter = createRateLimitMiddleware("chat", isProduction ? 30 : 300, 60_000);
 const aiWriteLimiter = createRateLimitMiddleware("ai-write", isProduction ? 20 : 200, 60_000);
+const clientErrorLimiter = createRateLimitMiddleware("client-error", isProduction ? 30 : 300, 60_000);
 
 function sendSafeError(res: Response, error: unknown, requestId: string, fallback = "Внутренняя ошибка NEXUM.") {
   const normalized = error instanceof NexumError
@@ -1453,7 +1454,7 @@ app.get("/api/agent/history", async (req, res) => {
   return res.json({ success: true, entries });
 });
 
-app.post("/api/agent/client-error", async (req, res) => {
+app.post("/api/agent/client-error", authMiddleware, clientErrorLimiter, async (req, res) => {
   const { message, stack, source, url } = req.body as {
     message?: unknown;
     stack?: unknown;
