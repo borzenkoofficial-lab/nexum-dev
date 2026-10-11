@@ -1,7 +1,7 @@
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+import "dotenv/config";
 import { AIGateway, type GatewayFallbackEvent } from "./ai/gateway.js";
 import { OllamaProvider } from "./ai/providers/ollama.js";
 import { OpenRouterProvider } from "./ai/providers/openrouter.js";
@@ -35,7 +35,6 @@ import { agentFailureInjection, type AgentFailure } from "./agent/failureInjecti
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
 
-dotenv.config();
 
 const requestIds = new WeakMap<object, string>();
 
