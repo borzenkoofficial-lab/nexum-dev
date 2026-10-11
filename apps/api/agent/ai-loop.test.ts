@@ -41,7 +41,7 @@ test("AI structured plan selects writeFile and executes it", async () => {
   const content = await readFile(join(projectRoot, "index.html"), "utf8");
 
   assert.equal(result.success, true);
-  assert.deepEqual(result.steps.map((step) => step.tool), ["writeFile", "runCommand"]);
+  assert.deepEqual(result.steps.map((step) => step.tool), ["writeFile", "validateProject"]);
   assert.equal(content, "<!doctype html><html><body><h1>NEXUM.DEV</h1></body></html>");
   assert.match(result.finalResponse ?? "", /Created index\.html/);
   assert.equal((result.finalResponse ?? "").includes("<h1>NEXUM.DEV</h1>"), false);
