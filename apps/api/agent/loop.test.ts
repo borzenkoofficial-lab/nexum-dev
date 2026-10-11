@@ -76,6 +76,34 @@ test("replans when project context changes after an action", async () => {
   assert.equal(localPlans, 1);
 });
 
+test("replans from observed state when AI selects an unavailable tool", async () => {
+  let aiCalls = 0;
+  let deterministicCalls = 0;
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["fake"],
+    plan: () => {
+      deterministicCalls += 1;
+      return { tool: "fake", input: "state-aware fallback" };
+    },
+    planWithAI: async () => {
+      aiCalls += 1;
+      return aiCalls === 1
+        ? { tool: "tool-that-does-not-exist", input: "unsupported action" }
+        : { tool: "", input: "", done: true, finalResponse: "Готово" };
+    },
+    executeTool: async (tool, input) => ({
+      success: tool === "fake",
+      output: input,
+    }),
+  };
+
+  const result = await new AgentLoop(runtime, gateway, 4).run("Покажи статус Git");
+
+  assert.equal(deterministicCalls, 1);
+  assert.ok(result.steps.some((step) => step.tool === "fake" && step.input === "state-aware fallback"));
+  assert.equal(result.success, true);
+});
+
 test("repair mode bypasses Product Planner after a previous Agent failure", async () => {
   let productPlannerCalls = 0;
   let aiPlannerCalls = 0;
