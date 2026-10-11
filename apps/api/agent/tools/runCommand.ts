@@ -211,14 +211,48 @@ export class RunCommandTool implements Tool {
 
   private runGit(args: string[], command: string, signal?: AbortSignal): Promise<RunCommandResult> {
     return new Promise((resolveResult) => {
-      const child = spawn("git", args, { cwd: this.projectRoot, shell: false, windowsHide: true, env: { PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin", HOME: process.env.HOME ?? "/tmp", GIT_CONFIG_NOSYSTEM: "1", GIT_TERMINAL_PROMPT: "0" } });
+      const child = spawn("git", args, {
+        cwd: this.projectRoot,
+        shell: false,
+        windowsHide: true,
+        env: {
+          PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
+          HOME: process.env.HOME ?? "/tmp",
+          GIT_CONFIG_NOSYSTEM: "1",
+          GIT_TERMINAL_PROMPT: "0",
+        },
+      });
       let stdout = "";
       let stderr = "";
+      let outputBytes = 0;
       let timedOut = false;
+      let outputLimitReached = false;
+      let killTimer: ReturnType<typeof setTimeout> | undefined;
       const processId = this.runtime?.registerProcess(`runCommand:${command.slice(0, 120)}`, child, { ...this.context, operation: command });
-      const abort = () => {
-        if (child.exitCode === null) child.kill("SIGTERM");
+
+      const terminate = () => {
+        if (child.exitCode !== null) return;
+        child.kill("SIGTERM");
+        if (!killTimer) {
+          killTimer = setTimeout(() => {
+            if (child.exitCode === null) child.kill("SIGKILL");
+          }, 1_500);
+        }
       };
+      const append = (target: "stdout" | "stderr", chunk: Buffer): void => {
+        if (outputLimitReached) return;
+        const remaining = Math.max(0, MAX_OUTPUT_BYTES - outputBytes);
+        const accepted = chunk.subarray(0, remaining);
+        if (target === "stdout") stdout += accepted.toString("utf8");
+        else stderr += accepted.toString("utf8");
+        outputBytes += accepted.byteLength;
+        if (chunk.byteLength > remaining) {
+          outputLimitReached = true;
+          stderr += "\nCommand output limit exceeded";
+          terminate();
+        }
+      };
+      const abort = () => terminate();
       if (signal) {
         if (signal.aborted) abort();
         else signal.addEventListener("abort", abort, { once: true });
@@ -226,22 +260,24 @@ export class RunCommandTool implements Tool {
       const timer = setTimeout(() => {
         timedOut = true;
         stderr += "\nCommand timed out";
-        child.kill("SIGTERM");
+        terminate();
       }, this.timeoutMs);
 
-      child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
-      child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+      child.stdout.on("data", (chunk: Buffer) => append("stdout", chunk));
+      child.stderr.on("data", (chunk: Buffer) => append("stderr", chunk));
       child.on("error", (error) => {
         clearTimeout(timer);
+        if (killTimer) clearTimeout(killTimer);
         if (processId) this.runtime?.completeProcess(processId);
         signal?.removeEventListener("abort", abort);
         resolveResult({ success: false, exitCode: null, stdout, stderr: error.message, command, output: this.formatOutput(stdout, error.message, null) });
       });
       child.on("close", (exitCode) => {
         clearTimeout(timer);
+        if (killTimer) clearTimeout(killTimer);
         if (processId) this.runtime?.completeProcess(processId);
         signal?.removeEventListener("abort", abort);
-        const success = exitCode === 0 && !timedOut;
+        const success = exitCode === 0 && !timedOut && !outputLimitReached && !signal?.aborted;
         resolveResult({ success, exitCode, stdout, stderr, command, output: this.formatOutput(stdout, stderr, exitCode) });
       });
     });
