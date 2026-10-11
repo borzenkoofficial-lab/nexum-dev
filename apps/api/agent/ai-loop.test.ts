@@ -33,7 +33,7 @@ async function createLoop(responses: string[]) {
 test("AI structured plan selects writeFile and executes it", async () => {
   const { projectRoot, loop } = await createLoop([
     JSON.stringify({ tool: "writeFile", input: { path: "index.html", content: "<h1>NEXUM.DEV</h1>" } }),
-    JSON.stringify({ tool: "runCommand", input: "node --version" }),
+    JSON.stringify({ tool: "validateProject", input: "." }),
     JSON.stringify({ done: true, finalResponse: "Created index.html and verified the project." }),
   ]);
 
