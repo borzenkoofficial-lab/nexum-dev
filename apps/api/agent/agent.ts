@@ -193,18 +193,23 @@ export class NexumAgent implements AgentRuntime {
       "github: input is a read-only operation string",
     ].join("\n");
 
+    const formatObservedResult = (item: AgentToolResult): string => {
+      const output = item.result.output.slice(0, 500);
+      const recovery = !item.result.success ? item.result.error?.recoveryStrategy : undefined;
+      return recovery ? `${output}\nPrioritized recovery guidance: ${recovery}` : output;
+    };
     const history = previousResults.length === 0
       ? "No tools have run yet."
       : previousResults
           .slice(-6)
-          .map((item) => `${item.tool}: ${item.result.output.slice(0, 500)}`)
+          .map((item) => `${item.tool}: ${formatObservedResult(item)}`)
           .join("\n");
     const contextSnapshot = await buildAgentContext(
       this.projectRoot,
       previousResults.map((item) => ({
         tool: item.tool,
         success: item.result.success,
-        output: item.result.output,
+        output: formatObservedResult(item),
       })),
       task,
     );
