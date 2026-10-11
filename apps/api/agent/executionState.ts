@@ -137,7 +137,7 @@ export function isValidationAction(tool: string, input: string): boolean {
 
   // Dependency installation, version checks, and arbitrary Node scripts are
   // not validation evidence. Count only explicit build/test/static-check commands.
-  return /^(?:npm\\s+run\\s+(?:build|test|lint|typecheck)|npx\\s+(?:tsc|oxlint)|npx\\s+vite\\s+build)(?:\\s|$)/i.test(command);
+  return /^(?:npm\s+run\s+(?:build|test|lint|typecheck)|npx\s+(?:tsc|oxlint)|npx\s+vite\s+build)(?:\s|$)/i.test(command);
 }
 
 export function createValidation(
