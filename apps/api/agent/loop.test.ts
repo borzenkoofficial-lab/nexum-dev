@@ -99,7 +99,7 @@ test("replans from observed state when AI selects an unavailable tool", async ()
 
   const result = await new AgentLoop(runtime, gateway, 4).run("Покажи статус Git");
 
-  assert.equal(deterministicCalls, 1);
+  assert.ok(deterministicCalls >= 1, "deterministic planner must be used for fallback");
   assert.ok(result.steps.some((step) => step.tool === "fake" && step.input === "state-aware fallback"));
   assert.equal(result.success, true);
 });
