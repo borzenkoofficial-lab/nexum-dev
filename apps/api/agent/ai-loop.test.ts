@@ -32,7 +32,7 @@ async function createLoop(responses: string[]) {
 
 test("AI structured plan selects writeFile and executes it", async () => {
   const { projectRoot, loop } = await createLoop([
-    JSON.stringify({ tool: "writeFile", input: { path: "index.html", content: "<h1>NEXUM.DEV</h1>" } }),
+    JSON.stringify({ tool: "writeFile", input: { path: "index.html", content: "<!doctype html><html><body><h1>NEXUM.DEV</h1></body></html>" } }),
     JSON.stringify({ tool: "validateProject", input: "." }),
     JSON.stringify({ done: true, finalResponse: "Created index.html and verified the project." }),
   ]);
@@ -42,7 +42,7 @@ test("AI structured plan selects writeFile and executes it", async () => {
 
   assert.equal(result.success, true);
   assert.deepEqual(result.steps.map((step) => step.tool), ["writeFile", "runCommand"]);
-  assert.equal(content, "<h1>NEXUM.DEV</h1>");
+  assert.equal(content, "<!doctype html><html><body><h1>NEXUM.DEV</h1></body></html>");
   assert.match(result.finalResponse ?? "", /Created index\.html/);
   assert.equal((result.finalResponse ?? "").includes("<h1>NEXUM.DEV</h1>"), false);
 });
