@@ -44,6 +44,8 @@ jobs:
         run: npm --prefix apps/web run build
       - name: Lint Web
         run: npm --prefix apps/web run lint
+      - name: Build production Docker image
+        run: docker build --tag nexum-dev:ci .
 
   e2e:
     runs-on: ubuntu-latest
