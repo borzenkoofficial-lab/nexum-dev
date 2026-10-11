@@ -90,7 +90,7 @@ function createDiagnosis(
 
 export function diagnoseError(output: string): ErrorDiagnosis {
   const text = output.slice(-12000);
-  const fileMatches = [...text.matchAll(/(?:^|\\s)([A-Za-z0-9_.-]+\\/(?:[A-Za-z0-9_./-]+)|(?:src|app|pages)\\/[A-Za-z0-9_./-]+):\\d+(?::\\d+)?/g)]
+  const fileMatches = [...text.matchAll(/(?:^|\s)([A-Za-z0-9_.-]+\/(?:[A-Za-z0-9_./-]+)|(?:src|app|pages)\/[A-Za-z0-9_./-]+):\d+(?::\d+)?/g)]
     .map((match) => match[1])
     .filter(Boolean);
   const likelyFiles = [...new Set(fileMatches.filter((file): file is string => Boolean(file)))].slice(0, 8);
@@ -111,7 +111,7 @@ export function diagnoseError(output: string): ErrorDiagnosis {
   if (/(?:validation failed|completion gate|acceptance criteria|DOMAIN_MISMATCH)/i.test(text)) {
     return createDiagnosis("validation", 2, "Validation did not pass", evidence, likelyFiles, "Treat the evidence as the current project state; repair only the failed criteria, then rerun validation.");
   }
-  if (/(?:TS\\d+|TypeScript|tsc)/i.test(text)) {
+  if (/(?:TS\d+|TypeScript|tsc)/i.test(text)) {
     return createDiagnosis("typescript", 1, "TypeScript error", evidence, likelyFiles, "Inspect the reported file and type error, apply the smallest targeted fix, then rerun typecheck/build.");
   }
   if (/(?:parse error|syntaxerror|unexpected token|invalid unicode escape|unterminated)/i.test(text)) {
