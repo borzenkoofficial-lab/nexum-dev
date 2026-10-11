@@ -734,3 +734,14 @@ test("only explicit build, test, and static-check commands count as post-change 
   assert.equal(isValidationAction("validateProject", "."), true);
   assert.equal(isValidationAction("testProject", "."), true);
 });
+
+
+test("Completion Gate rejects validation claims embedded in file-write output", async () => {
+  const { isSuccessfulValidationEvidence } = await import("./executionState.js");
+
+  assert.equal(isSuccessfulValidationEvidence("writeFile", JSON.stringify({ path: "src/App.tsx", content: "app" }), true), false);
+  assert.equal(isSuccessfulValidationEvidence("patchFile", JSON.stringify({ path: "src/App.tsx", verified: true }), true), false);
+  assert.equal(isSuccessfulValidationEvidence("runCommand", "npm run build", true), true);
+  assert.equal(isSuccessfulValidationEvidence("runCommand", "npm run build", false), false);
+  assert.equal(isSuccessfulValidationEvidence("runSandbox", JSON.stringify({ command: "npm run test" }), true), true);
+});
