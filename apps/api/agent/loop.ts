@@ -12,7 +12,7 @@ import { recordAction } from "./journal.js";
 import type { GatewayGenerateOptions } from "../ai/gateway.js";
 import { createAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 import { createAgentIntent } from "./intent.js";
-import { createExecutionPlan, createTelemetry, transitionAgentState, setPlanStep, markPlanStepCompleted, markPlanStepSkipped, canRunPlanStep, createValidation, evaluateCompletionGate, type AgentExecutionSnapshot } from "./executionState.js";
+import { createExecutionPlan, createTelemetry, transitionAgentState, setPlanStep, markPlanStepCompleted, markPlanStepSkipped, canRunPlanStep, createValidation, evaluateCompletionGate, isValidationAction, type AgentExecutionSnapshot } from "./executionState.js";
 import { agentFailureInjection } from "./failureInjection.js";
 import type {
   AgentModelOptions,
@@ -930,8 +930,7 @@ export class AgentLoop {
         const lastMutationIndex = previousResults.reduce((index, item, currentIndex) =>
           ["writeFile", "patchFile", "scaffoldProject"].includes(item.tool) && item.result.success ? currentIndex : index, -1);
         const lastValidationIndex = previousResults.reduce((index, item, currentIndex) => {
-          const validationTool = ["validateProject", "testProject"].includes(item.tool) ||
-            (item.tool === "runCommand" && /npm run (build|test|lint|typecheck)/.test(item.input)) || item.tool === "runSandbox" ||
+          const validationTool = isValidationAction(item.tool, item.input) ||
             ((item.tool === "writeFile" || item.tool === "patchFile") && /"verified"\s*:\s*true/.test(item.result.output));
           return validationTool && item.result.success ? currentIndex : index;
         }, -1);

@@ -719,3 +719,18 @@ test("Builder cannot complete until runtime preview validation passes after the 
   assert.ok(runtimeChecks >= 2);
   assert.ok(writes >= 3);
 });
+
+
+test("only explicit build, test, and static-check commands count as post-change validation", async () => {
+  const { isValidationAction } = await import("./executionState.js");
+
+  assert.equal(isValidationAction("runSandbox", "npm install --ignore-scripts"), false);
+  assert.equal(isValidationAction("runSandbox", "node --version"), false);
+  assert.equal(isValidationAction("runSandbox", "npm run build"), true);
+  assert.equal(isValidationAction("runSandbox", JSON.stringify({ command: "npm run test" })), true);
+  assert.equal(isValidationAction("runCommand", "git status"), false);
+  assert.equal(isValidationAction("runCommand", "npx tsc --noEmit"), true);
+  assert.equal(isValidationAction("runCommand", "npx vite"), false);
+  assert.equal(isValidationAction("validateProject", "."), true);
+  assert.equal(isValidationAction("testProject", "."), true);
+});

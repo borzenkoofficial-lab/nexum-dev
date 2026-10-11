@@ -123,6 +123,23 @@ export function markPlanStepCompleted(plan: AgentExecutionPlan, id: string, resu
   step.completedAt = Date.now();
 }
 
+export function isValidationAction(tool: string, input: string): boolean {
+  if (tool === "validateProject" || tool === "testProject") return true;
+  if (tool !== "runCommand" && tool !== "runSandbox") return false;
+
+  let command = input.trim();
+  try {
+    const parsed = JSON.parse(input) as { command?: unknown };
+    if (typeof parsed.command === "string") command = parsed.command.trim();
+  } catch {
+    // Tool inputs may be plain command strings.
+  }
+
+  // Dependency installation, version checks, and arbitrary Node scripts are
+  // not validation evidence. Count only explicit build/test/static-check commands.
+  return /^(?:npm\s+run\s+(?:build|test|lint|typecheck)|npx\s+(?:tsc|oxlint)|npx\s+vite\s+build)(?:\s|$)/i.test(command);
+}
+
 export function createValidation(
   checks: AgentValidation["checks"],
   failedCriteria: string[] = [],
