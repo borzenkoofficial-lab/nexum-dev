@@ -70,6 +70,26 @@ function isVerificationResult(item: AgentToolResult, tool: string): boolean {
   return item.result.success && item.tool === tool;
 }
 
+/**
+ * Recognize only explicit package build-script invocations as build evidence.
+ * Tool inputs may be raw commands or JSON objects containing a command field.
+ * Do not infer a build from incidental occurrences of the word "build".
+ */
+export function isBuildValidationCommand(tool: string, input: string): boolean {
+  if (tool !== "runCommand" && tool !== "runSandbox") return false;
+
+  let command = input.trim();
+  try {
+    const parsed = JSON.parse(input) as { command?: unknown };
+    if (typeof parsed.command === "string") command = parsed.command.trim();
+  } catch {
+    // Some tools provide the command as a plain string.
+  }
+
+  // Support the common package managers, but require the actual build script.
+  return /^(?:npm\s+run\s+build|pnpm\s+run\s+build|yarn\s+build|bun\s+run\s+build)(?:\s|$)/i.test(command);
+}
+
 export function syncVerificationState(
   state: AgentTaskState,
   results: AgentToolResult[],
@@ -90,8 +110,8 @@ export function syncVerificationState(
       continue;
     }
 
-    if (isVerificationResult(item, "runCommand") || isVerificationResult(item, "runSandbox")) {
-      if (/npm run build|build/i.test(item.input)) buildVersion = version;
+    if (item.result.success && isBuildValidationCommand(item.tool, item.input)) {
+      buildVersion = version;
     }
     if (isVerificationResult(item, "testProject")) testsVersion = version;
     if (isVerificationResult(item, "validateProject")) staticValidationVersion = version;

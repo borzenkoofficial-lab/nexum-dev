@@ -140,6 +140,11 @@ export function isValidationAction(tool: string, input: string): boolean {
   return /^(?:npm\s+run\s+(?:build|test|lint|typecheck)|npx\s+(?:tsc|oxlint)|npx\s+vite\s+build)(?:\s|$)/i.test(command);
 }
 
+/** Only a successful explicit validation action can prove post-change validation. */
+export function isSuccessfulValidationEvidence(tool: string, input: string, success: boolean): boolean {
+  return success && isValidationAction(tool, input);
+}
+
 export function createValidation(
   checks: AgentValidation["checks"],
   failedCriteria: string[] = [],
