@@ -9,9 +9,11 @@ services:
       - key: NODE_VERSION
         value: "22"
       - key: AI_PROVIDER
-        value: "openrouter"
-      - key: OPENROUTER_API_KEY
+        value: "anymodel"
+      - key: ANYMODEL_API_KEY
         sync: false
+      - key: ANYMODEL_MODEL
+        value: "gpt-6-astra"
       - key: NEXUM_AUTH_ENABLED
         value: "true"
       - key: NEXUM_AUTH_SECRET
