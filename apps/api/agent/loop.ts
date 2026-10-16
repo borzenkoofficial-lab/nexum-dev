@@ -427,20 +427,42 @@ export class AgentLoop {
         continue;
       }
 
-      // Bootstrap an actually empty project before asking any model to plan.
-      // This guarantees a concrete first artifact even when the provider is slow,
-      // rate-limited, or returns an invalid plan. The scaffold tool has its own
-      // filesystem guard and cannot overwrite an existing project.
+      // Bootstrap a new project before asking any model to plan. A truly empty
+      // project can be scaffolded immediately. A known NEXUM starter must first
+      // have its index.html read so we never overwrite a real three-file website.
+      // The scaffold tool repeats the filesystem safety check before writing.
       const latestSuccessfulListing = [...previousResults]
         .reverse()
         .find((item) => item.tool === "listFiles" && item.result.success);
+      const listedPaths = (latestSuccessfulListing?.result.output ?? "")
+        .trim()
+        .split(/\r?\n/)
+        .map((path) => path.trim().replace(/\/$/, ""))
+        .filter((path) => Boolean(path) && path !== "Project directory is empty" && path !== ".nexum" && !path.startsWith(".nexum/"));
+      const isEmptyProject = Boolean(
+        latestSuccessfulListing &&
+        (/^Project directory is empty\s*$/i.test(latestSuccessfulListing.result.output.trim()) || listedPaths.length === 0),
+      );
+      const starterOnlyCandidate =
+        listedPaths.length === 3 &&
+        listedPaths.every((path) => ["index.html", "style.css", "app.js"].includes(path));
+      const starterIndexRead = [...previousResults]
+        .reverse()
+        .find((item) => item.tool === "readFile" && item.input === "index.html" && item.result.success);
+      const starterConfirmed = Boolean(
+        starterOnlyCandidate &&
+        starterIndexRead &&
+        /Your project is ready\. Ask the Agent to design and build it\./i.test(starterIndexRead.result.output),
+      );
+      const needsStarterInspection = builderTask && starterOnlyCandidate && !starterIndexRead;
       const needsInitialScaffold =
         builderTask &&
         availableTools.includes("scaffoldProject") &&
         !previousResults.some((item) => item.tool === "scaffoldProject" && item.result.success) &&
-        Boolean(latestSuccessfulListing && /^Project directory is empty\s*$/i.test(latestSuccessfulListing.result.output.trim()));
+        (isEmptyProject || starterConfirmed);
+      const needsBootstrapAction = needsStarterInspection || needsInitialScaffold;
 
-      if (builderTask && !needsInitialScaffold && !repairRequested && !productPlan && !productPlannerCreated && productPlannerAttempts < 2 && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
+      if (builderTask && !needsBootstrapAction && !repairRequested && !productPlan && !productPlannerCreated && productPlannerAttempts < 2 && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
         emit({ iteration, type: "thinking", message: "Формирую Product Plan: страницы, компоненты, визуальную систему и критерии готовности." });
         try {
           if (++modelTurns > maxModelTurns) throw new Error("Agent model-turn limit reached");
@@ -486,7 +508,7 @@ export class AgentLoop {
         })),
       });
       const plannerContextSeen = seenPlannerContexts.has(plannerContextFingerprint);
-      if (!needsInitialScaffold && !modelPlan && this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < maxAiPlannerCalls && !plannerContextSeen) {
+      if (!needsBootstrapAction && !modelPlan && this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < maxAiPlannerCalls && !plannerContextSeen) {
         try {
           if (++modelTurns > maxModelTurns) throw new Error("Agent model-turn limit reached");
           seenPlannerContexts.add(plannerContextFingerprint);
@@ -523,10 +545,12 @@ export class AgentLoop {
       }
       // Prefer the model plan when available. If it repeats an action that
       // already failed, switch to the deterministic planner so recovery can continue.
-      const initialScaffoldPlan: AgentPlan | null = needsInitialScaffold
-        ? { tool: "scaffoldProject", input: task.trim() }
-        : null;
-      let plan = initialScaffoldPlan ?? modelPlan ?? this.runtime.plan(task, previousResults);
+      const initialBootstrapPlan: AgentPlan | null = needsStarterInspection
+        ? { tool: "readFile", input: "index.html" }
+        : needsInitialScaffold
+          ? { tool: "scaffoldProject", input: task.trim() }
+          : null;
+      let plan = initialBootstrapPlan ?? modelPlan ?? this.runtime.plan(task, previousResults);
       if (!plan && !builderTask && previousResults.length > 0 && previousResults[previousResults.length - 1]?.result.success) {
         const followUp = this.runtime.plan(task, previousResults);
         if (!followUp) {
