@@ -1122,7 +1122,9 @@ export class AgentLoop {
       }
 
       const actionKey = `${(plan as AgentPlan).tool}:${(plan as AgentPlan).input}`;
-      const previousSuccess = previousResults.some(
+      // A successful inspection from before scaffold creation is stale. The
+      // same listFiles/readFile input must be allowed once again after scaffold.
+      const previousSuccess = !needsPostScaffoldListing && !needsPostScaffoldRead && previousResults.some(
         (item) => item.tool === (plan as AgentPlan).tool && item.input === (plan as AgentPlan).input && item.result.success,
       );
       if (previousSuccess) {
