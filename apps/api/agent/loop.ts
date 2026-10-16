@@ -460,7 +460,38 @@ export class AgentLoop {
         availableTools.includes("scaffoldProject") &&
         !previousResults.some((item) => item.tool === "scaffoldProject") &&
         (isEmptyProject || starterConfirmed);
-      const needsBootstrapAction = needsStarterInspection || needsInitialScaffold;
+
+      // Do not let either planner reason from the pre-scaffold file listing.
+      // Once scaffolding succeeds, inspect the real generated tree and read an
+      // actual entry file before Product Planner / AI planner are invoked.
+      const latestScaffoldIndex = previousResults.reduce(
+        (latest, item, index) => item.tool === "scaffoldProject" && item.result.success ? index : latest,
+        -1,
+      );
+      const latestListingIndex = previousResults.reduce(
+        (latest, item, index) => item.tool === "listFiles" && item.result.success ? index : latest,
+        -1,
+      );
+      const needsPostScaffoldListing =
+        builderTask && latestScaffoldIndex >= 0 && latestListingIndex < latestScaffoldIndex;
+      const postScaffoldEntryPath = ["index.html", "src/App.tsx", "src/App.jsx", "src/main.tsx", "src/main.jsx", "src/server.ts", "package.json"]
+        .find((candidate) => listedPaths.includes(candidate));
+      const needsPostScaffoldRead =
+        builderTask &&
+        latestScaffoldIndex >= 0 &&
+        latestListingIndex > latestScaffoldIndex &&
+        Boolean(postScaffoldEntryPath) &&
+        !previousResults.some((item, index) =>
+          index > latestScaffoldIndex &&
+          item.tool === "readFile" &&
+          item.input === postScaffoldEntryPath &&
+          item.result.success,
+        );
+      const needsBootstrapAction =
+        needsStarterInspection ||
+        needsInitialScaffold ||
+        needsPostScaffoldListing ||
+        needsPostScaffoldRead;
 
       if (builderTask && !needsBootstrapAction && !repairRequested && !productPlan && !productPlannerCreated && productPlannerAttempts < 2 && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
         emit({ iteration, type: "thinking", message: "Формирую Product Plan: страницы, компоненты, визуальную систему и критерии готовности." });
@@ -549,7 +580,11 @@ export class AgentLoop {
         ? { tool: "readFile", input: "index.html" }
         : needsInitialScaffold
           ? { tool: "scaffoldProject", input: task.trim() }
-          : null;
+          : needsPostScaffoldListing
+            ? { tool: "listFiles", input: "." }
+            : needsPostScaffoldRead && postScaffoldEntryPath
+              ? { tool: "readFile", input: postScaffoldEntryPath }
+              : null;
       let plan = initialBootstrapPlan ?? modelPlan ?? this.runtime.plan(task, previousResults);
       if (!plan && !builderTask && previousResults.length > 0 && previousResults[previousResults.length - 1]?.result.success) {
         const followUp = this.runtime.plan(task, previousResults);
