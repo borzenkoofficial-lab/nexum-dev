@@ -19,12 +19,14 @@ class ScriptedProvider implements AIProvider {
   constructor(
     private readonly responses: string[],
     private readonly beforeGenerate?: () => Promise<void>,
+    private readonly respondToMessage?: (message: string, index: number) => string,
   ) {}
 
-  async generate(_message: string, _model?: string, options?: AIGenerateOptions): Promise<string> {
+  async generate(message: string, _model?: string, options?: AIGenerateOptions): Promise<string> {
     this.requestedMaxTokens.push(options?.maxTokens ?? 0);
     await this.beforeGenerate?.();
-    return this.responses[this.index++] ?? '{"done":true,"finalResponse":"Done"}';
+    const index = this.index++;
+    return this.respondToMessage?.(message, index) ?? this.responses[index] ?? '{"done":true,"finalResponse":"Done"}';
   }
 }
 
@@ -60,16 +62,6 @@ test("empty Builder project is scaffolded before the first model request", async
           content: "<!doctype html><html lang=\"ru\"><body><h1>Кофейня Север</h1><section><h2>Меню</h2><p>Кофе и десерты</p></section><a href=\"#contacts\">Контакты</a></body></html>",
         },
       }),
-      // Planner/recovery paths may request more than one model turn before
-      // selecting an executable action. Keep the scripted coder response
-      // available rather than letting the test silently fall back to "Done".
-      ...Array.from({ length: 4 }, () => JSON.stringify({
-        tool: "writeFile",
-        input: {
-          path: "index.html",
-          content: "<!doctype html><html lang=\"ru\"><body><h1>Кофейня Север</h1><section><h2>Меню</h2><p>Кофе и десерты</p></section><a href=\"#contacts\">Контакты</a></body></html>",
-        },
-      })),
     ],
     async () => {
       const scaffoldExists = await readFile(join(projectRoot, "index.html"), "utf8")
@@ -80,6 +72,33 @@ test("empty Builder project is scaffolded before the first model request", async
         true,
         "the project must have a real scaffold before the first model request",
       );
+    },
+    (message) => {
+      if (message.includes("You are the NEXUM product planner.")) {
+        return JSON.stringify({
+          goal: "Сайт ресторана с меню и бронированием",
+          productType: "Сайт ресторана",
+          targetUser: "Посетители ресторана",
+          pages: ["Главная", "Меню", "Контакты"],
+          components: ["Навигация", "Карточки блюд", "Форма бронирования"],
+          visualSystem: ["Тёплая цветовая палитра", "Адаптивная сетка"],
+          interactions: ["Отправка формы бронирования"],
+          dataModel: ["Блюдо", "Бронирование"],
+          filesToInspect: ["index.html", "style.css", "app.js"],
+          filesToChange: ["index.html", "style.css", "app.js"],
+          acceptanceCriteria: ["Есть меню и контакты ресторана"],
+        });
+      }
+      if (message.includes("NORMAL BUILD MODE")) {
+        return JSON.stringify({
+          tool: "writeFile",
+          input: {
+            path: "index.html",
+            content: "<!doctype html><html lang=\"ru\"><body><h1>Кофейня Север</h1><section><h2>Меню</h2><p>Кофе и десерты</p></section><a href=\"#contacts\">Контакты</a></body></html>",
+          },
+        });
+      }
+      return '{"done":true,"finalResponse":"Done"}';
     },
   );
   const gateway = new AIGateway([provider], "openrouter");
