@@ -73,7 +73,7 @@ test("empty Builder project is scaffolded before the first model request", async
         "the project must have a real scaffold before the first model request",
       );
     },
-    (message) => {
+    (message, index) => {
       if (message.includes("You are the NEXUM product planner.") || index === 0) {
         return JSON.stringify({
           goal: "Сайт ресторана с меню и бронированием",
