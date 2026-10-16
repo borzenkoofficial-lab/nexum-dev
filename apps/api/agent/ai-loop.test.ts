@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { AIGateway } from "../ai/gateway.js";
-import type { AIProvider } from "../ai/types.js";
+import type { AIProvider, AIGenerateOptions } from "../ai/types.js";
 import { NexumAgent } from "./agent.js";
 import { AgentLoop } from "./loop.js";
 
@@ -14,13 +14,15 @@ class ScriptedProvider implements AIProvider {
   model = "openrouter/free";
   capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: true, reasoning: false, contextWindow: 32768 };
   private index = 0;
+  readonly requestedMaxTokens: number[] = [];
 
   constructor(
     private readonly responses: string[],
     private readonly beforeGenerate?: () => Promise<void>,
   ) {}
 
-  async generate(): Promise<string> {
+  async generate(_message: string, _model?: string, options?: AIGenerateOptions): Promise<string> {
+    this.requestedMaxTokens.push(options?.maxTokens ?? 0);
     await this.beforeGenerate?.();
     return this.responses[this.index++] ?? '{"done":true,"finalResponse":"Done"}';
   }
@@ -75,6 +77,8 @@ test("empty Builder project is scaffolded before the first model request", async
 
   assert.ok(result.steps.some((step) => step.tool === "scaffoldProject" && step.success));
   assert.ok(await readFile(join(projectRoot, "index.html"), "utf8"));
+  assert.equal(provider.requestedMaxTokens[0], 1200, "Product Planner should receive the planner token budget");
+  assert.equal(provider.requestedMaxTokens[1], 4000, "Builder implementation planning should receive the coder token budget");
 });
 
 test("known NEXUM starter is verified and replaced before the first model request", async () => {
