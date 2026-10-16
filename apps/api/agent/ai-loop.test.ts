@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -75,6 +75,62 @@ test("empty Builder project is scaffolded before the first model request", async
 
   assert.ok(result.steps.some((step) => step.tool === "scaffoldProject" && step.success));
   assert.ok(await readFile(join(projectRoot, "index.html"), "utf8"));
+});
+
+test("known NEXUM starter is verified and replaced before the first model request", async () => {
+  const projectRoot = await mkdtemp(join(tmpdir(), "nexum-starter-builder-"));
+  await writeFile(
+    join(projectRoot, "index.html"),
+    '<!doctype html><html lang="en"><body><p>Your project is ready. Ask the Agent to design and build it.</p></body></html>',
+    "utf8",
+  );
+  await writeFile(join(projectRoot, "style.css"), "body { margin: 0; }", "utf8");
+  await writeFile(
+    join(projectRoot, "app.js"),
+    'console.info("NEXUM project foundation ready"); // NEXUM project foundation ready',
+    "utf8",
+  );
+
+  const provider = new ScriptedProvider(
+    [
+      JSON.stringify({
+        goal: "Сайт кофейни с меню и контактами",
+        productType: "Сайт кофейни",
+        targetUser: "Посетители кофейни",
+        pages: ["Главная", "Меню", "Контакты"],
+        components: ["Навигация", "Карточки напитков"],
+        visualSystem: ["Тёплая палитра", "Адаптивная сетка"],
+        interactions: ["Переход к меню"],
+        dataModel: ["Напиток"],
+        filesToInspect: ["index.html", "style.css", "app.js"],
+        filesToChange: ["index.html", "style.css", "app.js"],
+        acceptanceCriteria: ["На странице есть меню и контакты"],
+      }),
+      "not valid model output",
+    ],
+    async () => {
+      const html = await readFile(join(projectRoot, "index.html"), "utf8");
+      assert.doesNotMatch(
+        html,
+        /Your project is ready\. Ask the Agent to design and build it\./i,
+        "the known starter must be replaced before any model request",
+      );
+    },
+  );
+  const gateway = new AIGateway([provider], "openrouter");
+  const agent = new NexumAgent(gateway, projectRoot);
+  const loop = new AgentLoop(agent, gateway);
+
+  const result = await loop.run(
+    "Создай сайт кофейни с меню и контактами",
+    { provider: "openrouter", model: "openrouter/free" },
+  );
+
+  assert.ok(result.steps.some((step) => step.tool === "scaffoldProject" && step.success));
+  assert.doesNotMatch(
+    await readFile(join(projectRoot, "index.html"), "utf8"),
+    /Your project is ready\. Ask the Agent to design and build it\./i,
+  );
 });
 
 test("AI structured plan selects writeFile and executes it", async () => {
