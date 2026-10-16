@@ -427,7 +427,20 @@ export class AgentLoop {
         continue;
       }
 
-      if (builderTask && !repairRequested && !productPlan && !productPlannerCreated && productPlannerAttempts < 2 && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
+      // Bootstrap an actually empty project before asking any model to plan.
+      // This guarantees a concrete first artifact even when the provider is slow,
+      // rate-limited, or returns an invalid plan. The scaffold tool has its own
+      // filesystem guard and cannot overwrite an existing project.
+      const latestSuccessfulListing = [...previousResults]
+        .reverse()
+        .find((item) => item.tool === "listFiles" && item.result.success);
+      const needsInitialScaffold =
+        builderTask &&
+        availableTools.includes("scaffoldProject") &&
+        !previousResults.some((item) => item.tool === "scaffoldProject" && item.result.success) &&
+        Boolean(latestSuccessfulListing && /^Project directory is empty\s*$/i.test(latestSuccessfulListing.result.output.trim()));
+
+      if (builderTask && !needsInitialScaffold && !repairRequested && !productPlan && !productPlannerCreated && productPlannerAttempts < 2 && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
         emit({ iteration, type: "thinking", message: "Формирую Product Plan: страницы, компоненты, визуальную систему и критерии готовности." });
         try {
           if (++modelTurns > maxModelTurns) throw new Error("Agent model-turn limit reached");
@@ -473,7 +486,7 @@ export class AgentLoop {
         })),
       });
       const plannerContextSeen = seenPlannerContexts.has(plannerContextFingerprint);
-      if (!modelPlan && this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < maxAiPlannerCalls && !plannerContextSeen) {
+      if (!needsInitialScaffold && !modelPlan && this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < maxAiPlannerCalls && !plannerContextSeen) {
         try {
           if (++modelTurns > maxModelTurns) throw new Error("Agent model-turn limit reached");
           seenPlannerContexts.add(plannerContextFingerprint);
@@ -510,7 +523,10 @@ export class AgentLoop {
       }
       // Prefer the model plan when available. If it repeats an action that
       // already failed, switch to the deterministic planner so recovery can continue.
-      let plan = modelPlan ?? this.runtime.plan(task, previousResults);
+      const initialScaffoldPlan: AgentPlan | null = needsInitialScaffold
+        ? { tool: "scaffoldProject", input: task.trim() }
+        : null;
+      let plan = initialScaffoldPlan ?? modelPlan ?? this.runtime.plan(task, previousResults);
       if (!plan && !builderTask && previousResults.length > 0 && previousResults[previousResults.length - 1]?.result.success) {
         const followUp = this.runtime.plan(task, previousResults);
         if (!followUp) {
