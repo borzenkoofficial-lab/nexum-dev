@@ -77,8 +77,9 @@ test("empty Builder project is scaffolded before the first model request", async
     },
     (message) => {
       if (
-        message.includes("Turn the user's request into a concrete implementation plan for a coding agent") ||
-        (message.includes("NEXUM.DEV AI role: planner") && message.includes("You are the NEXUM product planner."))
+        !productPlanSent &&
+        (message.includes("Turn the user's request into a concrete implementation plan for a coding agent") ||
+          (message.includes("NEXUM.DEV AI role: planner") && message.includes("You are the NEXUM product planner.")))
       ) {
         productPlanSent = true;
         return JSON.stringify({
