@@ -458,7 +458,7 @@ export class AgentLoop {
       const needsInitialScaffold =
         builderTask &&
         availableTools.includes("scaffoldProject") &&
-        !previousResults.some((item) => item.tool === "scaffoldProject" && item.result.success) &&
+        !previousResults.some((item) => item.tool === "scaffoldProject") &&
         (isEmptyProject || starterConfirmed);
       const needsBootstrapAction = needsStarterInspection || needsInitialScaffold;
 
