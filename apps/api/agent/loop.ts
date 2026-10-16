@@ -482,18 +482,21 @@ export class AgentLoop {
         latestListingIndex < latestScaffoldIndex;
       const postScaffoldEntryPath = ["index.html", "src/App.tsx", "src/App.jsx", "src/main.tsx", "src/main.jsx", "src/server.ts", "package.json"]
         .find((candidate) => listedPaths.includes(candidate));
+      // Any successful entry-file read after the refreshed listing satisfies
+      // the bootstrap inspection gate. Requiring an exact path match here can
+      // deadlock the lifecycle when a tool normalizes or scopes the requested path.
+      const hasPostScaffoldRead = previousResults.some((item, index) =>
+        index > latestScaffoldIndex &&
+        item.tool === "readFile" &&
+        item.result.success,
+      );
       const needsPostScaffoldRead =
         builderTask &&
         availableTools.includes("readFile") &&
         latestScaffoldIndex >= 0 &&
         latestListingIndex > latestScaffoldIndex &&
         Boolean(postScaffoldEntryPath) &&
-        !previousResults.some((item, index) =>
-          index > latestScaffoldIndex &&
-          item.tool === "readFile" &&
-          item.input === postScaffoldEntryPath &&
-          item.result.success,
-        );
+        !hasPostScaffoldRead;
       const needsBootstrapAction =
         needsStarterInspection ||
         needsInitialScaffold ||
