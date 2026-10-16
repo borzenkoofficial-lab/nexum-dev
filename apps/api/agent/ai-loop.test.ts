@@ -275,6 +275,19 @@ test("domain alignment rejects automotive content for construction tasks", async
   assert.equal(aligned, false);
 });
 
+test("restaurant tasks are not misclassified as automotive repair by the domain guard", async () => {
+  const { projectRoot } = await createLoop([]);
+  const gateway = new AIGateway([new ScriptedProvider([])], "openrouter");
+  const agent = new NexumAgent(gateway, projectRoot);
+  const aligned = (agent as unknown as {
+    isPlanAlignedWithTask: (task: string, plan: { tool: string; input: string }) => boolean;
+  }).isPlanAlignedWithTask(
+    "Создай сайт ресторана с меню и бронированием",
+    { tool: "writeFile", input: JSON.stringify({ path: "index.html", content: "<h1>Кофейня Север</h1><h2>Меню</h2><p>Контакты</p>" }) },
+  );
+  assert.equal(aligned, true, "the substring «сто» inside «ресторана» must not trigger the automotive domain guard");
+});
+
 test("repaired AI plans cannot bypass the domain alignment contract", async () => {
   const { projectRoot } = await createLoop([
     JSON.stringify({
