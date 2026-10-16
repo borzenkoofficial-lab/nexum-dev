@@ -73,8 +73,8 @@ test("empty Builder project is scaffolded before the first model request", async
         "the project must have a real scaffold before the first model request",
       );
     },
-    (message, index) => {
-      if (message.includes("You are the NEXUM product planner.") || index === 0) {
+    (message) => {
+      if (message.includes("You are the NEXUM product planner.")) {
         return JSON.stringify({
           goal: "Сайт ресторана с меню и бронированием",
           productType: "Сайт ресторана",
@@ -89,7 +89,7 @@ test("empty Builder project is scaffolded before the first model request", async
           acceptanceCriteria: ["Есть меню и контакты ресторана"],
         });
       }
-      if (message.includes("NORMAL BUILD MODE") || index === 1) {
+      if (message.includes("NORMAL BUILD MODE") || message.includes("NEXUM.DEV AI role: coder")) {
         return JSON.stringify({
           tool: "writeFile",
           input: {
