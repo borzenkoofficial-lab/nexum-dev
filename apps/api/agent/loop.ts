@@ -619,7 +619,7 @@ export class AgentLoop {
                 "стили",
               ]
                 .filter(Boolean)
-                .map((value) => String(value).replace(/\\s+/g, " ").trim())
+                .map((value) => String(value).replace(/\s+/g, " ").trim())
                 .join(" ")
                 .slice(0, 500);
               plan = { tool: "searchFiles", input: searchQuery || "главная страница компоненты стили" };
@@ -748,7 +748,7 @@ export class AgentLoop {
           lastSuccessfulStaticValidationIndex > lastProjectChangeIndex;
         const hasStaticProject = previousResults.some(
           (item) => item.tool === "listFiles" && item.result.success &&
-            /(?:^|\\n)index\\.html(?:\\n|$)/.test(item.result.output),
+            /(?:^|\n)index\.html(?:\n|$)/.test(item.result.output),
         ) && !projectHasBuildScript(previousResults);
         if (
           builderTask &&
@@ -1071,7 +1071,7 @@ export class AgentLoop {
           "стили",
         ]
           .filter(Boolean)
-          .map((value) => String(value).replace(/\\s+/g, " ").trim())
+          .map((value) => String(value).replace(/\s+/g, " ").trim())
           .join(" ")
           .slice(0, 500);
         plan = { ...(plan as AgentPlan), input: safeQuery || "главная страница компоненты стили" };
