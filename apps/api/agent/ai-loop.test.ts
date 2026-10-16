@@ -53,7 +53,13 @@ test("empty Builder project is scaffolded before the first model request", async
         filesToChange: ["index.html", "style.css", "app.js"],
         acceptanceCriteria: ["Есть меню и контакты ресторана"],
       }),
-      "not valid model output",
+      JSON.stringify({
+        tool: "writeFile",
+        input: {
+          path: "index.html",
+          content: "<!doctype html><html lang=\"ru\"><body><h1>Кофейня Север</h1><section><h2>Меню</h2><p>Кофе и десерты</p></section><a href=\"#contacts\">Контакты</a></body></html>",
+        },
+      }),
     ],
     async () => {
       const scaffoldExists = await readFile(join(projectRoot, "index.html"), "utf8")
@@ -76,7 +82,8 @@ test("empty Builder project is scaffolded before the first model request", async
   );
 
   assert.ok(result.steps.some((step) => step.tool === "scaffoldProject" && step.success));
-  assert.ok(await readFile(join(projectRoot, "index.html"), "utf8"));
+  assert.ok(result.steps.some((step) => step.tool === "writeFile" && step.success), "Builder must start implementing after scaffold");
+  assert.match(await readFile(join(projectRoot, "index.html"), "utf8"), /Кофейня Север/, "requested product content must replace the generic starter");
   assert.equal(provider.requestedMaxTokens[0], 1200, "Product Planner should receive the planner token budget");
   assert.equal(provider.requestedMaxTokens[1], 4000, "Builder implementation planning should receive the coder token budget");
 });
