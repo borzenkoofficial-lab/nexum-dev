@@ -473,11 +473,15 @@ export class AgentLoop {
         -1,
       );
       const needsPostScaffoldListing =
-        builderTask && latestScaffoldIndex >= 0 && latestListingIndex < latestScaffoldIndex;
+        builderTask &&
+        availableTools.includes("listFiles") &&
+        latestScaffoldIndex >= 0 &&
+        latestListingIndex < latestScaffoldIndex;
       const postScaffoldEntryPath = ["index.html", "src/App.tsx", "src/App.jsx", "src/main.tsx", "src/main.jsx", "src/server.ts", "package.json"]
         .find((candidate) => listedPaths.includes(candidate));
       const needsPostScaffoldRead =
         builderTask &&
+        availableTools.includes("readFile") &&
         latestScaffoldIndex >= 0 &&
         latestListingIndex > latestScaffoldIndex &&
         Boolean(postScaffoldEntryPath) &&
