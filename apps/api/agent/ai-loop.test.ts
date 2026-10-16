@@ -72,6 +72,32 @@ test("empty Builder project is scaffolded before the first model request", async
         true,
         "the project must have a real scaffold before the first model request",
       );
+    },
+    (message) => {
+      const prompt = message.toLowerCase();
+      if (prompt.includes("you are the nexum product planner.") ||
+          prompt.includes("turn the user's request into a concrete implementation plan for a coding agent")) {
+        return JSON.stringify({
+          goal: "Сайт ресторана с меню и бронированием",
+          productType: "Сайт ресторана",
+          targetUser: "Посетители ресторана",
+          pages: ["Главная", "Меню", "Контакты"],
+          components: ["Навигация", "Карточки блюд", "Форма бронирования"],
+          visualSystem: ["Тёплая цветовая палитра", "Адаптивная сетка"],
+          interactions: ["Отправка формы бронирования"],
+          dataModel: ["Блюдо", "Бронирование"],
+          filesToInspect: ["index.html", "style.css", "app.js"],
+          filesToChange: ["index.html", "style.css", "app.js"],
+          acceptanceCriteria: ["Есть меню и контакты ресторана"],
+        });
+      }
+      return JSON.stringify({
+        tool: "writeFile",
+        input: {
+          path: "index.html",
+          content: "<!doctype html><html lang=\"ru\"><body><h1>Кофейня Север</h1><section><h2>Меню</h2><p>Кофе и десерты</p></section><a href=\"#contacts\">Контакты</a></body></html>",
+        },
+      });
     }
   );
   const gateway = new AIGateway([provider], "openrouter");
