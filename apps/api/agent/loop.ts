@@ -237,6 +237,7 @@ export class AgentLoop {
   }
 
   private async runInternal(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
+    const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
     const steps: AgentStep[] = [];
     const previousResults: AgentToolResult[] = [];
     const seenActions = new Set<string>();
@@ -294,12 +295,14 @@ export class AgentLoop {
     let modelTurns = 0;
     let productPlannerCreated = false;
     let productPlannerAttempts = 0;
-    const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
-    const aiOptionsForTask = (base?: GatewayGenerateOptions, role: "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" = "general"): GatewayGenerateOptions | undefined => {
+    const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, {
+      legacyHardCap: builderTask ? 22_000 : DEFAULT_TASK_TOKEN_BUDGET,
+      builderLifecycle: builderTask,
+    });
+    const aiOptionsForTask    const aiOptionsForTask = (base?: GatewayGenerateOptions, role: "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" = "general"): GatewayGenerateOptions | undefined => {
       const maxTokens = adaptiveBudget.reserve(role, typeof base?.maxTokens === "number" && base.maxTokens > 0 ? base.maxTokens : undefined);
       return maxTokens > 0 ? { ...(base ?? {}), maxTokens } : undefined;
     };
-    const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
     // Builder jobs need more than the generic planner budget because a normal build
     // legitimately spans inspection, scaffold, implementation, build, verification and finalization.
     // The shared adaptive token budget remains the hard cost bound.
