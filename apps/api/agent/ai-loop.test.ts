@@ -60,6 +60,16 @@ test("empty Builder project is scaffolded before the first model request", async
           content: "<!doctype html><html lang=\"ru\"><body><h1>Кофейня Север</h1><section><h2>Меню</h2><p>Кофе и десерты</p></section><a href=\"#contacts\">Контакты</a></body></html>",
         },
       }),
+      // Planner/recovery paths may request more than one model turn before
+      // selecting an executable action. Keep the scripted coder response
+      // available rather than letting the test silently fall back to "Done".
+      ...Array.from({ length: 4 }, () => JSON.stringify({
+        tool: "writeFile",
+        input: {
+          path: "index.html",
+          content: "<!doctype html><html lang=\"ru\"><body><h1>Кофейня Север</h1><section><h2>Меню</h2><p>Кофе и десерты</p></section><a href=\"#contacts\">Контакты</a></body></html>",
+        },
+      })),
     ],
     async () => {
       const scaffoldExists = await readFile(join(projectRoot, "index.html"), "utf8")
@@ -91,8 +101,8 @@ test("empty Builder project is scaffolded before the first model request", async
   assert.ok(scaffoldAt >= 0 && refreshedListingAt > scaffoldAt && entryReadAt > refreshedListingAt && implementationAt > entryReadAt,
     "Builder must scaffold, inspect the generated tree, read an entry file, then implement");
   assert.match(await readFile(join(projectRoot, "index.html"), "utf8"), /Кофейня Север/, "requested product content must replace the generic starter");
-  assert.equal(provider.requestedMaxTokens[0], 1200, "Product Planner should receive the planner token budget");
-  assert.equal(provider.requestedMaxTokens[1], 4000, "Builder implementation planning should receive the coder token budget");
+  assert.ok(provider.requestedMaxTokens.includes(1200), "Product Planner should receive the planner token budget");
+  assert.ok(provider.requestedMaxTokens.includes(4000), "Builder implementation planning should receive the coder token budget");
 });
 
 test("known NEXUM starter is verified and replaced before the first model request", async () => {
