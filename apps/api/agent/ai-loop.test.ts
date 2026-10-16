@@ -40,6 +40,7 @@ async function createLoop(responses: string[]) {
 
 test("empty Builder project is scaffolded before the first model request", async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), "nexum-empty-builder-"));
+  let implementationSent = false;
   const provider = new ScriptedProvider(
     [
       JSON.stringify({
@@ -89,7 +90,8 @@ test("empty Builder project is scaffolded before the first model request", async
           acceptanceCriteria: ["Есть меню и контакты ресторана"],
         });
       }
-      if (message.includes("NORMAL BUILD MODE") || message.includes("NEXUM.DEV AI role: coder")) {
+      if (!implementationSent && (message.includes("NORMAL BUILD MODE") || message.includes("NEXUM.DEV AI role: coder"))) {
+        implementationSent = true;
         return JSON.stringify({
           tool: "writeFile",
           input: {
