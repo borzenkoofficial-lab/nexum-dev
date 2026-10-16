@@ -81,7 +81,7 @@ export class NexumAgent implements AgentRuntime {
   ): Promise<ProductPlan> {
     const lowerTask = task.toLowerCase();
     const isConstructionTask = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lowerTask);
-    const isAutoRepairTask = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lowerTask);
+    const isAutoRepairTask = /авто|автомобил|машин|(?<![а-яё])сто(?![а-яё])|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lowerTask);
     if (isConstructionTask || isAutoRepairTask) {
       // Product planning is an AI capability. Never synthesize a hard-coded plan
       // when the real planner is unavailable.
@@ -649,7 +649,7 @@ export class NexumAgent implements AgentRuntime {
   private isPlanAlignedWithTask(task: string, plan: AgentPlan): boolean {
     const lower = task.toLowerCase();
     const construction = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
-    const autoRepair = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lower);
+    const autoRepair = /авто|автомобил|машин|(?<![а-яё])сто(?![а-яё])|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lower);
     if (!construction && !autoRepair) return true;
     const input = String(plan.input ?? "").toLowerCase();
     // Completion safety is enforced by AgentLoop's execution/validation gates.
