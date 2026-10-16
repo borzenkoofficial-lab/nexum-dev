@@ -83,6 +83,13 @@ test("empty Builder project is scaffolded before the first model request", async
 
   assert.ok(result.steps.some((step) => step.tool === "scaffoldProject" && step.success));
   assert.ok(result.steps.some((step) => step.tool === "writeFile" && step.success), "Builder must start implementing after scaffold");
+  const successfulTools = result.steps.filter((step) => step.success).map((step) => step.tool);
+  const scaffoldAt = successfulTools.indexOf("scaffoldProject");
+  const refreshedListingAt = successfulTools.indexOf("listFiles", scaffoldAt + 1);
+  const entryReadAt = successfulTools.indexOf("readFile", refreshedListingAt + 1);
+  const implementationAt = successfulTools.indexOf("writeFile", entryReadAt + 1);
+  assert.ok(scaffoldAt >= 0 && refreshedListingAt > scaffoldAt && entryReadAt > refreshedListingAt && implementationAt > entryReadAt,
+    "Builder must scaffold, inspect the generated tree, read an entry file, then implement");
   assert.match(await readFile(join(projectRoot, "index.html"), "utf8"), /Кофейня Север/, "requested product content must replace the generic starter");
   assert.equal(provider.requestedMaxTokens[0], 1200, "Product Planner should receive the planner token budget");
   assert.equal(provider.requestedMaxTokens[1], 4000, "Builder implementation planning should receive the coder token budget");
