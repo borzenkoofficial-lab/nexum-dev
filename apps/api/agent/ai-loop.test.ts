@@ -40,6 +40,7 @@ async function createLoop(responses: string[]) {
 
 test("empty Builder project is scaffolded before the first model request", async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), "nexum-empty-builder-"));
+  let productPlanSent = false;
   let implementationSent = false;
   const provider = new ScriptedProvider(
     [
@@ -75,7 +76,11 @@ test("empty Builder project is scaffolded before the first model request", async
       );
     },
     (message) => {
-      if (message.includes("NEXUM.DEV AI role: planner") && message.includes("You are the NEXUM product planner.")) {
+      if (
+        message.includes("Turn the user's request into a concrete implementation plan for a coding agent") ||
+        (message.includes("NEXUM.DEV AI role: planner") && message.includes("You are the NEXUM product planner."))
+      ) {
+        productPlanSent = true;
         return JSON.stringify({
           goal: "Сайт ресторана с меню и бронированием",
           productType: "Сайт ресторана",
@@ -90,7 +95,11 @@ test("empty Builder project is scaffolded before the first model request", async
           acceptanceCriteria: ["Есть меню и контакты ресторана"],
         });
       }
-      if (!implementationSent && (message.includes("NORMAL BUILD MODE") || message.includes("NEXUM.DEV AI role: coder"))) {
+      if (
+        productPlanSent &&
+        !implementationSent &&
+        (message.includes("NORMAL BUILD MODE") || message.includes("NEXUM.DEV AI role: coder") || !message.includes("Turn the user's request into a concrete implementation plan for a coding agent"))
+      ) {
         implementationSent = true;
         return JSON.stringify({
           tool: "writeFile",
