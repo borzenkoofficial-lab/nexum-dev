@@ -89,7 +89,7 @@ test("empty Builder project is scaffolded before the first model request", async
           acceptanceCriteria: ["Есть меню и контакты ресторана"],
         });
       }
-      if (message.includes("NORMAL BUILD MODE")) {
+      if (message.includes("NORMAL BUILD MODE") || index === 1) {
         return JSON.stringify({
           tool: "writeFile",
           input: {
