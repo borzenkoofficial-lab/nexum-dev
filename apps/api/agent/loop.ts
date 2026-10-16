@@ -237,6 +237,7 @@ export class AgentLoop {
   }
 
   private async runInternal(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
+    const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
     const steps: AgentStep[] = [];
     const previousResults: AgentToolResult[] = [];
     const seenActions = new Set<string>();
@@ -294,12 +295,14 @@ export class AgentLoop {
     let modelTurns = 0;
     let productPlannerCreated = false;
     let productPlannerAttempts = 0;
-    const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, { legacyHardCap: DEFAULT_TASK_TOKEN_BUDGET });
+    const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, {
+      legacyHardCap: builderTask ? 22_000 : DEFAULT_TASK_TOKEN_BUDGET,
+      builderLifecycle: builderTask,
+    });
     const aiOptionsForTask = (base?: GatewayGenerateOptions, role: "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" = "general"): GatewayGenerateOptions | undefined => {
       const maxTokens = adaptiveBudget.reserve(role, typeof base?.maxTokens === "number" && base.maxTokens > 0 ? base.maxTokens : undefined);
       return maxTokens > 0 ? { ...(base ?? {}), maxTokens } : undefined;
     };
-    const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
     // Builder jobs need more than the generic planner budget because a normal build
     // legitimately spans inspection, scaffold, implementation, build, verification and finalization.
     // The shared adaptive token budget remains the hard cost bound.
@@ -427,7 +430,80 @@ export class AgentLoop {
         continue;
       }
 
-      if (builderTask && !repairRequested && !productPlan && !productPlannerCreated && productPlannerAttempts < 2 && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
+      // Bootstrap a new project before asking any model to plan. A truly empty
+      // project can be scaffolded immediately. A known NEXUM starter must first
+      // have its index.html read so we never overwrite a real three-file website.
+      // The scaffold tool repeats the filesystem safety check before writing.
+      const latestSuccessfulListing = [...previousResults]
+        .reverse()
+        .find((item) => item.tool === "listFiles" && item.result.success);
+      const listedPaths = (latestSuccessfulListing?.result.output ?? "")
+        .trim()
+        .split(/\r?\n/)
+        .map((path) => path.trim().replace(/\/$/, ""))
+        .filter((path) => Boolean(path) && path !== "Project directory is empty" && path !== ".nexum" && !path.startsWith(".nexum/"));
+      const isEmptyProject = Boolean(
+        latestSuccessfulListing &&
+        (/^Project directory is empty\s*$/i.test(latestSuccessfulListing.result.output.trim()) || listedPaths.length === 0),
+      );
+      const starterOnlyCandidate =
+        listedPaths.length === 3 &&
+        listedPaths.every((path) => ["index.html", "style.css", "app.js"].includes(path));
+      const starterIndexRead = [...previousResults]
+        .reverse()
+        .find((item) => item.tool === "readFile" && item.input === "index.html" && item.result.success);
+      const starterConfirmed = Boolean(
+        starterOnlyCandidate &&
+        starterIndexRead &&
+        /Your project is ready\. Ask the Agent to design and build it\./i.test(starterIndexRead.result.output),
+      );
+      const needsStarterInspection = builderTask && starterOnlyCandidate && !starterIndexRead;
+      const needsInitialScaffold =
+        builderTask &&
+        availableTools.includes("scaffoldProject") &&
+        !previousResults.some((item) => item.tool === "scaffoldProject") &&
+        (isEmptyProject || starterConfirmed);
+
+      // Do not let either planner reason from the pre-scaffold file listing.
+      // Once scaffolding succeeds, inspect the real generated tree and read an
+      // actual entry file before Product Planner / AI planner are invoked.
+      const latestScaffoldIndex = previousResults.reduce(
+        (latest, item, index) => item.tool === "scaffoldProject" && item.result.success ? index : latest,
+        -1,
+      );
+      const latestListingIndex = previousResults.reduce(
+        (latest, item, index) => item.tool === "listFiles" && item.result.success ? index : latest,
+        -1,
+      );
+      const needsPostScaffoldListing =
+        builderTask &&
+        availableTools.includes("listFiles") &&
+        latestScaffoldIndex >= 0 &&
+        latestListingIndex < latestScaffoldIndex;
+      const postScaffoldEntryPath = ["index.html", "src/App.tsx", "src/App.jsx", "src/main.tsx", "src/main.jsx", "src/server.ts", "package.json"]
+        .find((candidate) => listedPaths.includes(candidate));
+      // Any successful entry-file read after the refreshed listing satisfies
+      // the bootstrap inspection gate. Requiring an exact path match here can
+      // deadlock the lifecycle when a tool normalizes or scopes the requested path.
+      const hasPostScaffoldRead = previousResults.some((item, index) =>
+        index > latestScaffoldIndex &&
+        item.tool === "readFile" &&
+        item.result.success,
+      );
+      const needsPostScaffoldRead =
+        builderTask &&
+        availableTools.includes("readFile") &&
+        latestScaffoldIndex >= 0 &&
+        latestListingIndex > latestScaffoldIndex &&
+        Boolean(postScaffoldEntryPath) &&
+        !hasPostScaffoldRead;
+      const needsBootstrapAction =
+        needsStarterInspection ||
+        needsInitialScaffold ||
+        needsPostScaffoldListing ||
+        needsPostScaffoldRead;
+
+      if (builderTask && !needsBootstrapAction && !repairRequested && !productPlan && !productPlannerCreated && productPlannerAttempts < 2 && this.runtime.createProductPlan && previousResults.some((item) => item.tool === "listFiles" && item.result.success)) {
         emit({ iteration, type: "thinking", message: "Формирую Product Plan: страницы, компоненты, визуальную систему и критерии готовности." });
         try {
           if (++modelTurns > maxModelTurns) throw new Error("Agent model-turn limit reached");
@@ -473,12 +549,12 @@ export class AgentLoop {
         })),
       });
       const plannerContextSeen = seenPlannerContexts.has(plannerContextFingerprint);
-      if (!modelPlan && this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < maxAiPlannerCalls && !plannerContextSeen) {
+      if (!needsBootstrapAction && !modelPlan && this.runtime.planWithAI && !remotePlannerRateLimited && aiPlannerCalls < maxAiPlannerCalls && !plannerContextSeen) {
         try {
           if (++modelTurns > maxModelTurns) throw new Error("Agent model-turn limit reached");
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
-          const aiOptions = aiOptionsForTask(options, "finalizer");
+          const aiOptions = aiOptionsForTask(options, "coder");
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           modelPlan = await this.runtime.planWithAI(task, compactHistory, aiOptions as AgentModelOptions, productPlan ?? undefined);
         } catch (error) {
@@ -510,7 +586,16 @@ export class AgentLoop {
       }
       // Prefer the model plan when available. If it repeats an action that
       // already failed, switch to the deterministic planner so recovery can continue.
-      let plan = modelPlan ?? this.runtime.plan(task, previousResults);
+      const initialBootstrapPlan: AgentPlan | null = needsStarterInspection
+        ? { tool: "readFile", input: "index.html" }
+        : needsInitialScaffold
+          ? { tool: "scaffoldProject", input: task.trim() }
+          : needsPostScaffoldListing
+            ? { tool: "listFiles", input: "." }
+            : needsPostScaffoldRead && postScaffoldEntryPath
+              ? { tool: "readFile", input: postScaffoldEntryPath }
+              : null;
+      let plan = initialBootstrapPlan ?? modelPlan ?? this.runtime.plan(task, previousResults);
       if (!plan && !builderTask && previousResults.length > 0 && previousResults[previousResults.length - 1]?.result.success) {
         const followUp = this.runtime.plan(task, previousResults);
         if (!followUp) {
@@ -579,7 +664,7 @@ export class AgentLoop {
                 "стили",
               ]
                 .filter(Boolean)
-                .map((value) => String(value).replace(/\\s+/g, " ").trim())
+                .map((value) => String(value).replace(/\s+/g, " ").trim())
                 .join(" ")
                 .slice(0, 500);
               plan = { tool: "searchFiles", input: searchQuery || "главная страница компоненты стили" };
@@ -708,7 +793,7 @@ export class AgentLoop {
           lastSuccessfulStaticValidationIndex > lastProjectChangeIndex;
         const hasStaticProject = previousResults.some(
           (item) => item.tool === "listFiles" && item.result.success &&
-            /(?:^|\\n)index\\.html(?:\\n|$)/.test(item.result.output),
+            /(?:^|\n)index\.html(?:\n|$)/.test(item.result.output),
         ) && !projectHasBuildScript(previousResults);
         if (
           builderTask &&
@@ -1031,7 +1116,7 @@ export class AgentLoop {
           "стили",
         ]
           .filter(Boolean)
-          .map((value) => String(value).replace(/\\s+/g, " ").trim())
+          .map((value) => String(value).replace(/\s+/g, " ").trim())
           .join(" ")
           .slice(0, 500);
         plan = { ...(plan as AgentPlan), input: safeQuery || "главная страница компоненты стили" };
@@ -1043,7 +1128,9 @@ export class AgentLoop {
       }
 
       const actionKey = `${(plan as AgentPlan).tool}:${(plan as AgentPlan).input}`;
-      const previousSuccess = previousResults.some(
+      // A successful inspection from before scaffold creation is stale. The
+      // same listFiles/readFile input must be allowed once again after scaffold.
+      const previousSuccess = !needsPostScaffoldListing && !needsPostScaffoldRead && previousResults.some(
         (item) => item.tool === (plan as AgentPlan).tool && item.input === (plan as AgentPlan).input && item.result.success,
       );
       if (previousSuccess) {

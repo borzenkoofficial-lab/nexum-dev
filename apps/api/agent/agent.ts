@@ -81,7 +81,7 @@ export class NexumAgent implements AgentRuntime {
   ): Promise<ProductPlan> {
     const lowerTask = task.toLowerCase();
     const isConstructionTask = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lowerTask);
-    const isAutoRepairTask = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lowerTask);
+    const isAutoRepairTask = /авто|автомобил|машин|(?<![а-яё])сто(?![а-яё])|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lowerTask);
     if (isConstructionTask || isAutoRepairTask) {
       // Product planning is an AI capability. Never synthesize a hard-coded plan
       // when the real planner is unavailable.
@@ -224,7 +224,8 @@ export class NexumAgent implements AgentRuntime {
         ? "REPAIR MODE: Continue from the existing project state after a previous Agent failure. Do not restart the product, do not create a new Product Plan, and do not erase working changes. Inspect the exact reported failure, make a targeted fix, then validate/build before finishing."
         : "NORMAL BUILD MODE: Implement the requested product from the current project state and complete the validation gate.",
       "Your job is to modify the user's project, not merely explain code.",      "Choose exactly one available tool for the next action, or finish the task. Keep the JSON response as short as possible.",
-      "For app-building tasks, NEVER jump straight to scaffoldProject. First inspect the current project with listFiles, then read the relevant entry files. If the project already contains an app, modify that app instead of replacing it. Only scaffold an actually empty/new project.",
+      "For app-building tasks, NEVER jump straight to scaffoldProject without inspection. Inspect the current project with listFiles, then read the relevant entry files. If the project already contains an app, modify that app instead of replacing it. Only scaffold an actually empty/new project.",
+      "BOOTSTRAP HANDOFF: The Agent Loop may have already created a scaffold after confirming the project was empty. If prior tool results contain a successful scaffoldProject action, do not scaffold again; use the refreshed file listing and read the generated entry file, then implement the requested product, build it, and verify it.",
       "After listFiles, use the exact filenames returned by the inspection. Do not invent paths unless the file already exists or you have just created it.",
       "For a change request on an existing app, first read the smallest set of relevant existing files, then make targeted edits. Prefer patchFile for local changes; use writeFile for genuinely new or substantially rewritten files. Do not regenerate the whole application for a local change.",
       "For visual changes, inspect the existing stylesheet/component before editing. Preserve unrelated layout, content, and behavior.",
@@ -648,7 +649,7 @@ export class NexumAgent implements AgentRuntime {
   private isPlanAlignedWithTask(task: string, plan: AgentPlan): boolean {
     const lower = task.toLowerCase();
     const construction = /строит|строитель|демонтаж|фасад|монтаж|подряд|объект|отделк|бетон|кровл|инженерн/.test(lower);
-    const autoRepair = /авто|автомобил|машин|сто|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lower);
+    const autoRepair = /авто|автомобил|машин|(?<![а-яё])сто(?![а-яё])|автосервис|ремонт.*машин|ремонт.*авто|диагностик|шиномонтаж|кузов|двигател|ходов|тормоз|масл|запчаст/.test(lower);
     if (!construction && !autoRepair) return true;
     const input = String(plan.input ?? "").toLowerCase();
     // Completion safety is enforced by AgentLoop's execution/validation gates.
@@ -882,8 +883,13 @@ export class NexumAgent implements AgentRuntime {
       .map((item) => item.result.output)
       .join("\n");
     const candidates = ["index.html", "package.json", "src/App.jsx", "src/App.tsx", "src/main.jsx", "src/main.tsx", "style.css", "src/styles.css", "app.js"];
+    const successfullyRead = new Set(
+      results
+        .filter((item) => item.tool === "readFile" && item.result.success)
+        .map((item) => item.input.trim()),
+    );
     for (const candidate of candidates) {
-      if (inspection.includes(candidate)) return candidate;
+      if (inspection.includes(candidate) && !successfullyRead.has(candidate)) return candidate;
     }
     return null;
   }

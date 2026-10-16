@@ -25,18 +25,36 @@ export class MockProvider implements AIProvider {
     if (process.env.NEXUM_E2E_MOCK_AI !== "true") return `NEXUM Demo: ${message}`;
 
     if (/Turn the user's request into a concrete implementation plan for a coding agent/i.test(message)) {
+      const userRequest = message.match(/User request:\s*([^\n]*)/i)?.[1]?.trim() ?? "";
+      const requestLower = userRequest.toLowerCase();
+      const autoRequested = /авто|автомобил|автосервис|диагностик|ремонт.*машин|ремонт.*авто|сто/.test(requestLower);
+      const constructionRequested = /строит|демонтаж|отделк|стяжк|подряд|монтаж|бетон/.test(requestLower);
+      const productType = autoRequested
+        ? "Сайт автосервиса"
+        : constructionRequested
+          ? "Сайт строительной компании"
+          : userRequest
+            ? `Продукт по запросу: ${userRequest.slice(0, 100)}`
+            : "E2E validation task";
+      const goal = autoRequested
+        ? "Сайт автосервиса для диагностики и ремонта автомобилей с услугами, преимуществами и записью."
+        : constructionRequested
+          ? "Сайт строительной компании с услугами, примерами работ и формой заявки."
+          : userRequest
+            ? `Реализовать запрошенный продукт: ${userRequest.slice(0, 180)}`
+            : "Проверить и выполнить запрос пользователя в тестовом окружении NEXUM.";
       return JSON.stringify({
-        goal: "Проверить и выполнить запрос пользователя в тестовом окружении NEXUM.",
-        productType: "E2E validation task",
-        targetUser: "NEXUM E2E",
-        pages: ["workspace"],
-        components: ["workspace", "agent activity"],
-        visualSystem: ["NEXUM test runtime"],
-        interactions: ["submit task", "cancel task"],
-        dataModel: ["agent job", "runtime task"],
+        goal,
+        productType,
+        targetUser: autoRequested ? "Владельцы автомобилей" : constructionRequested ? "Заказчики строительных работ" : "Пользователи продукта",
+        pages: autoRequested ? ["Главная", "Услуги", "Контакты"] : constructionRequested ? ["Главная", "Услуги", "Объекты", "Контакты"] : ["Главная", "Основной раздел", "Контакты"],
+        components: autoRequested ? ["Каталог услуг автосервиса", "Карточки диагностики и ремонта", "Форма записи"] : constructionRequested ? ["Каталог услуг", "Карточки объектов", "Форма заявки"] : ["Навигация", "Основной контент", "Форма обратной связи"],
+        visualSystem: ["Адаптивная сетка", "Контрастная типографика", "Согласованная цветовая система"],
+        interactions: autoRequested ? ["Запись на диагностику", "Переход к услугам"] : ["Навигация", "Отправка формы"],
+        dataModel: autoRequested ? ["Услуга автосервиса", "Заявка на запись"] : constructionRequested ? ["Строительная услуга", "Заявка клиента"] : ["Основная сущность", "Заявка пользователя"],
         filesToInspect: [],
         filesToChange: [],
-        acceptanceCriteria: ["Agent task reaches a terminal state", "Runtime ownership is released"],
+        acceptanceCriteria: autoRequested ? ["Контент явно описывает диагностику и ремонт автомобилей", "Есть услуги автосервиса и способ записи"] : constructionRequested ? ["Контент соответствует строительной тематике", "Есть услуги и форма заявки"] : ["Реализован предмет исходного запроса", "Приложение проходит проверку"],
       });
     }
 
@@ -53,7 +71,14 @@ export class MockProvider implements AIProvider {
     if (/You are the NEXUM\.DEV autonomous project builder|previous response was not valid nexum tool-plan json/i.test(message)) {
       if (isBuilderTask) {
         const projectKey = message.match(/(?:ID проекта|projectId)\s*[:=]\s*([A-Za-z0-9_-]+)/i)?.[1] ?? userTask;
-        const current = builderStages.get(projectKey) ?? "read";
+        let current = builderStages.get(projectKey) ?? "read";
+        // Empty projects are scaffolded by AgentLoop before the first Builder model turn.
+        // Skip the legacy read/scaffold stages when history already confirms the scaffold.
+        const scaffoldAlreadyCreated = /scaffoldProject:[^\n]*(?:scaffold created|created for test)/i.test(message);
+        if (scaffoldAlreadyCreated && (current === "read" || current === "scaffold")) {
+          current = "app";
+          builderStages.set(projectKey, current);
+        }
 
         switch (current) {
           case "read":
