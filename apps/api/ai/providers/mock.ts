@@ -53,7 +53,14 @@ export class MockProvider implements AIProvider {
     if (/You are the NEXUM\.DEV autonomous project builder|previous response was not valid nexum tool-plan json/i.test(message)) {
       if (isBuilderTask) {
         const projectKey = message.match(/(?:ID проекта|projectId)\s*[:=]\s*([A-Za-z0-9_-]+)/i)?.[1] ?? userTask;
-        const current = builderStages.get(projectKey) ?? "read";
+        let current = builderStages.get(projectKey) ?? "read";
+        // Empty projects are scaffolded by AgentLoop before the first Builder model turn.
+        // Skip the legacy read/scaffold stages when history already confirms the scaffold.
+        const scaffoldAlreadyCreated = /scaffoldProject:[^\n]*(?:scaffold created|created for test)/i.test(message);
+        if (scaffoldAlreadyCreated && (current === "read" || current === "scaffold")) {
+          current = "app";
+          builderStages.set(projectKey, current);
+        }
 
         switch (current) {
           case "read":
