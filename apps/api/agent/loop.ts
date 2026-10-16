@@ -513,7 +513,7 @@ export class AgentLoop {
           if (++modelTurns > maxModelTurns) throw new Error("Agent model-turn limit reached");
           seenPlannerContexts.add(plannerContextFingerprint);
           aiPlannerCalls += 1;
-          const aiOptions = aiOptionsForTask(options, "finalizer");
+          const aiOptions = aiOptionsForTask(options, "coder");
           if (!aiOptions) throw new Error("Task AI token budget exhausted");
           modelPlan = await this.runtime.planWithAI(task, compactHistory, aiOptions as AgentModelOptions, productPlan ?? undefined);
         } catch (error) {
