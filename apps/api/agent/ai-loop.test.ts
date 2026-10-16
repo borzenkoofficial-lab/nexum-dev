@@ -96,11 +96,7 @@ test("empty Builder project is scaffolded before the first model request", async
           acceptanceCriteria: ["Есть меню и контакты ресторана"],
         });
       }
-      if (
-        productPlanSent &&
-        !implementationSent &&
-        (message.includes("NORMAL BUILD MODE") || message.includes("NEXUM.DEV AI role: coder") || !message.includes("Turn the user's request into a concrete implementation plan for a coding agent"))
-      ) {
+      if (productPlanSent && !implementationSent) {
         implementationSent = true;
         return JSON.stringify({
           tool: "writeFile",
