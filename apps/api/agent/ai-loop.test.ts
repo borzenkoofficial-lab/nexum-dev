@@ -15,9 +15,13 @@ class ScriptedProvider implements AIProvider {
   capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: true, reasoning: false, contextWindow: 32768 };
   private index = 0;
 
-  constructor(private readonly responses: string[]) {}
+  constructor(
+    private readonly responses: string[],
+    private readonly beforeGenerate?: () => Promise<void>,
+  ) {}
 
   async generate(): Promise<string> {
+    await this.beforeGenerate?.();
     return this.responses[this.index++] ?? '{"done":true,"finalResponse":"Done"}';
   }
 }
@@ -29,6 +33,49 @@ async function createLoop(responses: string[]) {
   const agent = new NexumAgent(gateway, projectRoot);
   return { projectRoot, loop: new AgentLoop(agent, gateway) };
 }
+
+test("empty Builder project is scaffolded before the first model request", async () => {
+  const projectRoot = await mkdtemp(join(tmpdir(), "nexum-empty-builder-"));
+  const provider = new ScriptedProvider(
+    [
+      JSON.stringify({
+        goal: "Сайт ресторана с меню и бронированием",
+        productType: "Сайт ресторана",
+        targetUser: "Посетители ресторана",
+        pages: ["Главная", "Меню", "Контакты"],
+        components: ["Навигация", "Карточки блюд", "Форма бронирования"],
+        visualSystem: ["Тёплая цветовая палитра", "Адаптивная сетка"],
+        interactions: ["Отправка формы бронирования"],
+        dataModel: ["Блюдо", "Бронирование"],
+        filesToInspect: ["index.html", "style.css", "app.js"],
+        filesToChange: ["index.html", "style.css", "app.js"],
+        acceptanceCriteria: ["Есть меню и контакты ресторана"],
+      }),
+      "not valid model output",
+    ],
+    async () => {
+      const scaffoldExists = await readFile(join(projectRoot, "index.html"), "utf8")
+        .then(() => true)
+        .catch(() => false);
+      assert.equal(
+        scaffoldExists,
+        true,
+        "the project must have a real scaffold before the first model request",
+      );
+    },
+  );
+  const gateway = new AIGateway([provider], "openrouter");
+  const agent = new NexumAgent(gateway, projectRoot);
+  const loop = new AgentLoop(agent, gateway);
+
+  const result = await loop.run(
+    "Создай сайт ресторана с меню и бронированием",
+    { provider: "openrouter", model: "openrouter/free" },
+  );
+
+  assert.ok(result.steps.some((step) => step.tool === "scaffoldProject" && step.success));
+  assert.ok(await readFile(join(projectRoot, "index.html"), "utf8"));
+});
 
 test("AI structured plan selects writeFile and executes it", async () => {
   const { projectRoot, loop } = await createLoop([
