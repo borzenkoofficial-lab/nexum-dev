@@ -883,8 +883,13 @@ export class NexumAgent implements AgentRuntime {
       .map((item) => item.result.output)
       .join("\n");
     const candidates = ["index.html", "package.json", "src/App.jsx", "src/App.tsx", "src/main.jsx", "src/main.tsx", "style.css", "src/styles.css", "app.js"];
+    const successfullyRead = new Set(
+      results
+        .filter((item) => item.tool === "readFile" && item.result.success)
+        .map((item) => item.input.trim()),
+    );
     for (const candidate of candidates) {
-      if (inspection.includes(candidate)) return candidate;
+      if (inspection.includes(candidate) && !successfullyRead.has(candidate)) return candidate;
     }
     return null;
   }
