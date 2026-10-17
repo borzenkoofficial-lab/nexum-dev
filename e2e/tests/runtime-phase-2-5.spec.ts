@@ -264,6 +264,29 @@ test("multi-project concurrency and isolation", async ({ page }) => {
 });
 
 
+test("authenticated preview iframe loads project HTML without weakening iframe sandbox", async ({ page }) => {
+  const projectId = await createStaticProject(page, "runtime-auth-preview-" + Date.now());
+  const html = "<!doctype html><html><head><title>Authenticated Preview</title></head><body><main id='preview-proof'>AUTHENTICATED_PREVIEW_OK</main></body></html>";
+  const write = await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
+    data: { path: "index.html", content: html },
+  });
+  expect(write.ok()).toBeTruthy();
+
+  const direct = await page.request.get(`/api/preview/${encodeURIComponent(projectId)}/index.html`);
+  expect(direct.status()).toBe(200);
+  expect(await direct.text()).toContain("AUTHENTICATED_PREVIEW_OK");
+
+  await page.goto("/projects/" + encodeURIComponent(projectId));
+  const frame = page.locator('iframe[title*="preview"]');
+  await expect(frame).toBeVisible();
+  await expect(frame).toHaveAttribute("sandbox", "allow-scripts");
+  await expect.poll(async () => {
+    const child = await frame.contentFrame();
+    if (!child) return "";
+    return child.locator("#preview-proof").textContent().catch(() => "");
+  }, { timeout: 10_000 }).toContain("AUTHENTICATED_PREVIEW_OK");
+});
+
 test("preview revision is invalidated when source changes after a successful build", async ({ page }) => {
   const projectId = await createStaticProject(page, "runtime-preview-revision-" + Date.now());
   await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
