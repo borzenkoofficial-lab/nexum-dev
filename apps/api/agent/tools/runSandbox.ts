@@ -58,7 +58,7 @@ export class RunSandboxTool implements Tool {
   }
 
   private async runRemote(request: SandboxRequest, signal?: AbortSignal): Promise<SandboxResult> {
-    const baseUrl = process.env.NEXUM_SANDBOX_WORKER_URL?.trim().replace(/\\/+$/, "");
+    const baseUrl = process.env.NEXUM_SANDBOX_WORKER_URL?.trim().replace(/\/+$/, "");
     const secret = process.env.NEXUM_SANDBOX_WORKER_SECRET ?? "";
     if (!baseUrl) throw new Error("NEXUM_SANDBOX_WORKER_URL is not configured");
     if (secret.length < 32) throw new Error("NEXUM_SANDBOX_WORKER_SECRET must contain at least 32 characters");
