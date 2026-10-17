@@ -105,7 +105,7 @@ export class RunSandboxTool implements Tool {
       const message = payload && typeof payload.error === "string" ? payload.error : `Sandbox worker returned HTTP ${response.status}`;
       throw new Error(message);
     }
-    if (!payload || typeof payload !== "object" || typeof payload.success !== "boolean" || typeof payload.command !== "string") {
+    if (!payload || typeof payload !== "object" || !("success" in payload) || !("command" in payload) || typeof payload.success !== "boolean" || typeof payload.command !== "string") {
       throw new Error("Sandbox worker returned an invalid response");
     }
     return payload as SandboxResult;
