@@ -420,7 +420,7 @@ ${attachment.content.slice(0, 80_000)}`);
     throwIfAgentAborted(signal);
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const userGateway = getAIGatewayForUser(userId);
-    const agent = new NexumAgent(userGateway, project.path, serverRuntime, { projectId: project.id, taskId: runtimeTask.id });
+    const agent = new NexumAgent(userGateway, project.path, serverRuntime, { projectId: project.id, taskId: runtimeTask.id, userId });
     const agentLoop = new AgentLoop(
       agent,
       userGateway,
