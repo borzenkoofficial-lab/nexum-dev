@@ -17,7 +17,7 @@ import { ProjectManager, ProjectManagerError } from "./projects/projectManager.j
 import { mkdir, readFile, stat, readdir, writeFile, rm } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { randomUUID } from "node:crypto";
+import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { GitTool } from "./agent/tools/git.js";
 import { RunCommandTool } from "./agent/tools/runCommand.js";
 import { assertExistingProjectPath, assertWritableProjectPath, ProjectPathError } from "./agent/tools/path.js";
@@ -37,6 +37,31 @@ import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
 
 
 const requestIds = new WeakMap<object, string>();
+const previewBaseByRequest = new WeakMap<object, string>();
+const PREVIEW_TOKEN_TTL_MS = 10 * 60 * 1000;
+const previewTokenSecret = process.env.NEXUM_AUTH_SECRET?.trim() && process.env.NEXUM_AUTH_SECRET.trim().length >= 32
+  ? process.env.NEXUM_AUTH_SECRET.trim()
+  : randomBytes(32).toString("hex");
+
+type PreviewGrant = { userId: string; projectId: string; expiresAt: number };
+function createPreviewToken(grant: PreviewGrant): string {
+  const payload = Buffer.from(JSON.stringify(grant)).toString("base64url");
+  const signature = createHmac("sha256", previewTokenSecret).update(payload).digest("base64url");
+  return payload + "." + signature;
+}
+function verifyPreviewToken(token: string): PreviewGrant | null {
+  const [payload, signature, extra] = token.split(".");
+  if (!payload || !signature || extra !== undefined) return null;
+  const expected = createHmac("sha256", previewTokenSecret).update(payload).digest();
+  let actual: Buffer;
+  try { actual = Buffer.from(signature, "base64url"); } catch { return null; }
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return null;
+  try {
+    const grant = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Partial<PreviewGrant>;
+    if (typeof grant.userId !== "string" || !grant.userId || typeof grant.projectId !== "string" || !grant.projectId || typeof grant.expiresAt !== "number" || grant.expiresAt <= Date.now()) return null;
+    return grant as PreviewGrant;
+  } catch { return null; }
+}
 
 function getRequestId(req: express.Request): string {
   const existing = requestIds.get(req);
@@ -683,7 +708,7 @@ const configuredCorsOrigins = (process.env.NEXUM_CORS_ORIGINS || "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-app.use(cors({
+const corsMiddleware = cors({
   origin: process.env.NODE_ENV === "production"
     ? (origin, callback) => {
         if (!origin || configuredCorsOrigins.includes(origin)) {
@@ -694,7 +719,24 @@ app.use(cors({
       }
     : true,
   credentials: true,
-}));
+});
+// Sandboxed iframes have an opaque "null" origin. Permit credential-free GETs
+// only on short-lived, project-scoped preview URLs; never permit null-origin
+// access to authenticated API endpoints.
+app.use((req, res, next) => {
+  if (req.headers.origin === "null" && req.path.startsWith("/api/preview-access/") && ["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    res.setHeader("Access-Control-Allow-Origin", "null");
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+    if (req.method === "OPTIONS") {
+      res.status(204).end();
+      return;
+    }
+    next();
+    return;
+  }
+  corsMiddleware(req, res, next);
+});
 
 app.use(express.json({ limit: "10mb" }));
 
@@ -993,10 +1035,46 @@ app.delete("/api/projects/:id", async (req, res) => {
   }
 });
 
+app.get("/api/projects/:id/preview-token", async (req, res) => {
+  try {
+    const userId = getAuthUser(req).id;
+    const project = await getProjectManager(userId).getProject(req.params.id);
+    const expiresAt = Date.now() + PREVIEW_TOKEN_TTL_MS;
+    const token = createPreviewToken({ userId, projectId: project.id, expiresAt });
+    return res.json({
+      success: true,
+      url: `/api/preview-access/${token}/${encodeURIComponent(project.id)}/index.html`,
+      expiresAt: new Date(expiresAt).toISOString(),
+    });
+  } catch (error) {
+    if (error instanceof ProjectManagerError) return sendProjectError(res, error, req);
+    return res.status(500).json({ success: false, error: "Unable to create preview access" });
+  }
+});
+
 app.use("/api/preview", authMiddleware);
 
 // Static project preview. The agent writes the project files, and the preview
 // renders index.html directly without requiring a separate dev server.
+app.use("/api/preview-access/:token/:id", (req, res, next) => {
+  if (!["GET", "HEAD"].includes(req.method)) {
+    res.status(405).send("Method not allowed");
+    return;
+  }
+  const token = req.params.token;
+  const projectId = req.params.id;
+  const grant = verifyPreviewToken(token);
+  if (!grant || grant.projectId !== projectId) {
+    res.status(401).send("Preview link is invalid or expired");
+    return;
+  }
+  req.user = { id: grant.userId, email: "preview-access@nexum.invalid", name: "Preview access", createdAt: "" };
+  previewBaseByRequest.set(req, `/api/preview-access/${encodeURIComponent(token)}/${encodeURIComponent(projectId)}/`);
+  const remainder = req.url.startsWith("/") ? req.url : "/" + req.url;
+  req.url = `/api/preview/${encodeURIComponent(projectId)}${remainder}`;
+  next();
+});
+
 app.use("/api/preview/:id", async (req, res) => {
   try {
     const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
@@ -1060,7 +1138,7 @@ app.use("/api/preview/:id", async (req, res) => {
       // Preview is mounted below /api/preview/:id, while Vite production builds
       // usually emit root-relative /assets/... URLs. Rewrite those URLs so the
       // iframe can load JS/CSS/images from the same project preview namespace.
-      const previewBase = `/api/preview/${encodeURIComponent(req.params.id)}/`;
+      const previewBase = previewBaseByRequest.get(req) ?? `/api/preview/${encodeURIComponent(req.params.id)}/`;
       html = html
         .replace(/(src|href|action)=(["'])\/(?!\/)/gi, `$1=$2${previewBase}`)
         .replace(/url\((["']?)\/(?!\/)/gi, `url($1${previewBase}`);
