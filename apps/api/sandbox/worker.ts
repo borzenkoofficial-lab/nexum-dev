@@ -16,6 +16,7 @@ if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
 }
 
 const sandbox = new DockerSandbox(WORKSPACE_ROOT);
+const seenNonces = new Map<string, number>();
 
 const server = createServer(async (request, response) => {
   response.setHeader("Cache-Control", "no-store");
@@ -34,8 +35,9 @@ const server = createServer(async (request, response) => {
   }
 
   const timestamp = request.headers["x-nexum-timestamp"];
+  const nonce = request.headers["x-nexum-nonce"];
   const signature = request.headers["x-nexum-signature"];
-  if (typeof timestamp !== "string" || typeof signature !== "string") {
+  if (typeof timestamp !== "string" || typeof nonce !== "string" || typeof signature !== "string") {
     response.writeHead(401, { "content-type": "application/json" });
     response.end(JSON.stringify({ success: false, error: "Worker authentication required" }));
     return;
@@ -55,11 +57,15 @@ const server = createServer(async (request, response) => {
   }
 
   const rawBody = Buffer.concat(chunks).toString("utf8");
-  if (!verifySandboxWorkerRequest(SECRET, timestamp, rawBody, signature)) {
+  const now = Date.now();
+  for (const [knownNonce, expiresAt] of seenNonces) if (expiresAt <= now) seenNonces.delete(knownNonce);
+  if (seenNonces.has(nonce) || !verifySandboxWorkerRequest(SECRET, timestamp, rawBody, signature, now, nonce)) {
     response.writeHead(401, { "content-type": "application/json" });
     response.end(JSON.stringify({ success: false, error: "Invalid or expired worker signature" }));
     return;
   }
+
+  seenNonces.set(nonce, now + 60_000);
 
   let payload: { projectPath?: unknown; command?: unknown; timeoutMs?: unknown };
   try {
