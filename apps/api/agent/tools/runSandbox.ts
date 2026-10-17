@@ -1,5 +1,6 @@
 import type { Tool, ToolResult } from "../types.js";
 import { relative, resolve, sep } from "node:path";
+import { randomUUID } from "node:crypto";
 import { signSandboxWorkerRequest } from "../../sandbox/workerAuth.js";
 import { DockerSandbox } from "../../sandbox/dockerSandbox.js";
 import type { SandboxRequest, SandboxResult } from "../../sandbox/types.js";
@@ -75,7 +76,8 @@ export class RunSandboxTool implements Tool {
       ...(request.timeoutMs === undefined ? {} : { timeoutMs: request.timeoutMs }),
     });
     const timestamp = String(Date.now());
-    const signature = signSandboxWorkerRequest(secret, timestamp, body);
+    const nonce = randomUUID();
+    const signature = signSandboxWorkerRequest(secret, timestamp, nonce, body);
     const timeoutMs = request.timeoutMs ?? 30_000;
     const timeoutSignal = AbortSignal.timeout(timeoutMs + 15_000);
     const requestSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
@@ -87,6 +89,7 @@ export class RunSandboxTool implements Tool {
         headers: {
           "content-type": "application/json",
           "x-nexum-timestamp": timestamp,
+          "x-nexum-nonce": nonce,
           "x-nexum-signature": signature,
         },
         body,
