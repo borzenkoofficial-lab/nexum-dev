@@ -30,6 +30,7 @@ import type { ServerRuntime } from "../runtime/runtime.js";
 import { assertCompleteToolPolicy, validateToolInvocation } from "./toolPolicy.js";
 import { AgentLoop } from "./loop.js";
 import { agentFailureInjection } from "./failureInjection.js";
+import { createPreviewAccessToken } from "../previewAccess.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -41,7 +42,7 @@ export class NexumAgent implements AgentRuntime {
     private readonly gateway: AIGateway,
     public readonly projectRoot = defaultProjectRoot,
     private readonly serverRuntime?: ServerRuntime,
-    private readonly runtimeContext: { projectId?: string; taskId?: string } = {},
+    private readonly runtimeContext: { projectId?: string; taskId?: string; userId?: string } = {},
   ) {
     this.orchestrator = new AIOrchestrator(gateway);
     const workspace = new ProjectWorkspace(projectRoot);
@@ -513,7 +514,10 @@ export class NexumAgent implements AgentRuntime {
       const abortFromAgent = () => controller.abort();
       if (signal) { if (signal.aborted) abortFromAgent(); else signal.addEventListener("abort", abortFromAgent, { once: true }); }
       try {
-        const response = await fetch("http://127.0.0.1:" + port + "/api/preview/" + encodeURIComponent(this.runtimeContext.projectId) + "/index.html", { signal: controller.signal, headers: { Accept: "text/html" } });
+        const previewUrl = this.runtimeContext.userId
+          ? "/api/preview-access/" + createPreviewAccessToken(this.runtimeContext.userId, this.runtimeContext.projectId) + "/" + encodeURIComponent(this.runtimeContext.projectId) + "/index.html"
+          : "/api/preview/" + encodeURIComponent(this.runtimeContext.projectId) + "/index.html";
+        const response = await fetch("http://127.0.0.1:" + port + previewUrl, { signal: controller.signal, headers: { Accept: "text/html" } });
         if (!response.ok) throw new Error("Preview HTTP " + response.status);
         const body = await response.text();
         if (!/<!doctype html|<html[\s>]/i.test(body)) throw new Error("Preview endpoint did not return an HTML document");
