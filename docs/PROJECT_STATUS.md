@@ -10,7 +10,7 @@
 
 **Проверенный main HEAD на момент создания PR #53:** `8c021b54bb5be600d9b3b5268c65af325b6cc460`.  
 **Исторический CI main:** [run #2267](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38151338255) — `success` на более раннем коммите.  
-**Свежая проверка ветки PR #53:** [run #2351](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39063339389) — jobs `build` и `e2e` прошли успешно; изменения ещё не влиты в `main`.
+**Свежая проверка ветки PR #53:** [run #2355](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39063849304) — jobs `build` и `e2e` прошли успешно; API tests: 152/152, web runtime tests: 5/5; изменения ещё не влиты в `main`.
 
 Подтверждено в актуальном `main`:
 - агентское выполнение команд направлено через Docker Sandbox;
@@ -22,7 +22,7 @@
 
 **Снятый блокер тестирования:** старый E2E прогон [#2266](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38147453731), выполненный до слияния PR #35, не дождался события `TOOL_CHECKPOINT/consumed` в сценарии повторной отмены. После merge на актуальном main полный CI прошёл, включая E2E. Проверка документационной PR-ветки также прошла: [run #2269](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38152031395).
 
-**CI для ветки PR #53: GREEN** по результатам run #2351. Публичный релиз: **NOT READY** до проверки Docker daemon для sandbox в целевой инфраструктуре, browser-level preview с включённой авторизацией, production-конфигурации базы и секретов, покрытия rate-limit маршрутов, runtime diagnostics retention и реального подключения AnyModel. Docker image build и `/api/health` smoke test уже выполняются в CI, но не подтверждают доступность Docker daemon на Render. Production deployment в этой проверке не выполнялся.
+**CI для ветки PR #53: GREEN** по результатам run #2355. Публичный релиз: **NOT READY** до проверки Docker daemon для sandbox в целевой инфраструктуре, browser-level preview с включённой авторизацией, production-конфигурации базы и секретов, покрытия rate-limit маршрутов, runtime diagnostics retention и реального подключения AnyModel. Docker image build и `/api/health` smoke test уже выполняются в CI, но не подтверждают доступность Docker daemon на Render. Production deployment в этой проверке не выполнялся.
 
 Основной документ с полной историей находок, их актуальными статусами и оставшимися рисками: [docs/AUDIT_REPORT_2026-10-11.md](./AUDIT_REPORT_2026-10-11.md). Дополнительная фиксация CI и P0 до исправления: [docs/AUDIT_2026-10-11.md](./AUDIT_2026-10-11.md).
 
