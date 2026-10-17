@@ -1056,22 +1056,45 @@ app.use("/api/preview", authMiddleware);
 
 // Static project preview. The agent writes the project files, and the preview
 // renders index.html directly without requiring a separate dev server.
-app.use("/api/preview-access/:token/:id", (req, res, next) => {
+app.use((req, res, next) => {
+  const prefix = "/api/preview-access/";
+  if (!req.path.startsWith(prefix)) {
+    next();
+    return;
+  }
   if (!["GET", "HEAD"].includes(req.method)) {
     res.status(405).send("Method not allowed");
     return;
   }
-  const token = req.params.token;
-  const projectId = req.params.id;
+
+  const segments = req.path.slice(prefix.length).split("/");
+  const token = segments.shift() ?? "";
+  const encodedProjectId = segments.shift() ?? "";
+  let projectId: string;
+  try { projectId = decodeURIComponent(encodedProjectId); } catch {
+    res.status(400).send("Invalid preview URL");
+    return;
+  }
   const grant = verifyPreviewToken(token);
   if (!grant || grant.projectId !== projectId) {
     res.status(401).send("Preview link is invalid or expired");
     return;
   }
+
+  const requestedPath = segments.join("/");
+  const pathSegments = requestedPath.split("/").filter(Boolean);
+  const lastSegment = pathSegments[pathSegments.length - 1] ?? "";
+  const privateFiles = /^(package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?|tsconfig(\.[^/]*)?\.json|vite\.config\.[^/]+)$/i;
+  if (pathSegments.some((part) => part.startsWith(".") || part === "node_modules") || privateFiles.test(lastSegment)) {
+    res.status(404).send("Preview file not found");
+    return;
+  }
+
   req.user = { id: grant.userId, email: "preview-access@nexum.invalid", name: "Preview access", createdAt: "" };
-  previewBaseByRequest.set(req, `/api/preview-access/${encodeURIComponent(token)}/${encodeURIComponent(projectId)}/`);
-  const remainder = req.url.startsWith("/") ? req.url : "/" + req.url;
-  req.url = `/api/preview/${encodeURIComponent(projectId)}${remainder}`;
+  previewBaseByRequest.set(req, `${prefix}${encodeURIComponent(token)}/${encodeURIComponent(projectId)}/`);
+  const queryIndex = req.url.indexOf("?");
+  const query = queryIndex >= 0 ? req.url.slice(queryIndex) : "";
+  req.url = `/api/preview/${encodeURIComponent(projectId)}/${requestedPath || "index.html"}${query}`;
   next();
 });
 
