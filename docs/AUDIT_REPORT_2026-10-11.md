@@ -3,7 +3,7 @@
 
 > **Актуальное состояние после исправлений P0 — 2026-10-11:** PR #35 влит в `main` коммитом `88da393937caa970f49a510351d05c3e6d4304ee`. Подтверждающий [CI run #2267](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38151338255) завершился успешно: jobs `build` и `e2e` прошли. Дополнительная проверка документационной PR-ветки [run #2269](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38152031395) также прошла успешно. Выполнение команд агента теперь направлено через Docker Sandbox, внутренние diagnostics/runtime endpoints защищены, ChatJob cache ограничен, API/Web CI используют `npm ci`, образ sandbox подготавливается в E2E, tracked `node_modules/` отсутствуют в текущем дереве main, а AnyModel provider включён в main.
 
-> **Как читать этот документ:** подробные находки ниже отражают исходный снимок до merge PR #35 (`cceea0a12737db7e903a96f91d6cbe857a9a3081`). Статусы, относящиеся к этому коммиту, не являются автоматически статусами текущего main. Оставшиеся production-вопросы: обязательный Docker build/smoke в CI, покрытие rate limits по всем маршрутам, порядок загрузки auth-конфигурации, регрессионное покрытие ограничения истории runtime-диагностик, фактические production-секреты и реальный запрос к AnyModel. `render.yaml` содержит декларации основных переменных окружения, но значения живого сервиса не проверялись.
+> **Как читать этот документ:** подробные находки ниже отражают исторические снимки. Проверки на 2026-10-17 подтвердили, что текущий CI уже содержит Docker build и smoke test `/api/health`; это не доказывает доступность Docker daemon для вложенного запуска sandbox на Render. PR #53 включает пропущенные API regression tests, добавляет отсутствовавшие тесты `scaffoldProject` и `runCommand`, а также выравнивает Render default с AnyModel. Остаются непроверенными браузерный preview при включённой авторизации, доступность Docker daemon в production, live-запрос к AnyModel, production-секреты и полное покрытие rate-limit маршрутов. Проверка CI PR #53 прошла на build и E2E, но изменения ещё не влиты в main.
 
 
 **Дата:** 2026-10-11  
@@ -122,7 +122,7 @@ PR #35 добавил middleware для ключевых маршрутов. О�
 
 **Статус: PARTIALLY RESOLVED — переменные объявлены в `render.yaml`; значения и запуск production не проверены.**
 
-`render.yaml` в текущем main объявляет `NEXUM_DATABASE_URL`, `NEXUM_AUTH_SECRET`, `NEXUM_AUTH_ENABLED` и `NEXUM_CORS_ORIGINS`; секретные значения заданы как `sync: false`. Фактические значения и состояние живого сервиса из репозитория проверить нельзя. Provider по умолчанию всё ещё `openrouter`, поэтому для целевого AnyModel нужно отдельно согласовать deployment-конфигурацию.
+`render.yaml` объявляет `NEXUM_DATABASE_URL`, `NEXUM_AUTH_SECRET`, `NEXUM_AUTH_ENABLED` и `NEXUM_CORS_ORIGINS`; секретные значения заданы как `sync: false`. Фактические значения и состояние живого сервиса из репозитория проверить нельзя. В PR #53 provider по умолчанию выровнен на `anymodel`; реальная авторизация и запрос к модели не проверялись.
 
 Dockerfile после PR #35 использует multi-stage build, собирает API/Web и запускает `node apps/api/dist/server.js` в runtime-образе. Но Docker build и smoke test пока не являются обязательными шагами CI.
 
@@ -189,7 +189,7 @@ PR #35 удалил отслеживаемые `node_modules` и обновил 
 5. Добавить `docker build` и smoke test `/api/health` в CI.
 6. Проверить миграции и отсутствие обязательных файлов, которые не попали в образ.
 
-PR #35 обновил Dockerfile и добавил сборку API в CI, но сам `docker build` и smoke test образа остаются незакрытыми.
+Историческая формулировка до добавления `docker build` и smoke test; на актуальном workflow этот пункт закрыт.
 
 ## P2 — важные улучшения
 
