@@ -107,7 +107,8 @@ app.use((req, _res, next) => {
   const requestId = getRequestId(req);
   const started = Date.now();
   _res.on("finish", () => {
-    const operation = req.method + " " + req.originalUrl;
+    const safeUrl = req.originalUrl.replace(/(\/api\/preview-access\/)[^/]+/g, "$1[REDACTED]");
+    const operation = req.method + " " + safeUrl;
     serverRuntime.record(
       "NETWORK",
       _res.statusCode >= 500 ? "error" : "info",
