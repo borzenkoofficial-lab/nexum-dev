@@ -48,6 +48,14 @@ jobs:
         run: docker build --tag nexum-dev:ci .
       - name: Build isolated sandbox worker image
         run: docker build --target sandbox-worker --tag nexum-dev:sandbox-worker .
+      - name: Validate staging deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/deploy-staging.sh
+          cp .env.staging.example .env.staging
+          docker compose --env-file .env.staging -f docker-compose.staging.yml config --quiet
+          rm .env.staging
       - name: Smoke test production container startup
         shell: bash
         run: |
