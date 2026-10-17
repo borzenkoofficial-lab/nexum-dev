@@ -17,7 +17,8 @@ import { ProjectManager, ProjectManagerError } from "./projects/projectManager.j
 import { mkdir, readFile, stat, readdir, writeFile, rm } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID } from "node:crypto";
+import { createPreviewAccessToken, PREVIEW_TOKEN_TTL_MS, verifyPreviewAccessToken } from "./previewAccess.js";
 import { GitTool } from "./agent/tools/git.js";
 import { RunCommandTool } from "./agent/tools/runCommand.js";
 import { assertExistingProjectPath, assertWritableProjectPath, ProjectPathError } from "./agent/tools/path.js";
@@ -38,30 +39,7 @@ import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
 
 const requestIds = new WeakMap<object, string>();
 const previewBaseByRequest = new WeakMap<object, string>();
-const PREVIEW_TOKEN_TTL_MS = 10 * 60 * 1000;
-const previewTokenSecret = process.env.NEXUM_AUTH_SECRET?.trim() && process.env.NEXUM_AUTH_SECRET.trim().length >= 32
-  ? process.env.NEXUM_AUTH_SECRET.trim()
-  : randomBytes(32).toString("hex");
 
-type PreviewGrant = { userId: string; projectId: string; expiresAt: number };
-function createPreviewToken(grant: PreviewGrant): string {
-  const payload = Buffer.from(JSON.stringify(grant)).toString("base64url");
-  const signature = createHmac("sha256", previewTokenSecret).update(payload).digest("base64url");
-  return payload + "." + signature;
-}
-function verifyPreviewToken(token: string): PreviewGrant | null {
-  const [payload, signature, extra] = token.split(".");
-  if (!payload || !signature || extra !== undefined) return null;
-  const expected = createHmac("sha256", previewTokenSecret).update(payload).digest();
-  let actual: Buffer;
-  try { actual = Buffer.from(signature, "base64url"); } catch { return null; }
-  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return null;
-  try {
-    const grant = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Partial<PreviewGrant>;
-    if (typeof grant.userId !== "string" || !grant.userId || typeof grant.projectId !== "string" || !grant.projectId || typeof grant.expiresAt !== "number" || grant.expiresAt <= Date.now()) return null;
-    return grant as PreviewGrant;
-  } catch { return null; }
-}
 
 function getRequestId(req: express.Request): string {
   const existing = requestIds.get(req);
@@ -1040,7 +1018,9 @@ app.get("/api/projects/:id/preview-token", async (req, res) => {
     const userId = getAuthUser(req).id;
     const project = await getProjectManager(userId).getProject(req.params.id);
     const expiresAt = Date.now() + PREVIEW_TOKEN_TTL_MS;
-    const token = createPreviewToken({ userId, projectId: project.id, expiresAt });
+    const token = createPreviewAccessToken(userId, project.id, expiresAt);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Referrer-Policy", "no-referrer");
     return res.json({
       success: true,
       url: `/api/preview-access/${token}/${encodeURIComponent(project.id)}/index.html`,
@@ -1069,13 +1049,16 @@ app.use((req, res, next) => {
 
   const segments = req.path.slice(prefix.length).split("/");
   const token = segments.shift() ?? "";
+  res.setHeader("Cache-Control", "private, no-store");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("X-Content-Type-Options", "nosniff");
   const encodedProjectId = segments.shift() ?? "";
   let projectId: string;
   try { projectId = decodeURIComponent(encodedProjectId); } catch {
     res.status(400).send("Invalid preview URL");
     return;
   }
-  const grant = verifyPreviewToken(token);
+  const grant = verifyPreviewAccessToken(token);
   if (!grant || grant.projectId !== projectId) {
     res.status(401).send("Preview link is invalid or expired");
     return;
