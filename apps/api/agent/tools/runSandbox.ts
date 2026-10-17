@@ -1,4 +1,6 @@
 import type { Tool, ToolResult } from "../types.js";
+import { relative, resolve, sep } from "node:path";
+import { signSandboxWorkerRequest } from "../../sandbox/workerAuth.js";
 import { DockerSandbox } from "../../sandbox/dockerSandbox.js";
 import type { SandboxRequest, SandboxResult } from "../../sandbox/types.js";
 import type { ServerRuntime } from "../../runtime/runtime.js";
@@ -16,15 +18,19 @@ export class RunSandboxTool implements Tool {
   description = "Runs an allowlisted build or test command in an isolated Docker container";
 
   private readonly sandbox: DockerSandbox;
+  private readonly projectRoot: string;
 
   constructor(projectRoot: string, runtime?: ServerRuntime, context: { projectId?: string; taskId?: string } = {}) {
+    this.projectRoot = resolve(projectRoot);
     this.sandbox = new DockerSandbox(projectRoot, undefined, runtime, context);
   }
 
   async execute(input: string, signal?: AbortSignal): Promise<RunSandboxResult> {
     try {
       const request = this.parseRequest(input);
-      const result = await this.sandbox.run(request, signal);
+      const result = process.env.NEXUM_SANDBOX_WORKER_URL?.trim()
+        ? await this.runRemote(request, signal)
+        : await this.sandbox.run(request, signal);
       return {
         success: result.success,
         exitCode: result.exitCode,
@@ -49,6 +55,57 @@ export class RunSandboxTool implements Tool {
       };
       return result;
     }
+  }
+
+  private async runRemote(request: SandboxRequest, signal?: AbortSignal): Promise<SandboxResult> {
+    const baseUrl = process.env.NEXUM_SANDBOX_WORKER_URL?.trim().replace(/\\/+$/, "");
+    const secret = process.env.NEXUM_SANDBOX_WORKER_SECRET ?? "";
+    if (!baseUrl) throw new Error("NEXUM_SANDBOX_WORKER_URL is not configured");
+    if (secret.length < 32) throw new Error("NEXUM_SANDBOX_WORKER_SECRET must contain at least 32 characters");
+
+    const volumeRoot = resolve(process.env.NEXUM_SANDBOX_VOLUME_ROOT ?? "/app/runtime");
+    const projectPath = relative(volumeRoot, this.projectRoot);
+    if (!projectPath || projectPath === "." || projectPath === ".." || projectPath.startsWith(".." + sep) || resolve(volumeRoot, projectPath) !== this.projectRoot) {
+      throw new Error("Project directory is outside the configured shared sandbox volume");
+    }
+
+    const body = JSON.stringify({
+      projectPath: projectPath.split(sep).join("/"),
+      command: request.command,
+      ...(request.timeoutMs === undefined ? {} : { timeoutMs: request.timeoutMs }),
+    });
+    const timestamp = String(Date.now());
+    const signature = signSandboxWorkerRequest(secret, timestamp, body);
+    const timeoutMs = request.timeoutMs ?? 30_000;
+    const timeoutSignal = AbortSignal.timeout(timeoutMs + 15_000);
+    const requestSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+
+    let response: Response;
+    try {
+      response = await fetch(baseUrl + "/run", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-nexum-timestamp": timestamp,
+          "x-nexum-signature": signature,
+        },
+        body,
+        signal: requestSignal,
+      });
+    } catch (error) {
+      if (signal?.aborted) throw new Error("Sandbox worker request was cancelled");
+      throw new Error(error instanceof Error ? `Sandbox worker unavailable: ${error.message}` : "Sandbox worker unavailable");
+    }
+
+    const payload = await response.json().catch(() => null) as SandboxResult | { error?: string } | null;
+    if (!response.ok) {
+      const message = payload && typeof payload.error === "string" ? payload.error : `Sandbox worker returned HTTP ${response.status}`;
+      throw new Error(message);
+    }
+    if (!payload || typeof payload !== "object" || typeof payload.success !== "boolean" || typeof payload.command !== "string") {
+      throw new Error("Sandbox worker returned an invalid response");
+    }
+    return payload as SandboxResult;
   }
 
   private parseRequest(input: string): SandboxRequest {
