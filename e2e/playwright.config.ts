@@ -20,13 +20,13 @@ export default defineConfig({
     {
       name: "API",
       command: "cd .. && npm --prefix apps/api run start",
-      url: "http://127.0.0.1:3001/api/runtime/status",
+      url: "http://127.0.0.1:3001/api/health",
       timeout: 120_000,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
       env: {
         NODE_ENV: "test",
-        NEXUM_AUTH_ENABLED: "false",
+        NEXUM_AUTH_ENABLED: "true",
         NEXUM_AUTH_SECRET: "nexum-e2e-runtime-secret-000000000000000000000000",
         AI_PROVIDER: "mock",
         NEXUM_E2E_MOCK_AI: "true",
