@@ -90,12 +90,17 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  const executionController = new AbortController();
+  response.on("close", () => {
+    if (!response.writableEnded) executionController.abort();
+  });
+
   try {
     const result = await sandbox.run({
       projectPath: payload.projectPath || ".",
       command: payload.command,
       ...(payload.timeoutMs === undefined ? {} : { timeoutMs: payload.timeoutMs as number }),
-    });
+    }, executionController.signal);
     response.writeHead(200, { "content-type": "application/json" });
     response.end(JSON.stringify(result));
   } catch (error) {
