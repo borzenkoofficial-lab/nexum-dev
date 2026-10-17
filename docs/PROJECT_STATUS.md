@@ -244,7 +244,7 @@ NEXUM.DEV — браузерная платформа для создания и
 
 **Рабочая ветка:** `fix/deep-audit-2026-10-17`  
 **Pull Request:** [#53 — audit test coverage and provider configuration](https://github.com/borzenkoofficial-lab/nexum-dev/pull/53)  
-**CI:** [run #2351](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39063339389) — jobs `build` и `e2e` завершились успешно.
+**CI:** [run #2355](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39063849304) — jobs `build` и `e2e` завершились успешно; API tests 152/152, web runtime tests 5/5.
 
 Изменения в PR:
 - Включены ранее пропущенные тесты checkpoint, error recovery, task state, patchFile, testProject и OpenAI provider в API test command.
@@ -255,6 +255,7 @@ NEXUM.DEV — браузерная платформа для создания и
 - Доступность Docker daemon для `DockerSandbox` на Render не доказана. Нужен отдельный sandbox host/worker или другая безопасная архитектура исполнения; нельзя решать проблему запуском недоверенного кода на хосте API или бездумным монтированием Docker socket.
 - Preview в iframe с `sandbox="allow-scripts"` и включённой авторизацией требует отдельного браузерного теста. Не добавлять `allow-same-origin` без отдельного origin для preview: это может позволить коду проекта выйти из sandbox.
 - Live-запрос к AnyModel, production credentials и полное покрытие rate limits требуют проверки в целевом окружении.
+- `scripts/deploy-staging.sh` ссылается на отсутствующие `docker-compose.staging.yml` и `.env.staging.example`; staging deploy пока не воспроизводим. Нельзя исправлять это монтированием Docker socket в API без отдельного sandbox worker и анализа безопасности.
 - CSS layering и возможный мёртвый код требуют визуальной/функциональной проверки; массовая чистка без тестов не выполнялась.
 
 Следующий приоритет: решить архитектуру изолированного sandbox для production, затем добавить и выполнить браузерный E2E preview с включённой авторизацией. Не считать релиз готовым только по зелёному CI.
