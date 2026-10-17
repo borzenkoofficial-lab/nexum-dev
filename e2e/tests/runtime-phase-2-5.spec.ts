@@ -292,7 +292,7 @@ test("authenticated preview iframe loads project HTML without weakening iframe s
   await expect.poll(async () => {
     const child = await frame.contentFrame();
     if (!child) return false;
-    return child.evaluate(() => (window as any).__previewModuleLoaded === true).catch(() => false);
+    return child.locator("body").evaluate(() => (window as any).__previewModuleLoaded === true).catch(() => false);
   }, { timeout: 10_000 }).toBe(true);
 });
 
