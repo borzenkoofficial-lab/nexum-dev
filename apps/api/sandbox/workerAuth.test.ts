@@ -13,7 +13,7 @@ test("sandbox worker signature accepts an untampered recent request", () => {
 });
 
 test("sandbox worker signature rejects body or secret tampering", () => {
-  const signature = signSandboxWorkerRequest(secret, timestamp, body);
+  const signature = signSandboxWorkerRequest(secret, timestamp, nonce, body);
   assert.equal(verifySandboxWorkerRequest(secret, timestamp, body + " ", signature, Date.now(), nonce), false);
   assert.equal(verifySandboxWorkerRequest(secret + "wrong", timestamp, body, signature, Date.now(), nonce), false);
 });
