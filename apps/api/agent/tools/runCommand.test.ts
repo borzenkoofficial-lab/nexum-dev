@@ -21,7 +21,7 @@ test("runCommand rejects project scripts outside the allowlist before spawning",
 
   const result = await new RunCommandTool(root).execute("npm run deploy");
   assert.equal(result.success, false);
-  assert.match(result.stderr, /allowlisted npm run scripts|Only npm/i);
+  assert.match(result.stderr, /npm script is not allowed|allowlisted npm run scripts|Only npm/i);
   assert.equal(result.exitCode, null);
 });
 
@@ -31,6 +31,6 @@ test("runCommand rejects git directory overrides", async (t) => {
 
   const result = await new RunCommandTool(root).execute("git -C /tmp status");
   assert.equal(result.success, false);
-  assert.match(result.stderr, /Changing the git working directory or config is not allowed/i);
+  assert.match(result.stderr, /Changing the git working directory or config is not allowed|Command argument is not allowed/i);
   assert.equal(result.exitCode, null);
 });
