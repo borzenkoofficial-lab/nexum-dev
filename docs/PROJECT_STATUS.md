@@ -21,7 +21,7 @@
 
 **Снятый блокер тестирования:** старый E2E прогон [#2266](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38147453731), выполненный до слияния PR #35, не дождался события `TOOL_CHECKPOINT/consumed` в сценарии повторной отмены. После merge на актуальном main полный CI прошёл, включая E2E. Проверка документационной PR-ветки также прошла: [run #2269](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38152031395).
 
-**Текущий статус CI: GREEN на указанном commit. Публичный релиз: NOT READY** до отдельной проверки production-конфигурации базы и секретов, Docker runtime smoke test, проверки route-by-route rate-limit coverage, runtime diagnostics retention, Docker image smoke test и реального подключения AnyModel. Локальный запуск в чистой среде и production deployment в этой проверке не выполнялись.
+**CI для ветки PR #53: GREEN** по результатам run #2351. Публичный релиз: **NOT READY** до проверки Docker daemon для sandbox в целевой инфраструктуре, browser-level preview с включённой авторизацией, production-конфигурации базы и секретов, покрытия rate-limit маршрутов, runtime diagnostics retention и реального подключения AnyModel. Docker image build и `/api/health` smoke test уже выполняются в CI, но не подтверждают доступность Docker daemon на Render. Production deployment в этой проверке не выполнялся.
 
 Основной документ с полной историей находок, их актуальными статусами и оставшимися рисками: [docs/AUDIT_REPORT_2026-10-11.md](./AUDIT_REPORT_2026-10-11.md). Дополнительная фиксация CI и P0 до исправления: [docs/AUDIT_2026-10-11.md](./AUDIT_2026-10-11.md).
 
@@ -237,3 +237,23 @@ NEXUM.DEV — браузерная платформа для создания и
 Начать с P0-аудита актуального репозитория: проверить дерево файлов, ключевые модули агента, команды package scripts, тесты и последние CI. После аудита заменить предварительные NEEDS_RECHECK на точные статусы и добавить подтверждения.
 
 Не начинайте массовую реализацию новых функций, пока не установлено, какие дефекты существуют на текущем HEAD и какие из них блокируют основной цикл создания и проверки проекта.
+
+
+## 9. Повторная проверка и исправления — 2026-10-17
+
+**Рабочая ветка:** `fix/deep-audit-2026-10-17`  
+**Pull Request:** [#53 — audit test coverage and provider configuration](https://github.com/borzenkoofficial-lab/nexum-dev/pull/53)  
+**CI:** [run #2351](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39063339389) — jobs `build` и `e2e` завершились успешно.
+
+Изменения в PR:
+- Включены ранее пропущенные тесты checkpoint, error recovery, task state, patchFile, testProject и OpenAI provider в API test command.
+- Добавлены отсутствовавший `scaffoldProject.test.ts` (инициализация пустого проекта, отказ перезаписывать данные, отмена) и `runCommand.test.ts` (запрет shell-операторов, недопустимых npm-скриптов и Git override).
+- Конфигурация Render и API example выровнены на AnyModel; mock явно обозначен как тестовый/E2E провайдер.
+
+Открытые блокеры, не закрытые этим PR:
+- Доступность Docker daemon для `DockerSandbox` на Render не доказана. Нужен отдельный sandbox host/worker или другая безопасная архитектура исполнения; нельзя решать проблему запуском недоверенного кода на хосте API или бездумным монтированием Docker socket.
+- Preview в iframe с `sandbox="allow-scripts"` и включённой авторизацией требует отдельного браузерного теста. Не добавлять `allow-same-origin` без отдельного origin для preview: это может позволить коду проекта выйти из sandbox.
+- Live-запрос к AnyModel, production credentials и полное покрытие rate limits требуют проверки в целевом окружении.
+- CSS layering и возможный мёртвый код требуют визуальной/функциональной проверки; массовая чистка без тестов не выполнялась.
+
+Следующий приоритет: решить архитектуру изолированного sandbox для production, затем добавить и выполнить браузерный E2E preview с включённой авторизацией. Не считать релиз готовым только по зелёному CI.
