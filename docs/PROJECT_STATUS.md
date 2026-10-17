@@ -259,3 +259,13 @@ NEXUM.DEV — браузерная платформа для создания и
 - CSS layering и возможный мёртвый код требуют визуальной/функциональной проверки; массовая чистка без тестов не выполнялась.
 
 Следующий приоритет: решить архитектуру изолированного sandbox для production, затем добавить и выполнить браузерный E2E preview с включённой авторизацией. Не считать релиз готовым только по зелёному CI.
+
+
+## 10. Authenticated Preview verification — 2026-10-17
+
+- Playwright API server now starts with `NEXUM_AUTH_ENABLED=true`; the readiness URL is the unauthenticated health endpoint, not a protected runtime endpoint.
+- Both E2E suites register a unique test user before each test and verify that the session cookie is accepted by `/api/auth/me`.
+- Added a browser test that checks the authenticated preview route and loads a project page inside the existing `sandbox="allow-scripts"` iframe. The test explicitly preserves the iframe sandbox instead of adding `allow-same-origin`.
+- CI run [#2359](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39064534905) is queued at the time of this update; the authenticated E2E result is **PENDING**. Do not mark preview fixed until this run passes.
+- This test uses a static HTML page. It does not yet prove React/Vite module assets load with an opaque iframe origin. A separate-origin preview architecture remains the safer long-term solution if the module-asset test fails.
+- Docker sandbox availability on Render remains unresolved; the existing local Docker implementation fails closed when no daemon is present. No unsafe Docker socket mount or production deployment was introduced.
