@@ -34,3 +34,23 @@ test("runCommand rejects git directory overrides", async (t) => {
   assert.match(result.stderr, /Changing the git working directory or config is not allowed|Command argument is not allowed/i);
   assert.equal(result.exitCode, null);
 });
+
+test("runCommand rejects Node evaluation flags", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "nexum-run-command-test-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+
+  const result = await new RunCommandTool(root).execute("node --eval");
+  assert.equal(result.success, false);
+  assert.match(result.stderr, /node evaluation flags are not allowed/i);
+  assert.equal(result.exitCode, null);
+});
+
+test("runCommand requires npm install to disable lifecycle scripts", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "nexum-run-command-test-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+
+  const result = await new RunCommandTool(root).execute("npm install");
+  assert.equal(result.success, false);
+  assert.match(result.stderr, /npm install --ignore-scripts/i);
+  assert.equal(result.exitCode, null);
+});
