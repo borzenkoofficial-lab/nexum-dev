@@ -10,7 +10,7 @@
 
 **Проверенный main HEAD на момент создания PR #53:** `8c021b54bb5be600d9b3b5268c65af325b6cc460`.  
 **Исторический CI main:** [run #2267](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38151338255) — `success` на более раннем коммите.  
-**Базовая проверка до последних изменений:** [run #2355](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39063849304) — jobs `build` и `e2e` прошли успешно. Последующая проверка [run #2382](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39065660769) подтвердила build, staging config и sandbox-worker smoke test, но E2E выявил две ошибки: неверный вызов Playwright FrameLocator API и серверная проверка preview без авторизации. Исправления внесены; актуальный CI после них ожидается.
+**Последняя полная проверка:** [run #2394](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39066247734) — `build` и `e2e` прошли. API tests: 159/159; Web runtime tests: 5/5; Playwright E2E: 36 passed. Включены production API image/health smoke, отдельный sandbox-worker image и реальная allowlisted-команда в изолированном Docker-контейнере, Compose validation и authenticated preview iframe с ES module.
 
 Подтверждено в актуальном `main`:
 - агентское выполнение команд направлено через Docker Sandbox;
@@ -22,7 +22,7 @@
 
 **Снятый блокер тестирования:** старый E2E прогон [#2266](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38147453731), выполненный до слияния PR #35, не дождался события `TOOL_CHECKPOINT/consumed` в сценарии повторной отмены. После merge на актуальном main полный CI прошёл, включая E2E. Проверка документационной PR-ветки также прошла: [run #2269](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38152031395).
 
-**Текущий статус PR #53: VERIFICATION IN PROGRESS.** Run #2382: build прошёл, E2E не прошёл из-за двух выявленных проблем; исправления внесены в более поздние коммиты, для них требуется новый полный CI. Публичный релиз остаётся **NOT READY** до зелёного полного CI, проверки production-конфигурации базы и секретов, покрытия rate-limit маршрутов, runtime diagnostics retention и реального подключения AnyModel. Self-hosted sandbox worker smoke test прошёл в build job; это не означает, что staging VPS уже развёрнут. Render без доступного Docker daemon и общей файловой системы не поддерживает этот Compose worker mode.
+**Текущий статус PR #53: CI GREEN** по run #2394. Публичный релиз остаётся **NOT READY** до проверки реального staging VPS, production-конфигурации базы и секретов, покрытия rate-limit маршрутов, runtime diagnostics retention и живого подключения AnyModel. Self-hosted sandbox worker smoke test прошёл в CI, но staging VPS ещё не развёрнут. Compose worker mode не переносится на Render автоматически: для него нужны Docker daemon и общий named volume.
 
 Основной документ с полной историей находок, их актуальными статусами и оставшимися рисками: [docs/AUDIT_REPORT_2026-10-11.md](./AUDIT_REPORT_2026-10-11.md). Дополнительная фиксация CI и P0 до исправления: [docs/AUDIT_2026-10-11.md](./AUDIT_2026-10-11.md).
 
@@ -252,13 +252,13 @@ NEXUM.DEV — браузерная платформа для создания и
 - Конфигурация Render и API example выровнены на AnyModel; mock явно обозначен как тестовый/E2E провайдер.
 
 Открытые блокеры, не закрытые этим PR:
-- Доступность Docker daemon для `DockerSandbox` на Render не доказана. Нужен отдельный sandbox host/worker или другая безопасная архитектура исполнения; нельзя решать проблему запуском недоверенного кода на хосте API или бездумным монтированием Docker socket.
-- Preview в iframe с `sandbox="allow-scripts"` и включённой авторизацией требует отдельного браузерного теста. Не добавлять `allow-same-origin` без отдельного origin для preview: это может позволить коду проекта выйти из sandbox.
+- Для self-hosted Compose создан отдельный sandbox worker; API контейнер не получает Docker socket. CI smoke test реально выполнил разрешённую команду в дочернем Docker-контейнере. На Render этот режим не работает автоматически без Docker daemon и общей файловой системы.
+- Authenticated preview проверен браузерным E2E: HTML и ES module загружаются через scoped bearer token, при этом iframe сохраняет `sandbox="allow-scripts"`. Токены действуют 10 минут, не попадают в request diagnostics и не дают null-origin доступ к обычным API-маршрутам.
 - Live-запрос к AnyModel, production credentials и полное покрытие rate limits требуют проверки в целевом окружении.
 - Добавлены `docker-compose.staging.yml`, `.env.staging.example`, `Caddyfile` и `docs/deployment/REG_RU_STAGING.md`. Конфигурация прошла Compose validation в CI. Сам staging host ещё не развёрнут; потребуется реальный VPS, DNS, доступная PostgreSQL и AnyModel API key.
 - CSS layering и возможный мёртвый код требуют визуальной/функциональной проверки; массовая чистка без тестов не выполнялась.
 
-Следующий приоритет: решить архитектуру изолированного sandbox для production, затем добавить и выполнить браузерный E2E preview с включённой авторизацией. Не считать релиз готовым только по зелёному CI.
+Следующий приоритет: развернуть staging на реальном Linux VPS по `docs/deployment/REG_RU_STAGING.md`, проверить PostgreSQL/TLS/AnyModel с настоящими секретами, затем выполнить smoke сценарий создания проекта → build → preview. Не считать релиз готовым только по зелёному CI.
 
 
 ## 10. Authenticated Preview verification — 2026-10-17
@@ -277,4 +277,16 @@ NEXUM.DEV — браузерная платформа для создания и
 - Agent runtime validation now requests its own project's preview through a scoped token, fixing the observed 401 when authentication is enabled.
 - Preview bearer tokens are excluded from request logs; token responses and preview files use no-store and no-referrer headers.
 - Worker cancellation now propagates client disconnects to the active DockerSandbox AbortSignal.
-- Latest completed full CI before these fixes: [run #2382](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39065660769) — build passed including production image, worker image, Compose validation, API health smoke and worker command smoke; E2E failed two tests, with root causes identified and patched. The new full CI is pending.
+- Latest full CI: [run #2394](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39066247734) — build and E2E passed; API tests 159/159, web runtime tests 5/5, Playwright E2E 36 passed. Production API image/health smoke, worker image/build and execution smoke, staging Compose validation all passed. Real VPS deployment and live AnyModel request remain unverified.
+
+
+## 12. Full verification checkpoint — 2026-10-17
+
+**CI:** [run #2394](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39066247734) — both jobs green.
+
+- API: 159 tests passed, 0 failed.
+- Web runtime: 5 tests passed, 0 failed.
+- Playwright: 36 E2E tests passed, including E2E-19 Builder acceptance and authenticated preview iframe with an ES module.
+- Docker: default image correctly targets API runtime; worker target builds separately. API `/api/health` smoke and worker command execution smoke passed.
+- Deployment config: `docker-compose.staging.yml` validates and `scripts/deploy-staging.sh` passes `bash -n`.
+- No production deployment was executed. Real database credentials, DNS/TLS, firewall and live AnyModel access must still be validated on the target VPS.
