@@ -124,7 +124,7 @@ PR #35 добавил middleware для ключевых маршрутов. О�
 
 `render.yaml` объявляет `NEXUM_DATABASE_URL`, `NEXUM_AUTH_SECRET`, `NEXUM_AUTH_ENABLED` и `NEXUM_CORS_ORIGINS`; секретные значения заданы как `sync: false`. Фактические значения и состояние живого сервиса из репозитория проверить нельзя. В PR #53 provider по умолчанию выровнен на `anymodel`; реальная авторизация и запрос к модели не проверялись.
 
-Dockerfile после PR #35 использует multi-stage build, собирает API/Web и запускает `node apps/api/dist/server.js` в runtime-образе. Но Docker build и smoke test пока не являются обязательными шагами CI.
+Dockerfile после PR #35 использует multi-stage build, собирает API/Web и запускает `node apps/api/dist/server.js` в runtime-образе. Docker build и smoke test `/api/health` уже являются шагами CI; доступность Docker daemon для sandbox остаётся отдельным открытым вопросом.
 
 Что сделать:
 1. Сверить `render.yaml` с обязательными переменными в `apps/api/.env.example`.
@@ -165,31 +165,21 @@ PR #35 удалил отслеживаемые `node_modules` и обновил 
 
 ### AUDIT-010 — защита выполнения команд не покрыта отдельным тестовым набором
 
-**Статус: TEST GAP**
+**Статус: исправлено в PR #53; изменения прошли CI.**
 
-В main нет отдельного `runCommand.test.ts`, несмотря на то что этот модуль исполняет процессы и обрабатывает команды с пользовательскими данными. Есть тесты для DockerSandbox, path и security, но они не заменяют тесты самого маршрута исполнения команд.
-
-Что сделать:
-- Проверить запрет shell-операторов, аргументов обхода пути, неожиданных npm scripts и Node eval.
-- Проверить, что команды проекта выполняются только внутри sandbox.
-- Проверить тайм-аут, отмену, лимит вывода, уничтожение дочерних процессов и очистку контейнера.
-- Проверить прямой HTTP route `/api/projects/:id/run` на ту же границу безопасности.
+В PR добавлен `apps/api/agent/tools/runCommand.test.ts` с регрессионными тестами для shell-операторов, недопустимых npm-скриптов и попыток переопределения каталога Git. Ранее пропущенные тесты checkpoint, error recovery, task state, patchFile, testProject и OpenAI provider также включены в команду API-тестов. Результаты: [CI run #2351](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39063339389), jobs `build` и `e2e` прошли. Полное покрытие отмены, тайм-аутов и очистки дочерних процессов всё ещё требует расширения.
 
 ### AUDIT-011 — production Docker build не является обязательной проверкой CI
 
-**Статус: CONFIRMED PIPELINE GAP**
+**Статус: RESOLVED в актуальном workflow.**
 
-Текущий CI проверяет TypeScript, тесты, API/Web build и E2E, но не строит Docker image. Dockerfile после PR #35 уже компилирует API и запускает `node apps/api/dist/server.js` с production dependencies. Поэтому зелёный CI по-прежнему не доказывает, что production-образ реально собирается и стартует в чистом окружении.
+`.github/workflows/ci.yml` выполняет `docker build` и запускает production-контейнер с проверкой `/api/health`. Успешный smoke test доказывает сборку образа и запуск API, но не доступность Docker daemon внутри развёрнутого Render-сервиса и не работоспособность вложенного sandbox.
 
-Что сделать:
-1. Добавить build script для API.
-2. Собирать API в build stage.
-3. Устанавливать в runtime-образ только production dependencies.
-4. Запускать скомпилированный entrypoint.
-5. Добавить `docker build` и smoke test `/api/health` в CI.
-6. Проверить миграции и отсутствие обязательных файлов, которые не попали в образ.
-
-Историческая формулировка до добавления `docker build` и smoke test; на актуальном workflow этот пункт закрыт.
+Оставшиеся проверки:
+1. Проверить доступность Docker daemon в целевой production-инфраструктуре.
+2. Выполнить реальную sandbox-команду внутри production-образа на окружении, где Docker daemon настроен.
+3. Проверить миграции и обязательные файлы в production-образе.
+4. Не монтировать Docker socket в API-контейнер без отдельного анализа угроз; доступ к socket фактически даёт высокий уровень контроля над хостом.
 
 ## P2 — важные улучшения
 
