@@ -35,7 +35,7 @@ Do not commit or upload `.env.staging`. It is ignored by Git.
 bash scripts/deploy-staging.sh
 ```
 
-The script validates the Compose file, builds the API and sandbox-worker images, pulls the sandbox runtime image, runs database migrations, starts the services, and fails if the HTTPS health endpoint does not return successfully.
+The script validates the Compose file, builds the API and sandbox-worker images, pulls the sandbox runtime image, runs database migrations, starts the services, and fails if the HTTPS readiness endpoint does not return successfully. `/api/health` is a liveness/diagnostic endpoint; `/api/ready` returns HTTP 503 when PostgreSQL is unavailable.
 
 Useful diagnostics:
 
