@@ -68,6 +68,18 @@ jobs:
               printf '%s\n' "$response"
               if printf '%s' "$response" | grep -q '"service":"NEXUM.DEV API"'; then
                 echo "Production container started and /api/health responded."
+                readiness_status="$(curl --silent --show-error --output /tmp/nexum-readiness.json --write-out '%{http_code}' http://127.0.0.1:3301/api/ready)"
+                if [ "$readiness_status" != "503" ]; then
+                  echo "Expected /api/ready to return 503 while PostgreSQL is unconfigured; got $readiness_status."
+                  cat /tmp/nexum-readiness.json || true
+                  exit 1
+                fi
+                if ! grep -q '"status":"not_ready"' /tmp/nexum-readiness.json; then
+                  echo "Readiness response did not report not_ready."
+                  cat /tmp/nexum-readiness.json || true
+                  exit 1
+                fi
+                echo "Readiness correctly returns HTTP 503 when PostgreSQL is unavailable."
                 exit 0
               fi
             fi
