@@ -778,6 +778,19 @@ app.get("/api/health", async (_req, res) => {
   });
 });
 
+// Liveness (/api/health) intentionally stays available while dependencies recover.
+// Readiness is stricter so an orchestrator cannot route traffic to an API with a
+// broken database connection.
+app.get("/api/ready", async (_req, res) => {
+  const database = await pingDatabase();
+  const ready = database.ok;
+  return res.status(ready ? 200 : 503).json({
+    status: ready ? "ready" : "not_ready",
+    database,
+    service: "NEXUM.DEV API",
+  });
+});
+
 
 app.post("/api/auth/register", authRegisterLimiter, async (req, res) => {
   try {
