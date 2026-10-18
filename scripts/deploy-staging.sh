@@ -43,5 +43,5 @@ echo "NEXUM staging containers:"
 docker compose --env-file .env.staging -f docker-compose.staging.yml ps
 echo
 echo "Health:"
-curl --retry 10 --retry-connrefused --retry-delay 3 -fsS "https://$DOMAIN/api/health"
+curl --retry 10 --retry-connrefused --retry-delay 3 -fsS "https://$DOMAIN/api/ready"
 echo
