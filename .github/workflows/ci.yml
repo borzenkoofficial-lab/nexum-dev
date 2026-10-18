@@ -46,6 +46,16 @@ jobs:
         run: npm --prefix apps/web run lint
       - name: Build production Docker image
         run: docker build --tag nexum-dev:ci .
+      - name: Build isolated sandbox worker image
+        run: docker build --target sandbox-worker --tag nexum-dev:sandbox-worker .
+      - name: Validate staging deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/deploy-staging.sh
+          cp .env.staging.example .env.staging
+          docker compose --env-file .env.staging -f docker-compose.staging.yml config --quiet
+          rm .env.staging
       - name: Smoke test production container startup
         shell: bash
         run: |
@@ -58,6 +68,18 @@ jobs:
               printf '%s\n' "$response"
               if printf '%s' "$response" | grep -q '"service":"NEXUM.DEV API"'; then
                 echo "Production container started and /api/health responded."
+                readiness_status="$(curl --silent --show-error --output /tmp/nexum-readiness.json --write-out '%{http_code}' http://127.0.0.1:3301/api/ready)"
+                if [ "$readiness_status" != "503" ]; then
+                  echo "Expected /api/ready to return 503 while PostgreSQL is unconfigured; got $readiness_status."
+                  cat /tmp/nexum-readiness.json || true
+                  exit 1
+                fi
+                if ! grep -q '"status":"not_ready"' /tmp/nexum-readiness.json; then
+                  echo "Readiness response did not report not_ready."
+                  cat /tmp/nexum-readiness.json || true
+                  exit 1
+                fi
+                echo "Readiness correctly returns HTTP 503 when PostgreSQL is unavailable."
                 exit 0
               fi
             fi
@@ -66,6 +88,52 @@ jobs:
           echo "Production container did not return the expected health response."
           docker logs nexum-smoke || true
           exit 1
+
+      - name: Smoke test isolated sandbox worker execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull node:22-bookworm-slim
+          docker volume create nexum-runtime-ci >/dev/null
+          docker run --rm --mount type=volume,src=nexum-runtime-ci,dst=/app/runtime node:22-bookworm-slim sh -c 'mkdir -p /app/runtime/ci-project'
+          docker run --detach --name nexum-sandbox-worker-ci \
+            -p 127.0.0.1:3302:3020 \
+            -e NEXUM_SANDBOX_WORKER_SECRET=ci-only-worker-secret-at-least-32-characters \
+            -e NEXUM_SANDBOX_WORKER_PORT=3020 \
+            -e NEXUM_SANDBOX_VOLUME=nexum-runtime-ci \
+            -e NEXUM_SANDBOX_VOLUME_ROOT=/app/runtime \
+            --mount type=volume,src=nexum-runtime-ci,dst=/app/runtime \
+            --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+            nexum-dev:sandbox-worker
+          cleanup() {
+            docker rm -f nexum-sandbox-worker-ci >/dev/null 2>&1 || true
+            docker volume rm nexum-runtime-ci >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:3302/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --silent --show-error --fail http://127.0.0.1:3302/health
+          node --input-type=module <<'NODE'
+          import { createHmac, randomUUID } from "node:crypto";
+          const secret = "ci-only-worker-secret-at-least-32-characters";
+          const body = JSON.stringify({ projectPath: "ci-project", command: "node --version", timeoutMs: 10000 });
+          const timestamp = String(Date.now());
+          const nonce = randomUUID();
+          const signature = createHmac("sha256", secret).update(timestamp + "." + nonce + "." + body).digest("hex");
+          const response = await fetch("http://127.0.0.1:3302/run", {
+            method: "POST",
+            headers: { "content-type": "application/json", "x-nexum-timestamp": timestamp, "x-nexum-nonce": nonce, "x-nexum-signature": signature },
+            body,
+          });
+          const result = await response.json();
+          if (!response.ok || !result.success || !String(result.stdout).includes("v22.")) {
+            console.error(JSON.stringify({ status: response.status, result }));
+            process.exit(1);
+          }
+          console.log("Sandbox worker executed an allowlisted command inside the isolated container.");
+          NODE
 
   e2e:
     runs-on: ubuntu-latest

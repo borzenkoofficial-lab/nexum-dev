@@ -1,6 +1,7 @@
 apps/api/.env
 apps/api/.env.*
 !.env.example
+!.env.staging.example
 
 # Local environment secrets
 .env

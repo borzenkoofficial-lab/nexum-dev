@@ -1,5 +1,19 @@
 // CI trigger: full P0 runtime verification remains mandatory.
 import { test, expect } from "@playwright/test";
+async function registerE2EUser(page: any) {
+  const email = `nexum-e2e-${Date.now()}-${Math.random().toString(16).slice(2)}@example.test`;
+  const response = await page.request.post("/api/auth/register", {
+    data: { email, name: "NEXUM E2E", password: "nexum-e2e-password-123" },
+  });
+  if (response.status() !== 201) throw new Error(`E2E account registration failed: ${response.status()} ${await response.text()}`);
+  const session = await page.request.get("/api/auth/me");
+  if (!session.ok()) throw new Error(`E2E session cookie was not accepted: ${session.status()} ${await session.text()}`);
+}
+
+test.beforeEach(async ({ page }) => {
+  await registerE2EUser(page);
+});
+
 
 async function setAgentFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number, projectId?: string) {
   const response = await page.request.post("/api/test/agent-failures", {
@@ -249,6 +263,38 @@ test("multi-project concurrency and isolation", async ({ page }) => {
   expect(after.tasks.filter((t: any) => t.projectId === projects[2] && ["RUNNING", "COMPLETED"].includes(t.status)).length).toBeGreaterThan(0);
 });
 
+
+test("authenticated preview iframe loads project HTML without weakening iframe sandbox", async ({ page }) => {
+  const projectId = await createStaticProject(page, "runtime-auth-preview-" + Date.now());
+  const html = "<!doctype html><html><head><title>Authenticated Preview</title><script type='module' src='/app.js'></script></head><body><main id='preview-proof'>AUTHENTICATED_PREVIEW_OK</main></body></html>";
+  const write = await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
+    data: { path: "index.html", content: html },
+  });
+  expect(write.ok()).toBeTruthy();
+  const moduleWrite = await page.request.put(`/api/projects/${encodeURIComponent(projectId)}/file`, {
+    data: { path: "app.js", content: "window.__previewModuleLoaded = true;" },
+  });
+  expect(moduleWrite.ok()).toBeTruthy();
+
+  const direct = await page.request.get(`/api/preview/${encodeURIComponent(projectId)}/index.html`);
+  expect(direct.status()).toBe(200);
+  expect(await direct.text()).toContain("AUTHENTICATED_PREVIEW_OK");
+
+  await page.goto("/projects/" + encodeURIComponent(projectId));
+  const frame = page.locator('iframe[title*="preview"]');
+  await expect(frame).toBeVisible();
+  await expect(frame).toHaveAttribute("sandbox", "allow-scripts");
+  await expect.poll(async () => {
+    const child = await frame.contentFrame();
+    if (!child) return "";
+    return child.locator("#preview-proof").textContent().catch(() => "");
+  }, { timeout: 10_000 }).toContain("AUTHENTICATED_PREVIEW_OK");
+  await expect.poll(async () => {
+    const child = await frame.contentFrame();
+    if (!child) return false;
+    return child.locator("body").evaluate(() => (window as any).__previewModuleLoaded === true).catch(() => false);
+  }, { timeout: 10_000 }).toBe(true);
+});
 
 test("preview revision is invalidated when source changes after a successful build", async ({ page }) => {
   const projectId = await createStaticProject(page, "runtime-preview-revision-" + Date.now());

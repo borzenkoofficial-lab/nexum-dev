@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { stat } from "node:fs/promises";
-import { resolve } from "node:path";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import { assertExistingProjectPath, resolveProjectPath } from "../agent/tools/path.js";
 import type { ServerRuntime } from "../runtime/runtime.js";
 import type { SandboxRequest, SandboxResult } from "./types.js";
@@ -184,6 +184,27 @@ export class DockerSandbox {
     const needsRegistry = command.executable === "npm" && command.args[0] === "install";
     const hostUid = typeof process.getuid === "function" ? process.getuid() : 1000;
     const hostGid = typeof process.getgid === "function" ? process.getgid() : hostUid;
+    const sandboxVolume = process.env.NEXUM_SANDBOX_VOLUME?.trim();
+    let mountArgs: string[];
+    let workingDirectory = "/workspace";
+    if (sandboxVolume) {
+      if (!/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(sandboxVolume)) {
+        throw new Error("NEXUM_SANDBOX_VOLUME is invalid");
+      }
+      const volumeRoot = resolve(process.env.NEXUM_SANDBOX_VOLUME_ROOT ?? "/app/runtime");
+      const projectRelative = relative(volumeRoot, projectPath);
+      if (!projectRelative || projectRelative === ".") {
+        workingDirectory = "/workspace";
+      } else {
+        if (projectRelative === ".." || projectRelative.startsWith(".." + sep) || isAbsolute(projectRelative)) {
+          throw new Error("Sandbox project path is outside the configured shared volume");
+        }
+        workingDirectory = "/workspace/" + projectRelative.split(sep).join("/");
+      }
+      mountArgs = ["--mount", `type=volume,src=${sandboxVolume},dst=/workspace`];
+    } else {
+      mountArgs = ["--mount", `type=bind,src=${projectPath},dst=/workspace`];
+    }
     const dockerArgs = [
       "run",
       "--rm",
@@ -204,12 +225,11 @@ export class DockerSandbox {
       "--cap-drop=ALL",
       "--security-opt",
       "no-new-privileges:true",
-      "--mount",
-      `type=bind,src=${projectPath},dst=/workspace`,
+      ...mountArgs,
       "--tmpfs",
       "/tmp:rw,noexec,nosuid,size=256m",
       "--workdir",
-      "/workspace",
+      workingDirectory,
       "--env",
       "NODE_ENV=development",
       "--env",

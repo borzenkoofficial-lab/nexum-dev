@@ -3,7 +3,7 @@
 
 > **Актуальное состояние после исправлений P0 — 2026-10-11:** PR #35 влит в `main` коммитом `88da393937caa970f49a510351d05c3e6d4304ee`. Подтверждающий [CI run #2267](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38151338255) завершился успешно: jobs `build` и `e2e` прошли. Дополнительная проверка документационной PR-ветки [run #2269](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/38152031395) также прошла успешно. Выполнение команд агента теперь направлено через Docker Sandbox, внутренние diagnostics/runtime endpoints защищены, ChatJob cache ограничен, API/Web CI используют `npm ci`, образ sandbox подготавливается в E2E, tracked `node_modules/` отсутствуют в текущем дереве main, а AnyModel provider включён в main.
 
-> **Как читать этот документ:** подробные находки ниже отражают исходный снимок до merge PR #35 (`cceea0a12737db7e903a96f91d6cbe857a9a3081`). Статусы, относящиеся к этому коммиту, не являются автоматически статусами текущего main. Оставшиеся production-вопросы: обязательный Docker build/smoke в CI, покрытие rate limits по всем маршрутам, порядок загрузки auth-конфигурации, регрессионное покрытие ограничения истории runtime-диагностик, фактические production-секреты и реальный запрос к AnyModel. `render.yaml` содержит декларации основных переменных окружения, но значения живого сервиса не проверялись.
+> **Как читать этот документ:** подробные находки ниже отражают исторические снимки. Проверки на 2026-10-17 подтвердили, что текущий CI уже содержит Docker build и smoke test `/api/health`; это не доказывает доступность Docker daemon для вложенного запуска sandbox на Render. PR #53 включает пропущенные API regression tests, добавляет отсутствовавшие тесты `scaffoldProject` и `runCommand`, а также выравнивает Render default с AnyModel. Остаются непроверенными браузерный preview при включённой авторизации, доступность Docker daemon в production, live-запрос к AnyModel, production-секреты и полное покрытие rate-limit маршрутов. Базовая проверка PR #53 [run #2355](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39063849304) прошла на build и E2E; API tests 152/152, web runtime tests 5/5. Полная проверка [run #2394](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39066247734) прошла после исправления обоих дефектов: API 159/159, web runtime 5/5, Playwright E2E 36 passed. Production image/health smoke, worker image/command smoke и Compose validation также прошли. Изменения ещё не влиты в main.
 
 
 **Дата:** 2026-10-11  
@@ -122,9 +122,9 @@ PR #35 добавил middleware для ключевых маршрутов. О�
 
 **Статус: PARTIALLY RESOLVED — переменные объявлены в `render.yaml`; значения и запуск production не проверены.**
 
-`render.yaml` в текущем main объявляет `NEXUM_DATABASE_URL`, `NEXUM_AUTH_SECRET`, `NEXUM_AUTH_ENABLED` и `NEXUM_CORS_ORIGINS`; секретные значения заданы как `sync: false`. Фактические значения и состояние живого сервиса из репозитория проверить нельзя. Provider по умолчанию всё ещё `openrouter`, поэтому для целевого AnyModel нужно отдельно согласовать deployment-конфигурацию.
+`render.yaml` объявляет `NEXUM_DATABASE_URL`, `NEXUM_AUTH_SECRET`, `NEXUM_AUTH_ENABLED` и `NEXUM_CORS_ORIGINS`; секретные значения заданы как `sync: false`. Фактические значения и состояние живого сервиса из репозитория проверить нельзя. В PR #53 provider по умолчанию выровнен на `anymodel`; реальная авторизация и запрос к модели не проверялись.
 
-Dockerfile после PR #35 использует multi-stage build, собирает API/Web и запускает `node apps/api/dist/server.js` в runtime-образе. Но Docker build и smoke test пока не являются обязательными шагами CI.
+Dockerfile после PR #35 использует multi-stage build, собирает API/Web и запускает `node apps/api/dist/server.js` в runtime-образе. Docker build и smoke test `/api/health` уже являются шагами CI; доступность Docker daemon для sandbox остаётся отдельным открытым вопросом.
 
 Что сделать:
 1. Сверить `render.yaml` с обязательными переменными в `apps/api/.env.example`.
@@ -165,31 +165,21 @@ PR #35 удалил отслеживаемые `node_modules` и обновил 
 
 ### AUDIT-010 — защита выполнения команд не покрыта отдельным тестовым набором
 
-**Статус: TEST GAP**
+**Статус: исправлено в PR #53; изменения прошли CI.**
 
-В main нет отдельного `runCommand.test.ts`, несмотря на то что этот модуль исполняет процессы и обрабатывает команды с пользовательскими данными. Есть тесты для DockerSandbox, path и security, но они не заменяют тесты самого маршрута исполнения команд.
-
-Что сделать:
-- Проверить запрет shell-операторов, аргументов обхода пути, неожиданных npm scripts и Node eval.
-- Проверить, что команды проекта выполняются только внутри sandbox.
-- Проверить тайм-аут, отмену, лимит вывода, уничтожение дочерних процессов и очистку контейнера.
-- Проверить прямой HTTP route `/api/projects/:id/run` на ту же границу безопасности.
+В PR добавлен `apps/api/agent/tools/runCommand.test.ts` с регрессионными тестами для shell-операторов, недопустимых npm-скриптов и попыток переопределения каталога Git. Ранее пропущенные тесты checkpoint, error recovery, task state, patchFile, testProject и OpenAI provider также включены в команду API-тестов. Результаты: [CI run #2355](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/39063849304), jobs `build` и `e2e` прошли; API tests 152/152, web runtime tests 5/5. Полное покрытие отмены, тайм-аутов и очистки дочерних процессов всё ещё требует расширения.
 
 ### AUDIT-011 — production Docker build не является обязательной проверкой CI
 
-**Статус: CONFIRMED PIPELINE GAP**
+**Статус: RESOLVED в актуальном workflow.**
 
-Текущий CI проверяет TypeScript, тесты, API/Web build и E2E, но не строит Docker image. Dockerfile после PR #35 уже компилирует API и запускает `node apps/api/dist/server.js` с production dependencies. Поэтому зелёный CI по-прежнему не доказывает, что production-образ реально собирается и стартует в чистом окружении.
+`.github/workflows/ci.yml` выполняет `docker build` и запускает production-контейнер с проверкой `/api/health`. Успешный smoke test доказывает сборку образа и запуск API, но не доступность Docker daemon внутри развёрнутого Render-сервиса и не работоспособность вложенного sandbox.
 
-Что сделать:
-1. Добавить build script для API.
-2. Собирать API в build stage.
-3. Устанавливать в runtime-образ только production dependencies.
-4. Запускать скомпилированный entrypoint.
-5. Добавить `docker build` и smoke test `/api/health` в CI.
-6. Проверить миграции и отсутствие обязательных файлов, которые не попали в образ.
-
-PR #35 обновил Dockerfile и добавил сборку API в CI, но сам `docker build` и smoke test образа остаются незакрытыми.
+Оставшиеся проверки:
+1. Проверить доступность Docker daemon в целевой production-инфраструктуре.
+2. Выполнить реальную sandbox-команду внутри production-образа на окружении, где Docker daemon настроен.
+3. Проверить миграции и обязательные файлы в production-образе.
+4. Не монтировать Docker socket в API-контейнер без отдельного анализа угроз; доступ к socket фактически даёт высокий уровень контроля над хостом.
 
 ## P2 — важные улучшения
 
@@ -255,3 +245,12 @@ PR #35 обновил Dockerfile и добавил сборку API в CI, но 
 - Проверить восстановление после рестарта, параллельные задачи, timeout, отмену и многопроцессный режим.
 
 Пока эти проверки не выполнены, корректный статус продукта — **активная разработка; не готов к публичному запуску без закрытия P0 и production verification**.
+
+
+### AUDIT-012 — sandbox worker deployment architecture
+
+**Статус: код и CI smoke test проверены; production host не развёрнут.** API может отправлять команды в отдельный sandbox worker через HMAC-подписанные запросы с коротким временным окном и защитой от replay. API и worker используют общий именованный Docker volume; Docker socket доступен только worker-контейнеру. CI собирает оба образа, валидирует Compose-конфигурацию и выполняет реальную allowlisted-команду внутри дочернего Docker-контейнера. Worker остаётся привилегированным доверенным сервисом из-за доступа к Docker socket и должен быть закрыт от публичного трафика. Этот Compose-режим предназначен для self-hosted Linux VPS; он не делает Docker daemon доступным на Render автоматически.
+
+### AUDIT-013 — sandboxed iframe preview при включённой авторизации
+
+**Статус: E2E подтверждён в CI run #2394.** Preview iframe использует краткоживущий project-scoped bearer token, а не cookie авторизованного пользователя. Это позволяет загружать ES module assets из iframe с opaque origin `null` без добавления `allow-same-origin`. CORS-разрешение `Origin: null` ограничено только GET/HEAD/OPTIONS на preview-token маршруте. Bearer-токены удалены из HTTP diagnostics, а preview responses имеют `Cache-Control: private, no-store` и `Referrer-Policy: no-referrer`. Server-side runtime validation агента также использует scoped token, а не защищённый cookie-only URL. Проверка загрузки ES module внутри iframe прошла в E2E run #2394 без добавления `allow-same-origin`.

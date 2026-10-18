@@ -1214,10 +1214,34 @@ function App() {
           onClose={() => { setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId)); navigate("home"); }}
           onConnect={() => setConnectorModal("Интеграция проекта")}
           onShare={async () => {
-            const url = window.location.origin + "/api/preview/" + activeПроектId + "/index.html";
-            try { await navigator.clipboard.writeText(url); setNotice("Ссылка на Preview скопирована для текущей авторизованной сессии"); } catch { setNotice(url); }
+            try {
+              const response = await fetch("/api/projects/" + encodeURIComponent(activeПроектId) + "/preview-token");
+              const data = await response.json();
+              if (!response.ok || typeof data.url !== "string") throw new Error(data?.error || "Не удалось создать ссылку Preview");
+              const url = new URL(data.url, window.location.origin).toString();
+              try { await navigator.clipboard.writeText(url); setNotice("Временная ссылка Preview скопирована; доступ действует 10 минут"); } catch { setNotice(url); }
+            } catch (error) {
+              setNotice(error instanceof Error ? error.message : "Не удалось создать ссылку Preview");
+            }
           }}
-          onOpenPreview={() => { window.open("/api/preview/" + activeПроектId + "/index.html", "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }}
+          onOpenPreview={() => {
+            const popup = window.open("about:blank", "_blank");
+            if (popup) popup.opener = null;
+            void fetch("/api/projects/" + encodeURIComponent(activeПроектId) + "/preview-token")
+              .then(async response => {
+                const data = await response.json();
+                if (!response.ok || typeof data.url !== "string") throw new Error(data?.error || "Не удалось открыть Preview");
+                return new URL(data.url, window.location.origin).toString();
+              })
+              .then(url => {
+                if (popup) { popup.location.replace(url); setNotice("Предпросмотр открыт в новой вкладке"); }
+                else setNotice("Браузер заблокировал новую вкладку: " + url);
+              })
+              .catch(error => {
+                popup?.close();
+                setNotice(error instanceof Error ? error.message : "Не удалось открыть Preview");
+              });
+          }}
         >
           {codeMode ? (
             <BuilderCode projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline}

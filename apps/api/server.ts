@@ -18,6 +18,7 @@ import { mkdir, readFile, stat, readdir, writeFile, rm } from "node:fs/promises"
 import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
+import { createPreviewAccessToken, PREVIEW_TOKEN_TTL_MS, verifyPreviewAccessToken } from "./previewAccess.js";
 import { GitTool } from "./agent/tools/git.js";
 import { RunCommandTool } from "./agent/tools/runCommand.js";
 import { assertExistingProjectPath, assertWritableProjectPath, ProjectPathError } from "./agent/tools/path.js";
@@ -37,6 +38,8 @@ import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
 
 
 const requestIds = new WeakMap<object, string>();
+const previewBaseByRequest = new WeakMap<object, string>();
+
 
 function getRequestId(req: express.Request): string {
   const existing = requestIds.get(req);
@@ -104,7 +107,8 @@ app.use((req, _res, next) => {
   const requestId = getRequestId(req);
   const started = Date.now();
   _res.on("finish", () => {
-    const operation = req.method + " " + req.originalUrl;
+    const safeUrl = req.originalUrl.replace(/(\/api\/preview-access\/)[^/]+/g, "$1[REDACTED]");
+    const operation = req.method + " " + safeUrl;
     serverRuntime.record(
       "NETWORK",
       _res.statusCode >= 500 ? "error" : "info",
@@ -417,7 +421,7 @@ ${attachment.content.slice(0, 80_000)}`);
     throwIfAgentAborted(signal);
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const userGateway = getAIGatewayForUser(userId);
-    const agent = new NexumAgent(userGateway, project.path, serverRuntime, { projectId: project.id, taskId: runtimeTask.id });
+    const agent = new NexumAgent(userGateway, project.path, serverRuntime, { projectId: project.id, taskId: runtimeTask.id, userId });
     const agentLoop = new AgentLoop(
       agent,
       userGateway,
@@ -683,7 +687,7 @@ const configuredCorsOrigins = (process.env.NEXUM_CORS_ORIGINS || "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-app.use(cors({
+const corsMiddleware = cors({
   origin: process.env.NODE_ENV === "production"
     ? (origin, callback) => {
         if (!origin || configuredCorsOrigins.includes(origin)) {
@@ -694,7 +698,24 @@ app.use(cors({
       }
     : true,
   credentials: true,
-}));
+});
+// Sandboxed iframes have an opaque "null" origin. Permit credential-free GETs
+// only on short-lived, project-scoped preview URLs; never permit null-origin
+// access to authenticated API endpoints.
+app.use((req, res, next) => {
+  if (req.headers.origin === "null" && req.path.startsWith("/api/preview-access/") && ["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    res.setHeader("Access-Control-Allow-Origin", "null");
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+    if (req.method === "OPTIONS") {
+      res.status(204).end();
+      return;
+    }
+    next();
+    return;
+  }
+  corsMiddleware(req, res, next);
+});
 
 app.use(express.json({ limit: "10mb" }));
 
@@ -754,6 +775,19 @@ app.get("/api/health", async (_req, res) => {
     openRouterKeyConfigured: aiGateway.hasOpenRouterKey(),
     openAIKeyConfigured: aiGateway.hasOpenAIKey(),
     orcaRouterKeyConfigured: aiGateway.hasOrcaRouterKey(),
+  });
+});
+
+// Liveness (/api/health) intentionally stays available while dependencies recover.
+// Readiness is stricter so an orchestrator cannot route traffic to an API with a
+// broken database connection.
+app.get("/api/ready", async (_req, res) => {
+  const database = await pingDatabase();
+  const ready = database.ok;
+  return res.status(ready ? 200 : 503).json({
+    status: ready ? "ready" : "not_ready",
+    database,
+    service: "NEXUM.DEV API",
   });
 });
 
@@ -993,10 +1027,74 @@ app.delete("/api/projects/:id", async (req, res) => {
   }
 });
 
+app.get("/api/projects/:id/preview-token", async (req, res) => {
+  try {
+    const userId = getAuthUser(req).id;
+    const project = await getProjectManager(userId).getProject(req.params.id);
+    const expiresAt = Date.now() + PREVIEW_TOKEN_TTL_MS;
+    const token = createPreviewAccessToken(userId, project.id, expiresAt);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    return res.json({
+      success: true,
+      url: `/api/preview-access/${token}/${encodeURIComponent(project.id)}/index.html`,
+      expiresAt: new Date(expiresAt).toISOString(),
+    });
+  } catch (error) {
+    if (error instanceof ProjectManagerError) return sendProjectError(res, error, req);
+    return res.status(500).json({ success: false, error: "Unable to create preview access" });
+  }
+});
+
 app.use("/api/preview", authMiddleware);
 
 // Static project preview. The agent writes the project files, and the preview
 // renders index.html directly without requiring a separate dev server.
+app.use((req, res, next) => {
+  const prefix = "/api/preview-access/";
+  if (!req.path.startsWith(prefix)) {
+    next();
+    return;
+  }
+  if (!["GET", "HEAD"].includes(req.method)) {
+    res.status(405).send("Method not allowed");
+    return;
+  }
+
+  const segments = req.path.slice(prefix.length).split("/");
+  const token = segments.shift() ?? "";
+  res.setHeader("Cache-Control", "private, no-store");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  const encodedProjectId = segments.shift() ?? "";
+  let projectId: string;
+  try { projectId = decodeURIComponent(encodedProjectId); } catch {
+    res.status(400).send("Invalid preview URL");
+    return;
+  }
+  const grant = verifyPreviewAccessToken(token);
+  if (!grant || grant.projectId !== projectId) {
+    res.status(401).send("Preview link is invalid or expired");
+    return;
+  }
+
+  const requestedPath = segments.join("/");
+  const pathSegments = requestedPath.split("/").filter(Boolean);
+  const lastSegment = pathSegments[pathSegments.length - 1] ?? "";
+  const privateFiles = /^(package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?|tsconfig(\.[^/]*)?\.json|vite\.config\.[^/]+)$/i;
+  if (pathSegments.some((part) => part.startsWith(".") || part === "node_modules") || privateFiles.test(lastSegment)) {
+    res.status(404).send("Preview file not found");
+    return;
+  }
+
+  req.user = { id: grant.userId, email: "preview-access@nexum.invalid", name: "Preview access", createdAt: "" };
+  previewBaseByRequest.set(req, `${prefix}${encodeURIComponent(token)}/${encodeURIComponent(projectId)}/`);
+  const queryIndex = req.url.indexOf("?");
+  const query = queryIndex >= 0 ? req.url.slice(queryIndex) : "";
+  req.url = `/api/preview/${encodeURIComponent(projectId)}/${requestedPath || "index.html"}${query}`;
+  next();
+});
+
 app.use("/api/preview/:id", async (req, res) => {
   try {
     const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
@@ -1060,7 +1158,7 @@ app.use("/api/preview/:id", async (req, res) => {
       // Preview is mounted below /api/preview/:id, while Vite production builds
       // usually emit root-relative /assets/... URLs. Rewrite those URLs so the
       // iframe can load JS/CSS/images from the same project preview namespace.
-      const previewBase = `/api/preview/${encodeURIComponent(req.params.id)}/`;
+      const previewBase = previewBaseByRequest.get(req) ?? `/api/preview/${encodeURIComponent(req.params.id)}/`;
       html = html
         .replace(/(src|href|action)=(["'])\/(?!\/)/gi, `$1=$2${previewBase}`)
         .replace(/url\((["']?)\/(?!\/)/gi, `url($1${previewBase}`);

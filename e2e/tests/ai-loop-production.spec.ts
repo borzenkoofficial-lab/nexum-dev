@@ -1,4 +1,18 @@
 import { test, expect } from "@playwright/test";
+async function registerE2EUser(page: any) {
+  const email = `nexum-e2e-${Date.now()}-${Math.random().toString(16).slice(2)}@example.test`;
+  const response = await page.request.post("/api/auth/register", {
+    data: { email, name: "NEXUM E2E", password: "nexum-e2e-password-123" },
+  });
+  if (response.status() !== 201) throw new Error(`E2E account registration failed: ${response.status()} ${await response.text()}`);
+  const session = await page.request.get("/api/auth/me");
+  if (!session.ok()) throw new Error(`E2E session cookie was not accepted: ${session.status()} ${await session.text()}`);
+}
+
+test.beforeEach(async ({ page }) => {
+  await registerE2EUser(page);
+});
+
 
 async function setFailure(page: any, operation: "enable" | "disable" | "reset", name?: string, times?: number, projectId?: string) {
   const response = await page.request.post("/api/test/agent-failures", {
