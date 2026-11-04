@@ -35,6 +35,6 @@ test("root Docker container is not registered as a Vercel service", () => {
 const apiPackage = JSON.parse(await readFile(new URL("../apps/api/package.json", import.meta.url), "utf8"));
 
 test("Vercel Express builder stays on the verified TypeScript 5.x line", () => {
-  assert.match(apiPackage.devDependencies.typescript, /^5\\./);
-  assert.match(apiPackage.devDependencies["@types/node"], /^22\\./);
+  assert.match(apiPackage.devDependencies.typescript, /^5\./);
+  assert.match(apiPackage.devDependencies["@types/node"], /^22\./);
 });
