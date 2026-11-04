@@ -24,10 +24,14 @@ jobs:
           cache-dependency-path: |
             apps/api/package-lock.json
             apps/web/package-lock.json
+      - name: Validate Vercel Services configuration
+        run: node --test scripts/vercel-config.test.mjs
       - name: Audit Agent Loop
         run: npm run audit:agent-loop
       - name: Install API
         run: npm ci --prefix apps/api
+      - name: Audit API dependencies
+        run: npm audit --prefix apps/api --audit-level=low
       - name: Install Web
         run: npm ci --prefix apps/web
       - name: Typecheck API
