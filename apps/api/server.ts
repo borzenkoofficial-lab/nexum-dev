@@ -25,7 +25,7 @@ import { AgentHistory } from "./agent/history.js";
 import { CheckpointManager } from "./agent/checkpoint.js";
 import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
-import { closeDatabase, pingDatabase } from "./db.js";
+import { assertPersistentDatabaseConfigured, closeDatabase, pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
@@ -91,6 +91,8 @@ function sendSafeError(res: Response, error: unknown, requestId: string, fallbac
     },
   });
 }
+
+assertPersistentDatabaseConfigured();
 
 const app = express();
 const databaseConfigured = Boolean(process.env.NEXUM_DATABASE_URL?.trim());
