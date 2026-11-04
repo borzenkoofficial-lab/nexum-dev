@@ -11,7 +11,7 @@
 | Job intake | Vercel Queues | Durable enqueue, redelivery, backpressure |
 | Job orchestration | Vercel Queues + Sandbox worker | Durable delivery, detached execution, retries/recovery and cancellation |
 | Code execution | Vercel Sandbox | Isolated Firecracker microVM; executes user/generated project commands |
-| Metadata and coordination | PostgreSQL | Users, projects, jobs, events, workflow IDs, leases/locks |
+| Metadata and coordination | PostgreSQL | Users, projects, jobs, events, Sandbox session IDs, leases/locks |
 | Project filesystem | Vercel Drive where enabled; otherwise private Vercel Blob archive + Sandbox workspace | Durable source tree and generated artifacts |
 
 Public routes remain `/` → `web` and `/api/*` → `api`. The Vite service must internally rewrite deep links to `/index.html`. The root Docker application remains excluded from Vercel Services and is retained for local/legacy deployment only.
@@ -28,13 +28,13 @@ No Vercel service binding is needed for browser-to-API traffic: the browser uses
 6. The worker checks durable cancellation state between Agent iterations and before/after commands. Lease heartbeats are DB-backed, not process-local timers as the sole source of truth. Sandbox timeout/exit is detected by recovery sweeps; interrupted jobs are resumed or marked failed deterministically.
 7. Terminal job state and event history are written to PostgreSQL. The API reads them from PostgreSQL on every request; in-memory caches are optional accelerators only.
 
-Queue messages are delivery triggers, not the canonical job record. Use the job UUID as an idempotency key and make every consumer/step safe to replay.
+Queue messages are delivery triggers, not the canonical job record. Use the job UUID as an idempotency key and make every consumer and worker operation safe to replay.
 
 ## 3. Sandbox and workspace model
 
 - Replace the production Docker CLI dependency with a provider interface; keep Docker as the local-development provider.
-- The Vercel provider creates/reopens a named Sandbox for a project workspace and uses SDK file APIs/commands. The API process never assumes that its own local filesystem is the project filesystem.
-- Execute user/generated code only in the isolated Sandbox. Keep model-provider credentials and database credentials in the API/Workflow control plane; do not inject them into the untrusted project runtime.
+- The Vercel provider creates/reopens a named Sandbox for a user's workspace and uses SDK file APIs/commands. The API process never assumes that its own local filesystem is the project filesystem.
+- Execute user/generated code only in the isolated Sandbox. Keep model-provider credentials and database credentials in the API control plane; do not inject them into the untrusted project runtime.
 - Use argument-array command execution, a strict executable/argument allowlist, bounded output, timeouts, cancellation, and a restrictive network policy. Do not pass untrusted strings through a shell.
 - A Drive-level writer lease (database row keyed by Drive ID) prevents multiple Sandbox sessions from mounting the same Drive read-write. Keep the existing project-level lease as a second guard against conflicting Agent jobs. For multi-user operation, provision one Drive per user (stable opaque/hash-derived name) so one user's projects serialize on that user's Drive without blocking other users. The initial `nexum-workspaces` Drive is the first workspace volume for this deployment, not a shared multi-tenant volume.
 - Prefer a Vercel Drive mounted read-write into the project's Sandbox for durable workspace files. Vercel Drives reached general availability for Sandbox on all plans in October 2026. Hobby drives are limited to 1 GiB each by default; Hobby includes 15 GB of lifetime Drive storage and 30 GB/month of reads and writes. A Drive is region-bound and permits one read-write mount at a time; use snapshots for parallel read-only sessions. The NEXUM project now has a 1 GiB Drive named `nexum-workspaces` in `iad1`. A write → stop session → mount read-only snapshot in a new session → read test passed.
@@ -47,7 +47,7 @@ Queue messages are delivery triggers, not the canonical job record. Use the job 
 - Sandbox persistence snapshots filesystem state, not running processes. Resume must restart required processes and revalidate workspace state.
 - Hobby Drive limits: 1 GiB per Drive by default, 15 GB lifetime Drive storage included, and 30 GB/month each for reads and writes. Drives are GA for Sandbox on all plans. NEXUM's `nexum-workspaces` Drive is provisioned at 1 GiB in `iad1`; cross-session persistence smoke test passed.
 - A Drive permits one read-write mount at a time; read-only snapshots can be mounted concurrently. Enforce the writer lease at Drive scope, not only project scope.
-- Vercel Queues uses at-least-once delivery and has bounded message retention. Hobby currently includes 1M Queue API operations/month. The DB job record and Sandbox worker state and DB job record, not the queue message, must preserve long-lived job state.
+- Vercel Queues uses at-least-once delivery and has bounded message retention. Hobby currently includes 1M Queue API operations/month. The PostgreSQL job record and Sandbox worker state, not the queue message, must preserve long-lived job state.
 
 ## 5. Migration sequence
 
@@ -58,27 +58,27 @@ Queue messages are delivery triggers, not the canonical job record. Use the job 
 
 ### Phase B — Durable job control plane
 - Add DB-backed queue/job state, idempotent claims, lease renewal, cancellation and event persistence.
-- Add Queue publisher/consumer and Workflow starter.
+- Add Queue publisher/consumer and detached Sandbox worker launcher.
 - Remove fire-and-forget `runChatJob` as the production entrypoint.
 - Split AgentLoop into replay-safe bounded phases/iterations and persist its execution snapshot.
 
 ### Phase C — Remote workspace and sandbox
 - Define a workspace filesystem contract used by ProjectManager and every Agent file tool.
 - Implement Vercel Sandbox provider and local Docker provider behind the same contract.
-- Add Drive persistence when entitlement is confirmed; add Blob archive/restore fallback.
+- Provision one Drive per user and enforce a Drive-level writer lease; add Blob archive/restore only if Drive quota or region constraints require it.
 - Migrate checkpoints, history, project duplication/deletion, git operations and previews to the workspace contract.
 
 ### Phase D — production hardening
-- Enforce production fail-closed configuration: PostgreSQL, auth secret, queue, workflow, sandbox provider and durable workspace storage are mandatory.
-- Add observability for job ID, workflow run ID, sandbox ID/session ID, project ID, delivery count and phase timings. Never log secrets or user file contents.
-- Add recovery sweeps for queued/running jobs, expired locks, interrupted workflow runs and orphaned sandboxes.
+- Enforce production fail-closed configuration: PostgreSQL, auth secret, queue, sandbox provider and durable workspace storage are mandatory.
+- Add observability for job ID, sandbox name/session ID, project ID, delivery count and phase timings. Never log secrets or user file contents.
+- Add recovery sweeps for queued/running jobs, expired locks, interrupted worker sessions and orphaned sandboxes.
 - Run end-to-end tests through the public Vercel URL, including two independent API invocations to prove cross-instance persistence.
 
 ## 6. Required acceptance tests
 
 - Duplicate queue delivery starts exactly one job.
 - A failed consumer is redelivered without losing the canonical job record.
-- Workflow resumes after a failed/restarted step without repeating committed side effects.
+- A worker resumes or deterministically fails after a Sandbox interruption without repeating committed side effects.
 - Cancellation stops an active command and releases the DB lease.
 - Two jobs cannot concurrently write one project workspace.
 - Workspace files survive Sandbox stop/resume and a separate API invocation.
@@ -92,9 +92,8 @@ Queue messages are delivery triggers, not the canonical job record. Use the job 
 - The Vercel team is on Hobby. A separate `nexum-dev` project is now linked to `borzenkoofficial-lab/nexum-dev`; it is configured with the Services framework and Node.js 22.x. The existing `nexum-cloud` project remains linked to SKOL and was not modified.
 - The `nexum-dev` project has no deployment yet and no environment variables configured. The project is not live.
 - The 1 GiB `nexum-workspaces` Drive is provisioned and tested. Temporary Sandbox smoke-test resources were stopped and deleted; no Sandbox is left running.
-- No PostgreSQL integration, Blob store, Queue topic or Workflow has been provisioned for NEXUM. Existing Yandex PostgreSQL support remains in the codebase; production connectivity and serverless connection limits must be verified.
-- Existing Yandex PostgreSQL support is present in the codebase; its production connectivity and cross-region latency must be verified before choosing whether to retain it or provision a Vercel Marketplace Postgres integration.
-
+- No PostgreSQL integration, Blob store or Queue topic has been provisioned for NEXUM. The Queue/Sandbox SDKs are present in the API package, but the producer/consumer and worker entrypoint are not wired yet. Existing Yandex PostgreSQL support remains in the codebase; production connectivity and serverless connection limits must be verified.
+- 
 ## 8. Release gate
 
 This architecture is not production-ready until all Phases A–D and the acceptance tests are complete, a Vercel Preview deployment is reachable, and the full end-to-end flow passes. Source-level review, GitHub CI, and a successful static build do not substitute for that evidence.
