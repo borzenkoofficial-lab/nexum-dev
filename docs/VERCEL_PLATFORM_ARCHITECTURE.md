@@ -37,7 +37,7 @@ Queue messages are delivery triggers, not the canonical job record. Use the job 
 - Execute user/generated code only in the isolated Sandbox. Keep model-provider credentials and database credentials in the API/Workflow control plane; do not inject them into the untrusted project runtime.
 - Use argument-array command execution, a strict executable/argument allowlist, bounded output, timeouts, cancellation, and a restrictive network policy. Do not pass untrusted strings through a shell.
 - A single project write lease prevents two Sandbox sessions from mutating the same workspace concurrently.
-- Prefer a Vercel Drive mounted read-write into the project's Sandbox for durable workspace files. Drives are beta and the Vercel tool catalog currently describes Drive access as private-beta gated. Hobby Drive capacity is documented as 1 GiB by default, with one read-write mount at a time. Verify entitlement, region and quota before relying on it.
+- Prefer a Vercel Drive mounted read-write into the project's Sandbox for durable workspace files. Vercel Drives reached general availability for Sandbox on all plans in October 2026. Hobby drives are limited to 1 GiB each by default; Hobby includes 15 GB of lifetime Drive storage and 30 GB/month of reads and writes. A Drive is region-bound and permits one read-write mount at a time; use snapshots for parallel read-only sessions. The NEXUM project now has a 1 GiB Drive named `nexum-workspaces` in `iad1`. A write → stop session → mount read-only snapshot in a new session → read test passed.
 - If Drive is unavailable, use a private Blob archive as the durable source of truth and hydrate a Sandbox workspace from it. Snapshot retention alone is not the only copy of user data.
 - PostgreSQL stores workspace metadata, versions, object keys, checksums and job ownership. File contents do not belong in process-local maps or deployment filesystems.
 
@@ -45,7 +45,7 @@ Queue messages are delivery triggers, not the canonical job record. Use the job 
 
 - Vercel Sandbox sessions are limited to 45 minutes on Hobby; longer sessions require an eligible paid plan. Current agent task limits must remain within this envelope or be split into resumable steps.
 - Sandbox persistence snapshots filesystem state, not running processes. Resume must restart required processes and revalidate workspace state.
-- Drive is beta/private-beta gated; do not assume it is enabled until the actual NEXUM Vercel project can list or create a Drive.
+- Drive is available and provisioned for NEXUM: `nexum-workspaces`, 1 GiB, region `iad1`. Its cross-session persistence smoke test passed.
 - Vercel Queues uses at-least-once delivery and has bounded message retention. The DB job record and Workflow run, not the queue message, must preserve long-lived job state.
 
 ## 5. Migration sequence
@@ -88,11 +88,23 @@ Queue messages are delivery triggers, not the canonical job record. Use the job 
 
 ## 7. Current prerequisites / blockers
 
-- The Vercel team context currently shows Hobby plan. The only linked project returned is `nexum-cloud`, linked to the SKOL repository; no Vercel project linked to `borzenkoofficial-lab/nexum-dev` was returned. Do not attach NEXUM resources to the SKOL project.
-- Drive entitlement cannot be verified until the NEXUM Vercel project exists.
-- No Vercel database, Blob store, Queue topic, Workflow or Sandbox has been provisioned for NEXUM by this change.
+- The Vercel team is on Hobby. A separate `nexum-dev` project is now linked to `borzenkoofficial-lab/nexum-dev`; it is configured with the Services framework and Node.js 22.x. The existing `nexum-cloud` project remains linked to SKOL and was not modified.
+- The `nexum-dev` project has no deployment yet and no environment variables configured. The project is not live.
+- The 1 GiB `nexum-workspaces` Drive is provisioned and tested. Temporary Sandbox smoke-test resources were stopped and deleted; no Sandbox is left running.
+- No PostgreSQL integration, Blob store, Queue topic or Workflow has been provisioned for NEXUM. Existing Yandex PostgreSQL support remains in the codebase; production connectivity and serverless connection limits must be verified.
 - Existing Yandex PostgreSQL support is present in the codebase; its production connectivity and cross-region latency must be verified before choosing whether to retain it or provision a Vercel Marketplace Postgres integration.
 
 ## 8. Release gate
 
 This architecture is not production-ready until all Phases A–D and the acceptance tests are complete, a Vercel Preview deployment is reachable, and the full end-to-end flow passes. Source-level review, GitHub CI, and a successful static build do not substitute for that evidence.
+
+
+## 9. Infrastructure smoke test evidence (2026-11-04)
+
+- Vercel project `nexum-dev` is linked to the intended GitHub repository, framework is `services`, Node.js version is `22.x`, and no deployment exists yet.
+- Created `nexum-workspaces` with a 1 GiB maximum in `iad1`.
+- Created a temporary 1-vCPU / 2-GiB Sandbox with `networkPolicy: deny-all`, mounted the Drive read-write, wrote and read a marker file, then stopped the session.
+- Created a separate Sandbox, mounted a read-only Drive snapshot, and successfully read the same marker (`exitCode: 0`) after the original writer session had stopped.
+- Removed the marker file and deleted all temporary named Sandboxes. Final Vercel inventory: one Drive, zero named Sandboxes.
+- This validates the Vercel Sandbox + Drive primitive only. It does not validate NEXUM's API integration, queue delivery, workflow recovery, or production deployment.
+- GitHub Actions run `41897854607` completed with **SUCCESS** for both build and E2E jobs. The build job includes the new Vercel routing and PostgreSQL fail-closed tests; the E2E job includes the existing Runtime Phase 2.5 suite.
