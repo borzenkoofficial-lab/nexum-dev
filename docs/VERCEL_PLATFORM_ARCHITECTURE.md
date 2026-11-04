@@ -9,7 +9,7 @@
 | Web | Services: `web` / Vite | SPA, editor, project UI |
 | API | Services: `api` / Express Functions | Authentication, project API, AI orchestration, job status |
 | Job intake | Vercel Queues | Durable enqueue, redelivery, backpressure |
-| Job orchestration | Vercel Workflow | Durable phases/steps, retries, cancellation and resume |
+| Job orchestration | Vercel Queues + Sandbox worker | Durable delivery, detached execution, retries/recovery and cancellation |
 | Code execution | Vercel Sandbox | Isolated Firecracker microVM; executes user/generated project commands |
 | Metadata and coordination | PostgreSQL | Users, projects, jobs, events, workflow IDs, leases/locks |
 | Project filesystem | Vercel Drive where enabled; otherwise private Vercel Blob archive + Sandbox workspace | Durable source tree and generated artifacts |
@@ -23,9 +23,9 @@ No Vercel service binding is needed for browser-to-API traffic: the browser uses
 1. API authenticates and authorizes the request, validates the active project, and inserts a durable `queued` job row.
 2. API publishes a small message containing identifiers only (job ID, user ID, project ID, schema version) to a Vercel Queue. The job row remains the source of truth.
 3. Queue delivery is at-least-once. The consumer must atomically claim the job in PostgreSQL; duplicate deliveries must not start duplicate work.
-4. The consumer starts a durable Workflow and persists its workflow run ID before acknowledging the queue message.
-5. Workflow executes explicit bounded steps: load/lock workspace, create checkpoint, run one bounded agent phase/iteration, persist progress and outputs, validate, finalize. Long-running work must not be hidden in one detached Promise or one oversized Function invocation.
-6. Cancellation is a durable DB state/event observed between steps and by active Sandbox commands. Lease heartbeats are DB-backed, not process-local timers as the sole source of truth.
+4. The consumer atomically claims the job, obtains the per-user Drive lease, creates/resumes the named Sandbox, and starts the trusted NEXUM worker as a detached process. It persists the Sandbox name/session ID in PostgreSQL before acknowledging the queue message.
+5. The worker runs the Agent Loop inside the Sandbox, where the mounted Drive is the project workspace. The API control plane remains responsible for authentication, model-provider credentials and canonical job state. The worker reports progress/results through narrowly scoped internal API endpoints; no PostgreSQL or provider secrets are injected into the project runtime.
+6. The worker checks durable cancellation state between Agent iterations and before/after commands. Lease heartbeats are DB-backed, not process-local timers as the sole source of truth. Sandbox timeout/exit is detected by recovery sweeps; interrupted jobs are resumed or marked failed deterministically.
 7. Terminal job state and event history are written to PostgreSQL. The API reads them from PostgreSQL on every request; in-memory caches are optional accelerators only.
 
 Queue messages are delivery triggers, not the canonical job record. Use the job UUID as an idempotency key and make every consumer/step safe to replay.
@@ -47,7 +47,7 @@ Queue messages are delivery triggers, not the canonical job record. Use the job 
 - Sandbox persistence snapshots filesystem state, not running processes. Resume must restart required processes and revalidate workspace state.
 - Hobby Drive limits: 1 GiB per Drive by default, 15 GB lifetime Drive storage included, and 30 GB/month each for reads and writes. Drives are GA for Sandbox on all plans. NEXUM's `nexum-workspaces` Drive is provisioned at 1 GiB in `iad1`; cross-session persistence smoke test passed.
 - A Drive permits one read-write mount at a time; read-only snapshots can be mounted concurrently. Enforce the writer lease at Drive scope, not only project scope.
-- Vercel Queues uses at-least-once delivery and has bounded message retention. Hobby currently includes 1M Queue API operations/month. The DB job record and Workflow run, not the queue message, must preserve long-lived job state.
+- Vercel Queues uses at-least-once delivery and has bounded message retention. Hobby currently includes 1M Queue API operations/month. The DB job record and Sandbox worker state and DB job record, not the queue message, must preserve long-lived job state.
 
 ## 5. Migration sequence
 
@@ -109,3 +109,13 @@ This architecture is not production-ready until all Phases A–D and the accepta
 - Removed the marker file and deleted all temporary named Sandboxes. Final Vercel inventory: one Drive, zero named Sandboxes.
 - This validates the Vercel Sandbox + Drive primitive only. It does not validate NEXUM's API integration, queue delivery, workflow recovery, or production deployment.
 - GitHub Actions run `41897854607` completed with **SUCCESS** for both build and E2E jobs. The build job includes the new Vercel routing and PostgreSQL fail-closed tests; the E2E job includes the existing Runtime Phase 2.5 suite.
+
+
+## 10. SDK dependency and security decision (2026-11-04)
+
+- Added exact production dependencies: `@vercel/sandbox@3.6.1` and `@vercel/queue@0.1.1`. These releases expose the required Sandbox/Drive and QueueClient/Express callback APIs.
+- Added npm overrides `@vercel/oidc@3.5.0` and `zod@4.6.7` to pin patched dependency versions.
+- Initial trial of the latest SDK combination (`@vercel/sandbox@3.9.1`, `@vercel/queue@0.11.0`, `workflow@5.3.0`) produced 30 npm audit findings, including 24 high severity. Those versions and the Workflow SDK were not committed.
+- With the pinned Sandbox/Queue releases and overrides: `npm ci` succeeded, `npm audit` reported **0 vulnerabilities**, API typecheck passed, all **127 API tests passed**, and API build passed in the Vercel implementation workbench.
+- The initial architecture therefore uses Queue + detached Sandbox worker + PostgreSQL rather than the Workflow SDK. Reconsider Workflow only after a clean dependency audit and a concrete need.
+- These SDK dependencies are installed in the repository, but the API has not yet been switched to use them.
