@@ -75,3 +75,13 @@ The two-service Vercel routing configuration is prepared as requested, but it mu
 ## Architecture decision update
 
 The user selected full Vercel-native adaptation with remote Sandbox, durable queues/workflows and persistent storage. See [VERCEL_PLATFORM_ARCHITECTURE.md](./VERCEL_PLATFORM_ARCHITECTURE.md) for the implementation contract, migration phases, Hobby constraints and acceptance tests. This decision does not make the existing API compatible by itself.
+
+
+## Verification update — 2026-11-04
+
+- Added a Vite SPA fallback to the `web` service and a CI contract test for service names, roots, route order, SPA fallback and Docker exclusion.
+- Added a Vercel startup guard: if `VERCEL=1` and `NEXUM_DATABASE_URL` is absent, API startup fails instead of silently using process-local job state. Serverless PostgreSQL pool default is 2 connections; local default remains 10 and can be overridden.
+- Added tests for the Vercel database guard and connection-pool default.
+- GitHub Actions run `41897854607`: build **SUCCESS**, E2E **SUCCESS**. This is repository CI evidence, not Vercel Preview evidence.
+- A Vercel project linked to the intended repository and a 1 GiB persistent Drive were provisioned. A cross-session Sandbox/Drive write-read smoke test passed. No Vercel deployment was made; no production secrets, database, queue or workflow have been configured.
+- See [VERCEL_PLATFORM_ARCHITECTURE.md](./VERCEL_PLATFORM_ARCHITECTURE.md) for the current infrastructure test record and remaining migration plan.
