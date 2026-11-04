@@ -36,17 +36,18 @@ Queue messages are delivery triggers, not the canonical job record. Use the job 
 - The Vercel provider creates/reopens a named Sandbox for a project workspace and uses SDK file APIs/commands. The API process never assumes that its own local filesystem is the project filesystem.
 - Execute user/generated code only in the isolated Sandbox. Keep model-provider credentials and database credentials in the API/Workflow control plane; do not inject them into the untrusted project runtime.
 - Use argument-array command execution, a strict executable/argument allowlist, bounded output, timeouts, cancellation, and a restrictive network policy. Do not pass untrusted strings through a shell.
-- A single project write lease prevents two Sandbox sessions from mutating the same workspace concurrently.
+- A Drive-level writer lease (database row keyed by Drive ID) prevents multiple Sandbox sessions from mounting the same Drive read-write. Keep the existing project-level lease as a second guard against conflicting Agent jobs. For multi-user operation, provision one Drive per user (stable opaque/hash-derived name) so one user's projects serialize on that user's Drive without blocking other users. The initial `nexum-workspaces` Drive is the first workspace volume for this deployment, not a shared multi-tenant volume.
 - Prefer a Vercel Drive mounted read-write into the project's Sandbox for durable workspace files. Vercel Drives reached general availability for Sandbox on all plans in October 2026. Hobby drives are limited to 1 GiB each by default; Hobby includes 15 GB of lifetime Drive storage and 30 GB/month of reads and writes. A Drive is region-bound and permits one read-write mount at a time; use snapshots for parallel read-only sessions. The NEXUM project now has a 1 GiB Drive named `nexum-workspaces` in `iad1`. A write → stop session → mount read-only snapshot in a new session → read test passed.
 - If Drive is unavailable, use a private Blob archive as the durable source of truth and hydrate a Sandbox workspace from it. Snapshot retention alone is not the only copy of user data.
 - PostgreSQL stores workspace metadata, versions, object keys, checksums and job ownership. File contents do not belong in process-local maps or deployment filesystems.
 
 ## 4. Hobby-plan constraints to design against
 
-- Vercel Sandbox sessions are limited to 45 minutes on Hobby; longer sessions require an eligible paid plan. Current agent task limits must remain within this envelope or be split into resumable steps.
+- Vercel Sandbox sessions are limited to 45 minutes on Hobby; longer sessions require an eligible paid plan. Hobby currently includes 5 active CPU-hours/month, 420 GiB-hours of provisioned memory, and 5,000 Sandbox creations. Current agent task limits must remain within the 45-minute session envelope or be split into resumable steps.
 - Sandbox persistence snapshots filesystem state, not running processes. Resume must restart required processes and revalidate workspace state.
-- Drive is available and provisioned for NEXUM: `nexum-workspaces`, 1 GiB, region `iad1`. Its cross-session persistence smoke test passed.
-- Vercel Queues uses at-least-once delivery and has bounded message retention. The DB job record and Workflow run, not the queue message, must preserve long-lived job state.
+- Hobby Drive limits: 1 GiB per Drive by default, 15 GB lifetime Drive storage included, and 30 GB/month each for reads and writes. Drives are GA for Sandbox on all plans. NEXUM's `nexum-workspaces` Drive is provisioned at 1 GiB in `iad1`; cross-session persistence smoke test passed.
+- A Drive permits one read-write mount at a time; read-only snapshots can be mounted concurrently. Enforce the writer lease at Drive scope, not only project scope.
+- Vercel Queues uses at-least-once delivery and has bounded message retention. Hobby currently includes 1M Queue API operations/month. The DB job record and Workflow run, not the queue message, must preserve long-lived job state.
 
 ## 5. Migration sequence
 
