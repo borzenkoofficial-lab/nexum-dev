@@ -85,3 +85,12 @@ The user selected full Vercel-native adaptation with remote Sandbox, durable que
 - GitHub Actions run `41897854607`: build **SUCCESS**, E2E **SUCCESS**. This is repository CI evidence, not Vercel Preview evidence.
 - A Vercel project linked to the intended repository and a 1 GiB persistent Drive were provisioned. A cross-session Sandbox/Drive write-read smoke test passed. No Vercel deployment was made; no production secrets, database, queue or workflow have been configured.
 - See [VERCEL_PLATFORM_ARCHITECTURE.md](./VERCEL_PLATFORM_ARCHITECTURE.md) for the current infrastructure test record and remaining migration plan.
+
+
+## Vercel Preview verification update — 2026-11-04
+
+- Initial Vercel Preview build failed in the Express builder's typecheck when it loaded TypeScript 7.0.2. Pinning TypeScript 5.9.3 and Node 22 typings 22.20.5 resolved the builder crash.
+- Preview deployment for commit `0e3fab3` is `READY`. Build logs show API TypeScript build/typecheck completed and Web `tsc -b && vite build` completed. This confirms the two service builds and Services project configuration are accepted by Vercel.
+- GitHub Actions run `41901310677`: Build **SUCCESS**, E2E **SUCCESS**.
+- The deployment is Preview-only and SSO-protected. No Production deployment exists. No project environment variables are configured, so no authenticated application runtime/health check has been performed.
+- The initial build error and fix are documented in [VERCEL_PLATFORM_ARCHITECTURE.md](./VERCEL_PLATFORM_ARCHITECTURE.md).

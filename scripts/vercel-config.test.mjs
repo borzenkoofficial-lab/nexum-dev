@@ -30,3 +30,11 @@ test("Vite deep links fall back to the web service index document", () => {
 test("root Docker container is not registered as a Vercel service", () => {
   assert.equal(Object.values(config.services).some((service) => service.root === "." || service.runtime === "container"), false);
 });
+
+
+const apiPackage = JSON.parse(await readFile(new URL("../apps/api/package.json", import.meta.url), "utf8"));
+
+test("Vercel Express builder stays on the verified TypeScript 5.x line", () => {
+  assert.match(apiPackage.devDependencies.typescript, /^5\\./);
+  assert.match(apiPackage.devDependencies["@types/node"], /^22\\./);
+});

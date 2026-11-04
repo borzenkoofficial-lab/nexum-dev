@@ -30,6 +30,8 @@ jobs:
         run: npm run audit:agent-loop
       - name: Install API
         run: npm ci --prefix apps/api
+      - name: Audit API dependencies
+        run: npm audit --prefix apps/api --audit-level=low
       - name: Install Web
         run: npm ci --prefix apps/web
       - name: Typecheck API

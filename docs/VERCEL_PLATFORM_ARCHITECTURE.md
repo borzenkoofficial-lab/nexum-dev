@@ -90,7 +90,7 @@ Queue messages are delivery triggers, not the canonical job record. Use the job 
 ## 7. Current prerequisites / blockers
 
 - The Vercel team is on Hobby. A separate `nexum-dev` project is now linked to `borzenkoofficial-lab/nexum-dev`; it is configured with the Services framework and Node.js 22.x. The existing `nexum-cloud` project remains linked to SKOL and was not modified.
-- The `nexum-dev` project has no deployment yet and no environment variables configured. The project is not live.
+- The `nexum-dev` project has a **READY Preview deployment** for commit `0e3fab3` on `deploy/vercel-services`; there is no Production deployment (`live: false`). Deployment Protection SSO remains enabled. The project environment variable list is empty, so the API is intentionally not runtime-ready and will fail closed until PostgreSQL/auth/provider variables are configured.
 - The 1 GiB `nexum-workspaces` Drive is provisioned and tested. Temporary Sandbox smoke-test resources were stopped and deleted; no Sandbox is left running.
 - No PostgreSQL integration, Blob store or Queue topic has been provisioned for NEXUM. The Queue/Sandbox SDKs are present in the API package, but the producer/consumer and worker entrypoint are not wired yet. Existing Yandex PostgreSQL support remains in the codebase; production connectivity and serverless connection limits must be verified.
 - 
@@ -101,7 +101,7 @@ This architecture is not production-ready until all Phases A–D and the accepta
 
 ## 9. Infrastructure smoke test evidence (2026-11-04)
 
-- Vercel project `nexum-dev` is linked to the intended GitHub repository, framework is `services`, Node.js version is `22.x`, and no deployment exists yet.
+- Vercel project `nexum-dev` is linked to the intended GitHub repository, framework is `services`, Node.js version is `22.x`, and its branch Preview deployment reached `READY` after the TypeScript compatibility fix. No Production deployment exists.
 - Created `nexum-workspaces` with a 1 GiB maximum in `iad1`.
 - Created a temporary 1-vCPU / 2-GiB Sandbox with `networkPolicy: deny-all`, mounted the Drive read-write, wrote and read a marker file, then stopped the session.
 - Created a separate Sandbox, mounted a read-only Drive snapshot, and successfully read the same marker (`exitCode: 0`) after the original writer session had stopped.
@@ -118,3 +118,12 @@ This architecture is not production-ready until all Phases A–D and the accepta
 - With the pinned Sandbox/Queue releases and overrides: `npm ci` succeeded, `npm audit` reported **0 vulnerabilities**, API typecheck passed, all **127 API tests passed**, and API build passed in the Vercel implementation workbench.
 - The initial architecture therefore uses Queue + detached Sandbox worker + PostgreSQL rather than the Workflow SDK. Reconsider Workflow only after a clean dependency audit and a concrete need.
 - These SDK dependencies are installed in the repository, but the API has not yet been switched to use them.
+
+
+## 11. Vercel builder compatibility fix
+
+- The first Preview build failed inside Vercel's Express backend typecheck with `TypeError: Cannot read properties of undefined (reading 'readFile')` while loading local TypeScript `7.0.2`.
+- Pinned `typescript@5.9.3` and `@types/node@22.20.5`, matching the Node 22 runtime and the supported Vercel builder API.
+- Re-ran `npm ci`, `npm audit` (0 findings), API typecheck, all 127 API tests and API build in the Vercel workbench; all passed.
+- A new Vercel Preview build for commit `0e3fab3` then completed both service builds: Express API typecheck and Vite Web build. Deployment status is `READY`.
+- The Preview is SSO-protected and the project has no environment variables. No authenticated HTTP/runtime test was performed; API runtime is expected to fail closed until its required environment is configured.
