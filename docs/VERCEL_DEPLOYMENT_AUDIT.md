@@ -1,6 +1,6 @@
 # NEXUM.DEV — Vercel Services deployment audit
 
-**Status: CONFIGURATION PREPARED / PRODUCTION DEPLOYMENT BLOCKED**
+**Status: ROUTING CONFIGURATION UNDER TEST / PRODUCTION DEPLOYMENT BLOCKED**
 
 This audit records a source-level review of the repository before its first Vercel Services deployment. It is not a claim that a Vercel build or runtime test has passed.
 
@@ -70,3 +70,8 @@ The API refuses to start when no real AI provider is configured. Production auth
 ## Decision
 
 The two-service Vercel routing configuration is prepared as requested, but it must be treated as a **routing/build experiment only**, not as a production-ready NEXUM deployment. Do not promote it to production until the blocking runtime dependencies above have been addressed and verified.
+
+
+## Architecture decision update
+
+The user selected full Vercel-native adaptation with remote Sandbox, durable queues/workflows and persistent storage. See [VERCEL_PLATFORM_ARCHITECTURE.md](./VERCEL_PLATFORM_ARCHITECTURE.md) for the implementation contract, migration phases, Hobby constraints and acceptance tests. This decision does not make the existing API compatible by itself.
