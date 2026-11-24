@@ -397,11 +397,11 @@ async function runChatJob(
       recordAgentHistory({ type: "job-rejected-lock", jobId, projectId: project.id, status: "failed", message: job.error });
       return;
     }
+    lockedProjectId = project.id;
     lockHeartbeat = setInterval(() => {
       void heartbeatProjectLock(project.id, userId, jobId).catch((error) => console.error("[Nexum] project lock heartbeat failed", error));
     }, 60_000);
     lockHeartbeatResourceId = serverRuntime.registerResource("timer", () => { if (lockHeartbeat) clearInterval(lockHeartbeat); lockHeartbeat = undefined; }, { projectId: project.id, taskId: runtimeTask.id, operation: "project-lock-heartbeat" });
-    lockedProjectId = project.id;
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     throwIfAgentAborted(signal);
