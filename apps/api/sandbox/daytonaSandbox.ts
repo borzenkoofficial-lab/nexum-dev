@@ -262,7 +262,7 @@ class DaytonaSandboxSession implements SandboxSession {
       return {
         ...base,
         success: success && !syncError,
-        exitCode: response.exitCode,
+        exitCode: response.exitCode ?? null,
         stdout,
         stderr: syncError ? bounded(`${stderr}\n${syncError}`) : stderr,
         durationMs: Date.now() - startedAt,
