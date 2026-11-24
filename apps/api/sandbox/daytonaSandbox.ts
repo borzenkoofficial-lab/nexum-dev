@@ -379,7 +379,8 @@ class DaytonaSandboxSession implements SandboxSession {
     };
 
     await walk(this.remoteRoot);
-  }}
+  }
+}
 
 export class DaytonaSandboxProvider implements SandboxProvider {
   private readonly apiKey: string;
