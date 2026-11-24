@@ -81,7 +81,7 @@ export interface DaytonaSandboxProviderOptions {
 }
 
 function createSdkClient(apiKey: string): DaytonaClientLike {
-  return new Daytona({ apiKey, requestTimeoutMs: 150_000 }) as unknown as DaytonaClientLike;
+  return new Daytona({ apiKey, requestTimeoutSeconds: 150 }) as unknown as DaytonaClientLike;
 }
 
 function isExcludedPath(relativePath: string, includeBuildArtifacts = false): boolean {
