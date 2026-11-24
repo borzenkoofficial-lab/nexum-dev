@@ -30,10 +30,12 @@ test("Daytona provider provisions private network-isolated sandbox, executes and
   const sandbox = {
     id: "sandbox-123",
     process: {
-      executeCommand: async (command: string) => {
-        calls.push("execute:" + command);
-        return { exitCode: 0, result: "build ok", artifacts: { stdout: "build ok", stderr: "" } };
+      createSession: async (sessionId: string) => { calls.push("session:" + sessionId); },
+      executeSessionCommand: async (_sessionId: string, request: { command: string }) => {
+        calls.push("execute:" + request.command);
+        return { exitCode: 0, stdout: request.command.startsWith("npm") ? "build ok" : "", stderr: "" };
       },
+      deleteSession: async () => { calls.push("delete-session"); },
     },
     fs: {
       createFolder: async (path: string) => { calls.push("mkdir:" + path); },
@@ -117,11 +119,11 @@ test("command failures retain stdout/stderr and return a failed sandbox result",
   const sandbox = {
     id: "sandbox-failure",
     process: {
-      executeCommand: async () => ({
-        exitCode: 2,
-        result: "partial output",
-        artifacts: { stdout: "partial output", stderr: "build failed" },
-      }),
+      createSession: async () => undefined,
+      executeSessionCommand: async (_sessionId: string, request: { command: string }) => request.command.startsWith("cd ")
+        ? { exitCode: 0, stdout: "", stderr: "" }
+        : { exitCode: 2, stdout: "partial output", stderr: "build failed" },
+      deleteSession: async () => undefined,
     },
     fs: {
       createFolder: async () => undefined,
@@ -158,10 +160,13 @@ test("abort signal stops the remote sandbox command", async () => {
   const sandbox = {
     id: "sandbox-abort",
     process: {
-      executeCommand: async () => {
+      createSession: async () => undefined,
+      executeSessionCommand: async (_sessionId: string, request: { command: string }) => {
+        if (request.command.startsWith("cd ")) return { exitCode: 0, stdout: "", stderr: "" };
         started = true;
         return new Promise<never>(() => undefined);
       },
+      deleteSession: async () => undefined,
     },
     fs: {
       createFolder: async () => undefined,
