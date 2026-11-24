@@ -2,6 +2,7 @@ import { Router } from "express";
 import { getAuthUser } from "../auth.js";
 import { createOrganization, listOrganizationsForUser } from "../organizations/organizationService.js";
 import { requireOrganization, requireOrganizationRole } from "../organizations/organizationMiddleware.js";
+import { getOrganizationUsage } from "../billing/quotaService.js";
 
 export const organizationsRouter = Router();
 
@@ -28,6 +29,8 @@ organizationsRouter.post("/", async (req, res, next) => {
 organizationsRouter.get("/current", requireOrganization, (req, res) => {
   return res.json({ success: true, organization: req.organization });
 });
+
+organizationsRouter.get("/current/usage", requireOrganization, async (req, res, next) => { try { return res.json({ success: true, ...(await getOrganizationUsage(req.organization!.id)) }); } catch (error) { return next(error); } });
 
 organizationsRouter.get("/current/permissions", requireOrganization, requireOrganizationRole("owner", "admin"), (_req, res) => {
   return res.json({ success: true, canManageMembers: true, canManageBilling: true });
