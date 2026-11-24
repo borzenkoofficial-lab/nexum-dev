@@ -10,9 +10,9 @@ interface RuntimeContext {
 }
 
 class DockerSandboxProvider implements SandboxProvider {
-  constructor(private readonly runtime?: ServerRuntime, private readonly context: RuntimeContext = {}) {}
+  constructor(private readonly runtime?: ServerRuntime) {}
 
-  async create(request: { projectPath: string }): Promise<SandboxSession> {
+  async create(request: SandboxCreateRequest): Promise<SandboxSession> {
     const sandbox = new DockerSandbox(request.projectPath, undefined, this.runtime, { projectId: request.projectId, taskId: request.taskId });
     return {
       run: (command: SandboxRequest, signal?: AbortSignal) => sandbox.run(command, signal),
