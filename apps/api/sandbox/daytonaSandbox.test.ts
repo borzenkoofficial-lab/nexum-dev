@@ -46,6 +46,8 @@ test("Daytona provider provisions private network-isolated sandbox, executes and
     getWorkDir: async () => "/home/daytona",
     setTtl: async () => undefined,
     setLabels: async () => ({}),
+    setTtl: async () => undefined,
+    setLabels: async () => ({}),
     updateNetworkSettings: async (settings: { networkBlockAll?: boolean; domainAllowList?: string }) => {
       calls.push("network:" + (settings.networkBlockAll ? "blocked" : settings.domainAllowList ?? "open"));
     },
@@ -102,6 +104,8 @@ test("Daytona provider only opens npm registry egress for dependency installatio
     },
     fs: { createFolder: async () => undefined, uploadFiles: async () => undefined, listFiles: async () => [], downloadFile: async () => undefined },
     getWorkDir: async () => "/home/daytona",
+    setTtl: async () => undefined,
+    setLabels: async () => ({}),
     updateNetworkSettings: async (settings: { networkBlockAll?: boolean; domainAllowList?: string }) => {
       calls.push(settings.networkBlockAll ? "blocked" : settings.domainAllowList ?? "open");
     },
@@ -139,6 +143,8 @@ test("command failures retain stdout/stderr and return a failed sandbox result",
       downloadFile: async () => undefined,
     },
     getWorkDir: async () => "/home/daytona",
+    setTtl: async () => undefined,
+    setLabels: async () => ({}),
     updateNetworkSettings: async () => undefined,
     getSignedPreviewUrl: async () => ({ url: "https://preview.example.test" }),
     delete: async () => undefined,
@@ -182,6 +188,8 @@ test("abort signal stops the remote sandbox command", async () => {
       downloadFile: async () => undefined,
     },
     getWorkDir: async () => "/home/daytona",
+    setTtl: async () => undefined,
+    setLabels: async () => ({}),
     updateNetworkSettings: async () => undefined,
     getSignedPreviewUrl: async () => ({ url: "https://preview.example.test" }),
     delete: async () => { deleted = true; },
