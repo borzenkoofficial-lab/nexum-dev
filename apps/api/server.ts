@@ -1474,6 +1474,8 @@ app.post("/api/chat", async (req, res) => {
         });
       syncTerminalChatJobCache(failed);
       serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: normalizedError.userSafeMessage });
+    }).catch((recoveryError) => {
+      console.error("[Nexum] background chat job recovery failed", jobId, recoveryError);
     });
 
     return res.status(202).json({
