@@ -26,7 +26,7 @@ Move execution of AI-generated project commands out of the NEXUM API host into i
 - Do not mount the host Docker socket or expose privileged host resources.
 - Apply per-job CPU, memory, disk, wall-clock, output-size, and concurrency limits.
 - Treat repository files, package scripts, AI output, and dependencies as untrusted.
-- Network access must be an explicit policy decision; dependency installation may require outbound registry access, but arbitrary project runtime traffic must not inherit unrestricted host credentials.
+- Network access must be an explicit policy decision; the initial policy permits only `registry.npmjs.org` for dependency installation; generated runtime commands never receive unrestricted internet egress or host credentials.
 - Do not put provider secrets into sandbox environment variables unless the specific secret is required by the task and approved for that purpose.
 
 ## Compatibility
