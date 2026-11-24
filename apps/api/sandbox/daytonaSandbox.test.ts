@@ -44,6 +44,8 @@ test("Daytona provider provisions private network-isolated sandbox, executes and
       downloadFile: async () => undefined,
     },
     getWorkDir: async () => "/home/daytona",
+    setTtl: async () => undefined,
+    setLabels: async () => ({}),
     updateNetworkSettings: async (settings: { networkBlockAll?: boolean; domainAllowList?: string }) => {
       calls.push("network:" + (settings.networkBlockAll ? "blocked" : settings.domainAllowList ?? "open"));
     },
