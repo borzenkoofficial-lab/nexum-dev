@@ -1,6 +1,6 @@
 import { DockerSandbox } from "./dockerSandbox.js";
 import { DaytonaSandboxProvider } from "./daytonaSandbox.js";
-import { createSandboxProvider, type SandboxProvider, type SandboxSession } from "./provider.js";
+import { createSandboxProvider, type SandboxCreateRequest, type SandboxProvider, type SandboxSession } from "./provider.js";
 import type { SandboxRequest, SandboxResult } from "./types.js";
 import type { ServerRuntime } from "../runtime/runtime.js";
 
@@ -27,7 +27,7 @@ const sessions = new Map<string, Promise<SandboxSession>>();
 
 function getProvider(runtime?: ServerRuntime, context: RuntimeContext = {}): SandboxProvider {
   if (configuredProvider) return configuredProvider;
-  const docker = new DockerSandboxProvider(runtime, context);
+  const docker = new DockerSandboxProvider(runtime);
   const apiKey = process.env.DAYTONA_API_KEY?.trim();
   const daytona = apiKey ? new DaytonaSandboxProvider({ apiKey }) : undefined;
   configuredProvider = createSandboxProvider({
@@ -39,7 +39,7 @@ function getProvider(runtime?: ServerRuntime, context: RuntimeContext = {}): San
   return configuredProvider;
 }
 
-function getSessionKey(projectRoot: string, context: RuntimeContext): string | undefined {
+function getSessionKey(context: RuntimeContext): string | undefined {
   return context.taskId ? `task:${context.taskId}` : undefined;
 }
 
@@ -51,7 +51,7 @@ export async function runInConfiguredSandbox(
   signal?: AbortSignal,
 ): Promise<SandboxResult> {
   const provider = getProvider(runtime, context);
-  const key = getSessionKey(projectRoot, context);
+  const key = getSessionKey(context);
   let session: SandboxSession;
   let disposeAfter = false;
 
