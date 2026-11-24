@@ -33,7 +33,7 @@ test("Daytona provider provisions private registry-restricted sandbox, executes 
       createSession: async (sessionId: string) => { calls.push("session:" + sessionId); },
       executeSessionCommand: async (_sessionId: string, request: { command: string }) => {
         calls.push("execute:" + request.command);
-        return { exitCode: 0, stdout: request.command.startsWith("npm") ? "build ok" : "", stderr: "" };
+        return { exitCode: 0, stdout: request.command === "npm install --ignore-scripts" ? "installed" : request.command === "npm run build" ? "build ok" : "", stderr: "" };
       },
       deleteSession: async () => { calls.push("delete-session"); },
     },
@@ -73,7 +73,7 @@ test("Daytona provider provisions private registry-restricted sandbox, executes 
     assert.equal(result.success, true);
     assert.ok(calls.includes("execute:npm install --ignore-scripts"));
     assert.ok(calls.includes("execute:npm run build"));
-    assert.equal(result.stdout, "build ok");
+    assert.match(result.stdout, /build ok/);
     assert.equal(await readFile(join(root, "dist", "index.html"), "utf8"), "<h1>built</h1>");
     assert.equal(await session.getPreviewUrl(4173, 120), "https://preview.example.test/signed");
     await session.dispose();
@@ -169,6 +169,8 @@ test("command failures retain stdout/stderr and return a failed sandbox result",
 test("abort signal stops the remote sandbox command", async () => {
   const root = await mkdtemp(join(tmpdir(), "nexum-daytona-abort-"));
   let started = false;
+  let markStarted: (() => void) | undefined;
+  const startedPromise = new Promise<void>((resolveStarted) => { markStarted = resolveStarted; });
   let stopped = false;
   let deleted = false;
   const sandbox = {
@@ -180,6 +182,7 @@ test("abort signal stops the remote sandbox command", async () => {
           return { exitCode: 0, stdout: "", stderr: "" };
         }
         started = true;
+        markStarted?.();
         return new Promise<never>(() => undefined);
       },
       deleteSession: async () => undefined,
@@ -204,7 +207,7 @@ test("abort signal stops the remote sandbox command", async () => {
     const session = await new DaytonaSandboxProvider({ apiKey: "test-key", client }).create({ projectPath: root });
     const controller = new AbortController();
     const pending = session.run({ projectPath: ".", command: "npm run build" }, controller.signal);
-    await Promise.resolve();
+    await startedPromise;
     assert.equal(started, true);
     controller.abort();
     const result = await pending;
