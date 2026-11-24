@@ -238,7 +238,7 @@ class DaytonaSandboxSession implements SandboxSession {
             stdout: bounded(bootstrapStdout, MAX_OUTPUT_BYTES / 2),
             stderr: bounded(bootstrapStderr || "Dependency installation failed", MAX_OUTPUT_BYTES / 2),
             durationMs: Date.now() - startedAt,
-            error: `Dependency installation failed with exit code ${install.exitCode ?? "unknown"}` ,
+            error: `Dependency installation failed with exit code ${install.exitCode ?? "unknown"}`,
           };
         }
         this.dependenciesInstalled = true;
@@ -246,7 +246,8 @@ class DaytonaSandboxSession implements SandboxSession {
         await this.syncWorkspace();
       }
 
-      const response = await this.executeCommandWithAbort(command, Math.max(1, Math.ceil(timeoutMs / 1000)), signal);
+      const commandTimeoutSeconds = command === "npm install --ignore-scripts" ? 300 : Math.max(1, Math.ceil(timeoutMs / 1000));
+      const response = await this.executeCommandWithAbort(command, commandTimeoutSeconds, signal);
       if (command === "npm install --ignore-scripts" && response.exitCode === 0) this.dependenciesInstalled = true;
       const stdout = bounded([bootstrapStdout, response.stdout ?? response.output ?? ""].filter(Boolean).join("\n"), MAX_OUTPUT_BYTES / 2);
       const stderr = bounded([bootstrapStderr, response.stderr ?? ""].filter(Boolean).join("\n"), MAX_OUTPUT_BYTES / 2);
@@ -342,7 +343,9 @@ class DaytonaSandboxSession implements SandboxSession {
       if (!relativePath || relativePath === "." || relativePath === ".." ||
           relativePath.startsWith("../") || relativePath.startsWith("/") || isExcludedPath(relativePath, true)) continue;
       if (typeof entry.size === "number") {
-        if (entry.size > MAX_FILE_BYTES) continue;
+        if (entry.size > MAX_FILE_BYTES) {
+          throw new Error(`Remote workspace file exceeds the ${MAX_FILE_BYTES} byte synchronization limit: ${relativePath}`);
+        }
         totalBytes += entry.size;
         if (totalBytes > MAX_WORKSPACE_BYTES) throw new Error("Remote workspace exceeds the synchronization byte limit");
       }
