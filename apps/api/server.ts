@@ -38,6 +38,7 @@ import { organizationsRouter } from "./routes/organizations.js";
 import { createAgentsRouter, createInventRouter } from "./routes/agents.js";
 import { createWorkforcesRouter } from "./routes/workforces.js";
 import { knowledgeRouter } from "./routes/knowledge.js";
+import { approvalsRouter } from "./routes/approvals.js";
 
 
 const requestIds = new WeakMap<object, string>();
@@ -803,6 +804,7 @@ app.use("/api", authMiddleware, createAgentsRouter(aiGateway));
 app.use("/api/invent", authMiddleware, createInventRouter(aiGateway));
 app.use("/api/workforces", authMiddleware, createWorkforcesRouter(aiGateway));
 app.use("/api/knowledge", authMiddleware, knowledgeRouter);
+app.use("/api/approvals", authMiddleware, approvalsRouter);
 
 app.use("/api/projects", authMiddleware, projectLimiter);
 app.use("/api/chat", authMiddleware, chatLimiter);
