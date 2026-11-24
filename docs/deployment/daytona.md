@@ -19,6 +19,7 @@ The initial provider profile is intentionally bounded:
 - 30-minute sandbox TTL
 - Private sandbox
 - Outbound network is restricted to `registry.npmjs.org` for the sandbox lifetime; no general internet egress or host credentials are exposed
+- Fresh task sandboxes automatically run `npm install --ignore-scripts` before the first build/test command when a root `package.json` exists; explicit later installs are also supported
 - `.env*`, `.git`, `node_modules`, local caches and stale build outputs are excluded when staging files into Daytona; fresh `dist/` and `build/` artifacts are synced back for the authenticated NEXUM Preview
 - Per-file transfer limit: 20 MiB; total workspace transfer limit: 200 MiB; maximum 1,000 files
 - Preview URLs are signed and short-lived (30–600 seconds)
