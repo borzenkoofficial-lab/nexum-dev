@@ -1,0 +1,42 @@
+# Daytona deployment configuration
+
+## Required production environment
+
+Set these Render environment variables before enabling Builder execution:
+
+- `NEXUM_SANDBOX_PROVIDER=daytona`
+- `DAYTONA_API_KEY` — a project-scoped Daytona API key, stored as a secret
+
+The API key must remain server-side. Do not add it to frontend build variables, project files, generated app environment, or logs.
+
+The Render blueprint declares the provider and secret slot, but it does not create a Daytona account, mint a key, or provision paid resources. The production Builder will fail closed if the key is absent; it will not fall back to running generated commands on the API host.
+
+## Current execution profile
+
+The initial provider profile is intentionally bounded:
+
+- 2 vCPU, 4 GiB RAM, 10 GiB disk
+- 30-minute sandbox TTL
+- Private sandbox
+- Outbound network blocked by default
+- Dependency bootstrap temporarily permits `registry.npmjs.org` only, then blocks outbound traffic again
+- `.env*`, `.git`, `node_modules`, build outputs and local caches are excluded from workspace transfer
+- Per-file transfer limit: 10 MiB; total workspace transfer limit: 100 MiB; maximum 1,000 files
+- Preview URLs are signed and short-lived (30–600 seconds)
+
+These are starting limits, not a claim that every project will fit. Larger builds should be handled by an explicit resource-profile change with tests.
+
+## Local development
+
+When `NEXUM_SANDBOX_PROVIDER` is unset and `NODE_ENV` is not `production`, the runner keeps the existing Docker sandbox. To test Daytona locally, set `NEXUM_SANDBOX_PROVIDER=daytona` and `DAYTONA_API_KEY`.
+
+## Activation checklist
+
+1. Create a Daytona project API key in the Daytona dashboard.
+2. Add it to Render as `DAYTONA_API_KEY`.
+3. Confirm `NEXUM_SANDBOX_PROVIDER=daytona`.
+4. Run a controlled smoke test on a non-production project.
+5. Verify create → upload → command → sync → delete and inspect network policy.
+6. Only then enable Builder execution for production traffic.
+
+Do not merge or deploy this branch before the secret has been provisioned and the smoke test has been approved.
