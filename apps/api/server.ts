@@ -1455,7 +1455,29 @@ app.post("/api/chat", async (req, res) => {
       getRequestId(req),
       controller.signal,
       runtimeTask.id,
-    );
+    ).catch(async (error) => {
+      console.error("[Nexum] unhandled chat job runner rejection", jobId, error);
+      chatJobControllers.delete(jobId);
+      const current = await getChatJob(jobId, getAuthUser(req).id).catch(() => null);
+      if (current?.status === "cancelled") {
+        serverRuntime.cancelTask(runtimeTask.id);
+        return;
+      }
+      if (current?.status === "completed") {
+        serverRuntime.updateTask(runtimeTask.id, "COMPLETED", { progress: 1 });
+        return;
+      }
+      const normalizedError = error instanceof NexumError
+        ? error
+        : new NexumError("INTERNAL_ERROR", "AI agent execution failed.", { technicalDetails: error instanceof Error ? error.message : String(error) });
+      const failed = await failChatJob(jobId, getAuthUser(req).id, { stage: "error", error: normalizedError.userSafeMessage, errorCode: normalizedError.code })
+        .catch((persistenceError) => {
+          console.error("[Nexum] unhandled runner failure persistence failed", persistenceError);
+          return null;
+        });
+      syncTerminalChatJobCache(failed);
+      serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: normalizedError.userSafeMessage });
+    });
 
     return res.status(202).json({
       success: true,
