@@ -57,6 +57,8 @@ export interface DaytonaSandboxLike {
     downloadFile(remotePath: string, localPath: string, timeout?: number): Promise<void>;
   };
   getWorkDir(): Promise<string>;
+  setTtl(ttlMinutes: number): Promise<void>;
+  setLabels(labels: Record<string, string>): Promise<Record<string, string>>;
   updateNetworkSettings(settings: { networkBlockAll?: boolean; domainAllowList?: string }): Promise<void>;
   getSignedPreviewUrl(port: number, expiresInSeconds?: number): Promise<{ url: string }>;
   stop(): Promise<void>;
@@ -378,16 +380,14 @@ export class DaytonaSandboxProvider implements SandboxProvider {
     const taskLabel = (request.taskId ?? randomUUID()).replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 48) || randomUUID();
     const sandbox = await this.client.v0.create({
       image: "node:22-bookworm-slim",
-      language: "typescript",
       public: false,
       networkBlockAll: true,
-      ttlMinutes: this.ttlMinutes,
       resources: { cpu: this.cpu, memory: this.memoryGiB, disk: this.diskGiB },
-      labels: { app: "nexum-builder", task: taskLabel },
-      envVars: { NODE_ENV: "development" },
     }, { timeout: 90 });
 
     try {
+      await sandbox.setTtl(this.ttlMinutes);
+      await sandbox.setLabels({ app: "nexum-builder", task: taskLabel });
       if (signal?.aborted) throw abortError();
       const workDir = (await sandbox.getWorkDir()).replaceAll("\\", "/");
       const remoteRoot = posix.join(workDir, "nexum-project");
