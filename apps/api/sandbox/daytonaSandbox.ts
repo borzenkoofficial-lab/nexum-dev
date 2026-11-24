@@ -53,7 +53,7 @@ export interface DaytonaSandboxLike {
   };
   fs: {
     createFolder(path: string, mode: string): Promise<void>;
-    uploadFiles(files: Array<{ source: string; destination: string }>, timeout?: number): Promise<void>;
+    uploadFileStream(source: string, remotePath: string, options?: { signal?: AbortSignal; timeout?: number }): Promise<void>;
     listFiles(path: string, options?: { depth: number }): Promise<DaytonaFileInfo[]>;
     downloadFile(remotePath: string, localPath: string, timeout?: number): Promise<void>;
   };
@@ -393,14 +393,14 @@ export class DaytonaSandboxProvider implements SandboxProvider {
       const workDir = (await sandbox.getWorkDir()).replaceAll("\\", "/");
       const remoteRoot = posix.join(workDir, "nexum-project");
       await createRemoteDirectories(sandbox, remoteRoot, files);
-      if (files.length) {
-        await sandbox.fs.uploadFiles(
-          files.map((file) => ({
-            source: file.absolutePath,
-            destination: posix.join(remoteRoot, file.relativePath),
-          })),
-          300,
-        );
+      for (let offset = 0; offset < files.length; offset += 10) {
+        if (signal?.aborted) throw abortError();
+        const batch = files.slice(offset, offset + 10);
+        await Promise.all(batch.map((file) => sandbox.fs.uploadFileStream(
+          file.absolutePath,
+          posix.join(remoteRoot, file.relativePath),
+          { signal, timeout: 300 },
+        )));
       }
       if (signal?.aborted) throw abortError();
       const sessionId = `nexum-${randomUUID()}`;
