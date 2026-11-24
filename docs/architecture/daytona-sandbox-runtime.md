@@ -17,7 +17,7 @@ Move execution of AI-generated project commands out of the NEXUM API host into i
 - Use only documented Daytona API/SDK contracts verified against current official docs.
 - Provision sandbox resources from server-side limits; use per-job identity labels and a finite TTL.
 - Execute commands inside the sandbox. Preserve cancellation and bounded output semantics.
-- Transfer project files with explicit exclusions for secrets and generated directories (at minimum .git, node_modules, dist, .env*, and local caches).
+- When staging into Daytona, exclude secrets and stale generated directories (at minimum .git, node_modules, dist, build, .env*, and local caches). On return, sync fresh dist/build artifacts to the project workspace so the existing authenticated Preview route can serve them.
 - Preview links must be private by default. Any user-facing URL must be time-limited or proxied through an authenticated NEXUM route; never persist provider bearer tokens in client-visible job payloads.
 - Always clean up sandboxes in finally; if cleanup fails, log a structured error and rely on provider TTL as a backstop.
 
