@@ -247,6 +247,7 @@ class DaytonaSandboxSession implements SandboxSession {
         await this.syncWorkspace();
       }
 
+      if (command === "npm install --ignore-scripts") this.dependenciesInstalled = false;
       const commandTimeoutSeconds = command === "npm install --ignore-scripts" ? 300 : Math.max(1, Math.ceil(timeoutMs / 1000));
       const response = await this.executeCommandWithAbort(command, commandTimeoutSeconds, signal);
       if (command === "npm install --ignore-scripts" && response.exitCode === 0) this.dependenciesInstalled = true;
