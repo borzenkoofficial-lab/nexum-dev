@@ -1,5 +1,8 @@
 import { Daytona } from "@daytona/sdk";
+import { createWriteStream } from "node:fs";
 import { lstat, mkdir, readdir, realpath, stat } from "node:fs/promises";
+import type { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep, posix } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { SandboxCreateRequest, SandboxProvider, SandboxSession } from "./provider.js";
@@ -56,7 +59,7 @@ export interface DaytonaSandboxLike {
     createFolder(path: string, mode: string): Promise<void>;
     uploadFileStream(source: string, remotePath: string, options?: { signal?: AbortSignal; timeout?: number }): Promise<void>;
     listFiles(path: string, options?: { depth: number }): Promise<DaytonaFileInfo[]>;
-    downloadFile(remotePath: string, localPath: string, timeout?: number): Promise<void>;
+    downloadFileStream(remotePath: string, options?: { signal?: AbortSignal; timeout?: number }): Promise<Readable>;
   };
   getWorkDir(): Promise<string>;
   setTtl(ttlMinutes: number): Promise<void>;
@@ -231,7 +234,7 @@ class DaytonaSandboxSession implements SandboxSession {
         bootstrapStdout = install.stdout ?? install.output ?? "";
         bootstrapStderr = install.stderr ?? "";
         if (install.exitCode !== 0) {
-          await this.syncWorkspace();
+          await this.syncWorkspace(signal);
           return {
             ...base,
             success: false,
@@ -273,6 +276,7 @@ class DaytonaSandboxSession implements SandboxSession {
         ...(error ? { error } : {}),
       };
     } catch (error) {
+      if (signal?.aborted) void this.sandbox.stop().catch(() => undefined);
       const message = error instanceof Error ? error.message : "Daytona sandbox request failed";
       return {
         success: false,
@@ -324,7 +328,7 @@ class DaytonaSandboxSession implements SandboxSession {
       if (abortListener) signal.removeEventListener("abort", abortListener);
     }
   }
-  private async syncWorkspace(): Promise<void> {
+  private async syncWorkspace(signal?: AbortSignal): Promise<void> {
     const root = await realpath(this.projectRoot);
     let totalBytes = 0;
     let fileCount = 0;
@@ -334,6 +338,7 @@ class DaytonaSandboxSession implements SandboxSession {
       // never expanded into huge responses.
       const entries = await this.sandbox.fs.listFiles(remoteDirectory, { depth: 1 });
       for (const entry of entries) {
+        if (signal?.aborted) throw abortError();
         if (entry.isSymlink || entry.mode?.startsWith("L")) continue;
         const listedPath = entry.path.replaceAll("\\", "/");
         let relativePath: string;
@@ -375,7 +380,9 @@ class DaytonaSandboxSession implements SandboxSession {
         } catch {
           // A new generated file is expected.
         }
-        await this.sandbox.fs.downloadFile(remoteFilePath, localPath, 120);
+        const stream = await this.sandbox.fs.downloadFileStream(remoteFilePath, { signal, timeout: 120 });
+        if (signal) await pipeline(stream, createWriteStream(localPath), { signal });
+        else await pipeline(stream, createWriteStream(localPath));
       }
     };
 
