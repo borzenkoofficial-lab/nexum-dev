@@ -746,6 +746,7 @@ function App() {
           setActivityEvents(data?.job?.events ?? []);
           setProblems(data?.job?.problems ?? []);
           setCurrentActivity(data?.job?.error || data?.job?.currentMessage || "ИИ-агент завершил работу с ошибкой.");
+          setАгентStage("error");
           if (data?.job?.productPlan) setProductPlan({
             goal: data.job.productPlan.goal ?? "",
             productType: data.job.productPlan.productType ?? "Product",
