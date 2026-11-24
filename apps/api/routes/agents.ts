@@ -6,6 +6,7 @@ import {getAgent,getAgentVersion,listAgents,createAgentRun,getRun,getRunEvents,a
 import {createAgentForOrganization,updateAgentForOrganization,generateInventDraft} from "../agents/agentService.js";
 import {AgentRuntime} from "../agents/agentRuntime.js";
 import {agentToolRegistry} from "../agents/tools/toolRegistry.js";
+import {getOrganizationQuota,recordAgentRunUsage} from "../billing/quotaService.js";
 const activeRuns=new Map<string,AbortController>();
 export function createAgentsRouter(gateway:AIGateway){const router=Router(),runtime=new AgentRuntime(gateway);router.use(["/agents", "/tools", "/runs"], requireOrganization);
 router.get("/tools",(_req,res)=>res.json({success:true,tools:agentToolRegistry.list()}));
