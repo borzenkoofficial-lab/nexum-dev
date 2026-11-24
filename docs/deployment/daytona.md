@@ -21,7 +21,7 @@ The initial provider profile is intentionally bounded:
 - Outbound network blocked by default
 - Dependency bootstrap temporarily permits `registry.npmjs.org` only, then blocks outbound traffic again
 - `.env*`, `.git`, `node_modules`, local caches and stale build outputs are excluded when staging files into Daytona; fresh `dist/` and `build/` artifacts are synced back for the authenticated NEXUM Preview
-- Per-file transfer limit: 10 MiB; total workspace transfer limit: 100 MiB; maximum 1,000 files
+- Per-file transfer limit: 20 MiB; total workspace transfer limit: 200 MiB; maximum 1,000 files
 - Preview URLs are signed and short-lived (30–600 seconds)
 
 These are starting limits, not a claim that every project will fit. Larger builds should be handled by an explicit resource-profile change with tests.
