@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile, readFile, symlink } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join, posix } from "node:path";
 import { test } from "node:test";
+import { Readable } from "node:stream";
 import { DaytonaSandboxProvider, collectWorkspaceFiles, type DaytonaClientLike } from "./daytonaSandbox.js";
 
 test("workspace staging excludes secrets, dependencies, build output and symlinks", async () => {
@@ -41,7 +42,7 @@ test("Daytona provider provisions private registry-restricted sandbox, executes 
       createFolder: async (path: string) => { calls.push("mkdir:" + path); },
       uploadFileStream: async (source: string, destination: string) => { uploaded.push({ source, destination }); calls.push("upload"); },
       listFiles: async () => [{ path: "/home/daytona/nexum-project/dist/index.html", size: 14 }],
-      downloadFile: async (_remotePath: string, localPath: string) => { await writeFile(localPath, "<h1>built</h1>"); },
+      downloadFileStream: async () => Readable.from([Buffer.from("<h1>built</h1>")]),
     },
     getWorkDir: async () => "/home/daytona",
     setTtl: async () => undefined,
@@ -141,7 +142,7 @@ test("command failures retain stdout/stderr and return a failed sandbox result",
       createFolder: async () => undefined,
       uploadFileStream: async () => undefined,
       listFiles: async () => [],
-      downloadFile: async () => undefined,
+      downloadFileStream: async () => Readable.from([]),
     },
     getWorkDir: async () => "/home/daytona",
     setTtl: async () => undefined,
@@ -191,7 +192,7 @@ test("abort signal stops the remote sandbox command", async () => {
       createFolder: async () => undefined,
       uploadFileStream: async () => undefined,
       listFiles: async () => [],
-      downloadFile: async () => undefined,
+      downloadFileStream: async () => Readable.from([]),
     },
     getWorkDir: async () => "/home/daytona",
     setTtl: async () => undefined,
