@@ -1362,8 +1362,8 @@ export class AgentLoop {
       ) {
         const packageChanged = /"path"\s*:\s*"package\.json"/i.test(plan.input);
         const commands = projectHasBuildScript(previousResults)
-          ? (packageChanged ? ["npm install", "npm run build"] : ["npm run build"])
-          : (packageChanged ? ["npm install"] : []);
+          ? (packageChanged ? ["npm install --ignore-scripts", "npm run build"] : ["npm run build"])
+          : (packageChanged ? ["npm install --ignore-scripts"] : []);
         for (const command of commands) {
           const commandResult = await this.runtime.executeTool("runCommand", command, options?.signal);          const commandStep: AgentStep = { iteration, tool: "runCommand", input: command, success: commandResult.success };
           steps.push(commandStep);
