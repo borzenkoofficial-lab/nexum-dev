@@ -71,6 +71,8 @@ test("Daytona provider provisions private registry-restricted sandbox, executes 
     assert.equal(uploaded[0].destination, posix.join("/home/daytona", "nexum-project", "index.html"));
     const result = await session.run({ projectPath: ".", command: "npm run build", timeoutMs: 10_000 });
     assert.equal(result.success, true);
+    assert.ok(calls.includes("execute:npm install --ignore-scripts"));
+    assert.ok(calls.includes("execute:npm run build"));
     assert.equal(result.stdout, "build ok");
     assert.equal(await readFile(join(root, "dist", "index.html"), "utf8"), "<h1>built</h1>");
     assert.equal(await session.getPreviewUrl(4173, 120), "https://preview.example.test/signed");
@@ -127,9 +129,12 @@ test("command failures retain stdout/stderr and return a failed sandbox result",
     id: "sandbox-failure",
     process: {
       createSession: async () => undefined,
-      executeSessionCommand: async (_sessionId: string, request: { command: string }) => request.command.startsWith("cd ")
-        ? { exitCode: 0, stdout: "", stderr: "" }
-        : { exitCode: 2, stdout: "partial output", stderr: "build failed" },
+      executeSessionCommand: async (_sessionId: string, request: { command: string }) => {
+        if (request.command.startsWith("cd ") || request.command === "npm install --ignore-scripts") {
+          return { exitCode: 0, stdout: "installed", stderr: "" };
+        }
+        return { exitCode: 2, stdout: "partial output", stderr: "build failed" };
+      },
       deleteSession: async () => undefined,
     },
     fs: {
@@ -171,7 +176,9 @@ test("abort signal stops the remote sandbox command", async () => {
     process: {
       createSession: async () => undefined,
       executeSessionCommand: async (_sessionId: string, request: { command: string }) => {
-        if (request.command.startsWith("cd ")) return { exitCode: 0, stdout: "", stderr: "" };
+        if (request.command.startsWith("cd ") || request.command === "npm install --ignore-scripts") {
+          return { exitCode: 0, stdout: "", stderr: "" };
+        }
         started = true;
         return new Promise<never>(() => undefined);
       },
