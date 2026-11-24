@@ -146,7 +146,7 @@ export async function heartbeatProjectLock(projectId: string, userId: string, jo
   }
   await ensureTable();
   const result = await query(
-    `UPDATE agent_project_locks SET expires_at=$3
+    `UPDATE agent_project_locks SET expires_at=$4
       WHERE project_id=$1 AND user_id=$2 AND job_id=$3 RETURNING project_id`,
     [projectId, userId, jobId, new Date(Date.now() + ttlMs).toISOString()],
   );
