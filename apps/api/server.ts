@@ -355,7 +355,7 @@ async function runChatJob(
       return;
     }
     lockHeartbeat = setInterval(() => {
-      void heartbeatProjectLock(project.id, jobId).catch((error) => console.error("[Nexum] project lock heartbeat failed", error));
+      void heartbeatProjectLock(project.id, userId, jobId).catch((error) => console.error("[Nexum] project lock heartbeat failed", error));
     }, 60_000);
     lockHeartbeatResourceId = serverRuntime.registerResource("timer", () => { if (lockHeartbeat) clearInterval(lockHeartbeat); lockHeartbeat = undefined; }, { projectId: project.id, taskId: runtimeTask.id, operation: "project-lock-heartbeat" });
     lockedProjectId = project.id;
@@ -631,7 +631,7 @@ ${attachment.content.slice(0, 80_000)}`);
     try {
       if (lockHeartbeatResourceId) serverRuntime.releaseResource(lockHeartbeatResourceId);
       if (lockHeartbeat) clearInterval(lockHeartbeat);
-      if (lockedProjectId) await releaseProjectLock(lockedProjectId, jobId);
+      if (lockedProjectId) await releaseProjectLock(lockedProjectId, userId, jobId);
     } catch (lockError) {
       console.error("[Nexum] project lock release failed", jobId, lockError);
     }
