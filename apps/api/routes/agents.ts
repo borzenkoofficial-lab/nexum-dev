@@ -7,7 +7,7 @@ import {createAgentForOrganization,updateAgentForOrganization,generateInventDraf
 import {AgentRuntime} from "../agents/agentRuntime.js";
 import {agentToolRegistry} from "../agents/tools/toolRegistry.js";
 const activeRuns=new Map<string,AbortController>();
-export function createAgentsRouter(gateway:AIGateway){const router=Router(),runtime=new AgentRuntime(gateway);router.use(requireOrganization);
+export function createAgentsRouter(gateway:AIGateway){const router=Router(),runtime=new AgentRuntime(gateway);router.use(["/agents", "/tools", "/runs"], requireOrganization);
 router.get("/tools",(_req,res)=>res.json({success:true,tools:agentToolRegistry.list()}));
 router.get("/agents",async(req,res,next)=>{try{return res.json({success:true,agents:await listAgents(req.organization!.id)});}catch(e){return next(e);}});
 router.post("/agents",requireOrganizationRole("owner","admin","member"),async(req,res)=>{try{const a=await createAgentForOrganization(req.organization!.id,getAuthUser(req).id,req.body,gateway.getProviders().map(p=>p.id));return res.status(201).json({success:true,agent:a});}catch(e){return res.status(400).json({success:false,error:e instanceof Error?e.message:"Invalid agent"});}});

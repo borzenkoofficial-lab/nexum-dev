@@ -237,3 +237,23 @@ NEXUM.DEV — браузерная платформа для создания и
 Начать с P0-аудита актуального репозитория: проверить дерево файлов, ключевые модули агента, команды package scripts, тесты и последние CI. После аудита заменить предварительные NEEDS_RECHECK на точные статусы и добавить подтверждения.
 
 Не начинайте массовую реализацию новых функций, пока не установлено, какие дефекты существуют на текущем HEAD и какие из них блокируют основной цикл создания и проверки проекта.
+
+
+## NEXUM AGENTS — implementation progress (2026-11-24)
+
+**Branch:** `feat/nexum-agents-foundation` — IN_PROGRESS. No merge or production deployment performed.
+
+Implemented in branch:
+- Sequential SQL migration runner with SHA-256 checksums, advisory transaction lock, immutable applied-migration checks and fail-fast behavior.
+- PostgreSQL transaction helper; organizations, membership, invitation schema; personal workspace trigger and existing-user backfill.
+- Organization listing/creation/current-workspace middleware and server-side role checks.
+- Versioned agent records, CRUD, publish/pause, persisted runs and run events.
+- Separate business-agent runtime reusing AI Gateway; existing Coding Agent loop is not modified.
+- Initial safe tools: email_draft (draft-only; never sends) and json_parse.
+- Invent endpoint with real provider/tool allowlist validation.
+- Initial NEXUM AGENTS web workspace for Invent, agent creation, publishing and run monitoring.
+- Workforce graph validation and sequential agent-node execution, with manual launch.
+
+Not yet complete:
+- Durable distributed queue, restart recovery, SSE, external search/CRM/OAuth, email sending, approval execution, document upload/extraction/retrieval, schedules/triggers, billing/quota enforcement and advanced visual graph editing.
+- Automated TypeScript checks, unit tests, database migration against PostgreSQL and browser E2E have not been executed in this environment. No feature is considered DONE until checks pass.
