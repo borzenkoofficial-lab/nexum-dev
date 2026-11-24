@@ -311,20 +311,66 @@ async function runChatJob(
   if (!runtimeTask) throw new Error("Canonical Runtime Task is unavailable for Agent Job");
   const cancellationBridge = createAgentCancellationBridge(jobId, userId, parentSignal);
   const signal = cancellationBridge.signal;
-  throwIfAgentAborted(signal);
-  const existingJob = await getChatJob(jobId, userId);
-  if (!existingJob) { cancellationBridge.stop(); serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" }); return; }
-  const job = existingJob.status === "queued" ? await claimChatJob(jobId, userId) : existingJob;
-  if (!job || job.status !== "running") {
-    if (job?.status === "cancelled") serverRuntime.cancelTask(runtimeTask.id);
-    else serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Agent Job could not be claimed" });
+  let preflightJob: ChatJob | null = null;
+  try {
+    throwIfAgentAborted(signal);
+    const existingJob = await getChatJob(jobId, userId);
+    if (!existingJob) {
+      chatJobControllers.delete(jobId);
+      cancellationBridge.stop();
+      serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Chat job not found" });
+      return;
+    }
+    const claimedJob = existingJob.status === "queued" ? await claimChatJob(jobId, userId) : existingJob;
+    if (!claimedJob || claimedJob.status !== "running") {
+      chatJobControllers.delete(jobId);
+      cancellationBridge.stop();
+      if (claimedJob?.status === "cancelled") serverRuntime.cancelTask(runtimeTask.id);
+      else serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: "Agent Job could not be claimed" });
+      return;
+    }
+    preflightJob = claimedJob;
+    chatJobCache.set(jobId, claimedJob);
+    serverRuntime.updateTask(runtimeTask.id, "RUNNING");
+    throwIfAgentAborted(signal);
+    claimedJob.status = "running";
+    claimedJob.updatedAt = Date.now();
+    await persistChatJob(claimedJob);
+    void agentHistory.record({ type: "job-start", jobId, projectId, provider, model, message, output: `user:${userId}` })
+      .catch((error) => console.error("[Nexum] job-start history persistence failed", error));
+    claimedJob.currentMessage = "Запускаю AI-агента и начинаю выполнение задачи.";
+    claimedJob.stage = "analyzing";
+  } catch (error) {
+    chatJobControllers.delete(jobId);
+    const cancelled = signal.aborted || (error instanceof Error && error.name === "AbortError");
+    if (cancelled) {
+      await cancelChatJob(jobId, userId, "Agent task cancelled by user.").catch((persistenceError) => {
+        console.error("[Nexum] preflight cancellation persistence failed", persistenceError);
+        return null;
+      });
+      serverRuntime.cancelTask(runtimeTask.id);
+    } else {
+      const normalizedError = error instanceof NexumError
+        ? error
+        : new NexumError("INTERNAL_ERROR", "AI agent could not be started.", { technicalDetails: error instanceof Error ? error.message : String(error) });
+      const failed = await failChatJob(jobId, userId, { stage: "error", error: normalizedError.userSafeMessage, errorCode: normalizedError.code })
+        .catch((persistenceError) => {
+          console.error("[Nexum] preflight failure persistence failed", persistenceError);
+          return null;
+        });
+      syncTerminalChatJobCache(failed);
+      serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: normalizedError.userSafeMessage });
+      console.error("[Nexum] chat job preflight failed", jobId, error);
+    }
+    cancellationBridge.stop();
+    return;
+  }
+  if (!preflightJob) {
     chatJobControllers.delete(jobId);
     cancellationBridge.stop();
     return;
   }
-  chatJobCache.set(jobId, job);
-  serverRuntime.updateTask(runtimeTask.id, "RUNNING");
-  throwIfAgentAborted(signal);
+  const job = preflightJob;
   let lockedProjectId: string | undefined;
   let attachmentDir: string | undefined;
   let lockHeartbeat: ReturnType<typeof setInterval> | undefined;
