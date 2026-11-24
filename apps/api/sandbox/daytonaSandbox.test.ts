@@ -57,7 +57,7 @@ test("Daytona provider provisions private network-isolated sandbox, executes and
     v0: {
       create: async (options) => {
         assert.equal(options.public, false);
-        assert.equal(options.networkBlockAll, true);
+        assert.equal(options.domainAllowList, "registry.npmjs.org");
         calls.push("create");
         return sandbox;
       },
@@ -89,9 +89,9 @@ test("Daytona provider rejects missing credentials before creating a sandbox", a
   assert.equal(created, false);
 });
 
-test("Daytona provider only opens npm registry egress for dependency installation", async () => {
+test("Daytona sandbox outbound network is restricted to the npm registry", async () => {
   const root = await mkdtemp(join(tmpdir(), "nexum-daytona-network-"));
-  const calls: string[] = [];
+  let domainAllowList: string | undefined;
   const sandbox = {
     id: "sandbox-123",
     process: {
@@ -112,12 +112,12 @@ test("Daytona provider only opens npm registry egress for dependency installatio
     delete: async () => undefined,
     stop: async () => undefined,
   };
-  const client: DaytonaClientLike = { v0: { create: async () => sandbox } };
+  const client: DaytonaClientLike = { v0: { create: async (options) => { domainAllowList = String(options.domainAllowList ?? ""); return sandbox; } } };
   try {
     await writeFile(join(root, "package.json"), "{}");
     const session = await new DaytonaSandboxProvider({ apiKey: "test-key", client }).create({ projectPath: root });
     await session.run({ projectPath: ".", command: "npm install --ignore-scripts" });
-    assert.deepEqual(calls, ["registry.npmjs.org", "blocked"]);
+    assert.equal(domainAllowList, "registry.npmjs.org");
     await session.dispose();
   } finally {
     await rm(root, { recursive: true, force: true });
