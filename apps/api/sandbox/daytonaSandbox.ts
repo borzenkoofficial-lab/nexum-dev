@@ -81,7 +81,7 @@ export interface DaytonaSandboxProviderOptions {
 }
 
 function createSdkClient(apiKey: string): DaytonaClientLike {
-  return new Daytona({ apiKey, requestTimeoutSeconds: 150 }) as unknown as DaytonaClientLike;
+  return new Daytona({ apiKey, requestTimeoutSeconds: 360 }) as unknown as DaytonaClientLike;
 }
 
 function isExcludedPath(relativePath: string, includeBuildArtifacts = false): boolean {
@@ -204,7 +204,10 @@ class DaytonaSandboxSession implements SandboxSession {
     private readonly projectRoot: string,
     private readonly remoteRoot: string,
     private readonly sessionId: string,
+    private readonly hasPackageJson: boolean,
   ) {}
+
+  private dependenciesInstalled = false;
 
   async run(request: SandboxRequest, signal?: AbortSignal): Promise<SandboxResult> {
     const startedAt = Date.now();
@@ -219,33 +222,34 @@ class DaytonaSandboxSession implements SandboxSession {
         throw new Error(`Sandbox timeout must be between 100 and ${MAX_TIMEOUT_MS} milliseconds`);
       }
 
-      if (signal?.aborted) throw abortError();
-
-      const execution = this.sandbox.process.executeSessionCommand(
-        this.sessionId,
-        { command, runAsync: false, suppressInputEcho: true },
-        Math.max(1, Math.ceil(timeoutMs / 1000)),
-      );
-      let abortListener: (() => void) | undefined;
-      const aborted = new Promise<never>((_resolve, reject) => {
-        if (!signal) return;
-        abortListener = () => {
-          void this.sandbox.stop().catch(() => undefined);
-          reject(abortError());
-        };
-        signal.addEventListener("abort", abortListener, { once: true });
-        if (signal.aborted) abortListener();
-      });
-
-      let response: Awaited<typeof execution>;
-      try {
-        response = signal ? await Promise.race([execution, aborted]) : await execution;
-      } finally {
-        if (abortListener) signal?.removeEventListener("abort", abortListener);
+      let bootstrapStdout = "";
+      let bootstrapStderr = "";
+      const isVersionCommand = command === "npm --version" || command === "npm -v" || command === "node --version" || command === "node -v";
+      if (this.hasPackageJson && !this.dependenciesInstalled && command !== "npm install --ignore-scripts" && !isVersionCommand) {
+        const install = await this.executeCommandWithAbort("npm install --ignore-scripts", 300, signal);
+        bootstrapStdout = install.stdout ?? install.output ?? "";
+        bootstrapStderr = install.stderr ?? "";
+        if (install.exitCode !== 0) {
+          await this.syncWorkspace();
+          return {
+            ...base,
+            success: false,
+            exitCode: install.exitCode ?? 1,
+            stdout: bounded(bootstrapStdout, MAX_OUTPUT_BYTES / 2),
+            stderr: bounded(bootstrapStderr || "Dependency installation failed", MAX_OUTPUT_BYTES / 2),
+            durationMs: Date.now() - startedAt,
+            error: `Dependency installation failed with exit code ${install.exitCode ?? "unknown"}` ,
+          };
+        }
+        this.dependenciesInstalled = true;
+        if (signal?.aborted) throw abortError();
+        await this.syncWorkspace();
       }
 
-      const stdout = bounded(response.stdout ?? response.output ?? "", MAX_OUTPUT_BYTES / 2);
-      const stderr = bounded(response.stderr ?? "", MAX_OUTPUT_BYTES / 2);
+      const response = await this.executeCommandWithAbort(command, Math.max(1, Math.ceil(timeoutMs / 1000)), signal);
+      if (command === "npm install --ignore-scripts" && response.exitCode === 0) this.dependenciesInstalled = true;
+      const stdout = bounded([bootstrapStdout, response.stdout ?? response.output ?? ""].filter(Boolean).join("\n"), MAX_OUTPUT_BYTES / 2);
+      const stderr = bounded([bootstrapStderr, response.stderr ?? ""].filter(Boolean).join("\n"), MAX_OUTPUT_BYTES / 2);
       const success = response.exitCode === 0;
       let syncError: string | undefined;
       if (!signal?.aborted) {
@@ -293,6 +297,30 @@ class DaytonaSandboxSession implements SandboxSession {
     await this.sandbox.delete(60, true);
   }
 
+  private async executeCommandWithAbort(command: string, timeoutSeconds: number, signal?: AbortSignal) {
+    if (signal?.aborted) throw abortError();
+    const execution = this.sandbox.process.executeSessionCommand(
+      this.sessionId,
+      { command, runAsync: false, suppressInputEcho: true },
+      timeoutSeconds,
+    );
+    if (!signal) return execution;
+
+    let abortListener: (() => void) | undefined;
+    const aborted = new Promise<never>((_resolve, reject) => {
+      abortListener = () => {
+        void this.sandbox.stop().catch(() => undefined);
+        reject(abortError());
+      };
+      signal.addEventListener("abort", abortListener, { once: true });
+      if (signal.aborted) abortListener();
+    });
+    try {
+      return await Promise.race([execution, aborted]);
+    } finally {
+      if (abortListener) signal.removeEventListener("abort", abortListener);
+    }
+  }
   private async syncWorkspace(): Promise<void> {
     const entries = await this.sandbox.fs.listFiles(this.remoteRoot, { depth: 50 });
     if (entries.length > MAX_WORKSPACE_FILES) throw new Error("Remote workspace exceeds the file synchronization limit");
@@ -392,7 +420,7 @@ export class DaytonaSandboxProvider implements SandboxProvider {
       if (changedDirectory.exitCode !== 0) {
         throw new Error("Could not set the Daytona command working directory");
       }
-      return new DaytonaSandboxSession(sandbox, projectRoot, remoteRoot, sessionId);
+      return new DaytonaSandboxSession(sandbox, projectRoot, remoteRoot, sessionId, files.some((file) => file.relativePath === "package.json"));
     } catch (error) {
       await sandbox.delete(60, true).catch((cleanupError) => {
         console.error("[Nexum] Failed to clean up Daytona sandbox after provisioning error", {
