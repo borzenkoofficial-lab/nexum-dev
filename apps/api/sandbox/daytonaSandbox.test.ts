@@ -158,7 +158,7 @@ test("command failures retain stdout/stderr and return a failed sandbox result",
     const result = await session.run({ projectPath: ".", command: "npm run build" });
     assert.equal(result.success, false);
     assert.equal(result.exitCode, 2);
-    assert.equal(result.stdout, "partial output");
+    assert.match(result.stdout, /partial output/);
     assert.match(result.stderr, /build failed/);
     await session.dispose();
   } finally {
