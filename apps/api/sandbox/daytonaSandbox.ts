@@ -214,6 +214,7 @@ class DaytonaSandboxSession implements SandboxSession {
         await this.sandbox.updateNetworkSettings({ networkBlockAll: false, domainAllowList: "registry.npmjs.org" });
         networkChanged = true;
       }
+      if (signal?.aborted) throw abortError();
 
       const execution = this.sandbox.process.executeCommand(
         command,
@@ -229,6 +230,7 @@ class DaytonaSandboxSession implements SandboxSession {
           reject(abortError());
         };
         signal.addEventListener("abort", abortListener, { once: true });
+        if (signal.aborted) abortListener();
       });
 
       let response: Awaited<typeof execution>;
@@ -269,12 +271,18 @@ class DaytonaSandboxSession implements SandboxSession {
       };
     } finally {
       if (networkChanged) {
-        await this.sandbox.updateNetworkSettings({ networkBlockAll: true }).catch((error) => {
-          console.error("[Nexum] Failed to re-block Daytona sandbox network", {
+        try {
+          await this.sandbox.updateNetworkSettings({ networkBlockAll: true });
+        } catch (error) {
+          this.disposed = true;
+          console.error("[Nexum] Failed to re-block Daytona sandbox network; destroying sandbox", {
             sandboxId: this.sandbox.id,
             error: error instanceof Error ? error.message : String(error),
           });
-        });
+          await this.sandbox.stop().catch(() => undefined);
+          await this.sandbox.delete(60, true).catch(() => undefined);
+          throw new Error("Daytona network isolation could not be restored; the sandbox was stopped and deleted.");
+        }
       }
     }
   }
