@@ -362,7 +362,6 @@ export class DaytonaSandboxProvider implements SandboxProvider {
       if (signal?.aborted) throw abortError();
       const workDir = (await sandbox.getWorkDir()).replaceAll("\\", "/");
       const remoteRoot = posix.join(workDir, "nexum-project");
-      await sandbox.fs.createFolder(remoteRoot, "755");
       await createRemoteDirectories(sandbox, remoteRoot, files);
       if (files.length) {
         await sandbox.fs.uploadFiles(
