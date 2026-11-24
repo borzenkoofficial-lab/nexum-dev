@@ -211,7 +211,7 @@ class DaytonaSandboxSession implements SandboxSession {
       }
 
       if (command === "npm install --ignore-scripts") {
-        await this.sandbox.updateNetworkSettings({ domainAllowList: "registry.npmjs.org" });
+        await this.sandbox.updateNetworkSettings({ networkBlockAll: false, domainAllowList: "registry.npmjs.org" });
         networkChanged = true;
       }
 
@@ -238,8 +238,8 @@ class DaytonaSandboxSession implements SandboxSession {
         if (abortListener) signal?.removeEventListener("abort", abortListener);
       }
 
-      const stdout = bounded(response.artifacts?.stdout ?? response.result ?? "");
-      const stderr = bounded(response.artifacts?.stderr ?? "");
+      const stdout = bounded(response.artifacts?.stdout ?? response.result ?? "", MAX_OUTPUT_BYTES / 2);
+      const stderr = bounded(response.artifacts?.stderr ?? "", MAX_OUTPUT_BYTES / 2);
       const success = response.exitCode === 0;
       let syncError: string | undefined;
       if (!signal?.aborted) {
