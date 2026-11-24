@@ -335,11 +335,11 @@ async function runChatJob(
     throwIfAgentAborted(signal);
     claimedJob.status = "running";
     claimedJob.updatedAt = Date.now();
+    claimedJob.currentMessage = "Запускаю AI-агента и начинаю выполнение задачи.";
+    claimedJob.stage = "analyzing";
     await persistChatJob(claimedJob);
     void agentHistory.record({ type: "job-start", jobId, projectId, provider, model, message, output: `user:${userId}` })
       .catch((error) => console.error("[Nexum] job-start history persistence failed", error));
-    claimedJob.currentMessage = "Запускаю AI-агента и начинаю выполнение задачи.";
-    claimedJob.stage = "analyzing";
   } catch (error) {
     chatJobControllers.delete(jobId);
     const cancelled = signal.aborted || (error instanceof Error && error.name === "AbortError");
@@ -376,12 +376,6 @@ async function runChatJob(
   let lockHeartbeat: ReturnType<typeof setInterval> | undefined;
   let lockHeartbeatResourceId: string | undefined;
 
-  job.status = "running";
-  job.updatedAt = Date.now();
-  await persistChatJob(job);
-  void agentHistory.record({ type: "job-start", jobId, projectId, provider, model, message, output: `user:${userId}` });
-  job.currentMessage = "Запускаю AI-агента и начинаю выполнение задачи.";
-  job.stage = "analyzing";
 
   try {
     throwIfAgentAborted(signal);
