@@ -12,9 +12,10 @@ const MAX_WORKSPACE_FILES = 1_000;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_WORKSPACE_BYTES = 100 * 1024 * 1024;
 const BLOCKED_PATH_PARTS = new Set([
-  ".git", "node_modules", "dist", "build", ".next", ".nuxt", ".output", ".aws", ".ssh", ".npmrc", ".pypirc", ".netrc",
+  ".git", "node_modules", ".next", ".nuxt", ".output", ".aws", ".ssh", ".npmrc", ".pypirc", ".netrc",
   "coverage", ".cache", ".turbo", ".nexum",
 ]);
+const STAGING_BUILD_OUTPUT_PARTS = new Set(["dist", "build"]);
 const SHELL_SYNTAX = /[;&|`$()<>\n\r\\]/;
 const ALLOWED_NPM_SCRIPTS = new Set(["build", "test", "lint", "typecheck"]);
 const ALLOWED_NPX_COMMANDS = new Set(["tsc", "vite", "oxlint"]);
@@ -84,10 +85,10 @@ function createSdkClient(apiKey: string): DaytonaClientLike {
   return new Daytona({ apiKey, requestTimeoutSeconds: 150 }) as unknown as DaytonaClientLike;
 }
 
-function isExcludedPath(relativePath: string): boolean {
+function isExcludedPath(relativePath: string, includeBuildArtifacts = false): boolean {
   const normalized = relativePath.replaceAll("\\", "/");
   const parts = normalized.split("/");
-  return parts.some((part) => BLOCKED_PATH_PARTS.has(part) || part.startsWith(".env"));
+  return parts.some((part) => BLOCKED_PATH_PARTS.has(part) || (!includeBuildArtifacts && STAGING_BUILD_OUTPUT_PARTS.has(part)) || part.startsWith(".env"));
 }
 
 function assertInside(root: string, target: string): void {
@@ -332,7 +333,7 @@ class DaytonaSandboxSession implements SandboxSession {
       }
       relativePath = posix.normalize(relativePath);
       if (!relativePath || relativePath === "." || relativePath === ".." ||
-          relativePath.startsWith("../") || relativePath.startsWith("/") || isExcludedPath(relativePath)) continue;
+          relativePath.startsWith("../") || relativePath.startsWith("/") || isExcludedPath(relativePath, true)) continue;
       if (typeof entry.size === "number") {
         if (entry.size > MAX_FILE_BYTES) continue;
         totalBytes += entry.size;
