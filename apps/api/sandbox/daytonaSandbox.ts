@@ -33,6 +33,7 @@ export interface DaytonaFileInfo {
   isDir?: boolean;
   isDirectory?: boolean;
   isSymlink?: boolean;
+  mode?: string;
 }
 
 export interface DaytonaSandboxLike {
@@ -323,48 +324,62 @@ class DaytonaSandboxSession implements SandboxSession {
     }
   }
   private async syncWorkspace(): Promise<void> {
-    const entries = await this.sandbox.fs.listFiles(this.remoteRoot, { depth: 50 });
-    if (entries.length > MAX_WORKSPACE_FILES) throw new Error("Remote workspace exceeds the file synchronization limit");
     const root = await realpath(this.projectRoot);
     let totalBytes = 0;
-    for (const entry of entries) {
-      if (entry.isDir || entry.isDirectory || entry.isSymlink) continue;
-      const listedPath = entry.path.replaceAll("\\", "/");
-      let relativePath: string;
-      if (listedPath.startsWith(this.remoteRoot + "/")) {
-        relativePath = listedPath.slice(this.remoteRoot.length + 1);
-      } else if (listedPath.startsWith("/")) {
-        // Do not let an unexpected absolute path escape the staged workspace.
-        continue;
-      } else {
-        relativePath = listedPath;
-      }
-      relativePath = posix.normalize(relativePath);
-      if (!relativePath || relativePath === "." || relativePath === ".." ||
-          relativePath.startsWith("../") || relativePath.startsWith("/") || isExcludedPath(relativePath, true)) continue;
-      if (typeof entry.size === "number") {
-        if (entry.size > MAX_FILE_BYTES) {
-          throw new Error(`Remote workspace file exceeds the ${MAX_FILE_BYTES} byte synchronization limit: ${relativePath}`);
+    let fileCount = 0;
+
+    const walk = async (remoteDirectory: string): Promise<void> => {
+      // List one level at a time so node_modules and other excluded trees are
+      // never expanded into huge responses.
+      const entries = await this.sandbox.fs.listFiles(remoteDirectory, { depth: 1 });
+      for (const entry of entries) {
+        if (entry.isSymlink || entry.mode?.startsWith("L")) continue;
+        const listedPath = entry.path.replaceAll("\\", "/");
+        let relativePath: string;
+        if (listedPath.startsWith(this.remoteRoot + "/")) {
+          relativePath = listedPath.slice(this.remoteRoot.length + 1);
+        } else if (listedPath.startsWith("/")) {
+          continue;
+        } else {
+          relativePath = listedPath;
         }
-        totalBytes += entry.size;
-        if (totalBytes > MAX_WORKSPACE_BYTES) throw new Error("Remote workspace exceeds the synchronization byte limit");
+        relativePath = posix.normalize(relativePath);
+        if (!relativePath || relativePath === "." || relativePath === ".." ||
+            relativePath.startsWith("../") || relativePath.startsWith("/") || isExcludedPath(relativePath, true)) continue;
+
+        const remoteFilePath = posix.join(this.remoteRoot, relativePath);
+        if (entry.isDir || entry.isDirectory) {
+          await walk(remoteFilePath);
+          continue;
+        }
+
+        fileCount += 1;
+        if (fileCount > MAX_WORKSPACE_FILES) throw new Error("Remote workspace exceeds the file synchronization limit");
+        if (typeof entry.size === "number") {
+          if (entry.size > MAX_FILE_BYTES) {
+            throw new Error(`Remote workspace file exceeds the ${MAX_FILE_BYTES} byte synchronization limit: ${relativePath}`);
+          }
+          totalBytes += entry.size;
+          if (totalBytes > MAX_WORKSPACE_BYTES) throw new Error("Remote workspace exceeds the synchronization byte limit");
+        }
+
+        const localPath = resolve(root, ...relativePath.split("/"));
+        assertInside(root, localPath);
+        await mkdir(dirname(localPath), { recursive: true });
+        const parent = await realpath(dirname(localPath));
+        assertInside(root, parent);
+        try {
+          const existing = await lstat(localPath);
+          if (existing.isSymbolicLink() || existing.isDirectory()) continue;
+        } catch {
+          // A new generated file is expected.
+        }
+        await this.sandbox.fs.downloadFile(remoteFilePath, localPath, 120);
       }
-      const remoteFilePath = posix.join(this.remoteRoot, relativePath);
-      const localPath = resolve(root, ...relativePath.split("/"));
-      assertInside(root, localPath);
-      await mkdir(dirname(localPath), { recursive: true });
-      const parent = await realpath(dirname(localPath));
-      assertInside(root, parent);
-      try {
-        const existing = await lstat(localPath);
-        if (existing.isSymbolicLink() || existing.isDirectory()) continue;
-      } catch {
-        // A new generated file is expected.
-      }
-      await this.sandbox.fs.downloadFile(remoteFilePath, localPath, 120);
-    }
-  }
-}
+    };
+
+    await walk(this.remoteRoot);
+  }}
 
 export class DaytonaSandboxProvider implements SandboxProvider {
   private readonly apiKey: string;
