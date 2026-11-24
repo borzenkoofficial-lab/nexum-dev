@@ -72,7 +72,7 @@ export interface DaytonaSandboxProviderOptions {
 }
 
 function createSdkClient(apiKey: string): DaytonaClientLike {
-  return new Daytona({ apiKey }) as unknown as DaytonaClientLike;
+  return new Daytona({ apiKey, requestTimeoutSeconds: 150 }) as unknown as DaytonaClientLike;
 }
 
 function isExcludedPath(relativePath: string): boolean {
