@@ -13,7 +13,7 @@ class DockerSandboxProvider implements SandboxProvider {
   constructor(private readonly runtime?: ServerRuntime, private readonly context: RuntimeContext = {}) {}
 
   async create(request: { projectPath: string }): Promise<SandboxSession> {
-    const sandbox = new DockerSandbox(request.projectPath, undefined, this.runtime, this.context);
+    const sandbox = new DockerSandbox(request.projectPath, undefined, this.runtime, { projectId: request.projectId, taskId: request.taskId });
     return {
       run: (command: SandboxRequest, signal?: AbortSignal) => sandbox.run(command, signal),
       getPreviewUrl: async () => { throw new Error("Docker sandbox does not provide hosted Preview URLs"); },
@@ -40,9 +40,7 @@ function getProvider(runtime?: ServerRuntime, context: RuntimeContext = {}): San
 }
 
 function getSessionKey(projectRoot: string, context: RuntimeContext): string | undefined {
-  if (context.taskId) return `task:${context.taskId}`;
-  if (context.projectId) return `project:${context.projectId}`;
-  return undefined;
+  return context.taskId ? `task:${context.taskId}` : undefined;
 }
 
 export async function runInConfiguredSandbox(
