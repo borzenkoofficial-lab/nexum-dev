@@ -12,7 +12,7 @@ const MAX_WORKSPACE_FILES = 1_000;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_WORKSPACE_BYTES = 100 * 1024 * 1024;
 const BLOCKED_PATH_PARTS = new Set([
-  ".git", "node_modules", "dist", "build", ".next", ".nuxt", ".output",
+  ".git", "node_modules", "dist", "build", ".next", ".nuxt", ".output", ".aws", ".ssh", ".npmrc", ".pypirc", ".netrc",
   "coverage", ".cache", ".turbo", ".nexum",
 ]);
 const SHELL_SYNTAX = /[;&|`$()<>\n\r\\]/;
@@ -308,14 +308,21 @@ class DaytonaSandboxSession implements SandboxSession {
     const root = await realpath(this.projectRoot);
     for (const entry of entries) {
       if (entry.isDir || entry.isDirectory || entry.isSymlink) continue;
-      const remotePath = entry.path.replaceAll("\\", "/");
-      const relativePath = remotePath.startsWith(this.remoteRoot + "/")
-        ? remotePath.slice(this.remoteRoot.length + 1)
-        : remotePath;
-      if (!relativePath || relativePath.startsWith("/") || relativePath.split("/").some((part) => part === "..") ||
-          isExcludedPath(relativePath)) continue;
+      const listedPath = entry.path.replaceAll("\\", "/");
+      let relativePath: string;
+      if (listedPath.startsWith(this.remoteRoot + "/")) {
+        relativePath = listedPath.slice(this.remoteRoot.length + 1);
+      } else if (listedPath.startsWith("/")) {
+        // Do not let an unexpected absolute path escape the staged workspace.
+        continue;
+      } else {
+        relativePath = listedPath;
+      }
+      relativePath = posix.normalize(relativePath);
+      if (!relativePath || relativePath === "." || relativePath === ".." ||
+          relativePath.startsWith("../") || relativePath.startsWith("/") || isExcludedPath(relativePath)) continue;
       if (typeof entry.size === "number" && entry.size > MAX_FILE_BYTES) continue;
-
+      const remoteFilePath = posix.join(this.remoteRoot, relativePath);
       const localPath = resolve(root, ...relativePath.split("/"));
       assertInside(root, localPath);
       await mkdir(dirname(localPath), { recursive: true });
@@ -327,7 +334,7 @@ class DaytonaSandboxSession implements SandboxSession {
       } catch {
         // A new generated file is expected.
       }
-      await this.sandbox.fs.downloadFile(remotePath, localPath, 120);
+      await this.sandbox.fs.downloadFile(remoteFilePath, localPath, 120);
     }
   }
 }
