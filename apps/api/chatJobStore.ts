@@ -46,6 +46,10 @@ function databaseAvailable(): boolean {
   return Boolean(process.env.NEXUM_DATABASE_URL?.trim());
 }
 
+export function projectLockKey(userId: string, projectId: string): string {
+  return JSON.stringify([userId, projectId]);
+}
+
 function cloneJob(job: ChatJob): ChatJob {
   return JSON.parse(JSON.stringify(job)) as ChatJob;
 }
@@ -63,7 +67,7 @@ async function ensureTable(): Promise<void> {
         payload JSONB NOT NULL DEFAULT '{}'::jsonb
       );
       CREATE TABLE IF NOT EXISTS agent_project_locks (
-        project_id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         job_id UUID NOT NULL,
         expires_at TIMESTAMPTZ NOT NULL
@@ -75,6 +79,8 @@ async function ensureTable(): Promise<void> {
         ON agent_chat_jobs(user_id, updated_at DESC);
       ALTER TABLE agent_chat_jobs ALTER COLUMN project_id TYPE TEXT USING project_id::text;
       ALTER TABLE agent_project_locks ALTER COLUMN project_id TYPE TEXT USING project_id::text;
+      ALTER TABLE agent_project_locks DROP CONSTRAINT IF EXISTS agent_project_locks_pkey;
+      ALTER TABLE agent_project_locks ADD CONSTRAINT agent_project_locks_pkey PRIMARY KEY (user_id, project_id);
       CREATE INDEX IF NOT EXISTS agent_project_locks_expiry_idx
         ON agent_project_locks(expires_at);
     `).then(() => undefined).catch((error) => {
@@ -98,17 +104,18 @@ function decode(row: any): ChatJob {
 export async function acquireProjectLock(projectId: string, userId: string, jobId: string, ttlMs = 15 * 60 * 1000): Promise<boolean> {
   if (!databaseAvailable()) {
     const now = Date.now();
-    const existing = memoryLocks.get(projectId);
+    const key = projectLockKey(userId, projectId);
+    const existing = memoryLocks.get(key);
     if (existing && existing.expiresAt >= now) return false;
-    memoryLocks.set(projectId, { projectId, userId, jobId, expiresAt: now + ttlMs });
+    memoryLocks.set(key, { projectId, userId, jobId, expiresAt: now + ttlMs });
     return true;
   }
   await ensureTable();
   const result = await query(
     `INSERT INTO agent_project_locks (project_id,user_id,job_id,expires_at)
      VALUES ($1,$2,$3,$4)
-     ON CONFLICT (project_id) DO UPDATE
-       SET user_id=EXCLUDED.user_id, job_id=EXCLUDED.job_id, expires_at=EXCLUDED.expires_at
+     ON CONFLICT (user_id, project_id) DO UPDATE
+       SET job_id=EXCLUDED.job_id, expires_at=EXCLUDED.expires_at
      WHERE agent_project_locks.expires_at < NOW()
      RETURNING project_id`,
     [projectId, userId, jobId, new Date(Date.now() + ttlMs).toISOString()],
@@ -116,31 +123,33 @@ export async function acquireProjectLock(projectId: string, userId: string, jobI
   return result.rows.length > 0;
 }
 
-export async function heartbeatProjectLock(projectId: string, jobId: string, ttlMs = 15 * 60 * 1000): Promise<boolean> {
+export async function heartbeatProjectLock(projectId: string, userId: string, jobId: string, ttlMs = 15 * 60 * 1000): Promise<boolean> {
   if (!databaseAvailable()) {
-    const existing = memoryLocks.get(projectId);
+    const key = projectLockKey(userId, projectId);
+    const existing = memoryLocks.get(key);
     if (!existing || existing.jobId !== jobId) return false;
     existing.expiresAt = Date.now() + ttlMs;
-    memoryLocks.set(projectId, existing);
+    memoryLocks.set(key, existing);
     return true;
   }
   await ensureTable();
   const result = await query(
     `UPDATE agent_project_locks SET expires_at=$3
-      WHERE project_id=$1 AND job_id=$2 RETURNING project_id`,
-    [projectId, jobId, new Date(Date.now() + ttlMs).toISOString()],
+      WHERE project_id=$1 AND user_id=$2 AND job_id=$3 RETURNING project_id`,
+    [projectId, userId, jobId, new Date(Date.now() + ttlMs).toISOString()],
   );
   return result.rows.length > 0;
 }
 
-export async function releaseProjectLock(projectId: string, jobId: string): Promise<void> {
+export async function releaseProjectLock(projectId: string, userId: string, jobId: string): Promise<void> {
   if (!databaseAvailable()) {
-    const existing = memoryLocks.get(projectId);
-    if (existing?.jobId === jobId) memoryLocks.delete(projectId);
+    const key = projectLockKey(userId, projectId);
+    const existing = memoryLocks.get(key);
+    if (existing?.jobId === jobId) memoryLocks.delete(key);
     return;
   }
   await ensureTable();
-  await query(`DELETE FROM agent_project_locks WHERE project_id=$1 AND job_id=$2`, [projectId, jobId]);
+  await query(`DELETE FROM agent_project_locks WHERE project_id=$1 AND user_id=$2 AND job_id=$3`, [projectId, userId, jobId]);
 }
 
 export async function createChatJob(job: ChatJob): Promise<void> {
@@ -277,8 +286,9 @@ export async function cancelChatJob(id: string, userId: string, message = "Agent
     });
     memoryJobs.set(id, next);
     if (next.projectId) {
-      const lock = memoryLocks.get(next.projectId);
-      if (lock?.jobId === id) memoryLocks.delete(next.projectId);
+      const key = projectLockKey(next.userId, next.projectId);
+      const lock = memoryLocks.get(key);
+      if (lock?.jobId === id) memoryLocks.delete(key);
     }
     return cloneJob(next);
   }
@@ -361,8 +371,9 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
           updatedAt: Date.now(),
         }));
         if (job.projectId) {
-          const lock = memoryLocks.get(job.projectId);
-          if (lock?.jobId === id) memoryLocks.delete(job.projectId);
+          const key = projectLockKey(job.userId, job.projectId);
+          const lock = memoryLocks.get(key);
+          if (lock?.jobId === id) memoryLocks.delete(key);
         }
         recovered += 1;
       }
