@@ -23,7 +23,7 @@ test("workspace staging excludes secrets, dependencies, build output and symlink
   }
 });
 
-test("Daytona provider provisions private network-isolated sandbox, executes and disposes", async () => {
+test("Daytona provider provisions private registry-restricted sandbox, executes and disposes", async () => {
   const root = await mkdtemp(join(tmpdir(), "nexum-daytona-run-"));
   const calls: string[] = [];
   let uploaded: Array<{ source: string; destination: string }> = [];
@@ -105,9 +105,6 @@ test("Daytona sandbox outbound network is restricted to the npm registry", async
     getWorkDir: async () => "/home/daytona",
     setTtl: async () => undefined,
     setLabels: async () => ({}),
-    updateNetworkSettings: async (settings: { networkBlockAll?: boolean; domainAllowList?: string }) => {
-      calls.push(settings.networkBlockAll ? "blocked" : settings.domainAllowList ?? "open");
-    },
     getSignedPreviewUrl: async () => ({ url: "https://preview.example.test" }),
     delete: async () => undefined,
     stop: async () => undefined,
