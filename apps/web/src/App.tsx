@@ -1,6 +1,7 @@
 import "./App.css";
 import "./nexum-os.css";
 import "./builder.css";
+import { AgentsWorkspace } from "./agents/AgentsWorkspace";
 import { NexumWelcome } from "./components/NexumWelcome";
 import { useEffect, useRef, useState } from "react";
 import { CommandPalette } from "./components/CommandPalette";
@@ -125,9 +126,9 @@ function App() {
     return true;
   };
   const [projectTaskMeta, setProjectTaskMeta] = useState<Record<string, { task: string; timestamp: number; status: "queued" | "running" | "completed" | "failed" | "cancelled" }>>(() => { try { return JSON.parse(localStorage.getItem("nexum:project-task-meta") || "{}"); } catch { return {}; } });
-  const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news" | "diagnostics">(() => {
+  const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents">(() => {
     const path = window.location.pathname;
-    return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : path === "/diagnostics" ? "diagnostics" : "home";
+    return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : path === "/diagnostics" ? "diagnostics" : path === "/agents" ? "agents" : "home";
   });
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
   const connectedConnectors: string[] = [];
@@ -185,20 +186,20 @@ function App() {
 
 
   useEffect(() => { try { localStorage.setItem("nexum:project-task-meta", JSON.stringify(projectTaskMeta)); } catch {} }, [projectTaskMeta]);
-  function navigate(nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics", projectId?: string, replace = false) {
+  function navigate(nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents", projectId?: string, replace = false) {
     setViewState(nextView);
     const target = nextView === "project"
       ? "/projects/" + encodeURIComponent(projectId ?? activeПроектId)
       : nextView === "connectors" ? "/connectors"
       : nextView === "settings" ? "/settings"
-      : nextView === "news" ? "/news" : nextView === "diagnostics" ? "/diagnostics" : "/projects";
+      : nextView === "news" ? "/news" : nextView === "diagnostics" ? "/diagnostics" : nextView === "agents" ? "/agents" : "/projects";
     if (window.location.pathname !== target) {
       if (replace) window.history.replaceState({ view: nextView, projectId }, "", target);
       else window.history.pushState({ view: nextView, projectId }, "", target);
     }
   }
 
-  const setView = (nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics") => navigate(nextView);
+  const setView = (nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents") => navigate(nextView);
 
   useEffect(() => {
     const onPopState = () => {
@@ -211,6 +212,7 @@ function App() {
       else if (path === "/settings") setViewState("settings");
       else if (path === "/news") setViewState("news");
       else if (path === "/diagnostics") setViewState("diagnostics");
+      else if (path === "/agents") setViewState("agents");
       else setViewState("home");
     };
     window.addEventListener("popstate", onPopState);
@@ -942,8 +944,8 @@ function App() {
       />}
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
         {view !== "home" && view !== "project" && <OSSystemChrome
-          appName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал NEXUM" : "Диагностика"}
-          appIcon={view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : "⌁"}
+          appName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал NEXUM" : view === "agents" ? "NEXUM AGENTS" : "Диагностика"}
+          appIcon={view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : view === "agents" ? "✳" : "⌁"}
           status={aiStatus?.available ? "AI Core подключён" : "Система готова"}
           activeView={view}
           onHome={() => navigate("home")}
@@ -962,6 +964,10 @@ function App() {
             onOpenProject={(id, tab) => openПроект(id, tab)}
             onOpenView={(next) => setView(next)}
           />
+        ) : view === "agents" ? (
+          <OSAppWindow title="NEXUM AGENTS" subtitle="Конструктор и исполнение бизнес-агентов" icon="✳" status="Agent Runtime" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
+            <AgentsWorkspace />
+          </OSAppWindow>
         ) : view === "news" ? (
           <OSAppWindow title="Журнал NEXUM" subtitle="Новости и системные обновления" icon="✦" status="Актуально" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
             <NewsPage />

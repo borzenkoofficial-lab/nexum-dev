@@ -111,3 +111,9 @@ CREATE TABLE IF NOT EXISTS agent_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS agent_messages_conversation_idx ON agent_messages(conversation_id, created_at);
+
+INSERT INTO agent_tool_catalog (id, name, description, input_schema, output_schema, risk_level, required_scopes, enabled)
+VALUES
+  ('email_draft', 'Prepare email draft', 'Create an email draft without sending it.', '{"type":"object","required":["to","subject","body"]}'::jsonb, '{"type":"object"}'::jsonb, 'low', '["email:draft"]'::jsonb, TRUE),
+  ('json_parse', 'Parse JSON', 'Parse JSON text into structured data.', '{"type":"object","required":["text"]}'::jsonb, '{"type":"object"}'::jsonb, 'low', '["data:parse"]'::jsonb, TRUE)
+ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, input_schema=EXCLUDED.input_schema, output_schema=EXCLUDED.output_schema, risk_level=EXCLUDED.risk_level, required_scopes=EXCLUDED.required_scopes, enabled=EXCLUDED.enabled;
