@@ -247,7 +247,7 @@ class DaytonaSandboxSession implements SandboxSession {
         }
         this.dependenciesInstalled = true;
         if (signal?.aborted) throw abortError();
-        await this.syncWorkspace();
+        await this.syncWorkspace(signal);
       }
 
       if (command === "npm install --ignore-scripts") this.dependenciesInstalled = false;
@@ -260,7 +260,7 @@ class DaytonaSandboxSession implements SandboxSession {
       let syncError: string | undefined;
       if (!signal?.aborted) {
         try {
-          await this.syncWorkspace();
+          await this.syncWorkspace(signal);
         } catch (error) {
           syncError = error instanceof Error ? error.message : "Workspace synchronization failed";
         }
