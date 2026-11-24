@@ -271,6 +271,7 @@ class DaytonaSandboxSession implements SandboxSession {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Daytona sandbox request failed";
       return {
+        success: false,
         ...base,
         stderr: message,
         durationMs: Date.now() - startedAt,
