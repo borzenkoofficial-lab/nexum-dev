@@ -255,12 +255,12 @@ Implemented in branch:
 - Workforce graph validation and sequential agent-node execution, with manual launch.
 - Text knowledge sources, chunking, PostgreSQL full-text search and agent knowledge bindings.
 - Free-plan limits for agent count, monthly runs and concurrent executions; run usage records.
-- Human approval requests with 15-minute expiry, owner/admin decisions and runtime pause/resume.
+- Human approval requests with 15-minute expiry, owner/admin decisions and runtime pause/resume. Approval records a decision only; it does not execute an external action.
 
 Not yet complete:
-- Durable distributed queue, restart recovery, SSE, external search/CRM/OAuth, email sending, approval execution, document upload/extraction/retrieval, schedules/triggers, billing/quota enforcement and advanced visual graph editing.
-- Automated TypeScript checks, unit tests, database migration against PostgreSQL and browser E2E have not been executed in this environment. No feature is considered DONE until checks pass.
+- Durable distributed queue, restart recovery, SSE, external search/CRM/OAuth, email sending/execution of approved external actions, PDF/DOCX upload and extraction, schedules/triggers, paid billing and advanced visual graph editing.
+- Current GitHub Actions build, TypeScript checks, API tests, Web tests, production Docker build and container smoke test pass. The existing Coding Agent E2E suite also passed on the review branch. The new NEXUM AGENTS flows still need dedicated PostgreSQL integration and browser E2E coverage.
 
 
-### CI feedback on initial implementation
-- First PR CI run exposed incorrect relative imports in workforce modules and Express 5 route parameter types (`string | string[]`). Fixes are being applied; rerun CI before accepting the stage.
+### CI feedback
+- Initial runs found and fixed incorrect workforce imports, Express 5 route parameter types, JSX structure and the system-chrome view union. The latest complete build and existing E2E suite passed before the latest approval/quota UI increment; rerun CI for the latest HEAD.

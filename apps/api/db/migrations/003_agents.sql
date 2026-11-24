@@ -115,5 +115,6 @@ CREATE INDEX IF NOT EXISTS agent_messages_conversation_idx ON agent_messages(con
 INSERT INTO agent_tool_catalog (id, name, description, input_schema, output_schema, risk_level, required_scopes, enabled)
 VALUES
   ('email_draft', 'Prepare email draft', 'Create an email draft without sending it.', '{"type":"object","required":["to","subject","body"]}'::jsonb, '{"type":"object"}'::jsonb, 'low', '["email:draft"]'::jsonb, TRUE),
-  ('json_parse', 'Parse JSON', 'Parse JSON text into structured data.', '{"type":"object","required":["text"]}'::jsonb, '{"type":"object"}'::jsonb, 'low', '["data:parse"]'::jsonb, TRUE)
+  ('json_parse', 'Parse JSON', 'Parse JSON text into structured data.', '{"type":"object","required":["text"]}'::jsonb, '{"type":"object"}'::jsonb, 'low', '["data:parse"]'::jsonb, TRUE),
+  ('human_approval', 'Request human approval', 'Pause a run until an organization owner or admin decides.', '{"type":"object","required":["actionSummary"]}'::jsonb, '{"type":"object"}'::jsonb, 'high', '["approval:request"]'::jsonb, TRUE)
 ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, input_schema=EXCLUDED.input_schema, output_schema=EXCLUDED.output_schema, risk_level=EXCLUDED.risk_level, required_scopes=EXCLUDED.required_scopes, enabled=EXCLUDED.enabled;
