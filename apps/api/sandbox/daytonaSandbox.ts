@@ -9,8 +9,8 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_BYTES = 64 * 1024;
 const MAX_WORKSPACE_FILES = 1_000;
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const MAX_WORKSPACE_BYTES = 100 * 1024 * 1024;
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const MAX_WORKSPACE_BYTES = 200 * 1024 * 1024;
 const BLOCKED_PATH_PARTS = new Set([
   ".git", "node_modules", ".next", ".nuxt", ".output", ".aws", ".ssh", ".npmrc", ".pypirc", ".netrc",
   "coverage", ".cache", ".turbo", ".nexum",
