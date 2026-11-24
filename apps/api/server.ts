@@ -190,6 +190,10 @@ async function getLatestProjectSourceMtime(projectRoot: string): Promise<number>
 }
 
 const agentHistory = new AgentHistory(workspaceRoot);
+
+function recordAgentHistory(entry: Parameters<typeof agentHistory.record>[0]): void {
+  recordAgentHistory(entry).catch((error) => console.error("[Nexum] agent history persistence failed", error));
+}
 const checkpointManager = new CheckpointManager();
 const projectStates = new Map<string, ProjectStateManager>();
 const fallbackProvider = process.env.AI_FALLBACK_PROVIDER?.toLowerCase() ||
@@ -201,7 +205,7 @@ const aiGateway = new AIGateway(
   {
     fallbackProviderId: fallbackProvider,
     onFallback: (event: GatewayFallbackEvent) => {
-      void agentHistory.record({
+      recordAgentHistory({
         type: "provider-fallback",
         provider: event.fromProvider,
         model: event.fromModel,
@@ -227,7 +231,7 @@ function createProviderGateway(runtimeProvider?: string, runtimeCredential?: str
   return new AIGateway(providers, runtimeProvider ?? defaultProvider, {
     fallbackProviderId: runtimeProvider ? undefined : fallbackProvider,
     onFallback: (event: GatewayFallbackEvent) => {
-      void agentHistory.record({
+      recordAgentHistory({
         type: "provider-fallback",
         provider: event.fromProvider,
         model: event.fromModel,
@@ -338,8 +342,7 @@ async function runChatJob(
     claimedJob.currentMessage = "Запускаю AI-агента и начинаю выполнение задачи.";
     claimedJob.stage = "analyzing";
     await persistChatJob(claimedJob);
-    void agentHistory.record({ type: "job-start", jobId, projectId, provider, model, message, output: `user:${userId}` })
-      .catch((error) => console.error("[Nexum] job-start history persistence failed", error));
+    recordAgentHistory({ type: "job-start", jobId, projectId, provider, model, message, output: `user:${userId}` });
   } catch (error) {
     chatJobControllers.delete(jobId);
     const cancelled = signal.aborted || (error instanceof Error && error.name === "AbortError");
@@ -391,7 +394,7 @@ async function runChatJob(
       const failed = await failChatJob(jobId, userId, { error: job.error, stage: job.stage });
       syncTerminalChatJobCache(failed);
       serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: job.error });
-      void agentHistory.record({ type: "job-rejected-lock", jobId, projectId: project.id, status: "failed", message: job.error });
+      recordAgentHistory({ type: "job-rejected-lock", jobId, projectId: project.id, status: "failed", message: job.error });
       return;
     }
     lockHeartbeat = setInterval(() => {
@@ -408,7 +411,7 @@ async function runChatJob(
     serverRuntime.updateTask(runtimeTask.id, "WAITING", { checkpointId: checkpoint.id, progress: 0.1 });
     serverRuntime.updateTask(runtimeTask.id, "RUNNING", { progress: 0.2 });
     await stateManager.refresh(message);
-    void agentHistory.record({
+    recordAgentHistory({
       type: "checkpoint-created",
       jobId,
       projectId: project.id,
@@ -495,7 +498,7 @@ ${attachment.content.slice(0, 80_000)}`);
           ];
         }
         void persistChatJob(job).catch((error) => console.error("[Nexum] job event persistence failed", error));
-        void agentHistory.record({ type: "agent-event", jobId, projectId, provider, model, requestId: event.requestId ?? requestId, taskId: event.taskId ?? runtimeTask.id, planId: event.planId, iteration: event.iteration, tool: event.tool, status: event.name ?? event.type, message: event.message });
+        recordAgentHistory({ type: "agent-event", jobId, projectId, provider, model, requestId: event.requestId ?? requestId, taskId: event.taskId ?? runtimeTask.id, planId: event.planId, iteration: event.iteration, tool: event.tool, status: event.name ?? event.type, message: event.message });
       },
       (plan) => {
         job.productPlan = plan;
@@ -571,7 +574,7 @@ ${attachment.content.slice(0, 80_000)}`);
       const cancelled = await cancelChatJob(jobId, userId, job.error);
       syncTerminalChatJobCache(cancelled);
       serverRuntime.cancelTask(runtimeTask.id);
-      void agentHistory.record({ type: "job-cancelled", jobId, projectId, provider, model, status: "cancelled", message: job.error });
+      recordAgentHistory({ type: "job-cancelled", jobId, projectId, provider, model, status: "cancelled", message: job.error });
       return;
     }
     if (!result.success) {
@@ -580,7 +583,7 @@ ${attachment.content.slice(0, 80_000)}`);
       job.error = result.error ?? result.errorInfo?.message ?? "AI agent failed";
       job.errorCode = result.errorInfo?.code;
       job.errorInfo = result.errorInfo;
-      void agentHistory.record({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
+      recordAgentHistory({ type: "job-failed", jobId, projectId, provider, model, status: "failed", message: job.error });
       job.steps = result.steps;
       job.executionState = result.executionPlan
         ? { ...(job.executionState ?? {}), state: "FAILED", plan: result.executionPlan, updatedAt: Date.now() } as typeof job.executionState
@@ -636,7 +639,7 @@ ${attachment.content.slice(0, 80_000)}`);
     syncTerminalChatJobCache(completed);
     job.status = "completed";
     job.stage = "completed";
-    void agentHistory.record({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
+    recordAgentHistory({ type: "job-completed", jobId, projectId, provider, model, status: "completed", message: result.finalResponse });
     serverRuntime.updateTask(runtimeTask.id, "COMPLETED", { progress: 1 });
 
   } catch (error) {
@@ -646,7 +649,7 @@ ${attachment.content.slice(0, 80_000)}`);
       job.error = "Agent task cancelled by user.";
       job.updatedAt = Date.now();
       await persistChatJob(job).catch(() => {});
-      void agentHistory.record({ type: "job-cancelled", jobId, projectId, provider, model, status: "cancelled", message: job.error });
+      recordAgentHistory({ type: "job-cancelled", jobId, projectId, provider, model, status: "cancelled", message: job.error });
       serverRuntime.updateTask(runtimeTask.id, "CANCELLED", { error: job.error });
       return;
     }
@@ -663,7 +666,7 @@ ${attachment.content.slice(0, 80_000)}`);
       return null;
     });
     syncTerminalChatJobCache(failed);
-    void agentHistory.record({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
+    recordAgentHistory({ type: "job-exception", jobId, projectId, provider, model, status: "failed", message: job.error });
     serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: normalizedError.userSafeMessage });
     console.error("[Nexum] chat job failed", jobId, error);
   } finally {
@@ -1134,7 +1137,7 @@ app.post("/api/projects/:id/preview/runtime-error", async (req, res) => {
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     await stateManager.refresh(undefined, undefined, [], [`preview:${kind}: ${message}`]);
-    void agentHistory.record({
+    recordAgentHistory({
       type: "preview-runtime-error",
       projectId: project.id,
       status: "error",
@@ -1275,7 +1278,7 @@ app.post("/api/projects/:id/checkpoints", async (req, res) => {
     const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
     const label = typeof req.body?.label === "string" ? req.body.label : "before agent changes";
     const checkpoint = await checkpointManager.create(project.id, project.path, label);
-    void agentHistory.record({
+    recordAgentHistory({
       type: "checkpoint-created",
       projectId: project.id,
       status: "success",
@@ -1295,7 +1298,7 @@ app.post("/api/projects/:id/checkpoints/:checkpointId/rollback", async (req, res
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     await stateManager.refresh(undefined, undefined, [], [`rollback:${checkpoint.id}`]);
-    void agentHistory.record({
+    recordAgentHistory({
       type: "checkpoint-rollback",
       projectId: project.id,
       status: "success",
@@ -1524,7 +1527,7 @@ app.post("/api/agent/client-error", authMiddleware, clientErrorLimiter, async (r
     url?: unknown;
   };
   const errorMessage = typeof message === "string" ? message.slice(0, 4000) : "Unknown client error";
-  void agentHistory.record({
+  recordAgentHistory({
     type: "client-error",
     status: "error",
     message: errorMessage,
