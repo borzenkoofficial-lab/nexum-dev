@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, writeFile, readFile, symlink } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, posix } from "node:path";
 import { test } from "node:test";
@@ -107,6 +107,89 @@ test("Daytona provider only opens npm registry egress for dependency installatio
     await session.run({ projectPath: ".", command: "npm install --ignore-scripts" });
     assert.deepEqual(calls, ["registry.npmjs.org", "blocked"]);
     await session.dispose();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("command failures retain stdout/stderr and return a failed sandbox result", async () => {
+  const root = await mkdtemp(join(tmpdir(), "nexum-daytona-failure-"));
+  const sandbox = {
+    id: "sandbox-failure",
+    process: {
+      executeCommand: async () => ({
+        exitCode: 2,
+        result: "partial output",
+        artifacts: { stdout: "partial output", stderr: "build failed" },
+      }),
+    },
+    fs: {
+      createFolder: async () => undefined,
+      uploadFiles: async () => undefined,
+      listFiles: async () => [],
+      downloadFile: async () => undefined,
+    },
+    getWorkDir: async () => "/home/daytona",
+    updateNetworkSettings: async () => undefined,
+    getSignedPreviewUrl: async () => ({ url: "https://preview.example.test" }),
+    delete: async () => undefined,
+    stop: async () => undefined,
+  };
+  const client: DaytonaClientLike = { v0: { create: async () => sandbox } };
+  try {
+    await writeFile(join(root, "package.json"), "{}");
+    const session = await new DaytonaSandboxProvider({ apiKey: "test-key", client }).create({ projectPath: root });
+    const result = await session.run({ projectPath: ".", command: "npm run build" });
+    assert.equal(result.success, false);
+    assert.equal(result.exitCode, 2);
+    assert.equal(result.stdout, "partial output");
+    assert.match(result.stderr, /build failed/);
+    await session.dispose();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("abort signal stops the remote sandbox command", async () => {
+  const root = await mkdtemp(join(tmpdir(), "nexum-daytona-abort-"));
+  let started = false;
+  let stopped = false;
+  let deleted = false;
+  const sandbox = {
+    id: "sandbox-abort",
+    process: {
+      executeCommand: async () => {
+        started = true;
+        return new Promise<never>(() => undefined);
+      },
+    },
+    fs: {
+      createFolder: async () => undefined,
+      uploadFiles: async () => undefined,
+      listFiles: async () => [],
+      downloadFile: async () => undefined,
+    },
+    getWorkDir: async () => "/home/daytona",
+    updateNetworkSettings: async () => undefined,
+    getSignedPreviewUrl: async () => ({ url: "https://preview.example.test" }),
+    delete: async () => { deleted = true; },
+    stop: async () => { stopped = true; },
+  };
+  const client: DaytonaClientLike = { v0: { create: async () => sandbox } };
+  try {
+    await writeFile(join(root, "package.json"), "{}");
+    const session = await new DaytonaSandboxProvider({ apiKey: "test-key", client }).create({ projectPath: root });
+    const controller = new AbortController();
+    const pending = session.run({ projectPath: ".", command: "npm run build" }, controller.signal);
+    await Promise.resolve();
+    assert.equal(started, true);
+    controller.abort();
+    const result = await pending;
+    assert.equal(result.success, false);
+    assert.match(result.error ?? "", /cancelled/i);
+    assert.equal(stopped, true);
+    await session.dispose();
+    assert.equal(deleted, true);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
