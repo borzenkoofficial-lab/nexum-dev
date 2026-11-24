@@ -60,7 +60,6 @@ export interface DaytonaSandboxLike {
   getWorkDir(): Promise<string>;
   setTtl(ttlMinutes: number): Promise<void>;
   setLabels(labels: Record<string, string>): Promise<Record<string, string>>;
-  updateNetworkSettings(settings: { networkBlockAll?: boolean; domainAllowList?: string }): Promise<void>;
   getSignedPreviewUrl(port: number, expiresInSeconds?: number): Promise<{ url: string }>;
   stop(): Promise<void>;
   delete(timeout?: number, wait?: boolean): Promise<void>;
@@ -211,7 +210,6 @@ class DaytonaSandboxSession implements SandboxSession {
     const startedAt = Date.now();
     const command = request.command.trim();
     const base = { command, stdout: "", stderr: "", exitCode: null, durationMs: 0 };
-    let networkChanged = false;
     try {
       if (this.disposed) throw new Error("Daytona sandbox session is already disposed");
       if (signal?.aborted) throw abortError();
@@ -221,10 +219,6 @@ class DaytonaSandboxSession implements SandboxSession {
         throw new Error(`Sandbox timeout must be between 100 and ${MAX_TIMEOUT_MS} milliseconds`);
       }
 
-      if (command === "npm install --ignore-scripts") {
-        await this.sandbox.updateNetworkSettings({ networkBlockAll: false, domainAllowList: "registry.npmjs.org" });
-        networkChanged = true;
-      }
       if (signal?.aborted) throw abortError();
 
       const execution = this.sandbox.process.executeSessionCommand(
@@ -280,21 +274,6 @@ class DaytonaSandboxSession implements SandboxSession {
         durationMs: Date.now() - startedAt,
         error: message,
       };
-    } finally {
-      if (networkChanged) {
-        try {
-          await this.sandbox.updateNetworkSettings({ networkBlockAll: true });
-        } catch (error) {
-          this.disposed = true;
-          console.error("[Nexum] Failed to re-block Daytona sandbox network; destroying sandbox", {
-            sandboxId: this.sandbox.id,
-            error: error instanceof Error ? error.message : String(error),
-          });
-          await this.sandbox.stop().catch(() => undefined);
-          await this.sandbox.delete(60, true).catch(() => undefined);
-          throw new Error("Daytona network isolation could not be restored; the sandbox was stopped and deleted.");
-        }
-      }
     }
   }
 
@@ -382,7 +361,7 @@ export class DaytonaSandboxProvider implements SandboxProvider {
     const sandbox = await this.client.v0.create({
       image: "node:22-bookworm-slim",
       public: false,
-      networkBlockAll: true,
+      domainAllowList: "registry.npmjs.org",
       resources: { cpu: this.cpu, memory: this.memoryGiB, disk: this.diskGiB },
     }, { timeout: 90 });
 
