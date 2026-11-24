@@ -35,6 +35,7 @@ import { agentFailureInjection, type AgentFailure } from "./agent/failureInjecti
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
 import { organizationsRouter } from "./routes/organizations.js";
+import { createAgentsRouter, createInventRouter } from "./routes/agents.js";
 
 
 const requestIds = new WeakMap<object, string>();
@@ -796,6 +797,8 @@ app.post("/api/auth/logout", (_req, res) => {
 });
 
 app.use("/api/organizations", authMiddleware, organizationsRouter);
+app.use("/api", authMiddleware, createAgentsRouter(aiGateway));
+app.use("/api/invent", authMiddleware, createInventRouter(aiGateway));
 
 app.use("/api/projects", authMiddleware, projectLimiter);
 app.use("/api/chat", authMiddleware, chatLimiter);

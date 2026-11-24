@@ -1,0 +1,3 @@
+import test from "node:test";import assert from "node:assert/strict";import {validateAgentConfig} from "./agentService.js";
+test("agent config restricts tool selection and bounds limits",()=>{const c=validateAgentConfig({name:"Demo",instructions:"Work",provider:"openrouter",model:"m",tools:["email_draft"],limits:{maxIterations:999,maxToolCalls:-1,maxDurationSeconds:1200}});assert.deepEqual(c.tools,["email_draft"]);assert.equal(c.limits.maxIterations,30);assert.equal(c.limits.maxToolCalls,0);assert.equal(c.limits.maxDurationSeconds,900);});
+test("agent config rejects unregistered tools",()=>{assert.throws(()=>validateAgentConfig({name:"Demo",instructions:"x",provider:"openrouter",model:"m",tools:["email_send"]}),/Unknown tool/);});
