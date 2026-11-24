@@ -192,7 +192,7 @@ async function getLatestProjectSourceMtime(projectRoot: string): Promise<number>
 const agentHistory = new AgentHistory(workspaceRoot);
 
 function recordAgentHistory(entry: Parameters<typeof agentHistory.record>[0]): void {
-  recordAgentHistory(entry).catch((error) => console.error("[Nexum] agent history persistence failed", error));
+  void agentHistory.record(entry).catch((error) => console.error("[Nexum] agent history persistence failed", error));
 }
 const checkpointManager = new CheckpointManager();
 const projectStates = new Map<string, ProjectStateManager>();
