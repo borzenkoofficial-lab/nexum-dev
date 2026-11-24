@@ -30,6 +30,7 @@ import type { ServerRuntime } from "../runtime/runtime.js";
 import { assertCompleteToolPolicy, validateToolInvocation } from "./toolPolicy.js";
 import { AgentLoop } from "./loop.js";
 import { agentFailureInjection } from "./failureInjection.js";
+import { releaseSandboxSession } from "../sandbox/runner.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -65,9 +66,13 @@ export class NexumAgent implements AgentRuntime {
 
   async handle(task: string, options?: GatewayGenerateOptions): Promise<string> {
     const loop = new AgentLoop(this, this.gateway, undefined, undefined, undefined, undefined, this.runtimeContext);
-    const result = await loop.run(task, options);
-    if (!result.success) throw new Error(result.error ?? "Agent execution failed");
-    return result.finalResponse ?? result.summary?.summary ?? "Задача завершена после проверки.";
+    try {
+      const result = await loop.run(task, options);
+      if (!result.success) throw new Error(result.error ?? "Agent execution failed");
+      return result.finalResponse ?? result.summary?.summary ?? "Задача завершена после проверки.";
+    } finally {
+      await releaseSandboxSession(this.runtimeContext.taskId);
+    }
   }
 
   getAvailableTools(): string[] {
