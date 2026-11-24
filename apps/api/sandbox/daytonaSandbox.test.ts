@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, writeFile, symlink } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile, readFile, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, posix } from "node:path";
 import { test } from "node:test";
@@ -40,8 +40,8 @@ test("Daytona provider provisions private network-isolated sandbox, executes and
     fs: {
       createFolder: async (path: string) => { calls.push("mkdir:" + path); },
       uploadFiles: async (files: Array<{ source: string; destination: string }>) => { uploaded = files; calls.push("upload"); },
-      listFiles: async () => [],
-      downloadFile: async () => undefined,
+      listFiles: async () => [{ path: "/home/daytona/nexum-project/dist/index.html", size: 14 }],
+      downloadFile: async (_remotePath: string, localPath: string) => { await writeFile(localPath, "<h1>built</h1>"); },
     },
     getWorkDir: async () => "/home/daytona",
     setTtl: async () => undefined,
@@ -72,6 +72,7 @@ test("Daytona provider provisions private network-isolated sandbox, executes and
     const result = await session.run({ projectPath: ".", command: "npm run build", timeoutMs: 10_000 });
     assert.equal(result.success, true);
     assert.equal(result.stdout, "build ok");
+    assert.equal(await readFile(join(root, "dist", "index.html"), "utf8"), "<h1>built</h1>");
     assert.equal(await session.getPreviewUrl(4173, 120), "https://preview.example.test/signed");
     await session.dispose();
     assert.ok(calls.includes("delete"));
