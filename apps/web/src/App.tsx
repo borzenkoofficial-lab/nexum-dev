@@ -644,6 +644,7 @@ function App() {
     let cancelled = false;
     let timer: number | undefined;
     const activeJobId = chatJobId;
+    let consecutiveFailures = 0;
 
     async function pollJob() {
       try {
@@ -678,6 +679,8 @@ function App() {
           throw new Error(data?.error || `Chat job API: HTTP ${response.status}`);
         }
 
+        if (consecutiveFailures > 0) setApiError("");
+        consecutiveFailures = 0;
         const status = data?.job?.status;
         if (status === "completed") {
           setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "completed" } }));
@@ -750,7 +753,11 @@ function App() {
             components: data.job.productPlan.components ?? [],
             acceptanceCriteria: data.job.productPlan.acceptanceCriteria ?? [],
           });
-          throw new Error(data?.job?.error || "ИИ-агент завершил работу с ошибкой");
+          const failureMessage = data?.job?.error || "ИИ-агент завершил работу с ошибкой";
+          setApiError(failureMessage);
+          pushOSEvent("error", "Agent error", failureMessage);
+          clearAuthoritativeChatJobIfOwned(activeJobId);
+          return;
         }
 
         setActivitySteps(data?.job?.steps ?? []);
@@ -767,12 +774,24 @@ function App() {
         setАгентStage((data?.job?.stage as typeof agentStage) ?? (status === "running" ? "running" : "thinking"));
         timer = window.setTimeout(pollJob, 900);
       } catch (error) {
-        if (cancelled) return;
-        console.error("[Nexum] Chat job polling failed:", error);
-        setApiError(error instanceof Error ? error.message : "Ошибка получения статуса задачи чата");
-        setАгентStage("error");
-        pushOSEvent("error", "Agent error", error instanceof Error ? error.message : "Не удалось получить статус задачи");
-        clearAuthoritativeChatJobIfOwned(activeJobId);
+        if (cancelled || chatJobIdRef.current !== activeJobId) return;
+        consecutiveFailures += 1;
+        const delayMs = Math.min(15_000, 1_000 * (2 ** Math.min(consecutiveFailures - 1, 4)));
+        const message = error instanceof Error ? error.message : "Ошибка получения статуса задачи чата";
+        console.warn("[Nexum] Chat job polling interrupted; retaining job id and retrying:", {
+          jobId: activeJobId,
+          consecutiveFailures,
+          retryInMs: delayMs,
+          error: message,
+        });
+        if (consecutiveFailures === 1) {
+          pushOSEvent("info", "Connection interrupted", "NEXUM продолжает отслеживать задачу и автоматически повторит запрос.");
+        }
+        if (consecutiveFailures >= 3) {
+          setApiError("Временно потеряна связь с сервером. Задача не потеряна — NEXUM продолжает проверять её статус.");
+          setCurrentActivity("Связь с сервером временно прервана. Повторно подключаюсь…");
+        }
+        timer = window.setTimeout(pollJob, delayMs);
       }
     }
 
