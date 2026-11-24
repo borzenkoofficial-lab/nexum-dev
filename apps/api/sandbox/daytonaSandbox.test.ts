@@ -73,7 +73,7 @@ test("Daytona provider provisions private network-isolated sandbox, executes and
     assert.equal(await session.getPreviewUrl(4173, 120), "https://preview.example.test/signed");
     await session.dispose();
     assert.ok(calls.includes("delete"));
-    assert.ok(calls.includes("network:blocked"));
+    assert.ok(calls.includes("delete-session"));
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -82,8 +82,7 @@ test("Daytona provider provisions private network-isolated sandbox, executes and
 test("Daytona provider rejects missing credentials before creating a sandbox", async () => {
   let created = false;
   const client: DaytonaClientLike = { v0: { create: async () => { created = true; throw new Error("unexpected"); } } };
-  const provider = new DaytonaSandboxProvider({ apiKey: "", client });
-  await assert.rejects(provider.create({ projectPath: "." }), /DAYTONA_API_KEY/);
+  assert.throws(() => new DaytonaSandboxProvider({ apiKey: "", client }), /DAYTONA_API_KEY/);
   assert.equal(created, false);
 });
 
@@ -92,7 +91,13 @@ test("Daytona provider only opens npm registry egress for dependency installatio
   const calls: string[] = [];
   const sandbox = {
     id: "sandbox-123",
-    process: { executeCommand: async () => ({ exitCode: 0, result: "", artifacts: { stdout: "", stderr: "" } }) },
+    process: {
+      createSession: async () => undefined,
+      executeSessionCommand: async (_sessionId: string, request: { command: string }) => ({
+        exitCode: 0, stdout: request.command.startsWith("npm") ? "installed" : "", stderr: "",
+      }),
+      deleteSession: async () => undefined,
+    },
     fs: { createFolder: async () => undefined, uploadFiles: async () => undefined, listFiles: async () => [], downloadFile: async () => undefined },
     getWorkDir: async () => "/home/daytona",
     updateNetworkSettings: async (settings: { networkBlockAll?: boolean; domainAllowList?: string }) => {
