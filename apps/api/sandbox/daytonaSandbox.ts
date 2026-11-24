@@ -306,6 +306,7 @@ class DaytonaSandboxSession implements SandboxSession {
     const entries = await this.sandbox.fs.listFiles(this.remoteRoot, { depth: 50 });
     if (entries.length > MAX_WORKSPACE_FILES) throw new Error("Remote workspace exceeds the file synchronization limit");
     const root = await realpath(this.projectRoot);
+    let totalBytes = 0;
     for (const entry of entries) {
       if (entry.isDir || entry.isDirectory || entry.isSymlink) continue;
       const listedPath = entry.path.replaceAll("\\", "/");
@@ -321,7 +322,11 @@ class DaytonaSandboxSession implements SandboxSession {
       relativePath = posix.normalize(relativePath);
       if (!relativePath || relativePath === "." || relativePath === ".." ||
           relativePath.startsWith("../") || relativePath.startsWith("/") || isExcludedPath(relativePath)) continue;
-      if (typeof entry.size === "number" && entry.size > MAX_FILE_BYTES) continue;
+      if (typeof entry.size === "number") {
+        if (entry.size > MAX_FILE_BYTES) continue;
+        totalBytes += entry.size;
+        if (totalBytes > MAX_WORKSPACE_BYTES) throw new Error("Remote workspace exceeds the synchronization byte limit");
+      }
       const remoteFilePath = posix.join(this.remoteRoot, relativePath);
       const localPath = resolve(root, ...relativePath.split("/"));
       assertInside(root, localPath);
@@ -387,6 +392,7 @@ export class DaytonaSandboxProvider implements SandboxProvider {
           300,
         );
       }
+      if (signal?.aborted) throw abortError();
       return new DaytonaSandboxSession(sandbox, projectRoot, remoteRoot);
     } catch (error) {
       await sandbox.delete(60, true).catch((cleanupError) => {
