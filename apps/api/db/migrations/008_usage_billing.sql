@@ -52,4 +52,4 @@ VALUES ('free', 'Free', '{"agents":3,"runsPerMonth":100,"maxRunSeconds":120,"max
 ON CONFLICT (id) DO NOTHING;
 
 CREATE UNIQUE INDEX IF NOT EXISTS usage_records_agent_run_unique
-  ON usage_records(agent_run_id) WHERE agent_run_id IS NOT NULL;
+  ON usage_records(agent_run_id);

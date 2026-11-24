@@ -253,6 +253,9 @@ Implemented in branch:
 - Invent endpoint with real provider/tool allowlist validation.
 - Initial NEXUM AGENTS web workspace for Invent, agent creation, publishing and run monitoring.
 - Workforce graph validation and sequential agent-node execution, with manual launch.
+- Text knowledge sources, chunking, PostgreSQL full-text search and agent knowledge bindings.
+- Free-plan limits for agent count, monthly runs and concurrent executions; run usage records.
+- Human approval requests with 15-minute expiry, owner/admin decisions and runtime pause/resume.
 
 Not yet complete:
 - Durable distributed queue, restart recovery, SSE, external search/CRM/OAuth, email sending, approval execution, document upload/extraction/retrieval, schedules/triggers, billing/quota enforcement and advanced visual graph editing.
