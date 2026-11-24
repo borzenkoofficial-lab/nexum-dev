@@ -37,11 +37,18 @@ export interface DaytonaFileInfo {
 export interface DaytonaSandboxLike {
   id: string;
   process: {
-    executeCommand(command: string, cwd?: string, env?: Record<string, string>, timeout?: number): Promise<{
-      exitCode: number | null;
-      result?: string;
-      artifacts?: { stdout?: string; stderr?: string };
+    createSession(sessionId: string): Promise<void>;
+    executeSessionCommand(sessionId: string, request: {
+      command: string;
+      runAsync?: boolean;
+      suppressInputEcho?: boolean;
+    }, timeout?: number): Promise<{
+      exitCode?: number;
+      stdout?: string;
+      stderr?: string;
+      output?: string;
     }>;
+    deleteSession(sessionId: string): Promise<void>;
   };
   fs: {
     createFolder(path: string, mode: string): Promise<void>;
@@ -194,6 +201,7 @@ class DaytonaSandboxSession implements SandboxSession {
     private readonly sandbox: DaytonaSandboxLike,
     private readonly projectRoot: string,
     private readonly remoteRoot: string,
+    private readonly sessionId: string,
   ) {}
 
   async run(request: SandboxRequest, signal?: AbortSignal): Promise<SandboxResult> {
@@ -216,10 +224,9 @@ class DaytonaSandboxSession implements SandboxSession {
       }
       if (signal?.aborted) throw abortError();
 
-      const execution = this.sandbox.process.executeCommand(
-        command,
-        this.remoteRoot,
-        undefined,
+      const execution = this.sandbox.process.executeSessionCommand(
+        this.sessionId,
+        { command, runAsync: false, suppressInputEcho: true },
         Math.max(1, Math.ceil(timeoutMs / 1000)),
       );
       let abortListener: (() => void) | undefined;
@@ -240,8 +247,8 @@ class DaytonaSandboxSession implements SandboxSession {
         if (abortListener) signal?.removeEventListener("abort", abortListener);
       }
 
-      const stdout = bounded(response.artifacts?.stdout ?? response.result ?? "", MAX_OUTPUT_BYTES / 2);
-      const stderr = bounded(response.artifacts?.stderr ?? "", MAX_OUTPUT_BYTES / 2);
+      const stdout = bounded(response.stdout ?? response.output ?? "", MAX_OUTPUT_BYTES / 2);
+      const stderr = bounded(response.stderr ?? "", MAX_OUTPUT_BYTES / 2);
       const success = response.exitCode === 0;
       let syncError: string | undefined;
       if (!signal?.aborted) {
@@ -299,6 +306,7 @@ class DaytonaSandboxSession implements SandboxSession {
   async dispose(): Promise<void> {
     if (this.disposed) return;
     this.disposed = true;
+    await this.sandbox.process.deleteSession(this.sessionId).catch(() => undefined);
     await this.sandbox.delete(60, true);
   }
 
@@ -393,7 +401,17 @@ export class DaytonaSandboxProvider implements SandboxProvider {
         );
       }
       if (signal?.aborted) throw abortError();
-      return new DaytonaSandboxSession(sandbox, projectRoot, remoteRoot);
+      const sessionId = `nexum-${randomUUID()}`;
+      await sandbox.process.createSession(sessionId);
+      const changedDirectory = await sandbox.process.executeSessionCommand(
+        sessionId,
+        { command: `cd "${remoteRoot}"`, runAsync: false, suppressInputEcho: true },
+        30,
+      );
+      if (changedDirectory.exitCode !== 0) {
+        throw new Error("Could not set the Daytona command working directory");
+      }
+      return new DaytonaSandboxSession(sandbox, projectRoot, remoteRoot, sessionId);
     } catch (error) {
       await sandbox.delete(60, true).catch((cleanupError) => {
         console.error("[Nexum] Failed to clean up Daytona sandbox after provisioning error", {
