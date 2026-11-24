@@ -34,6 +34,7 @@ import { serverRuntime } from "./runtime/runtime.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
+import { organizationsRouter } from "./routes/organizations.js";
 
 
 const requestIds = new WeakMap<object, string>();
@@ -793,6 +794,8 @@ app.post("/api/auth/logout", (_req, res) => {
   clearSessionCookie(res);
   return res.json({ success: true });
 });
+
+app.use("/api/organizations", authMiddleware, organizationsRouter);
 
 app.use("/api/projects", authMiddleware, projectLimiter);
 app.use("/api/chat", authMiddleware, chatLimiter);
