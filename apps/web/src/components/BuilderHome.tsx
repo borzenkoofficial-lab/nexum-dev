@@ -5,7 +5,7 @@ type Props = {
   projects: Проект[];
   onNewProject: (description?: string) => void;
   onOpenProject: (id: string, tab?: "preview" | "files" | "agent" | "code") => void;
-  onOpenView: (view: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics") => void;
+  onOpenView: (view: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents") => void;
 };
 
 export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView }: Props) {
@@ -25,6 +25,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
       <header className="builder-home-header">
         <button className="builder-home-brand" type="button" onClick={() => onOpenView("home")} aria-label="NEXUM home">NEXUM</button>
         <nav className="builder-home-nav" aria-label="Main navigation">
+          <button type="button" onClick={() => onOpenView("agents")}>Agents</button>
           <button type="button" onClick={() => onOpenView("news")}>Journal</button>
           <button type="button" onClick={() => onOpenView("connectors")}>Connectors</button>
           <button type="button" onClick={() => onOpenView("settings")}>Settings</button>

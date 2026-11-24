@@ -257,3 +257,7 @@ Implemented in branch:
 Not yet complete:
 - Durable distributed queue, restart recovery, SSE, external search/CRM/OAuth, email sending, approval execution, document upload/extraction/retrieval, schedules/triggers, billing/quota enforcement and advanced visual graph editing.
 - Automated TypeScript checks, unit tests, database migration against PostgreSQL and browser E2E have not been executed in this environment. No feature is considered DONE until checks pass.
+
+
+### CI feedback on initial implementation
+- First PR CI run exposed incorrect relative imports in workforce modules and Express 5 route parameter types (`string | string[]`). Fixes are being applied; rerun CI before accepting the stage.
