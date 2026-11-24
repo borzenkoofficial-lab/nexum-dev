@@ -66,9 +66,10 @@ test("Daytona provider provisions private registry-restricted sandbox, executes 
   };
   try {
     await writeFile(join(root, "index.html"), "<h1>ok</h1>");
+    await writeFile(join(root, "package.json"), "{}");
     const provider = new DaytonaSandboxProvider({ apiKey: "test-key", client });
     const session = await provider.create({ projectPath: root, projectId: "p1", taskId: "t1" });
-    assert.equal(uploaded.length, 1);
+    assert.equal(uploaded.length, 2);
     assert.equal(uploaded[0].destination, posix.join("/home/daytona", "nexum-project", "index.html"));
     const result = await session.run({ projectPath: ".", command: "npm run build", timeoutMs: 10_000 });
     assert.equal(result.success, true);
