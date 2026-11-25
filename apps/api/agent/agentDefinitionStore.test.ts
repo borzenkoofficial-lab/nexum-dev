@@ -74,3 +74,13 @@ test("agent definitions reject unsupported AI providers", async () => {
     /Неподдерживаемый провайдер/,
   );
 });
+
+test("agent definitions reject empty names and system prompts", async () => {
+  await assert.rejects(
+    () => createAgentDefinition(`agent-user-empty-${Date.now()}`, { ...input(""), name: " " }),
+    /Название агента обязательно/,
+  );
+  const userId = `agent-user-empty-patch-${Date.now()}`;
+  const created = await createAgentDefinition(userId, input("Секретарь"));
+  await assert.rejects(() => updateAgentDefinition(userId, created.id, { systemPrompt: " " }), /Системная инструкция обязательна/);
+});
