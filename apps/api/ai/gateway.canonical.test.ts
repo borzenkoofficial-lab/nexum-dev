@@ -121,3 +121,52 @@ test("treats unknown model capabilities as unsupported rather than assuming supp
   );
   assert.equal(provider.received.length, 0);
 });
+
+
+test("legacy string facade supports providers that implement only the canonical API", async () => {
+  const received: AIRequest[] = [];
+  const provider = {
+    id: "native-only",
+    name: "Native-only provider",
+    model: "native-model",
+    capabilities: {
+      text: true,
+      code: false,
+      vision: false,
+      toolCalling: false,
+      streaming: false,
+      structuredOutput: false,
+      reasoning: false,
+      contextWindow: 16_000,
+    },
+    async generateRequest(input: AIRequest): Promise<AIResponse> {
+      received.push(input);
+      return { content: "native-only answer", provider: "native-only", model: "native-model-v2" };
+    },
+  } as unknown as AIProvider;
+
+  const gateway = new AIGateway([provider], provider.id);
+  const result = await gateway.generateWithMetadata("Explain the project", {
+    maxTokens: 321,
+    temperature: 0.3,
+  });
+  assert.equal(result.response, "native-only answer");
+  assert.equal(result.provider, "native-only");
+  assert.equal(result.model, "native-model-v2");
+  assert.equal(received[0].maxTokens, 321);
+  assert.equal(received[0].temperature, 0.3);
+  assert.match(String(received[0].messages[0].content), /LANGUAGE PROTOCOL/);
+});
+
+test("gateway rejects provider entries with neither native nor legacy generation", () => {
+  const invalidProvider = {
+    id: "invalid",
+    name: "Invalid",
+    model: "none",
+    capabilities: {
+      text: true, code: false, vision: false, toolCalling: false,
+      streaming: false, structuredOutput: false, reasoning: false, contextWindow: null,
+    },
+  } as unknown as AIProvider;
+  assert.throws(() => new AIGateway([invalidProvider], "invalid"), /generation method/i);
+});
