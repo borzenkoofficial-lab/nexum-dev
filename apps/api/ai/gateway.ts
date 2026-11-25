@@ -1,6 +1,16 @@
-import type { AIProvider, AIProviderStatus, AIModelCapabilities } from "./types.js";
+import type { AIProvider, AIProviderStatus, AIModelCapabilities, AIRequest, AIResponse } from "./types.js";
+import { getRequiredCapabilities, normalizeAIResponse, validateCanonicalRequest } from "./canonical.js";
+import { generateWithLegacyProvider } from "./legacyProviderAdapter.js";
+import { NexumError } from "../core/errors.js";
 import { classifyAIError } from "../core/errors.js";
 import { agentFailureInjection } from "../agent/failureInjection.js";
+
+function redactProviderError(message: string): string {
+  return message
+    .replace(/\\bBearer\\s+[A-Za-z0-9._~+\\/-]+=*/gi, "Bearer [REDACTED]")
+    .replace(/\\b(?:sk|rk|or|ak)-[A-Za-z0-9_-]{8,}\\b/gi, "[REDACTED]")
+    .replace(/((?:api[_-]?key|authorization)\\s*[:=]\\s*)[^\\s,;]+/gi, "$1[REDACTED]");
+}
 
 export interface GatewayGenerateOptions {
   provider?: string;
@@ -141,6 +151,69 @@ export class AIGateway {
 
   getDefaultModel(providerId = this.defaultProviderId): string {
     return this.providers.get(providerId)?.model ?? this.providers.get(this.defaultProviderId)!.model;
+  }
+
+  async generateRequest(
+    request: AIRequest,
+    options: { provider?: string } = {},
+  ): Promise<AIResponse> {
+    validateCanonicalRequest(request);
+    const providerId = options.provider ?? this.defaultProviderId;
+    const provider = this.providers.get(providerId);
+    if (!provider) {
+      throw new NexumError("CONFIG_ERROR", "Выбранный AI-провайдер не подключён к КВАРД.", {
+        status: 404,
+        retryable: false,
+        technicalDetails: `Unknown AI provider: ${providerId}`,
+      });
+    }
+    if (request.signal?.aborted) {
+      throw new NexumError("NETWORK_ERROR", "Запрос отменён.", {
+        status: 499,
+        retryable: false,
+        technicalDetails: "AbortSignal was already aborted before provider invocation",
+      });
+    }
+
+    const model = request.model || provider.model;
+    const capabilities = this.getCapabilities(providerId, model);
+    const required = getRequiredCapabilities(request);
+    for (const [capability, needed] of Object.entries(required)) {
+      if (needed && capabilities[capability as keyof AIModelCapabilities] !== true) {
+        throw new NexumError("MODEL_ERROR", "Выбранная модель не поддерживает необходимые функции запроса.", {
+          status: 400,
+          retryable: false,
+          technicalDetails: `Provider ${providerId}, model ${model} does not declare capability ${capability}`,
+        });
+      }
+    }
+
+    const canonicalRequest: AIRequest = { ...request, model };
+    try {
+      const response = provider.generateRequest
+        ? await provider.generateRequest(canonicalRequest)
+        : await generateWithLegacyProvider(provider, canonicalRequest);
+      if (!response || typeof response !== "object" || typeof response.content !== "string") {
+        throw new NexumError("MODEL_ERROR", "AI-провайдер вернул ответ в неподдерживаемом формате.", {
+          retryable: false,
+          technicalDetails: "Canonical provider response must contain a string content field",
+        });
+      }
+      return normalizeAIResponse({ ...response, provider: provider.id }, provider.id, model);
+    } catch (error) {
+      if (error instanceof NexumError) {
+        throw new NexumError(error.code, error.userSafeMessage, {
+          retryable: error.retryable,
+          status: error.status,
+          technicalDetails: redactProviderError(error.technicalDetails ?? error.message),
+          requestId: error.requestId,
+          projectId: error.projectId,
+          agentRunId: error.agentRunId,
+          stage: error.stage,
+        });
+      }
+      throw classifyAIError(new Error(redactProviderError(error instanceof Error ? error.message : String(error))));
+    }
   }
 
   async generateWithMetadata(message: string, options: GatewayGenerateOptions | string = {}): Promise<GatewayGenerationResult> {
