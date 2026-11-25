@@ -164,3 +164,12 @@
 - `generateRequest()` is explicitly a complete-response API. It rejects `stream: true` even if an adapter claims streaming capability.
 - A separate stream event protocol and `streamRequest()` are prerequisites before enabling real streaming.
 - Dedicated workflow `45708228452` passed on `83ae24ea58875a3868279bb80820348d6943e900`: API typecheck passed; 247/247 API tests passed.
+
+
+### Model catalog certainty — 2026-11-26
+
+- Added `AIGateway.getModelCatalog()` with explicit `provider_api` verified catalog vs `configured_fallback` unverified model state.
+- Empty and failed model discovery no longer need to look identical to a successfully verified catalog. Errors are reduced to safe stable codes; no provider secrets or raw response text is exposed.
+- `GET /api/ai/models` preserves the legacy `models` object and adds `catalog.providers[]` metadata, so existing UI consumers remain compatible while newer UI can show verified/unverified state.
+- Added tests for deduplicated provider model IDs, empty catalogs, provider discovery failure, safe error surface and configured fallback.
+- Pending CI verification for this follow-up.
