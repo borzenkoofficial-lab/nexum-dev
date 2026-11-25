@@ -1527,7 +1527,7 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   return res.json({ success: true, cancelled: true, job: cancelled });
 });
 
-app.post("/api/chat/jobs/:id/approvals/:approvalId", async (req, res) => {
+app.post("/api/chat/jobs/:id/approvals/:approvalId", aiWriteLimiter, async (req, res) => {
   const userId = getAuthUser(req).id;
   const decision = req.body?.decision;
   if (decision !== "approve" && decision !== "reject") {
@@ -1535,15 +1535,16 @@ app.post("/api/chat/jobs/:id/approvals/:approvalId", async (req, res) => {
   }
   const jobId = typeof req.params.id === "string" ? req.params.id : "";
   const approvalId = typeof req.params.approvalId === "string" ? req.params.approvalId : "";
-  if (!jobId || !approvalId || approvalId.length > 80) {
-    return res.status(400).json({ success: false, error: "Invalid approval identifier." });
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidPattern.test(jobId) || !uuidPattern.test(approvalId)) {
+    return res.status(404).json({ success: false, error: "Chat job or approval request not found." });
   }
+  await waitForChatJobPersistence(jobId);
   const job = await loadChatJob(jobId, userId, getChatJob);
   if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired." });
   if (job.status !== "running" || !job.pendingApproval || job.pendingApproval.id !== approvalId || job.pendingApproval.status !== "pending") {
     return res.status(409).json({ success: false, error: "Approval request is no longer pending." });
   }
-  await waitForChatJobPersistence(jobId);
   if (Date.now() >= job.pendingApproval.expiresAt) {
     const expired = await resolveChatJobApproval(jobId, userId, approvalId, "expired", "system");
     if (expired) chatJobCache.set(jobId, expired);
