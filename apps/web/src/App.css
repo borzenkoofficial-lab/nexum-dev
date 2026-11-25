@@ -448,3 +448,11 @@ input, textarea, select { max-width: 100%; border: 1px solid var(--nx-border); b
 .nexum-os-event-success .nexum-os-event-dot { background: #777; }
 .nexum-os-event-error { border-left: 3px solid #666; }
 .nexum-os-event-info { border-left: 3px solid #bbb; }
+
+.home-primary { padding: 9px 12px; border: 1px solid var(--nx-text); border-radius: 6px; background: var(--nx-text); color: white; }
+.home-primary:disabled { opacity: .45; }
+.external-section { margin-top: 36px; }
+.news-release-heading { align-items: flex-end; }
+.news-visual-agent, .news-visual-phone { justify-content: flex-start; }
+.mock-line.wide { width: 100%; }
+.code-muted { color: var(--nx-muted); }
