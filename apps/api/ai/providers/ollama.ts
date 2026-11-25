@@ -138,10 +138,11 @@ export class OllamaProvider implements AIProvider {
       let started = false;
       let resolvedModel = request.model;
       let usageEvent: AIStreamEvent = { type: "usage", usage: {}, source: "unavailable" };
-      let finishReason = "stop";
+      let finishReason: string | undefined;
       const processLine = (line: string): AIStreamEvent[] => {
         const value = line.trim();
         if (!value) return [];
+        if (terminal) throw new Error("Ollama returned data after its terminal done frame");
         let payload: Record<string, any>;
         try { payload = JSON.parse(value) as Record<string, any>; }
         catch { throw new Error("Ollama returned an invalid NDJSON stream frame"); }
@@ -165,13 +166,14 @@ export class OllamaProvider implements AIProvider {
                 inputTokens: payload.prompt_eval_count,
                 outputTokens: payload.eval_count,
                 totalTokens: payload.prompt_eval_count + payload.eval_count,
+                ...(valid(payload.prompt_eval_cached_count) ? { cachedInputTokens: payload.prompt_eval_cached_count } : {}),
               },
               source: "provider_reported",
             };
           }
           if (typeof payload.done_reason === "string") finishReason = payload.done_reason;
           terminal = true;
-          events.push(usageEvent, { type: "message_end", finishReason });
+          events.push(usageEvent, { type: "message_end", ...(finishReason ? { finishReason } : {}) });
         }
         return events;
       };
