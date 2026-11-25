@@ -174,9 +174,19 @@ function validateCommand(command: string): void {
   }
   const [executable, ...args] = input.split(/\s+/);
   if (executable === "npm") {
-    if (args[0] === "install" && args.length === 2 && args[1] === "--ignore-scripts") return;
-    if ((args[0] === "run" && (!args[1] || ALLOWED_NPM_SCRIPTS.has(args[1]))) ||
-        args[0] === "--version" || args[0] === "-v") return;
+    const npmArgs = [...args];
+    const prefixIndex = npmArgs.indexOf("--prefix");
+    if (prefixIndex !== -1) {
+      const prefix = npmArgs[prefixIndex + 1];
+      const normalizedPrefix = prefix ? posix.normalize(prefix) : "";
+      if (!prefix || posix.isAbsolute(prefix) || normalizedPrefix === ".." || normalizedPrefix.startsWith("../")) {
+        throw new Error("npm --prefix must stay inside the project workspace");
+      }
+      npmArgs.splice(prefixIndex, 2);
+    }
+    if (npmArgs[0] === "install" && npmArgs.length === 2 && npmArgs[1] === "--ignore-scripts") return;
+    if ((npmArgs[0] === "run" && (!npmArgs[1] || ALLOWED_NPM_SCRIPTS.has(npmArgs[1]))) ||
+        npmArgs[0] === "--version" || npmArgs[0] === "-v") return;
     throw new Error("Only npm install --ignore-scripts and allowlisted npm run scripts are allowed");
   }
   if (executable === "npx") {
