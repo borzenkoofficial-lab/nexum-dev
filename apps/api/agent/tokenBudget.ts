@@ -2,6 +2,8 @@ export type AdaptiveRole = "planner" | "coder" | "reviewer" | "debugger" | "test
 
 export interface AdaptiveTokenBudgetOptions {
   legacyHardCap?: number;
+  /** Builder jobs need room for planning, implementation, build repair and final review. */
+  builderLifecycle?: boolean;
 }
 
 export interface AdaptiveTokenBudgetSnapshot {
@@ -37,7 +39,10 @@ export class AdaptiveTokenBudget {
 
   constructor(task: string, options: AdaptiveTokenBudgetOptions = {}) {
     this.tier = classifyTask(task);
-    this.hardCap = Math.min(options.legacyHardCap ?? Number.MAX_SAFE_INTEGER, LIMITS[this.tier].hardCap);
+    const requestedCap = options.legacyHardCap ?? Number.MAX_SAFE_INTEGER;
+    this.hardCap = options.builderLifecycle
+      ? Math.min(requestedCap, 22_000)
+      : Math.min(requestedCap, LIMITS[this.tier].hardCap);
   }
 
   reserve(role: AdaptiveRole, requested?: number): number {
