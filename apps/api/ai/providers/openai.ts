@@ -51,7 +51,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function isKnownTextGenerationModel(model: string): boolean {
   const id = model.toLowerCase();
-  if (/^(gpt-(image|realtime|audio|embedding|moderation)|text-embedding|whisper|omni-moderation)/.test(id)) return false;
+  if (/^(gpt-(image|realtime|audio|embedding|moderation|4o-(transcribe|mini-transcribe|audio))|text-embedding|whisper|omni-moderation)/.test(id)) return false;
   return /^gpt-/.test(id) || /^o[134](?:-|$)/.test(id) || id === "chat-latest";
 }
 
@@ -265,12 +265,14 @@ export class OpenAIProvider implements AIProvider {
     }
 
     try {
+      const selectedModel = this.validateModel(model);
       const models = await this.listModels(signal);
+      const available = models.includes(selectedModel) && this.getCapabilities(selectedModel).text === true;
       return {
-        available: models.length > 0,
-        model: this.validateModel(model),
+        available,
+        model: selectedModel,
         latencyMs: Date.now() - startedAt,
-        ...(models.length === 0 ? { error: "OpenAI returned no GPT models" } : {}),
+        ...(!available ? { error: "Configured model is not a verified text generation model for this API account" } : {}),
       };
     } catch (error) {
       return {
