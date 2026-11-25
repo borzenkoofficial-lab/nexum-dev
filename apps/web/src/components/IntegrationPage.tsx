@@ -31,8 +31,8 @@ const external = [
   ["Telegram", "Боты, сообщения и автоматизация пользовательских сценариев", "Коммуникации", "T"],
 ];
 
-function Status({ label = "Компонент" }: { label?: string }) {
-  return <span className="integration-status"><i />{label}</span>;
+function Status({ label = "Компонент", connected = false }: { label?: string; connected?: boolean }) {
+  return <span className={"integration-status " + (connected ? "connected" : "neutral")}><i />{label}</span>;
 }
 
 export function IntegrationPage({ connectedConnectors, onToggleConnector }: IntegrationPageProps) {
