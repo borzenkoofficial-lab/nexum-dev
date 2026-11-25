@@ -129,3 +129,8 @@ Existing usage_records may remain a compatibility/analytics projection while the
 ## Canonical provider compatibility dependency
 
 The implemented contract foundation is specified in `docs/KVARD_AI_PROVIDER_ADAPTER_CONTRACT.md` and designed in `docs/superpowers/specs/2026-11-26-ai-provider-compatibility-design.md`. All future model catalog, entitlement and usage-ledger work must build on `AIGateway.generateRequest()` and normalized `AIResponse`, not provider-specific request payloads. Real provider adapters and product-call migration remain prerequisites before enabling advanced model capabilities or precise billing.
+
+
+### Native-only provider migration bridge
+
+New adapters may implement only `AIProvider.generateRequest()`. Existing string-based product calls remain compatible: Gateway routes them through the canonical API whenever a native adapter is available, preferring native over legacy generation. This allows provider adapters and product modules to migrate independently. New product code should call the canonical interface directly; old string calls remain a compatibility facade.
