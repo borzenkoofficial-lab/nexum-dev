@@ -20,3 +20,5 @@ services:
         sync: false
       - key: NEXUM_CORS_ORIGINS
         sync: false
+      - key: DAYTONA_API_KEY
+        sync: false

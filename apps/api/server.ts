@@ -34,6 +34,7 @@ import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failC
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
+import { disposeAllSandboxSessions, releaseSandboxSession } from "./sandbox/runner.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
@@ -700,6 +701,9 @@ ${attachment.content.slice(0, 80_000)}`);
       console.error("[Nexum] project lock release failed", jobId, lockError);
     }
     cancellationBridge.stop();
+    // One task-scoped remote sandbox is shared by all command tools in this job.
+    // Release it at the job lifecycle boundary on success, failure, or cancellation.
+    await releaseSandboxSession(runtimeTask.id);
     if (attachmentDir) {
       await rm(attachmentDir, { recursive: true, force: true }).catch((error) => {
         console.error("[Nexum] attachment cleanup failed", { jobId, error });
@@ -718,19 +722,21 @@ async function shutdownServer(signal: "SIGTERM" | "SIGINT"): Promise<void> {
   if (shutdownPromise) return shutdownPromise;
   shutdownPromise = (async () => {
     console.log(`[Nexum] ${signal} received; shutting down HTTP server and runtime.`);
-    // Abort background Agent jobs first so no model/tool work can keep the
-    // process alive while Playwright or a production supervisor waits for exit.
-    for (const controller of chatJobControllers.values()) controller.abort();
-    chatJobControllers.clear();
-    serverRuntime.shutdown();
-
-    await new Promise<void>((resolve) => {
+    // Stop accepting new requests before taking the sandbox cleanup snapshot.
+    const serverClosed = new Promise<void>((resolve) => {
       if (!httpServer || !httpServer.listening) {
         resolve();
         return;
       }
       httpServer.close(() => resolve());
     });
+
+    // Abort background Agent jobs, then await every remote sandbox cleanup.
+    for (const controller of chatJobControllers.values()) controller.abort();
+    chatJobControllers.clear();
+    await disposeAllSandboxSessions();
+    serverRuntime.shutdown();
+    await serverClosed;
 
     await closeDatabase().catch((error) => {
       console.error("[Nexum] database shutdown failed", error);

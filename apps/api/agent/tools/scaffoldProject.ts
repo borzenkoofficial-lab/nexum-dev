@@ -35,10 +35,18 @@ export class ScaffoldProjectTool implements Tool {
       if (starterOnly) {
         try {
           const starterHtml = await readFile(join(dir, "index.html"), "utf8");
-          const starterApp = await readFile(join(dir, "app.js"), "utf8");
+          let starterApp = "";
+          try {
+            starterApp = await readFile(join(dir, "app.js"), "utf8");
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+          }
+          // The HTML contains the canonical NEXUM starter marker. app.js may
+          // be absent in older workspaces, but if present it must still be the
+          // untouched NEXUM starter before we replace the starter files.
           canInitializeStarter =
             /Your project is ready\. Ask the Agent to design and build it\./i.test(starterHtml) &&
-            /NEXUM Agent can now replace this starter|NEXUM project foundation ready/i.test(starterApp);
+            (!starterApp || /NEXUM Agent can now replace this starter|NEXUM project foundation ready/i.test(starterApp));
         } catch {
           canInitializeStarter = false;
         }
