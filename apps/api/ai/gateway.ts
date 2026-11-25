@@ -7,9 +7,9 @@ import { agentFailureInjection } from "../agent/failureInjection.js";
 
 function redactProviderError(message: string): string {
   return message
-    .replace(/\\bBearer\\s+[A-Za-z0-9._~+\\/-]+=*/gi, "Bearer [REDACTED]")
-    .replace(/\\b(?:sk|rk|or|ak)-[A-Za-z0-9_-]{8,}\\b/gi, "[REDACTED]")
-    .replace(/((?:api[_-]?key|authorization)\\s*[:=]\\s*)[^\\s,;]+/gi, "$1[REDACTED]");
+    .replace(/\bBearer\s+[A-Za-z0-9._~+\/-]+=*/gi, "Bearer [REDACTED]")
+    .replace(/\b(?:sk|rk|or|ak)-[A-Za-z0-9_-]{8,}\b/gi, "[REDACTED]")
+    .replace(/((?:api[_-]?key|authorization)\s*[:=]\s*)[^\s,;]+/gi, "$1[REDACTED]");
 }
 
 export interface GatewayGenerateOptions {
