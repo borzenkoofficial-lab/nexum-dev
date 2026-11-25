@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import "./BusinessAgentsPage.css";
 import "../kvard-ui-kit.css";
-import { KvardButton, KvardField, KvardMark, KvardStatusBadge } from "./ui/index.ts";
+import { KvardButton, KvardField, KvardStatusBadge } from "./ui/index.ts";
+import { KvardMark } from "./KvardMark.ts";
 
 type Organization = { id: string; name: string; role: string };
 type AgentTool = { id: string; name: string; description: string; requiredScopes: string[]; riskLevel: "low" | "medium" | "high" };
