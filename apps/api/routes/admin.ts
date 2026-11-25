@@ -27,6 +27,77 @@ adminRouter.get("/overview", requireAdminPermission("dashboard.read"), (_req, re
   });
 });
 
+
+adminRouter.get("/users", requireAdminPermission("users.read"), async (req, res) => {
+  const page = Math.max(1, Math.min(100000, Math.floor(Number(req.query.page ?? 1) || 1)));
+  const limit = Math.max(1, Math.min(100, Math.floor(Number(req.query.limit ?? 25) || 25)));
+  const search = typeof req.query.search === "string" ? req.query.search.trim().slice(0, 120) : "";
+  const offset = (page - 1) * limit;
+  try {
+    const result = await query(
+      "SELECT u.id, u.email, u.name, u.created_at, ara.role AS admin_role, " +
+      "COUNT(DISTINCT om.organization_id)::int AS organizations_count, COUNT(DISTINCT p.id)::int AS projects_count " +
+      "FROM users u LEFT JOIN admin_role_assignments ara ON ara.user_id = u.id " +
+      "LEFT JOIN organization_members om ON om.user_id = u.id LEFT JOIN project_workspaces p ON p.user_id = u.id " +
+      "WHERE ($1 = '' OR u.email ILIKE '%' || $1 || '%' OR u.name ILIKE '%' || $1 || '%' OR u.id::text = $1) " +
+      "GROUP BY u.id, ara.role ORDER BY u.created_at DESC, u.id LIMIT $2 OFFSET $3",
+      [search, limit, offset],
+    );
+    const count = await query<{ total: string }>(
+      "SELECT COUNT(*)::text AS total FROM users u WHERE ($1 = '' OR u.email ILIKE '%' || $1 || '%' OR u.name ILIKE '%' || $1 || '%' OR u.id::text = $1)",
+      [search],
+    );
+    return res.json({ success: true, users: result.rows, pagination: { page, limit, total: Number(count.rows[0]?.total ?? 0) } });
+  } catch {
+    return res.status(503).json({ success: false, error: "User directory unavailable." });
+  }
+});
+
+adminRouter.get("/organizations", requireAdminPermission("organizations.read"), async (req, res) => {
+  const page = Math.max(1, Math.min(100000, Math.floor(Number(req.query.page ?? 1) || 1)));
+  const limit = Math.max(1, Math.min(100, Math.floor(Number(req.query.limit ?? 25) || 25)));
+  const search = typeof req.query.search === "string" ? req.query.search.trim().slice(0, 120) : "";
+  const offset = (page - 1) * limit;
+  try {
+    const result = await query(
+      "SELECT o.id, o.name, o.slug, o.created_at, o.updated_at, " +
+      "COUNT(DISTINCT om.user_id)::int AS members_count, COUNT(DISTINCT a.id)::int AS agents_count, " +
+      "COUNT(DISTINCT w.id)::int AS workforces_count, owner.user_id AS owner_user_id, owner_user.email AS owner_email " +
+      "FROM organizations o LEFT JOIN organization_members om ON om.organization_id = o.id " +
+      "LEFT JOIN organization_members owner ON owner.organization_id = o.id AND owner.role = 'owner' " +
+      "LEFT JOIN users owner_user ON owner_user.id = owner.user_id " +
+      "LEFT JOIN agents a ON a.organization_id = o.id LEFT JOIN workforces w ON w.organization_id = o.id " +
+      "WHERE ($1 = '' OR o.name ILIKE '%' || $1 || '%' OR o.slug ILIKE '%' || $1 || '%' OR o.id::text = $1) " +
+      "GROUP BY o.id, owner.user_id, owner_user.email ORDER BY o.created_at DESC, o.id LIMIT $2 OFFSET $3",
+      [search, limit, offset],
+    );
+    const count = await query<{ total: string }>(
+      "SELECT COUNT(*)::text AS total FROM organizations o WHERE ($1 = '' OR o.name ILIKE '%' || $1 || '%' OR o.slug ILIKE '%' || $1 || '%' OR o.id::text = $1)",
+      [search],
+    );
+    return res.json({ success: true, organizations: result.rows, pagination: { page, limit, total: Number(count.rows[0]?.total ?? 0) } });
+  } catch {
+    return res.status(503).json({ success: false, error: "Organization directory unavailable." });
+  }
+});
+
+adminRouter.get("/organizations/:organizationId/members", requireAdminPermission("organizations.read"), async (req, res) => {
+  const organizationId = typeof req.params.organizationId === "string" ? req.params.organizationId : "";
+  if (!UUID_PATTERN.test(organizationId)) return res.status(400).json({ success: false, error: "A valid organization UUID is required." });
+  try {
+    const result = await query(
+      "SELECT u.id, u.email, u.name, om.role, om.created_at AS joined_at " +
+      "FROM organization_members om JOIN users u ON u.id = om.user_id " +
+      "WHERE om.organization_id = $1 " +
+      "ORDER BY CASE om.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'member' THEN 2 ELSE 3 END, om.created_at ASC",
+      [organizationId],
+    );
+    return res.json({ success: true, members: result.rows });
+  } catch {
+    return res.status(503).json({ success: false, error: "Organization member directory unavailable." });
+  }
+});
+
 adminRouter.get("/roles", requireAdminPermission("roles.manage"), async (_req, res) => {
   try {
     const result = await query<{ user_id: string; role: AdminRole; created_at: string; updated_at: string }>(
