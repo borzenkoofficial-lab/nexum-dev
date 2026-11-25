@@ -20,7 +20,5 @@ services:
         sync: false
       - key: NEXUM_CORS_ORIGINS
         sync: false
-      - key: NEXUM_SANDBOX_PROVIDER
-        value: "daytona"
       - key: DAYTONA_API_KEY
         sync: false
