@@ -10,7 +10,7 @@ type Event = { id: string; actor_user_id: string | null; action: string; target_
 type UserRow = { id: string; email: string; name: string; created_at: string; status: "active" | "suspended"; suspended_at: string | null; suspension_reason: string | null; admin_role: Role | null; organizations_count: number; projects_count: number };
 type OrganizationRow = { id: string; name: string; slug: string; created_at: string; members_count: number; agents_count: number; workforces_count: number; owner_email: string | null };
 type MemberRow = { id: string; email: string; name: string; role: string; joined_at: string };
-type DashboardMetrics = { users: { total: number; active: number; suspended: number; new7d: number }; organizations: number; projects: number; agents: number; runs: { last24h: number; active: number; completed24h: number; failed24h: number }; ai: { cost30d: string; tokens30d: number } };
+type UserDetails = { user: UserRow & { suspended_by: string | null }; organizations: Array<{ id: string; name: string; slug: string; role: string; joined_at: string }>; projects: Array<{ id: string; project_id: string; name: string; project_type: string; status: string; created_at: string; updated_at: string }>; subscriptions: Array<{ organization_id: string; organization_name: string; plan_id: string; plan_name: string; status: string; period_start: string; period_end: string }>; usage: { records: string; input_tokens: string; output_tokens: string; estimated_cost: string; last_used_at: string | null } | null; runs: { total: string; completed: string; failed: string; last_run_at: string | null } | null };\ntype DashboardMetrics = { users: { total: number; active: number; suspended: number; new7d: number }; organizations: number; projects: number; agents: number; runs: { last24h: number; active: number; completed24h: number; failed24h: number }; ai: { cost30d: string; tokens30d: number } };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...init, credentials: "include", headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) } });
@@ -31,7 +31,7 @@ export function AdminControlCenter() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
-  const [users, setUsers] = useState<UserRow[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);\n  const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);\n  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);\n  const [auditActor, setAuditActor] = useState("");\n  const [auditAction, setAuditAction] = useState("");\n  const [auditTarget, setAuditTarget] = useState("");\n  const [auditFrom, setAuditFrom] = useState("");\n  const [auditTo, setAuditTo] = useState("");
   const [organizations, setOrganizations] = useState<OrganizationRow[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [directorySearch, setDirectorySearch] = useState("");
@@ -50,15 +50,26 @@ export function AdminControlCenter() {
     try {
       const me = await request<Identity>("/api/admin/me");
       setIdentity(me);
-      if (section === "users" && me.permissions.includes("users.read")) setUsers((await request<{ users: UserRow[] }>("/api/admin/users?limit=50&search=" + encodeURIComponent(directorySearch))).users);
+      if (section === "users" && me.permissions.includes("users.read")) {
+        setUsers((await request<{ users: UserRow[] }>("/api/admin/users?limit=50&search=" + encodeURIComponent(directorySearch))).users);
+        if (selectedUserId) setSelectedUser(await request<UserDetails>("/api/admin/users/" + selectedUserId));
+      }
       if (section === "organizations" && me.permissions.includes("organizations.read")) setOrganizations((await request<{ organizations: OrganizationRow[] }>("/api/admin/organizations?limit=50&search=" + encodeURIComponent(directorySearch))).organizations);
       if (section === "roles" && me.permissions.includes("roles.manage")) setAssignments((await request<{ assignments: Assignment[] }>("/api/admin/roles")).assignments);
       if (section === "sessions" && me.permissions.includes("sessions.manage")) setSessions((await request<{ sessions: Session[] }>("/api/admin/sessions")).sessions);
-      if (section === "audit" && me.permissions.includes("audit.read")) setEvents((await request<{ events: Event[] }>("/api/admin/audit")).events);
+      if (section === "audit" && me.permissions.includes("audit.read")) {
+        const params = new URLSearchParams({ limit: "100" });
+        if (auditActor.trim()) params.set("actorUserId", auditActor.trim());
+        if (auditAction.trim()) params.set("action", auditAction.trim());
+        if (auditTarget.trim()) params.set("targetType", auditTarget.trim());
+        if (auditFrom) params.set("from", new Date(auditFrom).toISOString());
+        if (auditTo) params.set("to", new Date(auditTo).toISOString());
+        setEvents((await request<{ events: Event[] }>("/api/admin/audit?" + params.toString())).events);
+      }
       if (section === "overview") setMetrics((await request<{ metrics: DashboardMetrics }>("/api/admin/overview")).metrics);
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка загрузки"); }
     finally { setLoading(false); }
-  }, [section, directorySearch]);
+  }, [section, directorySearch, selectedUserId, auditActor, auditAction, auditTarget, auditFrom, auditTo]);
   useEffect(() => { void refresh(); }, [refresh]);
 
   const can = (permission: string) => Boolean(identity?.permissions.includes(permission));
@@ -111,9 +122,22 @@ export function AdminControlCenter() {
 
       {section === "users" && can("users.read") && <section>
         <div className="kvard-admin-panel"><small>USER DIRECTORY</small><h3>Пользователи платформы</h3><div className="kvard-admin-form"><input value={directorySearch} onChange={event => setDirectorySearch(event.target.value)} placeholder="Поиск по имени, email или UUID"/><button onClick={() => void refresh()}>Найти</button></div>{can("users.manage") && <div className="kvard-admin-form" style={{ marginTop: 10 }}><input value={suspensionReason} onChange={event => setSuspensionReason(event.target.value)} placeholder="Причина блокировки (обязательна для выбранного пользователя)"/></div>}
-          <div className="kvard-admin-table"><table><thead><tr><th>Пользователь</th><th>Регистрация</th><th>Организации</th><th>Проекты</th><th>Админ-доступ</th><th>Статус</th><th>Управление</th></tr></thead><tbody>{users.map(x => <tr key={x.id}><td><strong>{x.name}</strong><small>{x.email}</small><small>{x.id}</small></td><td>{date(x.created_at)}</td><td>{x.organizations_count}</td><td>{x.projects_count}</td><td>{x.admin_role ?? "Нет"}</td><td>{x.status === "suspended" ? "Заблокирован" : "Активен"}{x.suspension_reason && <small>{x.suspension_reason}</small>}</td><td>{can("users.manage") && (x.status === "suspended" ? <button onClick={() => void mutate(() => request("/api/admin/users/" + x.id + "/activate", { method: "POST", body: JSON.stringify({}) }).then(() => undefined))}>Разблокировать</button> : <button className="danger" disabled={!suspensionReason.trim()} onClick={() => void mutate(() => request("/api/admin/users/" + x.id + "/suspend", { method: "POST", body: JSON.stringify({ reason: suspensionReason }) }).then(() => undefined))}>Заблокировать</button>)}</td></tr>)}</tbody></table></div>
+          <div className="kvard-admin-table"><table><thead><tr><th>Пользователь</th><th>Регистрация</th><th>Организации</th><th>Проекты</th><th>Админ-доступ</th><th>Статус</th><th>Управление</th></tr></thead><tbody>{users.map(x => <tr key={x.id}><td><strong>{x.name}</strong><small>{x.email}</small><small>{x.id}</small></td><td>{date(x.created_at)}</td><td>{x.organizations_count}</td><td>{x.projects_count}</td><td>{x.admin_role ?? "Нет"}</td><td>{x.status === "suspended" ? "Заблокирован" : "Активен"}{x.suspension_reason && <small>{x.suspension_reason}</small>}</td><td><button onClick={() => void (async () => { try { setSelectedUserId(x.id); setSelectedUser(await request<UserDetails>("/api/admin/users/" + x.id)); } catch (err) { setError(err instanceof Error ? err.message : "Не удалось загрузить карточку"); } })()}>Карточка</button> {can("users.manage") && (x.status === "suspended" ? <button onClick={() => void mutate(() => request("/api/admin/users/" + x.id + "/activate", { method: "POST", body: JSON.stringify({}) }).then(() => undefined))}>Разблокировать</button> : <button className="danger" disabled={!suspensionReason.trim()} onClick={() => void mutate(() => request("/api/admin/users/" + x.id + "/suspend", { method: "POST", body: JSON.stringify({ reason: suspensionReason }) }).then(() => undefined))}>Заблокировать</button>)}</td></tr>)}</tbody></table></div>
           {!users.length && <p>Пользователи не найдены.</p>}
         </div>
+        {selectedUser && <div className="kvard-admin-panel">
+          <div className="kvard-admin-panel-title"><h3>Карточка пользователя: {selectedUser.user.name}</h3><button onClick={() => { setSelectedUser(null); setSelectedUserId(null); }}>Закрыть</button></div>
+          <p>{selectedUser.user.email} · {selectedUser.user.id}</p>
+          <div className="kvard-admin-stats">
+            <article><small>СТАТУС</small><strong>{selectedUser.user.status === "active" ? "Активен" : "Заблокирован"}</strong><span>{selectedUser.user.suspension_reason ?? "Нет ограничений"}</span></article>
+            <article><small>AI ТОКЕНЫ</small><strong>{selectedUser.usage ? (Number(selectedUser.usage.input_tokens) + Number(selectedUser.usage.output_tokens)).toLocaleString("ru-RU") : "0"}</strong><span>{selectedUser.usage?.records ?? "0"} записей usage</span></article>
+            <article><small>ЗАПУСКИ АГЕНТОВ</small><strong>{selectedUser.runs?.total ?? "0"}</strong><span>{selectedUser.runs?.completed ?? "0"} завершено · {selectedUser.runs?.failed ?? "0"} ошибок</span></article>
+          </div>
+          <h3>Организации</h3>{selectedUser.organizations.length ? <div className="kvard-admin-table"><table><thead><tr><th>Название</th><th>Роль</th><th>Вступил</th></tr></thead><tbody>{selectedUser.organizations.map(org => <tr key={org.id}><td>{org.name}<small>{org.slug}</small></td><td>{org.role}</td><td>{date(org.joined_at)}</td></tr>)}</tbody></table></div> : <p>Нет организаций.</p>}
+          <h3>Проекты</h3>{selectedUser.projects.length ? <div className="kvard-admin-table"><table><thead><tr><th>Проект</th><th>Тип</th><th>Статус</th><th>Обновлён</th></tr></thead><tbody>{selectedUser.projects.map(project => <tr key={project.id}><td>{project.name}<small>{project.project_id}</small></td><td>{project.project_type}</td><td>{project.status}</td><td>{date(project.updated_at)}</td></tr>)}</tbody></table></div> : <p>Нет проектов.</p>}
+          <h3>Подписки организаций</h3>{selectedUser.subscriptions.length ? <div className="kvard-admin-table"><table><thead><tr><th>Организация</th><th>Тариф</th><th>Статус</th><th>Период до</th></tr></thead><tbody>{selectedUser.subscriptions.map(sub => <tr key={sub.organization_id}><td>{sub.organization_name}</td><td>{sub.plan_name}</td><td>{sub.status}</td><td>{date(sub.period_end)}</td></tr>)}</tbody></table></div> : <p>Нет оформленных подписок.</p>}
+          <p>Последнее использование AI: {selectedUser.usage?.last_used_at ? date(selectedUser.usage.last_used_at) : "Нет данных"} · Расчётная стоимость: {selectedUser.usage?.estimated_cost ?? "0"}</p>
+        </div>}
       </section>}
       {section === "organizations" && can("organizations.read") && <section>
         <div className="kvard-admin-panel"><small>ORGANIZATION DIRECTORY</small><h3>Организации и рабочие пространства</h3><div className="kvard-admin-form"><input value={directorySearch} onChange={event => setDirectorySearch(event.target.value)} placeholder="Поиск по названию, slug или UUID"/><button onClick={() => void refresh()}>Найти</button></div>
@@ -127,7 +151,7 @@ export function AdminControlCenter() {
         <div className="kvard-admin-panel"><small>ACCESS REGISTRY</small><h3>Текущие назначения</h3>{assignments.length ? <div className="kvard-admin-table"><table><thead><tr><th>User ID</th><th>Роль</th><th>Изменено</th><th/></tr></thead><tbody>{assignments.map(x => <tr key={x.user_id}><td>{x.user_id}</td><td>{x.role}</td><td>{date(x.updated_at)}</td><td><button className="danger" onClick={() => void mutate(() => request("/api/admin/roles/" + encodeURIComponent(x.user_id), { method: "DELETE" }).then(() => undefined))}>Отозвать</button></td></tr>)}</tbody></table></div> : <p>Назначений нет.</p>}</div>
       </section>}
       {section === "sessions" && can("sessions.manage") && <section><div className="kvard-admin-panel"><small>SESSION REGISTRY</small><h3>Активные сессии</h3>{sessions.length ? <div className="kvard-admin-table"><table><thead><tr><th>Пользователь</th><th>MFA</th><th>Активность</th><th>Истекает</th><th/></tr></thead><tbody>{sessions.map(x => <tr key={x.id}><td>{x.email}<small>{x.user_id}</small></td><td>{x.mfa_verified ? "Да" : "Нет"}</td><td>{date(x.last_seen_at)}</td><td>{date(x.expires_at)}</td><td><button className="danger" onClick={() => void mutate(() => request("/api/admin/sessions/" + encodeURIComponent(x.id), { method: "DELETE" }).then(() => undefined))}>Отозвать</button></td></tr>)}</tbody></table></div> : <p>Нет активных сессий.</p>}</div></section>}
-      {section === "audit" && can("audit.read") && <section><div className="kvard-admin-panel"><small>APPEND-ONLY LOG</small><h3>Журнал действий</h3>{events.length ? <div className="kvard-admin-table"><table><thead><tr><th>Событие</th><th>Актор</th><th>Объект</th><th>Время</th></tr></thead><tbody>{events.map(x => <tr key={x.id}><td>{x.action}</td><td>{x.actor_user_id ?? "system"}</td><td>{x.target_type}: {x.target_id}</td><td>{date(x.created_at)}</td></tr>)}</tbody></table></div> : <p>Событий пока нет.</p>}</div></section>}
+      {section === "audit" && can("audit.read") && <section><div className="kvard-admin-panel"><small>APPEND-ONLY LOG</small><h3>Журнал действий</h3><form className="kvard-admin-form" onSubmit={event => { event.preventDefault(); void refresh(); }}><input value={auditActor} onChange={event => setAuditActor(event.target.value)} placeholder="UUID актора"/><input value={auditAction} onChange={event => setAuditAction(event.target.value)} placeholder="Действие"/><input value={auditTarget} onChange={event => setAuditTarget(event.target.value)} placeholder="Тип объекта"/><input type="datetime-local" value={auditFrom} onChange={event => setAuditFrom(event.target.value)}/><input type="datetime-local" value={auditTo} onChange={event => setAuditTo(event.target.value)}/><button>Применить фильтры</button></form>{events.length ? <div className="kvard-admin-table"><table><thead><tr><th>Событие</th><th>Актор</th><th>Объект</th><th>Время</th></tr></thead><tbody>{events.map(x => <tr key={x.id}><td>{x.action}</td><td>{x.actor_user_id ?? "system"}</td><td>{x.target_type}: {x.target_id}</td><td>{date(x.created_at)}</td></tr>)}</tbody></table></div> : <p>Событий пока нет.</p>}</div></section>}
     </main>
     {mfaOpen && <div className="kvard-admin-modal"><form onSubmit={confirmMfa}><small>SECURITY CHECK</small><h2>Подтвердите действие</h2><p>Введите новый код аутентификатора или неиспользованный резервный код. Подтверждение действует 10 минут.</p><input autoFocus value={mfaCode} onChange={event => setMfaCode(event.target.value)} placeholder="Код MFA" required/><div><button type="button" onClick={() => { setMfaOpen(false); setPending(null); setMfaCode(""); }}>Отмена</button><button>Подтвердить</button></div></form></div>}
   </div>;
