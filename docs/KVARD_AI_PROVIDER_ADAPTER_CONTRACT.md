@@ -298,7 +298,7 @@ OpenAI is the first production provider adapter migrated to the canonical contra
 
 - Canonical requests use `POST /responses` and the official Responses API.
 - Existing `generate(message)` product callers continue to use `POST /chat/completions` as a compatibility facade; this is explicitly exposed as `legacyProtocol`, not confused with the native protocol.
-- The Responses base URL can be configured independently with `OPENAI_RESPONSES_BASE_URL`; `OPENAI_BASE_URL` continues to control the legacy Chat Completions path and model discovery.
+- The Responses base URL and model discovery can be configured independently with `OPENAI_RESPONSES_BASE_URL`; `OPENAI_BASE_URL` continues to control only the legacy Chat Completions path.
 - The official API reference identifies Responses as the endpoint for text/image input, text/JSON output and function tools. The OpenAI migration guide says to use Responses for new integrations; Assistants API sunset is documented for August 26, 2026.
   - https://developers.openai.com/api/reference/resources/responses/methods/create
   - https://platform.openai.com/docs/api-reference/models/list
@@ -312,14 +312,14 @@ OpenAI is the first production provider adapter migrated to the canonical contra
 - Canonical function definitions and tool choice map to Responses function tools.
 - JSON and JSON Schema response formats map to `text.format`.
 - `maxTokens`, `temperature`, `topP`, timeout, AbortSignal and request idempotency key are forwarded.
-- Response output text, function calls, actual model ID, response ID, finish status and usage (input/output/total/cached/reasoning tokens) are normalized.
+- Response output text, function calls, actual model ID, response ID, finish status and usage (input/output/total/cached/reasoning tokens) are normalized. Partial usage is retained for diagnostics but marked `usageSource=unavailable` unless input, output and total counts are all valid; billing must not treat incomplete usage as authoritative.
 - Malformed tool arguments and unsupported stop sequences fail explicitly; streaming remains rejected by the complete-response Gateway API.
 - Model discovery now returns provider-reported IDs only; it no longer appends hard-coded defaults and calls those IDs verified.
 - Text/code capabilities are enabled only for recognized text-generation model families. Embedding/image/audio/unknown model families remain unverified. Vision, tool calling, structured output and reasoning remain `unknown` until a model-level capability source is confirmed.
 
 ### Verification and remaining gates
 
-- Dedicated workflow `45710381436` passed on commit `8e6672d9164d`: API typecheck passed; 79/79 focused AI provider contract tests passed. This includes fake-HTTP tests for Responses request/response mapping, image payloads, function calls, JSON Schema, usage, idempotency, cancellation and model discovery. No real provider credentials or paid requests were used.
+- Dedicated workflow `45710906329` passed on commit `83e1de544b2b`: API typecheck passed; 85/85 focused AI provider contract tests passed. This includes fake-HTTP tests for Responses request/response mapping, image payloads, function calls, JSON Schema, usage, idempotency, cancellation and model discovery. No real provider credentials or paid requests were used.
 - Still pending: real-account sandbox smoke test; model-level capabilities for vision/tools/structured output/reasoning; dedicated streaming event contract; native adapters for Anthropic, OpenRouter, OrcaRouter, AnyModel and Ollama; billing ledger integration and cost reconciliation.
 
 
