@@ -5,6 +5,8 @@ import { query } from "./db.js";
 
 const scrypt = promisify(scryptCallback);
 const COOKIE_NAME = "nexum_session";
+const MFA_CHALLENGE_COOKIE = "kvard_admin_mfa_challenge";
+const MFA_CHALLENGE_TTL_SECONDS = 5 * 60;
 const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 const JWT_SECRET = process.env.NEXUM_AUTH_SECRET?.trim();
 const AUTH_ENABLED = process.env.NEXUM_AUTH_ENABLED === "true";
@@ -28,6 +30,7 @@ export interface AuthUser {
   email: string;
   name: string;
   createdAt: string;
+  mfaVerified?: boolean;
 }
 
 declare global {
@@ -67,7 +70,7 @@ function verifyToken(token: string): AuthUser | null {
     const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as Record<string, unknown>;
     if (payload.exp !== undefined && Number(payload.exp) <= Math.floor(Date.now() / 1000)) return null;
     if (payload.sub === undefined || typeof payload.email !== "string" || typeof payload.name !== "string") return null;
-    return { id: String(payload.sub), email: payload.email, name: payload.name, createdAt: String(payload.createdAt ?? "") };
+    return { id: String(payload.sub), email: payload.email, name: payload.name, createdAt: String(payload.createdAt ?? ""), mfaVerified: payload.mfa === true };
   } catch {
     return null;
   }
@@ -109,8 +112,40 @@ export async function verifyPassword(password: string, stored: string): Promise<
 
 export function issueSession(response: Response, user: AuthUser): void {
   const now = Math.floor(Date.now() / 1000);
-  const token = signToken({ sub: user.id, email: user.email, name: user.name, createdAt: user.createdAt, iat: now, exp: now + TOKEN_TTL_SECONDS });
+  const ttl = user.mfaVerified ? 8 * 60 * 60 : TOKEN_TTL_SECONDS;
+  const token = signToken({ sub: user.id, email: user.email, name: user.name, createdAt: user.createdAt, mfa: user.mfaVerified === true, iat: now, exp: now + ttl });
   setSessionCookie(response, token);
+}
+
+export function issueAdminMfaChallenge(response: Response, userId: string, nonce: string): void {
+  const now = Math.floor(Date.now() / 1000);
+  const token = signToken({ sub: userId, purpose: "admin_mfa_challenge", nonce, iat: now, exp: now + MFA_CHALLENGE_TTL_SECONDS });
+  response.setHeader("Set-Cookie", [
+    `${MFA_CHALLENGE_COOKIE}=${encodeURIComponent(token)}; Max-Age=${MFA_CHALLENGE_TTL_SECONDS}; Path=/api/auth/admin-mfa; HttpOnly; SameSite=Strict${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
+  ]);
+}
+
+export function clearAdminMfaChallenge(response: Response): void {
+  response.setHeader("Set-Cookie", [
+    `${MFA_CHALLENGE_COOKIE}=; Max-Age=0; Path=/api/auth/admin-mfa; HttpOnly; SameSite=Strict${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
+  ]);
+}
+
+export function readAdminMfaChallenge(request: Request): { userId: string; nonce: string } | null {
+  try {
+    const token = getCookie(request, MFA_CHALLENGE_COOKIE);
+    if (!token) return null;
+    const [header, body, signature] = token.split(".");
+    if (!header || !body || !signature) return null;
+    const expected = createHmac("sha256", requireSecret()).update(header + "." + body).digest();
+    const actual = Buffer.from(signature, "base64url");
+    if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
+    const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as Record<string, unknown>;
+    if (payload.purpose !== "admin_mfa_challenge" || typeof payload.sub !== "string" || typeof payload.nonce !== "string" || Number(payload.exp) <= Math.floor(Date.now() / 1000)) return null;
+    return { userId: payload.sub, nonce: payload.nonce };
+  } catch {
+    return null;
+  }
 }
 
 export function authMiddleware(request: Request, response: Response, next: NextFunction): void {
