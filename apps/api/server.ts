@@ -34,6 +34,7 @@ import { serverRuntime } from "./runtime/runtime.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
+import { agentProfilesUseDatabase, createAgentProfile, deleteAgentProfile, listAgentProfiles } from "./agent/profileStore.js";
 
 
 const requestIds = new WeakMap<object, string>();
@@ -797,6 +798,7 @@ app.post("/api/auth/logout", (_req, res) => {
 app.use("/api/projects", authMiddleware, projectLimiter);
 app.use("/api/chat", authMiddleware, chatLimiter);
 app.use("/api/agent/history", authMiddleware);
+app.use("/api/agent/profiles", authMiddleware);
 app.use("/api/agent/diagnostics", authMiddleware);
 
 app.get("/api/ai/providers", authMiddleware, (req, res) => {
@@ -1443,6 +1445,51 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   if (runtimeTaskId) serverRuntime.cancelTask(runtimeTaskId);
   chatJobControllers.get(job.id)?.abort();
   return res.json({ success: true, cancelled: true, job: cancelled });
+});
+
+app.get("/api/agent/profiles", async (req, res) => {
+  try {
+    const profiles = await listAgentProfiles(getAuthUser(req).id);
+    return res.json({
+      success: true,
+      storage: agentProfilesUseDatabase() ? "database" : "memory",
+      profiles: profiles.map(({ userId: _userId, ...profile }) => profile),
+    });
+  } catch (error) {
+    return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Не удалось загрузить профили агента" });
+  }
+});
+
+app.post("/api/agent/profiles", aiWriteLimiter, async (req, res) => {
+  const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+  const description = typeof req.body?.description === "string" ? req.body.description.trim() : "";
+  const prompt = typeof req.body?.prompt === "string" ? req.body.prompt.trim() : "";
+  const kind = typeof req.body?.kind === "string" ? req.body.kind.trim() : "Мой профиль";
+  if (!name || name.length > 48) return res.status(400).json({ success: false, error: "Название профиля обязательно и должно содержать не более 48 символов." });
+  if (!prompt || prompt.length > 5000) return res.status(400).json({ success: false, error: "Инструкция обязательна и должна содержать не более 5 000 символов." });
+  if (description.length > 160 || kind.length > 40) return res.status(400).json({ success: false, error: "Описание или категория слишком длинные." });
+  try {
+    const profile = await createAgentProfile(getAuthUser(req).id, { name, description, prompt, kind });
+    const { userId: _userId, ...safeProfile } = profile;
+    return res.status(201).json({ success: true, profile: safeProfile, storage: agentProfilesUseDatabase() ? "database" : "memory" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Не удалось создать профиль агента";
+    if (message.includes("уже существует") || (error as { code?: string })?.code === "23505") {
+      return res.status(409).json({ success: false, error: "Профиль с таким названием уже существует." });
+    }
+    console.error("[КВАРД] Agent profile create failed", error);
+    return res.status(503).json({ success: false, error: message });
+  }
+});
+
+app.delete("/api/agent/profiles/:id", async (req, res) => {
+  try {
+    const deleted = await deleteAgentProfile(getAuthUser(req).id, req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, error: "Профиль не найден." });
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Не удалось удалить профиль агента" });
+  }
 });
 
 app.get("/api/agent/history", async (req, res) => {
