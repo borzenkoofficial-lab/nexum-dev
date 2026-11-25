@@ -237,13 +237,17 @@ export class OpenAIProvider implements AIProvider {
       }
     }
 
+    const validTokenCount = (value: unknown): value is number =>
+      typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
     const usage = data.usage ? {
-      ...(typeof data.usage.input_tokens === "number" ? { inputTokens: data.usage.input_tokens } : {}),
-      ...(typeof data.usage.output_tokens === "number" ? { outputTokens: data.usage.output_tokens } : {}),
-      ...(typeof data.usage.total_tokens === "number" ? { totalTokens: data.usage.total_tokens } : {}),
-      ...(typeof data.usage.input_tokens_details?.cached_tokens === "number" ? { cachedInputTokens: data.usage.input_tokens_details.cached_tokens } : {}),
-      ...(typeof data.usage.output_tokens_details?.reasoning_tokens === "number" ? { reasoningTokens: data.usage.output_tokens_details.reasoning_tokens } : {}),
+      ...(validTokenCount(data.usage.input_tokens) ? { inputTokens: data.usage.input_tokens } : {}),
+      ...(validTokenCount(data.usage.output_tokens) ? { outputTokens: data.usage.output_tokens } : {}),
+      ...(validTokenCount(data.usage.total_tokens) ? { totalTokens: data.usage.total_tokens } : {}),
+      ...(validTokenCount(data.usage.input_tokens_details?.cached_tokens) ? { cachedInputTokens: data.usage.input_tokens_details.cached_tokens } : {}),
+      ...(validTokenCount(data.usage.output_tokens_details?.reasoning_tokens) ? { reasoningTokens: data.usage.output_tokens_details.reasoning_tokens } : {}),
     } : undefined;
+    const completeUsage = validTokenCount(data.usage?.input_tokens) &&
+      validTokenCount(data.usage?.output_tokens) && validTokenCount(data.usage?.total_tokens);
     const content = textParts.join("\n");
     return {
       content,
@@ -251,7 +255,8 @@ export class OpenAIProvider implements AIProvider {
       provider: this.id,
       model: typeof data.model === "string" && data.model.trim() ? data.model : request.model,
       ...(typeof data.id === "string" ? { requestId: data.id } : {}),
-      ...(usage && Object.keys(usage).length ? { usage, usageSource: "provider_reported" as const } : { usageSource: "unavailable" as const }),
+      ...(usage && Object.keys(usage).length ? { usage } : {}),
+      usageSource: completeUsage ? "provider_reported" as const : "unavailable" as const,
       ...(toolCalls.length ? { toolCalls } : {}),
       ...(typeof data.status === "string" ? { finishReason: data.status } : data.incomplete_details?.reason ? { finishReason: data.incomplete_details.reason } : {}),
       latencyMs: Date.now() - startedAt,
