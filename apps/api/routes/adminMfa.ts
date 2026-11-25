@@ -82,7 +82,7 @@ adminMfaRouter.post("/challenge/verify", async (req, res) => {
       );
       if (consumed.rowCount !== 1) return { ok: false as const, status: 409, error: "MFA challenge was already consumed." };
       const userResult = await client.query<{ id: string; email: string; name: string; created_at: string }>(
-        "SELECT id, email, name, created_at FROM users WHERE id = $1",
+        "SELECT u.id, u.email, u.name, u.created_at FROM users u INNER JOIN admin_role_assignments r ON r.user_id = u.id WHERE u.id = $1",
         [challenge.userId],
       );
       const user = userResult.rows[0];
