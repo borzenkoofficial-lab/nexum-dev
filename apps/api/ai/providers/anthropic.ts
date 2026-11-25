@@ -51,12 +51,11 @@ export class AnthropicProvider implements AIProvider {
   }
 
   async listModels(signal?: AbortSignal): Promise<string[]> {
-    if (!this.runtimeApiKey) return [...DEFAULT_MODELS];
-    try {
-      const data = await this.request<AnthropicModelsResponse>("/models", { method: "GET", ...(signal ? { signal } : {}) });
-      const remote = (data.data ?? []).map((item) => item.id).filter((id): id is string => typeof id === "string" && /^claude-/i.test(id));
-      return [...new Set([...DEFAULT_MODELS, ...remote])];
-    } catch { return [...DEFAULT_MODELS]; }
+    if (!this.runtimeApiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
+    const data = await this.request<AnthropicModelsResponse>("/models", { method: "GET", ...(signal ? { signal } : {}) });
+    return [...new Set((data.data ?? [])
+      .map((item) => item.id)
+      .filter((id): id is string => typeof id === "string" && /^claude-/i.test(id))];
   }
 
   async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
