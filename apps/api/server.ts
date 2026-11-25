@@ -914,7 +914,8 @@ app.get("/api/ai/providers", authMiddleware, (req, res) => {
 
 app.get("/api/ai/models", authMiddleware, async (req, res) => {
   const gateway = getAIGatewayForUser(getAuthUser(req).id);
-  const [models, catalog] = await Promise.all([gateway.getModels(), gateway.getModelCatalog()]);
+  const catalog = await gateway.getModelCatalog();
+  const models = Object.fromEntries(catalog.providers.map((entry) => [entry.provider, entry.models]));
   return res.json({ success: true, models, catalog });
 });
 
