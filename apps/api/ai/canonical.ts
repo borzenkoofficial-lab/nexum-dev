@@ -143,7 +143,7 @@ function validUsage(usage: AIUsage | undefined): AIUsage | undefined {
   for (const key of ["inputTokens", "outputTokens", "totalTokens", "cachedInputTokens", "reasoningTokens"] as const) {
     const value = usage[key];
     if (value !== undefined) {
-      if (!Number.isFinite(value) || value < 0) return undefined;
+      if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return undefined;
       normalized[key] = value;
     }
   }
