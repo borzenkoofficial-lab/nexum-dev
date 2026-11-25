@@ -11,7 +11,8 @@
     "db:migrate": "tsx db/migrate.ts",
     "test:runtime": "tsx --test runtime/runtime.test.ts",
     "build": "tsc",
-    "worker": "tsx agents/worker.ts"
+    "worker": "tsx agents/worker.ts",
+    "test:queue": "tsx --test agents/agentQueue.integration.test.ts"
   },
   "keywords": [],
   "author": "",
