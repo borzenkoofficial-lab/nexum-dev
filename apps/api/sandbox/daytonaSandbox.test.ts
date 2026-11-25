@@ -32,6 +32,10 @@ test("Daytona provider provisions private registry-restricted sandbox, executes 
   const root = await mkdtemp(join(tmpdir(), "nexum-daytona-run-"));
   const calls: string[] = [];
   let uploaded: Array<{ source: string; destination: string }> = [];
+  let deleteCalls = 0;
+  let finishDelete: (() => void) | undefined;
+  let markDeleteStarted: (() => void) | undefined;
+  const deleteStarted = new Promise<void>((resolveDelete) => { markDeleteStarted = resolveDelete; });
   const sandbox = {
     id: "sandbox-123",
     process: {
@@ -55,7 +59,12 @@ test("Daytona provider provisions private registry-restricted sandbox, executes 
       calls.push("network:" + (settings.networkBlockAll ? "blocked" : settings.domainAllowList ?? "open"));
     },
     getSignedPreviewUrl: async () => ({ url: "https://preview.example.test/signed" }),
-    delete: async () => { calls.push("delete"); },
+    delete: async () => {
+      deleteCalls += 1;
+      markDeleteStarted?.();
+      await new Promise<void>((resolveDelete) => { finishDelete = resolveDelete; });
+      calls.push("delete");
+    },
     stop: async () => { calls.push("stop"); },
   };
   const client: DaytonaClientLike = {
@@ -83,7 +92,16 @@ test("Daytona provider provisions private registry-restricted sandbox, executes 
     assert.match(result.stdout, /build ok/);
     assert.equal(await readFile(join(root, "dist", "index.html"), "utf8"), "<h1>built</h1>");
     assert.equal(await session.getPreviewUrl(4173, 120), "https://preview.example.test/signed");
-    await session.dispose();
+    const firstDispose = session.dispose();
+    const secondDispose = session.dispose();
+    await deleteStarted;
+    let secondDisposeFinished = false;
+    void secondDispose.then(() => { secondDisposeFinished = true; });
+    await Promise.resolve();
+    assert.equal(secondDisposeFinished, false, "every dispose caller must await the same remote deletion");
+    assert.equal(deleteCalls, 1, "concurrent disposal must delete the remote sandbox only once");
+    finishDelete?.();
+    await Promise.all([firstDispose, secondDispose]);
     assert.ok(calls.includes("delete"));
     assert.ok(calls.includes("delete-session"));
   } finally {
