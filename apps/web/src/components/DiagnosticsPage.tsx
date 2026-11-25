@@ -29,7 +29,7 @@ type DiagnosticsResponse = {
   generatedAt?: string;
 };
 
-export function DiagnosticsPage() {
+function statusLabel(status: string) {\n  const labels: Record<string, string> = { queued: "В очереди", running: "Выполняется", completed: "Завершено", failed: "Ошибка", cancelled: "Отменено" };\n  return labels[status] ?? status;\n}\n\nexport function DiagnosticsPage() {
   const [data, setData] = useState<DiagnosticsResponse>({});
   const [selectedJob, setSelectedJob] = useState<string>("");
   const [jobEvents, setJobEvents] = useState<DiagnosticEvent[]>([]);
@@ -91,7 +91,7 @@ export function DiagnosticsPage() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `nexum-diagnostics-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    anchor.download = `kvard-diagnostics-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -107,9 +107,9 @@ export function DiagnosticsPage() {
     <section className="diagnostics-page">
       <div className="diagnostics-hero">
         <div>
-          <span className="eyebrow">NEXUM.DEV / DIAGNOSTICS</span>
-          <h1>Что реально делает Agent</h1>
-          <p>Живой журнал выполнения: этапы, инструменты, ошибки, провайдеры, job и результат проверки.</p>
+          <span className="eyebrow">КВАРД / ДИАГНОСТИКА</span>
+          <h1>Что происходит внутри агента</h1>
+          <p>Журнал выполнения задач: этапы, инструменты, ошибки, провайдеры и результаты проверок.</p>
         </div>
         <div className="diagnostics-actions">
           <button type="button" onClick={() => void load()}>{loading ? "Обновляю…" : "Обновить"}</button>
@@ -118,33 +118,33 @@ export function DiagnosticsPage() {
       </div>
 
       <div className="diagnostics-stats">
-        <div><span>Jobs</span><strong>{jobs.length}</strong><small>последние задания</small></div>
-        <div><span>Ошибки</span><strong>{data.failureCount ?? errors.length}</strong><small>agent / provider / tools</small></div>
-        <div><span>Events</span><strong>{(data.recent ?? []).length}</strong><small>событий в журнале</small></div>
-        <div><span>Последнее обновление</span><strong>{latest}</strong><small>серверный журнал</small></div>
+        <div><span>Задания</span><strong>{jobs.length}</strong><small>последние задания</small></div>
+        <div><span>Ошибки</span><strong>{data.failureCount ?? errors.length}</strong><small>агент · провайдеры · инструменты</small></div>
+        <div><span>События</span><strong>{(data.recent ?? []).length}</strong><small>событий в журнале</small></div>
+        <div><span>Последнее обновление</span><strong>{latest}</strong><small>данные сервера</small></div>
       </div>
 
       <div className="diagnostics-layout">
         <aside className="diagnostics-jobs">
-          <div className="diagnostics-panel-head"><div><span>RUNS</span><h2>Задания Agent</h2></div><b>{jobs.length}</b></div>
-          {jobs.length === 0 && <div className="diagnostics-empty">Запустите первую задачу в Builder.</div>}
+          <div className="diagnostics-panel-head"><div><span>ИСТОРИЯ</span><h2>Задания агента</h2></div><b>{jobs.length}</b></div>
+          {jobs.length === 0 && <div className="diagnostics-empty">Запустите задачу в рабочей среде, чтобы здесь появилась история.</div>}
           {jobs.slice().reverse().map((job) => (
-            <button key={job.id} type="button" className={selectedJob === job.id ? "diagnostics-job selected" : "diagnostics-job"} onClick={() => void loadJob(job.id)}>
+            <button key={job.id} type="button" className={selectedJob === job.id ? "diagnostics-job selected" : "diagnostics-job"} aria-pressed={selectedJob === job.id} onClick={() => void loadJob(job.id)}>
               <span className={`diagnostics-job-dot ${job.status}`} />
               <span className="diagnostics-job-main"><strong>{job.id.slice(0, 8)}</strong><small>{new Date(job.createdAt).toLocaleString("ru-RU")}</small></span>
-              <span className="diagnostics-job-status">{job.status}</span>
+              <span className="diagnostics-job-status">{statusLabel(job.status)}</span>
             </button>
           ))}
         </aside>
 
         <main className="diagnostics-main">
           <div className="diagnostics-panel-head">
-            <div><span>{selectedJob ? "JOB TRACE" : "SYSTEM TRACE"}</span><h2>{selectedJob ? `Job ${selectedJob.slice(0, 12)}` : "Последние события"}</h2></div>
+            <div><span>{selectedJob ? "JOB TRACE" : "SYSTEM TRACE"}</span><h2>{selectedJob ? `Задание ${selectedJob.slice(0, 12)}` : "Последние события"}</h2></div>
             <div className="diagnostics-filters">
-              {(["all", "errors", "jobs"] as const).map((value) => <button key={value} type="button" className={filter === value ? "selected" : ""} onClick={() => setFilter(value)}>{value === "all" ? "Все" : value === "errors" ? "Ошибки" : "Jobs"}</button>)}
+              {(["all", "errors", "jobs"] as const).map((value) => <button key={value} type="button" className={filter === value ? "selected" : ""} aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === "all" ? "Все" : value === "errors" ? "Ошибки" : "Jobs"}</button>)}
             </div>
           </div>
-          {jobLoading && <div className="diagnostics-empty">Загружаю трассировку job…</div>}
+          {jobLoading && <div className="diagnostics-empty">Загружаю историю задания…</div>}
           {!jobLoading && visibleEvents.length === 0 && <div className="diagnostics-empty">Событий пока нет.</div>}
           <div className="diagnostics-timeline">
             {visibleEvents.map((event, index) => (
