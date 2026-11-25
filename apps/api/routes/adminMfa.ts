@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { getAuthUser } from "../auth.js";
+import { authMiddleware, clearAdminMfaChallenge, getAuthUser, issueSession, readAdminMfaChallenge } from "../auth.js";
 import { query, withDatabaseTransaction } from "../db.js";
 import { encryptMfaSecret } from "../mfaEncryption.js";
-import { generateTotpSecret, generateRecoveryCodes, verifyTotpCode } from "../totp.js";
+import { generateTotpSecret, generateRecoveryCodes, matchTotpCounter, verifyRecoveryCode, verifyTotpCode } from "../totp.js";
 
 export const adminMfaRouter = Router();
 
@@ -17,7 +17,88 @@ async function ensureAdminUser(userId: string): Promise<boolean> {
   return Boolean(result.rows[0]?.role);
 }
 
-adminMfaRouter.post("/setup", async (req, res) => {
+adminMfaRouter.post("/challenge/verify", async (req, res) => {
+  const challenge = readAdminMfaChallenge(req);
+  if (!challenge) {
+    clearAdminMfaChallenge(res);
+    return res.status(401).json({ success: false, error: "MFA challenge is missing or expired. Sign in again." });
+  }
+  const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
+  if (!/^\d{6}$/.test(code) && !/^[0-9a-fA-F-]{20,24}$/.test(code)) {
+    return res.status(400).json({ success: false, error: "Enter a 6-digit authenticator code or an unused recovery code." });
+  }
+  try {
+    const key = getEncryptionKey();
+    const outcome = await withDatabaseTransaction(async (client) => {
+      const result = await client.query<{
+        enabled: boolean; encrypted_secret: string | null; login_challenge_nonce: string | null;
+        login_challenge_expires_at: string | null; last_accepted_totp_counter: string | number | null;
+        failed_attempts: number; locked_until: string | null; recovery_code_hashes: string[];
+      }>(
+        `SELECT enabled, encrypted_secret, login_challenge_nonce, login_challenge_expires_at,
+                last_accepted_totp_counter, failed_attempts, locked_until, recovery_code_hashes
+         FROM admin_mfa WHERE user_id = $1 FOR UPDATE`,
+        [challenge.userId],
+      );
+      const row = result.rows[0];
+      if (!row?.enabled || !row.encrypted_secret || row.login_challenge_nonce !== challenge.nonce ||
+          !row.login_challenge_expires_at || new Date(row.login_challenge_expires_at).getTime() <= Date.now()) {
+        return { ok: false as const, status: 401, error: "MFA challenge is invalid or expired." };
+      }
+      if (row.locked_until && new Date(row.locked_until).getTime() > Date.now()) {
+        return { ok: false as const, status: 429, error: "MFA verification is temporarily locked. Try again later." };
+      }
+      let acceptedCounter: number | null = null;
+      let recoveryHashes = row.recovery_code_hashes ?? [];
+      if (/^\d{6}$/.test(code)) {
+        const { decryptMfaSecret } = await import("../mfaEncryption.js");
+        const secret = decryptMfaSecret(row.encrypted_secret, key);
+        const matched = matchTotpCounter(secret, code);
+        const last = row.last_accepted_totp_counter === null ? -1 : Number(row.last_accepted_totp_counter);
+        if (matched !== null && matched > last) acceptedCounter = matched;
+      } else {
+        const index = recoveryHashes.findIndex((hash) => verifyRecoveryCode(code, hash));
+        if (index >= 0) recoveryHashes = recoveryHashes.filter((_, itemIndex) => itemIndex !== index);
+      }
+      const accepted = acceptedCounter !== null || recoveryHashes.length !== (row.recovery_code_hashes ?? []).length;
+      if (!accepted) {
+        const failures = (row.failed_attempts ?? 0) + 1;
+        await client.query(
+          `UPDATE admin_mfa SET failed_attempts = $2,
+             locked_until = CASE WHEN $2 >= 5 THEN NOW() + INTERVAL '15 minutes' ELSE locked_until END,
+             updated_at = NOW() WHERE user_id = $1`,
+          [challenge.userId, failures],
+        );
+        return { ok: false as const, status: failures >= 5 ? 429 : 401, error: "Invalid or already used MFA code." };
+      }
+      const consumed = await client.query(
+        `UPDATE admin_mfa SET
+           last_accepted_totp_counter = CASE WHEN $2::bigint IS NULL THEN last_accepted_totp_counter ELSE $2::bigint END,
+           recovery_code_hashes = $3, failed_attempts = 0, locked_until = NULL,
+           login_challenge_nonce = NULL, login_challenge_expires_at = NULL, updated_at = NOW()
+         WHERE user_id = $1 AND login_challenge_nonce = $4
+         RETURNING user_id`,
+        [challenge.userId, acceptedCounter, recoveryHashes, challenge.nonce],
+      );
+      if (consumed.rowCount !== 1) return { ok: false as const, status: 409, error: "MFA challenge was already consumed." };
+      const userResult = await client.query<{ id: string; email: string; name: string; created_at: string }>(
+        "SELECT id, email, name, created_at FROM users WHERE id = $1",
+        [challenge.userId],
+      );
+      const user = userResult.rows[0];
+      if (!user) return { ok: false as const, status: 401, error: "Account is unavailable." };
+      return { ok: true as const, user: { id: user.id, email: user.email, name: user.name, createdAt: user.created_at, mfaVerified: true } };
+    });
+    if (!outcome.ok) return res.status(outcome.status).json({ success: false, error: outcome.error });
+    clearAdminMfaChallenge(res);
+    issueSession(res, outcome.user);
+    return res.json({ success: true, mfaVerified: true, user: { id: outcome.user.id, email: outcome.user.email, name: outcome.user.name, createdAt: outcome.user.createdAt } });
+  } catch (error) {
+    return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "MFA verification unavailable." });
+  }
+});
+
+adminMfaRouter.post("/setup", authMiddleware, async (req, res) => {
   const user = getAuthUser(req);
   try {
     if (!(await ensureAdminUser(user.id))) return res.status(403).json({ success: false, error: "Admin role required for MFA enrollment." });
@@ -45,7 +126,7 @@ adminMfaRouter.post("/setup", async (req, res) => {
   }
 });
 
-adminMfaRouter.post("/confirm", async (req, res) => {
+adminMfaRouter.post("/confirm", authMiddleware, async (req, res) => {
   const user = getAuthUser(req);
   const code = typeof req.body?.code === "string" ? req.body.code : "";
   if (!/^\d{6}$/.test(code)) return res.status(400).json({ success: false, error: "Enter the 6-digit authenticator code." });
@@ -90,7 +171,7 @@ adminMfaRouter.post("/confirm", async (req, res) => {
   }
 });
 
-adminMfaRouter.get("/status", async (req, res) => {
+adminMfaRouter.get("/status", authMiddleware, async (req, res) => {
   const user = getAuthUser(req);
   try {
     if (!(await ensureAdminUser(user.id))) return res.status(403).json({ success: false, error: "Admin role required." });
