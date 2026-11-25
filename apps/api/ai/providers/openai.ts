@@ -4,7 +4,16 @@ import { validateCanonicalRequest } from "../canonical.js";
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-5";
 interface OpenAIChatResponse {
-  choices?: Array<{ message?: { content?: string } }>;
+  id?: string;
+  model?: string;
+  choices?: Array<{ message?: { content?: string | null }; finish_reason?: string | null }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    prompt_tokens_details?: { cached_tokens?: number };
+    completion_tokens_details?: { reasoning_tokens?: number };
+  };
 }
 
 interface OpenAIModelsResponse {
@@ -245,6 +254,69 @@ export class OpenAIProvider implements AIProvider {
       ...(usage && Object.keys(usage).length ? { usage, usageSource: "provider_reported" as const } : { usageSource: "unavailable" as const }),
       ...(toolCalls.length ? { toolCalls } : {}),
       ...(typeof data.status === "string" ? { finishReason: data.status } : data.incomplete_details?.reason ? { finishReason: data.incomplete_details.reason } : {}),
+      latencyMs: Date.now() - startedAt,
+    };
+  }
+
+  async generateRequest(request: AIRequest): Promise<AIResponse> {
+    const startedAt = Date.now();
+    if (request.version !== 1) throw new Error("OpenAI adapter supports canonical request version 1 only");
+    if (request.stream) throw new Error("OpenAI streaming requires the dedicated streaming adapter contract");
+    if (request.tools?.length || request.messages.some((message) => message.role === "tool" || message.toolCalls?.length || message.toolCallId)) {
+      throw new Error("OpenAI canonical adapter currently supports text-only messages without tool calling");
+    }
+    if (request.responseFormat && request.responseFormat !== "text") {
+      throw new Error("OpenAI canonical adapter does not yet expose structured output");
+    }
+
+    const messages = request.messages.map((message) => {
+      if (message.role === "tool") throw new Error("OpenAI canonical adapter does not yet support tool-role messages");
+      const content = typeof message.content === "string"
+        ? message.content
+        : message.content.map((part) => {
+            if (part.type !== "text") throw new Error("OpenAI canonical adapter currently supports text-only content");
+            return part.text;
+          }).join("");
+      return { role: message.role, content };
+    });
+
+    const data = await this.request<OpenAIChatResponse>("/chat/completions", {
+      method: "POST",
+      signal: request.signal,
+      body: JSON.stringify({
+        model: this.validateModel(request.model || this.model),
+        messages,
+        ...(request.maxTokens === undefined ? {} : { max_completion_tokens: request.maxTokens }),
+        ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
+        ...(request.topP === undefined ? {} : { top_p: request.topP }),
+        ...(request.stopSequences === undefined ? {} : { stop: request.stopSequences }),
+      }),
+    });
+
+    const choice = data.choices?.[0];
+    const content = choice?.message?.content;
+    if (typeof content !== "string") throw new Error("OpenAI returned an invalid canonical response");
+    const rawUsage = data.usage;
+    const validCount = (value: unknown): value is number =>
+      typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+    const usage = rawUsage ? {
+      ...(validCount(rawUsage.prompt_tokens) ? { inputTokens: rawUsage.prompt_tokens } : {}),
+      ...(validCount(rawUsage.completion_tokens) ? { outputTokens: rawUsage.completion_tokens } : {}),
+      ...(validCount(rawUsage.total_tokens) ? { totalTokens: rawUsage.total_tokens } : {}),
+      ...(validCount(rawUsage.prompt_tokens_details?.cached_tokens) ? { cachedInputTokens: rawUsage.prompt_tokens_details.cached_tokens } : {}),
+      ...(validCount(rawUsage.completion_tokens_details?.reasoning_tokens) ? { reasoningTokens: rawUsage.completion_tokens_details.reasoning_tokens } : {}),
+    } : undefined;
+    const completeUsage = validCount(rawUsage?.prompt_tokens) &&
+      validCount(rawUsage?.completion_tokens) && validCount(rawUsage?.total_tokens);
+
+    return {
+      content,
+      provider: this.id,
+      model: typeof data.model === "string" && data.model.length > 0 ? data.model : this.validateModel(request.model || this.model),
+      ...(typeof data.id === "string" ? { requestId: data.id } : {}),
+      ...(usage && Object.keys(usage).length > 0 ? { usage } : {}),
+      usageSource: completeUsage ? "provider_reported" : "unavailable",
+      ...(typeof choice?.finish_reason === "string" ? { finishReason: choice.finish_reason } : {}),
       latencyMs: Date.now() - startedAt,
     };
   }
