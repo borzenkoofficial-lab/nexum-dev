@@ -103,6 +103,8 @@ export interface AIResponse {
 
 export type AIProviderProtocol =
   | "openai-chat-completions"
+  | "openai-compatible-chat-completions"
+  | "openai-responses"
   | "anthropic-messages"
   | "ollama-chat"
   | "mock"
