@@ -48,7 +48,7 @@
 .nx-model { position: relative; }
 .nx-model-pop { position: absolute; z-index: 10; bottom: calc(100% + 8px); left: 0; display: grid; min-width: 220px; gap: 4px; padding: 10px; border: 1px solid var(--nx-border); border-radius: var(--nx-radius); background: var(--nx-surface); }
 .nx-model-pop button { text-align: left; }
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .nx-builder { min-height: calc(100dvh - 230px); height: auto; }
   .nx-builder-header { grid-template-columns: 1fr auto; }
   .nx-builder-nav { grid-row: 2; grid-column: 1 / -1; justify-content: center; }
