@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createElement } from "react";
+import { createElement, type ReactElement } from "react";
 import { KvardButton } from "./KvardButton.ts";
 import { KvardField } from "./KvardField.ts";
 import { KvardStatusBadge } from "./KvardStatusBadge.ts";
@@ -57,7 +57,7 @@ test("KvardField connects its label, hint and error to the native control", () =
     hint: "Используйте корпоративный адрес",
     error: "Некорректный адрес",
     required: true,
-    children: createElement("input", { "aria-describedby": "external-help" }),
+    children: createElement("input", { "aria-describedby": "external-help" }) as ReactElement,
   });
   const fieldProps = propsOf(field);
   const [label, control, hint, error] = childrenOf(fieldProps);
