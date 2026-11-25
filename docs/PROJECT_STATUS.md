@@ -237,3 +237,14 @@ NEXUM.DEV — браузерная платформа для создания и
 Начать с P0-аудита актуального репозитория: проверить дерево файлов, ключевые модули агента, команды package scripts, тесты и последние CI. После аудита заменить предварительные NEEDS_RECHECK на точные статусы и добавить подтверждения.
 
 Не начинайте массовую реализацию новых функций, пока не установлено, какие дефекты существуют на текущем HEAD и какие из них блокируют основной цикл создания и проверки проекта.
+
+
+## Main-only development update (2026-11-25)
+
+- Working policy: `main` is the only development branch. See [DEVELOPMENT_POLICY.md](./DEVELOPMENT_POLICY.md).
+- Direct main commit `07e6ef4`: block premature AI planner completion unless prior successful tool evidence exists; when blocked, route to deterministic next action or the normal `listFiles(.)` tool path.
+- Direct main commit `d61b7e7`: add regression tests for premature completion, successful execution evidence, and end-to-end runtime recovery.
+- Direct main commit `08db9ba`: document the main-only workflow and migration/verification rules.
+- Verification status: GitHub reports no workflow runs yet for these commits. The only observed combined status is a Vercel check failure caused by the configured daily preview build-rate limit. Typecheck, API tests, full CI and live Builder E2E are therefore **NOT YET VERIFIED** for these commits.
+- Existing PRs #56, #61, #68 and other legacy PRs remain historical sources pending careful transplant. PR #56/#68 share conflicting migration numbering and files with the current main schema; do not merge wholesale or overwrite current main files.
+- Branch deletion is not yet performed. First compare each legacy branch's unique commits and content against main; delete only after all useful work is safely present in main.
