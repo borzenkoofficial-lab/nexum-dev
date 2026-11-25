@@ -60,6 +60,7 @@ export interface AIUsage {
   outputTokens?: number;
   totalTokens?: number;
   cachedInputTokens?: number;
+  cacheCreationInputTokens?: number;
   reasoningTokens?: number;
 }
 
