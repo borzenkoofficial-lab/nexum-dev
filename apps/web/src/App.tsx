@@ -630,6 +630,15 @@ function WorkspaceApp() {
     }
   }
 
+  function upsertAssistantReply(jobId: string, content: string) {
+    const id = `assistant-${jobId}`;
+    setConversation((items) => {
+      const existing = items.some((item) => item.id === id);
+      if (existing) return items.map((item) => item.id === id ? { ...item, content } : item);
+      return [...items, { id, role: "assistant", content, timestamp: Date.now() }];
+    });
+  }
+
   async function sendMessage(task = message, projectIdOverride?: string) {
     setPendingApproval(null);
     setPendingApprovalProjectId(null);
@@ -748,6 +757,10 @@ function WorkspaceApp() {
         }
 
         const status = data?.job?.status;
+        if (typeof data?.job?.reply === "string" && data.job.reply.length > 0) {
+          setReply(data.job.reply);
+          upsertAssistantReply(activeJobId, data.job.reply);
+        }
         if (data?.job?.pendingApproval?.status === "pending") {
           setPendingApproval(data.job.pendingApproval);
           setPendingApprovalProjectId(data.job.projectId ?? activeПроектId);
@@ -770,7 +783,7 @@ function WorkspaceApp() {
             acceptanceCriteria: data.job.productPlan.acceptanceCriteria ?? [],
           });
           setReply(data?.job?.reply ?? "");
-          if (data?.job?.reply) setConversation((items) => [...items, { id: `assistant-${Date.now()}`, role: "assistant", content: data.job!.reply!, timestamp: Date.now() }]);
+          if (data?.job?.reply) upsertAssistantReply(activeJobId, data.job.reply);
           setRightTab("preview");
           
           setProjectMode("preview");
