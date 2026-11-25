@@ -424,7 +424,7 @@
 - Model discovery возвращает только provider-reported IDs; статические defaults не выдаются за проверенный каталог. Известные text-generation families допускаются, неизвестные и embedding/image/audio модели остаются fail-closed; расширенные capabilities пока unknown.
 - Добавлен отдельный `OPENAI_RESPONSES_BASE_URL` для случаев, когда Responses endpoint размещён отдельно от legacy Chat Completions base URL.
 - Stop sequences и streaming явно отклоняются до вызова API: streaming требует отдельного event contract.
-- Dedicated workflow `45710389512` passed на commit `5fbbd6b50784`: API typecheck passed, 79/79 focused AI provider contract tests passed.
+- Dedicated workflow `45710906329` passed на commit `83e1de544b2b`: API typecheck passed, 85/85 focused AI provider contract tests passed.
 - Full NEXUM CI `45709660925` passed на commit `853e...` (build + E2E); это было до native OpenAI adapter. Full CI после последнего адаптера ожидает отдельного подтверждения.
 - Реальные provider credentials, платные запросы и production deploy не использовались.
 
@@ -435,3 +435,8 @@
 - Partial/malformed usage remains explicitly `unavailable` for billing; present values are retained only as partial diagnostics. Missing counts are never invented as zero.
 - Dedicated workflow `45710906329` passed: API typecheck and full API test suite passed, including the partial-usage regression.
 - Remaining provider work: native Anthropic/OpenRouter/OrcaRouter/AnyModel/Ollama adapters; real-account sandbox checks; model-level capability verification; canonical streaming; usage ledger and settlement integration.
+
+
+- Дополнительная проверка: неполный usage от OpenAI сохраняется только как диагностические данные и получает `usageSource=unavailable`, если отсутствует хотя бы один из обязательных счётчиков input/output/total. Такой usage нельзя считать подтверждённым для биллинга.
+- Раздельный `OPENAI_RESPONSES_BASE_URL` теперь используется и для Responses API, и для model discovery; `OPENAI_BASE_URL` остаётся адресом legacy Chat Completions.
+- Full NEXUM CI после native OpenAI adapter: workflow `45710906208` выполняется; финальный E2E/build результат ещё не подтверждён.
