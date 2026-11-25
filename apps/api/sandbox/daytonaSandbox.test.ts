@@ -59,6 +59,7 @@ test("Daytona provider provisions private registry-restricted sandbox, executes 
       create: async (options) => {
         assert.equal(options.public, false);
         assert.equal(options.domainAllowList, "registry.npmjs.org");
+        assert.equal(options.ttlMinutes, 30);
         calls.push("create");
         return sandbox;
       },
