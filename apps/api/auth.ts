@@ -83,9 +83,9 @@ function getCookie(request: Request, name: string): string | null {
   return item ? decodeURIComponent(item.slice(name.length + 1)) : null;
 }
 
-function setSessionCookie(response: Response, token: string): void {
+function setSessionCookie(response: Response, token: string, ttlSeconds = TOKEN_TTL_SECONDS): void {
   response.setHeader("Set-Cookie", [
-    `${COOKIE_NAME}=${encodeURIComponent(token)}; Max-Age=${TOKEN_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
+    `${COOKIE_NAME}=${encodeURIComponent(token)}; Max-Age=${ttlSeconds}; Path=/; HttpOnly; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
   ]);
 }
 
@@ -114,7 +114,7 @@ export function issueSession(response: Response, user: AuthUser): void {
   const now = Math.floor(Date.now() / 1000);
   const ttl = user.mfaVerified ? 8 * 60 * 60 : TOKEN_TTL_SECONDS;
   const token = signToken({ sub: user.id, email: user.email, name: user.name, createdAt: user.createdAt, mfa: user.mfaVerified === true, iat: now, exp: now + ttl });
-  setSessionCookie(response, token);
+  setSessionCookie(response, token, ttl);
 }
 
 export function issueAdminMfaChallenge(response: Response, userId: string, nonce: string): void {
