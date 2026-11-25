@@ -239,6 +239,51 @@ export class AIGateway {
     }
   }
 
+  async *streamRequest(
+    request: AIRequest,
+    options: { provider?: string } = {},
+  ): AsyncGenerator<import("./types.js").AIStreamEvent> {
+    validateCanonicalRequest({ ...request, stream: true });
+    const providerId = options.provider ?? this.defaultProviderId;
+    const provider = this.providers.get(providerId);
+    if (!provider) {
+      throw new NexumError("CONFIG_ERROR", "Выбранный AI-провайдер не подключён к КВАРД.", {
+        status: 404, retryable: false, technicalDetails: `Unknown AI provider: ${providerId}`,
+      });
+    }
+    if (!provider.streamRequest) {
+      throw new NexumError("MODEL_ERROR", "Потоковая генерация не поддерживается адаптером выбранного провайдера.", {
+        status: 400, retryable: false, technicalDetails: `Provider ${providerId} has no native streamRequest implementation`,
+      });
+    }
+    if (request.signal?.aborted) {
+      throw new NexumError("NETWORK_ERROR", "Запрос отменён.", {
+        status: 499, retryable: false, technicalDetails: "AbortSignal was already aborted before stream invocation",
+      });
+    }
+    const model = request.model || provider.model;
+    const capabilities = this.getCapabilities(providerId, model);
+    if (capabilities.streaming !== true) {
+      throw new NexumError("MODEL_ERROR", "Выбранная модель не подтвердила поддержку потоковой генерации.", {
+        status: 400, retryable: false, technicalDetails: `Provider ${providerId}, model ${model} does not declare streaming capability`,
+      });
+    }
+    try {
+      for await (const event of provider.streamRequest({ ...request, model, stream: true })) {
+        yield event;
+      }
+    } catch (error) {
+      if (error instanceof NexumError) {
+        throw new NexumError(error.code, redactProviderError(error.userSafeMessage), {
+          retryable: error.retryable, status: error.status,
+          technicalDetails: redactProviderError(error.technicalDetails ?? error.message),
+          requestId: error.requestId, projectId: error.projectId, agentRunId: error.agentRunId, stage: error.stage,
+        });
+      }
+      throw classifyAIError(new Error(redactProviderError(error instanceof Error ? error.message : String(error))));
+    }
+  }
+
   private async generateWithProvider(
     provider: AIProvider,
     message: string,
