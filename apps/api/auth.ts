@@ -31,6 +31,7 @@ export interface AuthUser {
   name: string;
   createdAt: string;
   mfaVerified?: boolean;
+  sessionId?: string;
 }
 
 declare global {
@@ -69,8 +70,8 @@ function verifyToken(token: string): AuthUser | null {
     if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
     const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as Record<string, unknown>;
     if (payload.exp !== undefined && Number(payload.exp) <= Math.floor(Date.now() / 1000)) return null;
-    if (payload.sub === undefined || typeof payload.email !== "string" || typeof payload.name !== "string") return null;
-    return { id: String(payload.sub), email: payload.email, name: payload.name, createdAt: String(payload.createdAt ?? ""), mfaVerified: payload.mfa === true };
+    if (payload.sub === undefined || typeof payload.email !== "string" || typeof payload.name !== "string" || typeof payload.sid !== "string") return null;
+    return { id: String(payload.sub), email: payload.email, name: payload.name, createdAt: String(payload.createdAt ?? ""), mfaVerified: payload.mfa === true, sessionId: payload.sid };
   } catch {
     return null;
   }
@@ -110,11 +111,25 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return expected.length === derived.length && timingSafeEqual(expected, derived);
 }
 
-export function issueSession(response: Response, user: AuthUser): void {
+export async function issueSession(response: Response, user: AuthUser): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
   const ttl = user.mfaVerified ? 8 * 60 * 60 : TOKEN_TTL_SECONDS;
-  const token = signToken({ sub: user.id, email: user.email, name: user.name, createdAt: user.createdAt, mfa: user.mfaVerified === true, iat: now, exp: now + ttl });
+  const sessionId = randomUUID();
+  const expiresAt = new Date((now + ttl) * 1000).toISOString();
+  await query(
+    "INSERT INTO auth_sessions (id, user_id, mfa_verified, expires_at) VALUES ($1, $2, $3, $4)",
+    [sessionId, user.id, user.mfaVerified === true, expiresAt],
+  );
+  const token = signToken({ sub: user.id, email: user.email, name: user.name, createdAt: user.createdAt, mfa: user.mfaVerified === true, sid: sessionId, iat: now, exp: now + ttl });
   setSessionCookie(response, token, ttl);
+}
+
+export async function revokeCurrentSession(request: Request): Promise<void> {
+  const token = getCookie(request, COOKIE_NAME) ?? (request.headers.authorization?.startsWith("Bearer ") ? request.headers.authorization.slice(7) : null);
+  if (!token) return;
+  const user = verifyToken(token);
+  if (!user?.sessionId) return;
+  await query("UPDATE auth_sessions SET revoked_at = NOW() WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL", [user.sessionId, user.id]);
 }
 
 export function issueAdminMfaChallenge(response: Response, userId: string, nonce: string): void {
@@ -148,7 +163,7 @@ export function readAdminMfaChallenge(request: Request): { userId: string; nonce
   }
 }
 
-export function authMiddleware(request: Request, response: Response, next: NextFunction): void {
+export async function authMiddleware(request: Request, response: Response, next: NextFunction): Promise<void> {
   if (!AUTH_ENABLED) {
     request.user = DEV_USER;
     next();
@@ -160,13 +175,30 @@ export function authMiddleware(request: Request, response: Response, next: NextF
     return;
   }
   const user = verifyToken(token);
-  if (!user) {
+  if (!user?.sessionId) {
     clearSessionCookie(response);
     response.status(401).json({ success: false, error: "Session expired or invalid" });
     return;
   }
-  request.user = user;
-  next();
+  try {
+    const active = await query(
+      `UPDATE auth_sessions SET last_seen_at = NOW()
+       WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL AND expires_at > NOW()
+         AND last_seen_at > NOW() - INTERVAL '30 minutes'
+       RETURNING id`,
+      [user.sessionId, user.id],
+    );
+    if (active.rowCount !== 1) {
+      clearSessionCookie(response);
+      response.status(401).json({ success: false, error: "Session revoked, expired, or idle for too long" });
+      return;
+    }
+    request.user = user;
+    next();
+  } catch (error) {
+    console.error("[КВАРД] Session validation failed closed", error);
+    response.status(503).json({ success: false, error: "Session validation unavailable" });
+  }
 }
 
 export function getAuthUser(request: Request): AuthUser {
