@@ -118,7 +118,7 @@ export async function issueSession(response: Response, user: AuthUser): Promise<
   const expiresAt = new Date((now + ttl) * 1000).toISOString();
   if (AUTH_ENABLED) {
     await query(
-      "INSERT INTO auth_sessions (id, user_id, mfa_verified, expires_at) VALUES ($1, $2, $3, $4)",
+      "INSERT INTO auth_sessions (id, user_id, mfa_verified, mfa_verified_at, expires_at) VALUES ($1, $2, $3, CASE WHEN $3 THEN NOW() ELSE NULL END, $4)",
       [sessionId, user.id, user.mfaVerified === true, expiresAt],
     );
   }
