@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Project as Проект } from "./types";
+import { KvardMark } from "./KvardMark.ts";
 
 type Props = {
   projects: Проект[];
@@ -78,7 +79,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
               </div>
             ) : (
               <div className="kv-home-empty">
-                <span className="kv-home-empty-mark">К</span>
+                <KvardMark size={42} />
                 <div><strong>Пока нет проектов</strong><p>Опишите задачу выше, чтобы создать первый проект.</p></div>
                 <button type="button" onClick={() => document.querySelector<HTMLTextAreaElement>(".kv-home-composer textarea")?.focus()}>К описанию</button>
               </div>

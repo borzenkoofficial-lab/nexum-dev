@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import type { Project } from "./types";
+import { KvardMark } from "./KvardMark.ts";
 
 interface OSDesktopProps {
   projects: Project[];
@@ -116,7 +117,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
   return (
     <section className="nexum-os-desktop" aria-label="КВАРД Workspace" onMouseMove={handlePointerMove} onContextMenu={handleDesktopContextMenu} onClick={() => desktopMenu && setDesktopMenu(null)}>
       <div className="os-menubar">
-        <div className="os-brand"><span>К</span><strong>КВАРД</strong></div>
+        <div className="os-brand"><KvardMark size={30} /><strong>КВАРД</strong></div>
         <div className="os-menu-center"><span>Workspace</span><span>Window</span><span>Help</span></div>
         <div className="os-system">
           <span>{active.length} projects</span><i /><span>Workspace ready</span>

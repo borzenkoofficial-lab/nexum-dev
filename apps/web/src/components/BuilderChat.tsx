@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import type { AIProviderInfo, AIProviderStatus, AgentStage } from "./types";
+import { KvardMark } from "./KvardMark.ts";
 
 interface Props {
   message: string;
@@ -53,7 +54,7 @@ export function BuilderChat(p: Props) {
       <div className="nx-chat-scroll">
         {p.messages.length === 0 ? (
           <div className="nx-chat-empty">
-            <div className="nx-chat-mark" aria-hidden="true">К</div>
+            <KvardMark size={48} className="nx-chat-mark" />
             <h1>С чего начнём?</h1>
             <p>Опишите изменение или новый продукт. КВАРД изучит задачу, составит план и выполнит работу в текущем проекте.</p>
             <div className="nx-suggestions" aria-label="Примеры задач">
