@@ -248,3 +248,15 @@ NEXUM.DEV — браузерная платформа для создания и
 - Verification status: GitHub reports no workflow runs yet for these commits. The only observed combined status is a Vercel check failure caused by the configured daily preview build-rate limit. Typecheck, API tests, full CI and live Builder E2E are therefore **NOT YET VERIFIED** for these commits.
 - Existing PRs #56, #61, #68 and other legacy PRs remain historical sources pending careful transplant. PR #56/#68 share conflicting migration numbering and files with the current main schema; do not merge wholesale or overwrite current main files.
 - Branch deletion is not yet performed. First compare each legacy branch's unique commits and content against main; delete only after all useful work is safely present in main.
+
+
+## КВАРД — глобальный редизайн (2026-11-25)
+
+- Добавлен единый рабочий план: [docs/KVARD_GLOBAL_DESIGN_PLAN.md](./KVARD_GLOBAL_DESIGN_PLAN.md).
+- Зафиксировано направление Balanced Premium Technology: светлая нейтральная тема по умолчанию, полноценная тёмная тема, функциональный фиолетовый акцент, градиент только в брендинге.
+- План включает инвентаризацию всех основных поверхностей: onboarding/auth, рабочий стол, проекты, Studio/Builder, AI Agents, Business Agents, интеграции, диагностика, журнал, настройки, общие компоненты, адаптивность и доступность.
+- Порядок: аудит текущих маршрутов и состояний → дизайн-фундамент → основные сценарии → остальные разделы → визуальная и функциональная регрессия.
+- Документальный commit: `02fc73c` — `docs(kvard): add global design redesign plan and checklist`.
+- Статус реализации: **PLAN RECORDED / IMPLEMENTATION NOT STARTED**. Наличие CSS tokens и компонентов не считается подтверждением готовности страниц.
+- Проверки приложения для этого документационного изменения не запускались; визуальная проверка маршрутов и скриншоты ещё не выполнены.
+- Следующий шаг: route-by-route аудит `apps/web/src`, проверка прямых URL и состояний, сбор исходных скриншотов и уточнение макетов перед массовыми UI-изменениями.
