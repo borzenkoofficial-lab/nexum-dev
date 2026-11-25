@@ -418,10 +418,12 @@ export class DaytonaSandboxProvider implements SandboxProvider {
       public: false,
       domainAllowList: "registry.npmjs.org",
       resources: { cpu: this.cpu, memory: this.memoryGiB, disk: this.diskGiB },
+      // Apply the hard lifetime in the create request itself. If the API
+      // process exits immediately after provisioning, the sandbox still expires.
+      ttlMinutes: this.ttlMinutes,
     }, { timeout: 90 });
 
     try {
-      await sandbox.setTtl(this.ttlMinutes);
       await sandbox.setLabels({ app: "nexum-builder", task: taskLabel });
       if (signal?.aborted) throw abortError();
       const workDir = (await sandbox.getWorkDir()).replaceAll("\\", "/");
