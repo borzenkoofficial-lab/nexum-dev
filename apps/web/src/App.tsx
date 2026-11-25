@@ -949,7 +949,7 @@ function App() {
       />}
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
         {view !== "home" && view !== "project" && <OSSystemChrome
-          appName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал NEXUM" : "Диагностика"}
+          appName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал КВАРД" : "Диагностика"}
           appIcon={view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : "⌁"}
           status={aiStatus?.available ? "AI Core подключён" : "Система готова"}
           activeView={view}
@@ -970,7 +970,7 @@ function App() {
             onOpenView={(next) => setView(next)}
           />
         ) : view === "news" ? (
-          <OSAppWindow title="Журнал NEXUM" subtitle="Новости и системные обновления" icon="✦" status="Актуально" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
+          <OSAppWindow title="Журнал КВАРД" subtitle="Новости и системные обновления" icon="✦" status="Актуально" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
             <NewsPage />
           </OSAppWindow>
         ) : view === "connectors" ? (
@@ -987,7 +987,7 @@ function App() {
           <section className="settings-page settings-page-v2">
             <div className="settings-hero">
               <div>
-                <div className="eyebrow">NEXUM.DEV / SETTINGS</div>
+                <div className="eyebrow">КВАРД / НАСТРОЙКИ</div>
                 <h1>Настройки</h1>
                 <p>Единый центр управления интерфейсом, AI Engine, проектами и рабочим процессом.</p>
               </div>
@@ -1092,7 +1092,7 @@ function App() {
                     <div className="settings-card">
                       <strong>Статус</strong>
                       <span className={aiStatus?.available ? "settings-status-ok" : "settings-status-muted"}>{aiStatus?.available ? "Подключено" : "Ожидание подключения"}</span>
-                      <small>{aiStatus?.error || "NEXUM проверяет доступность выбранной модели."}</small>
+                      <small>{aiStatus?.error || "КВАРД проверяет доступность выбранной модели."}</small>
                     </div>
                   </div>
                 </section>
@@ -1218,7 +1218,7 @@ function App() {
           </OSAppWindow>
         ) : (
         <BuilderShell
-          projectName={activeПроект?.name ?? "NEXUM"}
+          projectName={activeПроект?.name ?? "КВАРД"}
           activeTool={codeMode ? "code" : rightTab}
           previewOnline={previewOnline}
           agentStage={agentStage}
@@ -1236,12 +1236,12 @@ function App() {
           onOpenPreview={() => { window.open("/api/preview/" + activeПроектId + "/index.html", "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }}
         >
           {codeMode ? (
-            <BuilderCode projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline}
+            <BuilderCode projectId={activeПроектId} projectName={activeПроект?.name ?? "КВАРД"} previewOnline={previewOnline}
               onRefresh={() => setПредпросмотрKey((key) => key + 1)} onClose={() => { setCodeMode(false); setProjectMode("files"); }} />
           ) : (
             <div className="nx-builder-grid">
               <BuilderChat
-                projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel}
+                projectName={activeПроект?.name ?? "КВАРД"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel}
                 aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} jobId={chatJobId}
                 messages={conversation} attachments={pendingAttachments}
                 onMessageChange={setMessage} onSubmit={() => void sendMessage()} onCancel={() => void cancelAgent()}
@@ -1252,7 +1252,7 @@ function App() {
                 onProviderChange={selectAIProvider} onModelChange={setAIModel}
               />
               <BuilderTools
-                tab={rightTab} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId}
+                tab={rightTab} projectName={activeПроект?.name ?? "КВАРД"} projectId={activeПроектId}
                 previewOnline={previewOnline} previewKey={previewKey} stage={agentStage} jobId={chatJobId}
                 activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity}
                 problems={problems} productPlan={productPlan}
