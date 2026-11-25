@@ -1,0 +1,51 @@
+.kvard-admin{min-height:100vh;background:#f5f6f7;color:#17191c;display:grid;grid-template-columns:244px minmax(0,1fr);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.kvard-admin-loading{min-height:100vh;display:grid;place-items:center;background:#f5f6f7;color:#5c626b;font-size:14px}
+.kvard-admin-rail{background:#fff;border-right:1px solid #e6e8eb;padding:28px 18px;display:flex;flex-direction:column;min-height:100vh}
+.kvard-admin-brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:#17191c;font-size:14px;font-weight:800;letter-spacing:.08em;margin:0 0 52px 4px}
+.kvard-admin-brand b{width:36px;height:36px;border-radius:11px;background:#e8f36a;display:grid;place-items:center;font-size:20px;color:#151719}
+.kvard-admin-brand small{display:block;color:#9298a0;font-size:9px;letter-spacing:.15em;font-weight:600;margin-top:3px}
+.kvard-admin-rail>label{font-size:10px;letter-spacing:.14em;color:#9aa0a8;font-weight:700;padding:0 12px;margin-bottom:12px}
+.kvard-admin-rail nav{display:grid;gap:5px}
+.kvard-admin-rail nav button{border:0;background:transparent;text-align:left;padding:12px 13px;border-radius:9px;color:#68707a;font-size:13px;font-weight:600;cursor:pointer}
+.kvard-admin-rail nav button:hover{background:#f5f6f7;color:#17191c}
+.kvard-admin-rail nav button.active{background:#f0f2e5;color:#17191c}
+.kvard-admin-rail footer{margin-top:auto;display:grid;gap:18px;padding:18px 10px 0;border-top:1px solid #eceef0;font-size:11px;color:#858c95}
+.kvard-admin-rail footer span{color:#4d7b55}
+.kvard-admin-rail footer a{color:#68707a;text-decoration:none}
+.kvard-admin-main{padding:42px clamp(22px,5vw,72px);max-width:1500px;width:100%;margin:0 auto}
+.kvard-admin-main header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:34px;gap:20px}
+.kvard-admin-main header small,.kvard-admin-panel>small,.kvard-admin-hero>small,.kvard-admin-modal small{font-size:10px;letter-spacing:.15em;font-weight:700;color:#969da5}
+.kvard-admin-main header h1{font-size:30px;letter-spacing:-.04em;margin:10px 0 5px;font-weight:650}
+.kvard-admin-main header p{margin:0;color:#7a818a;font-size:13px}
+.kvard-admin-main header>div:last-child{display:flex;align-items:center;gap:12px}
+.kvard-admin-main header>div:last-child span{padding:8px 11px;background:#fff;border:1px solid #e7e9ec;border-radius:8px;font-size:11px;color:#626a73}
+.kvard-admin-main button,.kvard-admin-form button{border:1px solid #e0e3e6;background:#fff;color:#25292e;border-radius:8px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer}
+.kvard-admin-main button:hover{border-color:#b8c05b}
+.kvard-admin-hero{background:#fff;border:1px solid #e7e9ec;border-radius:15px;padding:42px;position:relative;overflow:hidden}
+.kvard-admin-hero h2{font-size:clamp(28px,4vw,48px);letter-spacing:-.055em;line-height:1.05;margin:18px 0 14px;font-weight:650}
+.kvard-admin-hero p,.kvard-admin-panel p{font-size:13px;line-height:1.7;color:#747c85;max-width:620px}
+.kvard-admin-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:16px 0}
+.kvard-admin-stats article,.kvard-admin-panel{background:#fff;border:1px solid #e7e9ec;border-radius:13px;padding:22px}
+.kvard-admin-stats article small{display:block;font-size:10px;letter-spacing:.12em;color:#9299a1;font-weight:700}
+.kvard-admin-stats article strong{display:block;font-size:25px;letter-spacing:-.04em;margin:15px 0 5px}
+.kvard-admin-stats article span{font-size:11px;color:#9299a1}
+.kvard-admin-panel{margin-top:16px}
+.kvard-admin-panel h3{font-size:18px;letter-spacing:-.03em;margin:9px 0 14px}
+.kvard-admin-form{display:flex;gap:10px;flex-wrap:wrap}
+.kvard-admin-form input,.kvard-admin-form select,.kvard-admin-modal input{min-height:40px;border:1px solid #dfe3e7;border-radius:8px;padding:0 12px;background:#fff;color:#17191c;font-size:13px}
+.kvard-admin-form input{flex:1;min-width:220px}
+.kvard-admin-form button,.kvard-admin-modal form>div button:last-child{background:#202327;color:#fff;border-color:#202327}
+.kvard-admin-table{overflow:auto;margin-top:14px}
+.kvard-admin-table table{border-collapse:collapse;width:100%;font-size:12px;text-align:left;white-space:nowrap}
+.kvard-admin-table th{font-size:10px;letter-spacing:.08em;color:#969da5;font-weight:700;padding:12px;border-bottom:1px solid #eceef0}
+.kvard-admin-table td{padding:13px 12px;border-bottom:1px solid #f0f1f2;color:#555d66}
+.kvard-admin-table td small{display:block;color:#a0a6ad;margin-top:4px}
+.kvard-admin-table .danger{color:#a34848;border-color:#f0dede}
+.kvard-admin-error{background:#fff1f0;border:1px solid #f0d3d0;color:#9d3932;border-radius:9px;padding:12px 14px;font-size:12px;margin-bottom:16px}
+.kvard-admin-modal{position:fixed;inset:0;background:#11182766;display:grid;place-items:center;padding:20px;z-index:10000}
+.kvard-admin-modal form{width:min(440px,100%);background:#fff;border-radius:15px;padding:28px;box-shadow:0 20px 70px #0002}
+.kvard-admin-modal h2{font-size:24px;letter-spacing:-.04em;margin:12px 0}
+.kvard-admin-modal p{font-size:13px;line-height:1.65;color:#747c85}
+.kvard-admin-modal input{width:100%;margin:8px 0 18px}
+.kvard-admin-modal form>div{display:flex;justify-content:flex-end;gap:8px}
+@media(max-width:760px){.kvard-admin{grid-template-columns:1fr}.kvard-admin-rail{min-height:0;padding:15px;position:static;border-right:0;border-bottom:1px solid #e6e8eb}.kvard-admin-brand{margin:0 0 15px}.kvard-admin-rail>label,.kvard-admin-rail footer{display:none}.kvard-admin-rail nav{display:flex;overflow:auto}.kvard-admin-rail nav button{white-space:nowrap}.kvard-admin-main{padding:26px 16px}.kvard-admin-main header{align-items:flex-start;flex-direction:column}.kvard-admin-stats{grid-template-columns:1fr}.kvard-admin-hero{padding:27px}.kvard-admin-form{display:grid}.kvard-admin-form input{min-width:0}}
