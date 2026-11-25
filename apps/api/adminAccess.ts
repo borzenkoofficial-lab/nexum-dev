@@ -12,10 +12,11 @@ export type AdminPermission =
   | "runtime.read"
   | "runtime.manage"
   | "audit.read"
-  | "roles.manage";
+  | "roles.manage"
+  | "sessions.manage";
 
 const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
-  super_admin: ["dashboard.read", "users.read", "users.manage", "organizations.read", "billing.read", "billing.manage", "runtime.read", "runtime.manage", "audit.read", "roles.manage"],
+  super_admin: ["dashboard.read", "users.read", "users.manage", "organizations.read", "billing.read", "billing.manage", "runtime.read", "runtime.manage", "audit.read", "roles.manage", "sessions.manage"],
   admin: ["dashboard.read", "users.read", "users.manage", "organizations.read", "runtime.read", "audit.read"],
   support: ["dashboard.read", "users.read", "organizations.read"],
   finance: ["dashboard.read", "billing.read", "billing.manage"],
