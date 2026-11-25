@@ -422,3 +422,14 @@ Provider-specific streaming support was checked against current documentation: O
 ### Ollama native NDJSON streaming
 
 Ollama's `/api/chat` streaming format is newline-delimited JSON, not SSE. The adapter parses NDJSON frames, emits text deltas, and reads prompt/evaluation token counts and the cached-prompt counter when supplied in the final `done: true` frame. It does not invent a finish reason when Ollama omits one. It requires the selected model to have been discovered through `/api/tags`, honors timeout and AbortSignal, cancels the reader on early exit, and rejects truncated streams without the terminal frame. The current canonical implementation is intentionally text-only: images, tool calls and structured output are rejected before network invocation until their streaming semantics are separately implemented and verified. This is based on Ollama's current streaming/API documentation and deterministic local contract tests, not a live Ollama runtime test.
+
+## 14. Authenticated HTTP streaming transport
+
+The canonical provider event stream is exposed to authenticated clients through `POST /api/ai/stream`. The route is mounted behind the existing session `authMiddleware` and per-user `aiWriteLimiter`, then delegates exclusively to the user's `AIGateway`. The request body is allowlisted into the canonical `AIRequest`; client-supplied identity metadata is ignored and server-owned `userId` / `requestId` are attached. Untrusted request IDs are replaced with a generated UUID.
+
+The transport uses named SSE frames with JSON data, `Cache-Control: no-cache, no-transform`, and `X-Accel-Buffering: no`. It waits for the response drain event under backpressure and aborts the canonical request's AbortSignal when the response closes before completion. Once SSE headers have been flushed, provider failures are returned as a safe canonical `error` event; before headers, validation/authentication failures remain ordinary HTTP errors.
+
+The route handler is isolated in `apps/api/ai/streamRoute.ts`. HTTP integration tests in `apps/api/ai/streamRoute.test.ts` exercise missing-user rejection, canonical request validation, server-owned metadata, SSE headers and event order, safe mid-stream error conversion, and upstream abort on client disconnect. These tests use an injected fake Gateway and test auth middleware; they do not call live providers or replace a full end-to-end session-cookie / rate-limit / CSRF test.
+
+The Builder continues to use its persistent `ChatJob` lifecycle. This endpoint is a transport primitive and is not yet wired into Builder or AgentLoop. Client-side chunk parsing, UI rendering, tool-event presentation, approval preservation and full end-to-end cancellation remain pending. Do not describe the user-facing Builder as streaming until that integration is complete.
+
