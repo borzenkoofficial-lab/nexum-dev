@@ -973,7 +973,7 @@ function App() {
               onCreateProject={(description) => openNewProject(description)}
             />
           </OSAppWindow>
-        ) : {view === "diagnostics" ? (
+        ) : view === "diagnostics" ? (
           <OSAppWindow title="Диагностика" subtitle="Системное состояние и события" icon="⌁" status="Система готова" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
             <DiagnosticsPage />
           </OSAppWindow>
