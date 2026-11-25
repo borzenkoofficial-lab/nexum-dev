@@ -1026,7 +1026,7 @@ function App() {
                     <small>100% — базовый режим. 110% увеличивает читаемость на плотных экранах.</small>
                     <div className="settings-scale-group">
                       {[90, 100, 110].map((scale) => (
-                        <button key={scale} type="button" className={uiSettings.scale === scale ? "selected" : ""} onClick={() => setUiSettings((state) => ({ ...state, scale }))}>{scale}%</button>
+                        <button key={scale} type="button" className={uiSettings.scale === scale ? "selected" : ""} aria-pressed={uiSettings.scale === scale} onClick={() => setUiSettings((state) => ({ ...state, scale }))}>{scale}%</button>
                       ))}
                     </div>
                   </div>
@@ -1037,7 +1037,7 @@ function App() {
                       <small>Определяет расстояния и размер служебных элементов.</small>
                       <div className="settings-option-row">
                         <div className="settings-option-copy"><b>Компактный режим</b><span>Больше информации на экране</span></div>
-                        <button type="button" aria-label="Toggle compact mode" className={`nexum-toggle ${uiSettings.compact ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, compact: !state.compact }))} />
+                        <button type="button" aria-label="Компактный режим" aria-pressed={uiSettings.compact} className={`nexum-toggle ${uiSettings.compact ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, compact: !state.compact }))} />
                       </div>
                     </div>
                     <div className="settings-card">
@@ -1046,7 +1046,7 @@ function App() {
                       <small>Только функциональная анимация без постоянного декоративного свечения.</small>
                       <div className="settings-option-row">
                         <div className="settings-option-copy"><b>Анимации</b><span>120–220 ms</span></div>
-                        <button type="button" aria-label="Toggle animations" className={`nexum-toggle ${uiSettings.animations ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, animations: !state.animations }))} />
+                        <button type="button" aria-label="Анимации" aria-pressed={uiSettings.animations} className={`nexum-toggle ${uiSettings.animations ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, animations: !state.animations }))} />
                       </div>
                     </div>
                   </div>
@@ -1055,15 +1055,15 @@ function App() {
                 <section id="settings-ai" className="settings-section">
                   <div className="settings-section-head">
                     <span>02</span>
-                    <div><h2>AI Engine</h2><p>Провайдер, модель и ключи доступа.</p></div>
+                    <div><h2>AI-движок</h2><p>Провайдер, модель и ключи доступа.</p></div>
                   </div>
                   <div className="settings-grid">
                     <div className="settings-card settings-card-wide">
-                      <strong>AI provider</strong>
+                      <strong>AI-провайдер</strong>
                       <span>{aiProviders.length ? "Выберите маршрут, который будет использовать Agent." : "Загрузка списка провайдеров…"}</span>
                       <div className="settings-api-row">
                         <select
-                          aria-label="AI provider"
+                          aria-label="AI-провайдер"
                           value={aiProvider}
                           disabled={!aiProviders.length || aiApiKeyLoading}
                           onChange={(event) => selectAIProvider(event.target.value)}
@@ -1073,7 +1073,7 @@ function App() {
                           ))}
                         </select>
                         <select
-                          aria-label="AI model"
+                          aria-label="AI-модель"
                           value={aiModel}
                           disabled={!aiProvider || aiApiKeyLoading}
                           onChange={(event) => setAIModel(event.target.value)}
@@ -1109,7 +1109,7 @@ function App() {
                       <small>Обновлять Preview после успешной работы Agent.</small>
                       <div className="settings-option-row">
                         <div className="settings-option-copy"><b>Автопредпросмотр</b><span>Обновлять после сборки</span></div>
-                        <button type="button" aria-label="Toggle auto preview" className={`nexum-toggle ${uiSettings.autoПредпросмотр ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, autoПредпросмотр: !state.autoПредпросмотр }))} />
+                        <button type="button" aria-label="Автоматически обновлять предпросмотр" aria-pressed={uiSettings.autoПредпросмотр} className={`nexum-toggle ${uiSettings.autoПредпросмотр ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, autoПредпросмотр: !state.autoПредпросмотр }))} />
                       </div>
                     </div>
                     <div className="settings-card"><strong>Активные проекты</strong><span>{projects.filter((project) => project.status === "active").length} проектов</span><small>Каждый проект хранит собственные файлы, Preview и контекст.</small></div>
@@ -1122,7 +1122,7 @@ function App() {
                     <strong>Звук завершения</strong><span>{uiSettings.sound ? "Включён" : "Выключен"}</span><small>Сигнал при завершении или ошибке Agent.</small>
                     <div className="settings-option-row">
                       <div className="settings-option-copy"><b>Уведомлять звуком</b><span>Без визуального шума</span></div>
-                      <button type="button" aria-label="Toggle completion sound" className={`nexum-toggle ${uiSettings.sound ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, sound: !state.sound }))} />
+                      <button type="button" aria-label="Звук завершения задачи" aria-pressed={uiSettings.sound} className={`nexum-toggle ${uiSettings.sound ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, sound: !state.sound }))} />
                     </div>
                   </div>
                 </section>
@@ -1130,7 +1130,7 @@ function App() {
                 <section id="settings-shortcuts" className="settings-section">
                   <div className="settings-section-head"><span>05</span><div><h2>Горячие клавиши</h2><p>Быстрый доступ к рабочему пространству.</p></div></div>
                   <div className="settings-card settings-card-wide settings-shortcuts">
-                    <div><strong>Command Palette</strong><small>Открыть палитру команд</small></div>
+                    <div><strong>Палитра команд</strong><small>Открыть палитру команд</small></div>
                     <kbd>⌘ K</kbd>
                     <div><strong>Навигация</strong><small>Ctrl / Command + K поддерживается</small></div>
                   </div>
@@ -1145,7 +1145,7 @@ function App() {
                 </section>
 
                 <section className="settings-section">
-                  <div className="settings-section-head"><span>07</span><div><h2>API access</h2><p>Подключение внешних AI-моделей.</p></div></div>
+                  <div className="settings-section-head"><span>07</span><div><h2>Доступ к API</h2><p>Подключение внешних AI-моделей.</p></div></div>
                   <div className="settings-card settings-card-wide anymodel-api-card">
                     <div className="anymodel-api-head">
                       <div>
