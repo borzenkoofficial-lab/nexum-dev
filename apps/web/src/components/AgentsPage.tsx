@@ -136,14 +136,14 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
         <button className="kv-agents-refresh" type="button" onClick={() => void load()} disabled={loading}>{loading ? "Обновление…" : "Обновить состояние"}</button>
       </header>
 
-      <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Как это работает сейчас.</strong> Профиль хранит инструкцию в аккаунте и передаёт её существующему AI Runtime как задачу. Постоянные автономные агенты с собственным расписанием, инструментами и независимой конфигурацией пока не включены.</p></div>
+      <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Как это работает сейчас.</strong> Профиль хранит инструкцию через серверный API КВАРД и передаёт её существующему AI Runtime как задачу. Постоянные автономные агенты с собственным расписанием, инструментами и независимой конфигурацией пока не включены.</p></div>
       {notice && <p className="kv-agents-feedback" role="status">{notice}</p>}
       {loadError && <div className="kv-agents-error" role="alert">{loadError} <button type="button" onClick={() => void load()}>Повторить</button></div>}
 
       <section className="kv-agents-profiles" aria-labelledby="kv-agents-profiles-title">
         <div className="kv-agents-section-head"><div><span>БИБЛИОТЕКА</span><h2 id="kv-agents-profiles-title">Профили задач</h2><p>Готовые роли и ваши собственные инструкции для агента.</p></div><button type="button" className="kv-agents-create" onClick={() => { setFormOpen((value) => !value); setFormError(""); }}>＋ Создать профиль</button></div>
         {formOpen && <form className="kv-agents-form" onSubmit={(event) => { event.preventDefault(); void saveProfile(); }}>
-          <div className="kv-agents-form-head"><div><strong>Новый профиль запуска</strong><small>Инструкция сохранится в профилях вашего аккаунта.</small></div><button type="button" aria-label="Закрыть форму" onClick={() => setFormOpen(false)}>×</button></div>
+          <div className="kv-agents-form-head"><div><strong>Новый профиль запуска</strong><small>Сохранение выполняется через сервер API. Режим хранения указан под библиотекой.</small></div><button type="button" aria-label="Закрыть форму" onClick={() => setFormOpen(false)}>×</button></div>
           <label>Название профиля<input value={profileName} onChange={(event) => setProfileName(event.target.value)} maxLength={48} placeholder="Например, Аналитик бизнес-процессов" required /></label>
           <label>Краткое описание<input value={profileDescription} onChange={(event) => setProfileDescription(event.target.value)} maxLength={140} placeholder="Для каких задач предназначен профиль" /></label>
           <label>Инструкция для агента<textarea value={profilePrompt} onChange={(event) => setProfilePrompt(event.target.value)} maxLength={5000} rows={5} placeholder="Опишите роль, цель, правила работы и ожидаемый результат…" required /></label>
@@ -156,6 +156,7 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
         {profileLoadError && <div className="kv-agents-error" role="alert">{profileLoadError} <button type="button" onClick={() => void loadProfiles()}>Повторить</button></div>}
         {profileStorage === "memory" && <p className="kv-agents-storage-warning" role="status">База данных не подключена: пользовательские профили хранятся в памяти сервера и будут потеряны после его перезапуска.</p>}
         {profileStorage === "database" && <p className="kv-agents-storage-ok">Пользовательские профили сохраняются в базе данных аккаунта.</p>}
+        {profileStorage === "unknown" && profilesLoading && <p className="kv-agents-empty">Проверяю хранилище профилей…</p>}
         <div className="kv-agents-profile-list">
           {profilesLoading && <p className="kv-agents-empty">Загружаю пользовательские профили…</p>}
           {profiles.map((profile) => <article className="kv-agents-profile" key={profile.id}>
