@@ -1587,7 +1587,7 @@ export class AgentLoop {
         if (!options) return "NEXUM завершил выполнение без дополнительного AI-ответа: лимит токенов задачи исчерпан.";
         if (options.maxTokens !== undefined && options.maxTokens <= 0) {
           const response = "NEXUM завершил выполнение без дополнительного AI-ответа: лимит токенов задачи исчерпан.";
-          responseOptions.onTextDelta?.(response);
+          responseOptions?.onTextDelta?.(response);
           return response;
         }
         return await this.gateway.generate(task, responseOptions);
@@ -1632,7 +1632,7 @@ export class AgentLoop {
       if (!options) return "Задача выполнена. Дополнительный финальный AI-ответ отключён: лимит токенов задачи исчерпан.";
       if (options.maxTokens !== undefined && options.maxTokens <= 0) {
         const response = "Задача выполнена. Дополнительный финальный AI-ответ отключён: лимит токенов задачи исчерпан.";
-        responseOptions.onTextDelta?.(response);
+        responseOptions?.onTextDelta?.(response);
         return response;
       }
       return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, responseOptions);
