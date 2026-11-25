@@ -289,28 +289,28 @@ NEXUM.DEV — браузерная платформа для создания и
 - Главный чек-лист: `docs/KVARD_ADMIN_PANEL_CHECKLIST.md`.
 
 
-## КВАРД — серверный транспорт потоковой генерации (2026-11-26)
 
-**Статус: API TRANSPORT VERIFIED / BUILDER INTEGRATION PENDING.**
+## КВАРД — AI streaming transport и browser parser (2026-11-26)
 
-- Защищённый `POST /api/ai/stream` смонтирован в `apps/api/server.ts` за существующими `authMiddleware` и `aiWriteLimiter`.
-- Handler вынесен в `apps/api/ai/streamRoute.ts`; он делегирует только per-user `AIGateway`, валидирует канонический запрос, собирает поля по allowlist и игнорирует клиентские identity metadata.
-- Сервер назначает `userId` и `requestId`; непроверенный клиентский request ID не принимается.
-- SSE использует именованные JSON events, отключение proxy buffering и корректное ожидание backpressure.
-- При закрытии соединения до завершения генерации AbortSignal передаётся Gateway и upstream provider adapter.
-- До отправки SSE headers ошибки возвращаются как HTTP JSON; после отправки headers ошибки преобразуются в безопасный canonical `error` event.
-- Добавлены `apps/api/ai/sse.ts`, `sse.test.ts`, `streamRoute.ts` и `streamRoute.test.ts`; тесты включены в полный API suite и `test:ai-contract`.
-- HTTP integration tests проверяют: отсутствие пользователя, canonical validation, server-owned metadata, SSE headers и порядок событий, безопасную ошибку провайдера после headers, отмену upstream при отключении клиента.
-- Тесты используют fake Gateway и тестовый auth middleware: live providers не вызываются; полная интеграция session-cookie, production rate-limit и CSRF не заявляется как отдельно проверенная.
-- Отдельный endpoint сохраняет существующую архитектуру Builder с persistent `ChatJob`; текущий `POST /api/chat` не заменён, approvals и Completion Gate не обходятся.
-- Проверка [КВАРД AI Provider Contract #45717142792](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/45717142792) — **SUCCESS**: API TypeScript и **124/124 теста** прошли на commit `4620fa62613b6990b21f18815ed2dd73a16274b7`.
-- Полный [NEXUM CI #45717142689](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/45717142689) на момент обновления документа — **PENDING**. Vercel status сообщает о лимите сборок (`build-rate-limit`); это не является доказательством ошибки кода.
-- Production deployment, production migrations, live provider credentials и платные provider calls не использовались.
+**Статус: SERVER TRANSPORT + CLIENT PARSER VERIFIED / BUILDER AGENT INTEGRATION PENDING.**
+
+- Защищённый `POST /api/ai/stream` смонтирован за существующими `authMiddleware` и `aiWriteLimiter`; handler изолирован в `apps/api/ai/streamRoute.ts` и делегирует только per-user `AIGateway`.
+- Запрос валидируется как canonical AIRequest, поля собираются по allowlist; сервер назначает identity metadata и request ID; SSE передаётся без proxy buffering с backpressure и AbortSignal при disconnect.
+- HTTP integration tests проверяют отсутствие пользователя, canonical validation, server-owned metadata, SSE headers/event order, безопасную ошибку после headers и upstream abort на disconnect.
+- Browser consumer `apps/web/src/runtime/AIStream.ts` реализует инкрементальный SSE parser с корректной обработкой UTF-8 chunk splitting, CRLF, комментариев, multi-line data и final frame flush.
+- Парсер валидирует event payloads, ограничивает размер frame 2 MiB, отклоняет malformed/unknown/mismatched events, truncated streams и события после terminal event.
+- Добавлены 10 тестов `apps/web/src/runtime/AIStream.test.ts`; скрипт `test:ai-stream` включён в полный NEXUM CI. Runtime export добавлен в `apps/web/src/runtime/index.ts`.
+- Builder намеренно не подключён к raw `/api/ai/stream`: его текущая архитектура использует persistent `ChatJob` и `AgentLoop`. Прямой вызов модели из браузера обошёл бы планирование, инструменты, approvals, cancellation и Completion Gate.
+- Полный [NEXUM CI #45718253185](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/45718253185) на commit `81e4c99debd21641f040e81ba51c20d92e038316` — **SUCCESS**: API tests (313/313), Web AI stream parser (10/10), API/Web typecheck и build, Web lint, Docker production-image build, container smoke test и Runtime Phase 2.5 E2E.
+- Отдельный [КВАРД AI Provider Contract #45717142792](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/45717142792) — **SUCCESS**, 124/124 tests.
+- Vercel commit status сообщает `build-rate-limit`; это отдельное ограничение сборок Vercel. GitHub CI production container smoke test прошёл, но Vercel deployment не выполнялся.
+- Live provider requests, production secrets, production migrations и deployment не использовались.
 
 **Оставшиеся критерии приёмки:**
-1. Добавить тесты backpressure и полную проверку session-cookie / rate-limit / CSRF middleware на HTTP уровне.
-2. Реализовать браузерный fetch-stream parser с корректным разбором произвольно разделённых и неполных SSE frames.
-3. Подключить клиентский stream к Builder/AgentLoop без потери ChatJob persistence, tool execution, approvals, cancellation и Completion Gate.
-4. Провести UI/E2E проверку и дождаться полного NEXUM CI; только после этого повышать статус до DONE.
+1. Реализовать streaming callbacks внутри фактического AIOrchestrator/AgentLoop, не раскрывая пользователю внутренний planner/tool JSON.
+2. Передавать user-visible deltas/progress в существующую ChatJob модель с ограничением частоты persistence и корректной последовательностью событий.
+3. Подключить Builder к ChatJob stream/updates так, чтобы сохранялись история, tools, approvals, cancellation, reload recovery и Completion Gate.
+4. Улучшить streaming-aware network lifecycle в Web runtime: длительный timeout, caller AbortSignal до конца чтения body, отсутствие автоматических повторов платного POST.
+5. Добавить end-to-end тесты фактической AgentLoop streaming-интеграции и повторить полный CI.
 
-**Следующий шаг:** реализовать браузерный SSE parser и подключить его к Builder как отдельный presentation/transport слой, сохранив текущую модель фоновых ChatJob.
+**Следующий шаг:** сначала реализовать streaming output callback в AgentLoop/Orchestrator и ChatJob, затем добавить поток обновлений для Builder. Не подключать raw endpoint напрямую к Builder и не считать пользовательский streaming chat готовым до E2E-проверки.
