@@ -80,8 +80,23 @@ export function validateCanonicalRequest(request: AIRequest): void {
     if (!isRecord(message) || !["system", "developer", "user", "assistant", "tool"].includes(String(message.role))) {
       invalidRequest(`messages[${index}].role is invalid`);
     }
+    const hasToolCalls = Array.isArray(message.toolCalls) && message.toolCalls.length > 0;
+    if (message.toolCalls !== undefined) {
+      if (message.role !== "assistant" || !Array.isArray(message.toolCalls) || message.toolCalls.length === 0 || message.toolCalls.length > 32) {
+        invalidRequest(`messages[${index}].toolCalls must be a non-empty assistant tool-call list of at most 32 items`);
+      }
+      const callIds = new Set<string>();
+      for (const [callIndex, call] of message.toolCalls.entries()) {
+        if (!isRecord(call) || typeof call.id !== "string" || !call.id.trim() ||
+          typeof call.name !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(call.name) ||
+          !isRecord(call.arguments) || callIds.has(call.id)) {
+          invalidRequest(`messages[${index}].toolCalls[${callIndex}] is invalid`);
+        }
+        callIds.add(call.id);
+      }
+    }
     if (typeof message.content === "string") {
-      if (!message.content.trim()) invalidRequest(`messages[${index}].content must not be empty`);
+      if (!message.content.trim() && !hasToolCalls) invalidRequest(`messages[${index}].content must not be empty unless the assistant message contains tool calls`);
     } else if (Array.isArray(message.content) && message.content.length > 0) {
       message.content.forEach((part, partIndex) => validateContentPart(part, partIndex));
     } else {
@@ -127,7 +142,9 @@ export function getRequiredCapabilities(request: AIRequest): Partial<AIModelCapa
   const hasImage = request.messages.some((message) =>
     Array.isArray(message.content) && message.content.some((part) => part.type === "image"),
   );
-  const hasTools = Boolean(request.tools?.length) || request.messages.some((message) => message.role === "tool");
+  const hasTools = Boolean(request.tools?.length) || request.messages.some((message) =>
+    message.role === "tool" || Boolean(message.toolCalls?.length),
+  );
   return {
     text: true,
     ...(hasImage ? { vision: true } : {}),
