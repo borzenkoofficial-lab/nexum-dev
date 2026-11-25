@@ -396,3 +396,10 @@ The canonical streaming API is an async event stream. Event types are `message_s
 The gateway rejects streaming before provider invocation unless the adapter implements `streamRequest` and the selected model explicitly reports streaming support. A completed-response API must not silently buffer a streaming request.
 
 Anthropic Messages now implements SSE streaming with text deltas, tool-call start/JSON argument deltas, finish reason, request identity, and reported usage. Its adapter test uses a deterministic in-memory SSE response; this is a contract test, not a live Anthropic connectivity test.
+
+
+### OpenAI Responses streaming adapter
+
+OpenAI uses the native `POST /responses` endpoint with `stream: true` and Bearer authentication. The adapter maps `response.created`, `response.output_text.delta`, `response.output_item.added` for function calls, `response.function_call_arguments.delta`, and terminal `response.completed` / `response.incomplete` events into the canonical stream. It preserves provider response identity and reported token dimensions; partial/missing usage is explicitly marked unavailable. SSE parsing supports arbitrary chunk boundaries, multiline data, and a final frame without a trailing blank line. A stream that closes without a terminal response event is rejected as truncated.
+
+Streaming capability is declared for recognized OpenAI text-generation model families; unknown model families remain fail-closed in the Gateway. Deterministic fake-stream tests cover text, function arguments, final usage, arbitrary chunk splitting, and truncated-stream rejection. This is not a live OpenAI connectivity or billing verification.
