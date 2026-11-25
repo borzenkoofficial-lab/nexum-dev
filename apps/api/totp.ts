@@ -53,15 +53,21 @@ export function generateTotpCode(secret: string, timestampMs = Date.now(), digit
   return String(binary % (10 ** digits)).padStart(digits, "0");
 }
 
-export function verifyTotpCode(secret: string, code: string, timestampMs = Date.now(), windowSteps = 1): boolean {
-  if (!/^\d{6}$/.test(code) || !Number.isInteger(windowSteps) || windowSteps < 0 || windowSteps > 2) return false;
+export function matchTotpCounter(secret: string, code: string, timestampMs = Date.now(), windowSteps = 1): number | null {
+  if (!/^\d{6}$/.test(code) || !Number.isInteger(windowSteps) || windowSteps < 0 || windowSteps > 2) return null;
+  const currentCounter = Math.floor(timestampMs / 30_000);
+  const suppliedBuffer = Buffer.from(code);
   for (let step = -windowSteps; step <= windowSteps; step += 1) {
-    const expected = generateTotpCode(secret, timestampMs + step * 30_000);
-    const expectedBuffer = Buffer.from(expected);
-    const suppliedBuffer = Buffer.from(code);
-    if (expectedBuffer.length === suppliedBuffer.length && timingSafeEqual(expectedBuffer, suppliedBuffer)) return true;
+    const counter = currentCounter + step;
+    if (counter < 0) continue;
+    const expectedBuffer = Buffer.from(generateTotpCode(secret, counter * 30_000));
+    if (expectedBuffer.length === suppliedBuffer.length && timingSafeEqual(expectedBuffer, suppliedBuffer)) return counter;
   }
-  return false;
+  return null;
+}
+
+export function verifyTotpCode(secret: string, code: string, timestampMs = Date.now(), windowSteps = 1): boolean {
+  return matchTotpCounter(secret, code, timestampMs, windowSteps) !== null;
 }
 
 export function generateRecoveryCodes(count = 10): { codes: string[]; hashes: string[] } {
