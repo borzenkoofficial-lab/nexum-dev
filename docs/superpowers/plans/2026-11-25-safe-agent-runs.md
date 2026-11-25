@@ -37,10 +37,10 @@
 - Create: apps/api/agent/agent-config.test.ts
 - Modify: apps/api/package.json
 
-- [ ] Verify tests fail before implementation.
-- [ ] Add optional runtime configuration with systemPrompt and allowedTools.
-- [ ] Filter getAvailableTools() and reject non-allowlisted executeTool() calls.
-- [ ] Add the user-defined instruction block to planner/reviewer prompts with an explicit lower-priority trust boundary.
+- [x] Added runtime allowlist and trust-boundary tests before implementation. A local RED run is unavailable in this GitHub-only editing session; CI will provide executable verification.
+- [x] Add optional runtime configuration with systemPrompt and allowedTools.
+- [x] Filter getAvailableTools() and reject non-allowlisted executeTool() calls.
+- [x] Add the user-defined instruction block to planner/reviewer prompts with an explicit lower-priority trust boundary.
 - [ ] Run focused tests and API typecheck.
 
 ### Task 2: Enforce safe autonomous configuration
@@ -49,8 +49,8 @@
 - Modify: apps/api/agent/agentDefinitionStore.ts
 - Modify: apps/api/agent/agentDefinitionStore.test.ts
 
-- [ ] Verify the new validation test fails.
-- [ ] Permit autonomous only when every configured tool has risk READ.
+- [x] Added autonomous policy validation tests before implementation. Local RED run unavailable; CI will verify.
+- [x] Permit autonomous only when every configured tool has risk READ.
 - [ ] Preserve always and writes as saved but non-runnable policies until an approval queue exists.
 - [ ] Run the focused store tests.
 
@@ -61,10 +61,10 @@
 - Modify: apps/api/agent/agentDefinitionStore.ts only if a narrowly scoped getter is required.
 - Modify: apps/api/agent/agentDefinitionStore.test.ts if a getter is added.
 
-- [ ] Accept optional agentDefinitionId on POST /api/chat.
-- [ ] Load by authenticated owner, reject paused agents, reject non-autonomous approval policies, and reject any non-READ tool.
-- [ ] Pass the resolved definition into runChatJob and the NexumAgent runtime.
-- [ ] Use the saved provider/model when configured; do not accept client overrides for a configured agent.
+- [x] Accept optional agentDefinitionId on POST /api/chat.
+- [x] Load by authenticated owner, reject paused agents, reject non-autonomous approval policies, and reject any non-READ tool.
+- [x] Pass the resolved definition into runChatJob and the NexumAgent runtime.
+- [x] Use the saved provider/model when configured; saved values override client selections.
 - [ ] Keep the existing no-agent chat path unchanged.
 - [ ] Verify invalid/paused/policy-incompatible agent requests fail before job creation.
 
@@ -74,10 +74,10 @@
 - Modify: apps/web/src/components/AgentsPage.tsx
 - Modify: apps/web/src/App.tsx
 
-- [ ] Add a task field and a button to open the selected saved agent in Studio.
-- [ ] Carry the agent ID with the next submitted chat task; clear it after the request is accepted.
-- [ ] Keep normal profiles separate from persistent agent definitions.
-- [ ] Explain that this milestone supports user-submitted read-only runs only.
+- [x] Add a task field and a button to open the selected saved agent in Studio.
+- [x] Carry the agent ID with the next submitted chat task; clear it after the request is accepted.
+- [x] Keep normal profiles separate from persistent agent definitions.
+- [x] Explain that this milestone supports user-submitted read-only runs only.
 
 ### Task 5: Verification and documentation
 
