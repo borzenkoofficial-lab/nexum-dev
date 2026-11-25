@@ -9,7 +9,7 @@ import { OpenAIProvider } from "../ai/providers/openai.js";
 import { AnthropicProvider } from "../ai/providers/anthropic.js";
 import { OrcaRouterProvider } from "../ai/providers/orcarouter.js";
 import {
-  claimNextAgentRun, getAgentVersionForRun, renewAgentRunLease, releaseAgentRunLease,
+  claimNextAgentRun, getAgentVersionForRun, renewAgentRunLease, releaseAgentRunLease, updateRun, addRunEvent,
 } from "./agentRepository.js";
 import { AgentRuntime } from "./agentRuntime.js";
 import { recordAgentRunUsage } from "../billing/quotaService.js";
@@ -78,8 +78,10 @@ async function processOne(): Promise<boolean> {
       console.error("[NEXUM worker] usage recording failed", { runId: claimed.id, error });
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Unexpected worker execution failure";
+    await updateRun(claimed.id, "failed", { error: { code: "WORKER_EXECUTION_ERROR", message } }, workerId).catch(() => undefined);
+    await addRunEvent(claimed.id, "run.worker_failed", { attempt: claimed.attempts, message }, workerId).catch(() => undefined);
     console.error("[NEXUM worker] run execution failed", { runId: claimed.id, attempt: claimed.attempts, error });
-    // The run remains recoverable only if the process dies while holding its lease.
     // Deterministic runtime failures are terminal; never blindly replay tool side effects.
   } finally {
     clearInterval(heartbeat);
