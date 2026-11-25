@@ -382,3 +382,10 @@
 - Автоматический transient fallback теперь также поддерживает native-only provider.
 - Dedicated workflow `45707392285` passed на commit `4d947cc4096519c7e1fdf7fc6732e5a1067c3ad7`: API typecheck passed, 246/246 API tests passed.
 - Это снижает стоимость будущей миграции: продуктовые модули можно переводить постепенно, не требуя одновременного переписывания всех call sites.
+
+
+### AI Provider Contract — streaming boundary
+
+- `AIGateway.generateRequest()` is a complete-response API. Запросы с `stream: true` отклоняются до вызова адаптера даже при заявленном `streaming: true`.
+- Для реального streaming требуется отдельный canonical event protocol и `AIGateway.streamRequest()`; до его реализации ни один provider не должен включать streaming в доступные пользователям функции.
+- Dedicated workflow `45708228452` passed на commit `83ae24ea58875a3868279bb80820348d6943e900`: API typecheck passed, 247/247 API tests passed.
