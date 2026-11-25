@@ -455,7 +455,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .kv-home-topbar { min-height: 52px; padding-inline: 16px; }
   .kv-home-top-context { font-size: 10px; }
   .kv-home-top-actions { gap: 8px; }
-  .kv-home-top-actions button { width: 40px; height: 40px; }
+  .kv-home-top-actions button { width: 44px; height: 44px; }
   .kv-home-composer-footer button { min-height: 44px; padding-inline: 12px; }
   .kv-home-footer button { min-height: 44px; padding-inline: 8px; }
   .kv-home-content { padding: 28px 16px 42px; }
