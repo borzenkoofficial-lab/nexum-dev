@@ -17,7 +17,7 @@ interface Props {
   onTabChange: (tab: "preview" | "files" | "agent") => void;
   onRefresh: () => void;
   onRepair: () => void;
-  onOpenChat: () => void;
+  onOpenAgent: () => void;
 }
 
 const stages = [
@@ -133,7 +133,7 @@ export function BuilderTools(p: Props) {
           </>
         ) : (
           <div className="nx-preview-empty">
-            <div><span>PREVIEW</span><h2>Здесь появится ваше приложение</h2><p>Отправьте задачу в чате, чтобы начать разработку.</p><button type="button" onClick={p.onOpenChat}>Перейти к задаче</button></div>
+            <div><span>PREVIEW</span><h2>Здесь появится ваше приложение</h2><p>Отправьте задачу в чате, чтобы начать разработку.</p><button type="button" onClick={p.onOpenAgent}>Открыть AI-агента</button></div>
           </div>
         )}
       </section>
