@@ -1,11 +1,22 @@
+export type AIModelCapabilityKey =
+  | "text"
+  | "code"
+  | "vision"
+  | "toolCalling"
+  | "streaming"
+  | "structuredOutput"
+  | "reasoning";
+
+export type AIModelCapabilityValue = boolean | "unknown";
+
 export interface AIModelCapabilities {
-  text: boolean;
-  code: boolean;
-  vision: boolean;
-  toolCalling: boolean;
-  streaming: boolean;
-  structuredOutput: boolean;
-  reasoning: boolean;
+  text: AIModelCapabilityValue;
+  code: AIModelCapabilityValue;
+  vision: AIModelCapabilityValue;
+  toolCalling: AIModelCapabilityValue;
+  streaming: AIModelCapabilityValue;
+  structuredOutput: AIModelCapabilityValue;
+  reasoning: AIModelCapabilityValue;
   contextWindow: number | null;
 }
 
