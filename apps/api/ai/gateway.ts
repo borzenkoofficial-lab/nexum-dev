@@ -202,7 +202,7 @@ export class AIGateway {
       return normalizeAIResponse({ ...response, provider: provider.id }, provider.id, model);
     } catch (error) {
       if (error instanceof NexumError) {
-        throw new NexumError(error.code, error.userSafeMessage, {
+        throw new NexumError(error.code, redactProviderError(error.userSafeMessage), {
           retryable: error.retryable,
           status: error.status,
           technicalDetails: redactProviderError(error.technicalDetails ?? error.message),
