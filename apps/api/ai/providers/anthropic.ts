@@ -141,7 +141,7 @@ export class AnthropicProvider implements AIProvider {
       code: active ? true : "unknown",
       vision: capability(info?.capabilities?.image_input),
       toolCalling: capability(info?.capabilities?.tool_use),
-      streaming: false,
+      streaming: active,
       structuredOutput: capability(info?.capabilities?.structured_outputs),
       reasoning: capability(info?.capabilities?.thinking),
       contextWindow: validTokenCount(info?.max_input_tokens) ? info.max_input_tokens : null,
@@ -328,6 +328,110 @@ export class AnthropicProvider implements AIProvider {
       ...(typeof data.stop_sequence === "string" ? { stopSequence: data.stop_sequence } : {}),
       latencyMs: Date.now() - startedAt,
     };
+  }
+
+  async *streamRequest(request: AIRequest): AsyncGenerator<import("../types.js").AIStreamEvent> {
+    validateCanonicalRequest({ ...request, stream: true });
+    const model = this.validateModel(request.model);
+    const system: Array<{ type: "text"; text: string }> = [];
+    const messages: Array<Record<string, unknown>> = [];
+    let started = false;
+    for (const message of request.messages) {
+      if (message.role === "system" || message.role === "developer") {
+        if (started) throw new Error("Anthropic system messages must precede conversation messages");
+        if (typeof message.content === "string") system.push({ type: "text", text: message.content });
+        else for (const part of message.content) {
+          if (part.type !== "text") throw new Error("Anthropic system messages cannot contain images");
+          system.push({ type: "text", text: part.text });
+        }
+      } else {
+        started = true;
+        if (message.role === "tool") messages.push({ role: "user", content: [{ type: "tool_result", tool_use_id: message.toolCallId, content: textOnly(message.content) }] });
+        else {
+          const content = typeof message.content === "string" ? message.content : mapContent(message.content);
+          const blocks: Array<Record<string, unknown>> = typeof content === "string" ? (content ? [{ type: "text", text: content }] : []) : [...content];
+          for (const call of message.toolCalls ?? []) blocks.push({ type: "tool_use", id: call.id, name: call.name, input: call.arguments });
+          if (blocks.length) messages.push({ role: message.role, content: blocks });
+        }
+      }
+    }
+    const body: Record<string, unknown> = { model, max_tokens: request.maxTokens ?? 4096, messages, stream: true };
+    if (system.length) body.system = system;
+    if (request.temperature !== undefined) body.temperature = request.temperature;
+    if (request.topP !== undefined) body.top_p = request.topP;
+    if (request.stopSequences?.length) body.stop_sequences = request.stopSequences;
+    if (request.tools?.length) body.tools = request.tools.map((tool) => ({ name: tool.name, ...(tool.description ? { description: tool.description } : {}), input_schema: tool.inputSchema }));
+    if (request.toolChoice !== undefined) body.tool_choice = typeof request.toolChoice === "object" ? { type: "tool", name: request.toolChoice.name } : { type: request.toolChoice === "required" ? "any" : request.toolChoice };
+    if (request.responseFormat && request.responseFormat !== "text") body.output_config = { format: { type: "json_schema", schema: request.responseFormat.schema } };
+    const key = this.runtimeApiKey;
+    if (!key) throw new Error("ANTHROPIC_API_KEY is not configured");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), request.timeoutMs ?? this.timeoutMs);
+    const abort = () => controller.abort(request.signal?.reason);
+    if (request.signal) {
+      if (request.signal.aborted) abort();
+      else request.signal.addEventListener("abort", abort, { once: true });
+    }
+    try {
+      const response = await this.fetchImpl(`${this.baseUrl}/messages`, {
+        method: "POST", headers: { Accept: "text/event-stream", "Content-Type": "application/json", "x-api-key": key, "anthropic-version": this.apiVersion },
+        body: JSON.stringify(body), signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(this.httpError(response.status));
+      if (!response.body) throw new Error("Anthropic streaming response has no body");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "", eventName = "", data = "";
+      let inputTokens: number | undefined, outputTokens: number | undefined;
+      let resolvedModel = model, requestId: string | undefined;
+      const tools = new Map<number, { id: string; name: string }>();
+      const emit = (name: string, raw: string): import("../types.js").AIStreamEvent[] => {
+        if (!raw) return [];
+        const p = JSON.parse(raw) as Record<string, any>;
+        if (name === "message_start") {
+          resolvedModel = typeof p.message?.model === "string" ? p.message.model : model;
+          requestId = typeof p.message?.id === "string" ? p.message.id : undefined;
+          inputTokens = validTokenCount(p.message?.usage?.input_tokens) ? p.message.usage.input_tokens : undefined;
+          return [{ type: "message_start", provider: this.id, model: resolvedModel, ...(requestId ? { requestId } : {}) }];
+        }
+        if (name === "content_block_start" && p.content_block?.type === "tool_use") {
+          const index = Number(p.index), tool = { id: String(p.content_block.id ?? ""), name: String(p.content_block.name ?? "") };
+          if (!Number.isInteger(index) || index < 0 || !tool.id || !/^[A-Za-z0-9_-]{1,64}$/.test(tool.name)) throw new Error("Invalid Anthropic tool call header");
+          tools.set(index, tool); return [{ type: "tool_call_start", index, ...tool }];
+        }
+        if (name === "content_block_delta") {
+          const index = Number(p.index);
+          if (p.delta?.type === "text_delta" && typeof p.delta.text === "string") return [{ type: "text_delta", text: p.delta.text }];
+          if (p.delta?.type === "input_json_delta" && typeof p.delta.partial_json === "string" && tools.has(index)) return [{ type: "tool_call_delta", index, argumentsDelta: p.delta.partial_json }];
+        }
+        if (name === "message_delta") {
+          if (validTokenCount(p.usage?.output_tokens)) outputTokens = p.usage.output_tokens;
+          if (typeof p.delta?.stop_reason === "string") return [{ type: "message_end", finishReason: p.delta.stop_reason, ...(typeof p.delta.stop_sequence === "string" ? { stopSequence: p.delta.stop_sequence } : {}) }];
+        }
+        if (name === "message_stop") return [inputTokens !== undefined && outputTokens !== undefined
+          ? { type: "usage", usage: { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens }, source: "provider_reported" }
+          : { type: "usage", usage: {}, source: "unavailable" }];
+        if (name === "error") throw new Error("Anthropic stream returned an error event");
+        return [];
+      };
+      while (true) {
+        const part = await reader.read();
+        buffer += decoder.decode(part.value, { stream: !part.done });
+        const lines = buffer.split(/\r?\n/); buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (line.startsWith("event:")) eventName = line.slice(6).trim();
+          else if (line.startsWith("data:")) data += (data ? "\n" : "") + line.slice(5).trimStart();
+          else if (!line) { for (const event of emit(eventName, data)) yield event; eventName = ""; data = ""; }
+        }
+        if (part.done) break;
+      }
+    } catch (error) {
+      if (request.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+      if (controller.signal.aborted) throw new Error("Anthropic request timed out");
+      throw error instanceof Error ? error : new Error("Anthropic streaming request failed");
+    } finally {
+      clearTimeout(timeout); request.signal?.removeEventListener("abort", abort);
+    }
   }
 
   async listModels(signal?: AbortSignal): Promise<string[]> {
