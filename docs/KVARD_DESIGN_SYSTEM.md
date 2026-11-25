@@ -76,3 +76,11 @@ The home screen uses a persistent left navigation rail on desktop and a compact 
 - Sidebar project shortcuts are limited to active projects and use the existing project-open callback.
 - Keyboard shortcut hint is shown for Ctrl/⌘ + Enter; the primary action remains available as a button.
 - A skip link provides direct keyboard access to the main workspace content.
+
+
+## Studio interaction language
+- The Studio header distinguishes an available preview from a published deployment; preview availability is not presented as publication.
+- Project navigation returns to the workspace overview.
+- Tool navigation exposes preview, AI agent activity, files and code as separate project work surfaces.
+- The task chat uses Russian action labels, a branded К mark, explicit retry/cancel wording and accessible names for file and model controls.
+- Model/provider selection exposes the current selection with pressed state; task errors remain visible with a direct retry action.
