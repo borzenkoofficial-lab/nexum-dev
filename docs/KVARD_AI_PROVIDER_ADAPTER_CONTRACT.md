@@ -253,3 +253,15 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 Если новый поставщик реализует только OpenAI-compatible endpoint, он всё равно получает отдельный adapter/configuration и собственный conformance suite. Нельзя считать его совместимым со всеми возможностями OpenAI автоматически.
 
 **Текущий статус:** внутренний canonical contract, validation, strict legacy bridge, provider conformance tests и CI gate реализованы. Все шесть перечисленных интеграций пока используют legacy text bridge. Реальные provider-specific canonical adapters, usage parsing, multimodal/tools/streaming и sandbox проверки подключаются по отдельным этапам; эти функции не объявляются готовыми заранее.
+
+
+## 14. Проверяемость каталога моделей
+
+`GET /api/ai/models` сохраняет старое поле `models` для обратной совместимости и дополнительно возвращает `catalog.providers[]`:
+- `source=provider_api`, `verified=true`, `status=available` — provider API вернул непустой список model IDs;
+- `source=configured_fallback`, `verified=false`, `status=unavailable` — каталог недоступен или provider не реализует discovery;
+- `source=configured_fallback`, `verified=false`, `status=empty` — provider API ответил пустым списком.
+
+В fallback сохраняется настроенная модель, чтобы старые экраны не ломались, но клиент теперь может отличить её от подтверждённого каталога. Ошибки discovery не раскрывают provider response, URL, credentials или внутренние детали. Отмена запроса не маскируется как обычный fallback.
+
+Важно: наличие model ID в каталоге не подтверждает доступность модели конкретному аккаунту на платном вызове и не подтверждает все capabilities. Реальный health/credential check и sandbox smoke test остаются отдельными проверками.
