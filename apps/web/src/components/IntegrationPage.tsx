@@ -8,28 +8,27 @@ type Engine = {
   eyebrow: string;
   description: string;
   role: string;
-  state: string;
   icon: string;
 };
 
 const engines: Engine[] = [
-  { name: "КВАРД Intelligence", eyebrow: "INTELLIGENCE", description: "Слой координации интеллекта КВАРД: понимает задачу, определяет тип продукта, выбирает стратегию и связывает остальные двигатели.", role: "Планирование · маршрутизация · доменная логика", state: "Архитектурный компонент", icon: "N" },
-  { name: "Model Gateway", eyebrow: "MODELS", description: "Единая точка доступа к моделям. Распределяет задачи между подключёнными провайдерами и локальными моделями вместо привязки к одному движку.", role: "Провайдеры · маршрутизация · выбор модели", state: "Включено", icon: "M" },
-  { name: "КВАРД Core Lab", eyebrow: "CORE", description: "Отдельная лаборатория для собственного AI-слоя: inference, память, источники, teachers и эксперименты с интеллектуальными пайплайнами.", role: "Локальный AI · память · обучающие контуры · источники", state: "Включено", icon: "C" },
-  { name: "Repair Engine", eyebrow: "REPAIR", description: "Контур самовосстановления. Находит проблему, анализирует контекст, вносит минимальное исправление и повторно проверяет результат.", role: "Обнаружение · диагностика · исправление · повторная проверка", state: "Включено", icon: "R" },
-  { name: "Product Intelligence", eyebrow: "PRODUCT", description: "Понимает, что именно строится. Запрос «доставка», «CRM» или «marketplace» должен вести к разной архитектуре, сущностям, страницам и сценариям.", role: "Тип продукта · архитектура · сценарии", state: "Включено", icon: "P" },
-  { name: "Tools Engine", eyebrow: "TOOLS", description: "Инструментальный слой агента: чтение и поиск файлов, запись изменений, Git и другие безопасные действия внутри рабочего пространства.", role: "Чтение · поиск · запись · Git", state: "Включено", icon: "T" },
-  { name: "Memory & Context", eyebrow: "MEMORY", description: "Сохраняет проектный контекст, историю задач и знания, чтобы следующий запрос продолжал работу, а не начинал проект с чистого листа.", role: "Контекст проекта · история · знания", state: "Включено", icon: "K" },
-  { name: "Verification Engine", eyebrow: "VERIFY", description: "Проверяет не только ответ агента, но и результат: Preview, сборку, runtime-проблемы и критерии готовности.", role: "Сборка · предпросмотр · runtime · проверки", state: "Включено", icon: "V" },
+  { name: "КВАРД Intelligence", eyebrow: "INTELLIGENCE", description: "Слой координации интеллекта КВАРД: понимает задачу, определяет тип продукта, выбирает стратегию и связывает остальные двигатели.", role: "Планирование · маршрутизация · доменная логика", icon: "К" },
+  { name: "Model Gateway", eyebrow: "MODELS", description: "Единая точка доступа к моделям. Распределяет задачи между подключёнными провайдерами и локальными моделями вместо привязки к одному движку.", role: "Провайдеры · маршрутизация · выбор модели", icon: "M" },
+  { name: "КВАРД Core Lab", eyebrow: "CORE", description: "Отдельная лаборатория для собственного AI-слоя: inference, память, источники, teachers и эксперименты с интеллектуальными пайплайнами.", role: "Локальный AI · память · обучающие контуры · источники", icon: "C" },
+  { name: "Repair Engine", eyebrow: "REPAIR", description: "Контур самовосстановления. Находит проблему, анализирует контекст, вносит минимальное исправление и повторно проверяет результат.", role: "Обнаружение · диагностика · исправление · повторная проверка", icon: "R" },
+  { name: "Product Intelligence", eyebrow: "PRODUCT", description: "Понимает, что именно строится. Запрос «доставка», «CRM» или «marketplace» должен вести к разной архитектуре, сущностям, страницам и сценариям.", role: "Тип продукта · архитектура · сценарии", icon: "P" },
+  { name: "Tools Engine", eyebrow: "TOOLS", description: "Инструментальный слой агента: чтение и поиск файлов, запись изменений, Git и другие безопасные действия внутри рабочего пространства.", role: "Чтение · поиск · запись · Git", icon: "T" },
+  { name: "Memory & Context", eyebrow: "MEMORY", description: "Сохраняет проектный контекст, историю задач и знания, чтобы следующий запрос продолжал работу, а не начинал проект с чистого листа.", role: "Контекст проекта · история · знания", icon: "K" },
+  { name: "Verification Engine", eyebrow: "VERIFY", description: "Проверяет не только ответ агента, но и результат: Preview, сборку, runtime-проблемы и критерии готовности.", role: "Сборка · предпросмотр · runtime · проверки", icon: "V" },
 ];
 
 const external = [
   ["GitHub", "Код, репозитории, ветки, коммиты и проектный workflow", "Разработка", "G"],
-  ["OpenAI", "Внешние модели и API для reasoning, coding и генерации", "AI Provider", "O"],
-  ["Ollama", "Локальные модели без обязательной отправки задач во внешний API", "Local AI", "O"],
-  ["OrcaRouter", "Маршрутизация внешних моделей через единый API-слой", "AI Provider", "O"],
-  ["Supabase", "База данных, авторизация, storage и backend-сервисы", "Backend", "S"],
-  ["Telegram", "Боты, сообщения и автоматизация пользовательских сценариев", "Communication", "T"],
+  ["OpenAI", "Внешние модели и API для анализа, программирования и генерации", "AI-провайдер", "O"],
+  ["Ollama", "Локальные модели без обязательной отправки задач во внешний API", "Локальный AI", "O"],
+  ["OrcaRouter", "Маршрутизация внешних моделей через единый API-слой", "AI-провайдер", "O"],
+  ["Supabase", "База данных, авторизация, хранилище и серверные сервисы", "Backend", "S"],
+  ["Telegram", "Боты, сообщения и автоматизация пользовательских сценариев", "Коммуникации", "T"],
 ];
 
 function Status({ label = "Компонент" }: { label?: string }) {
@@ -94,7 +93,7 @@ export function IntegrationPage({ connectedConnectors, onToggleConnector }: Inte
           {external.map(([name,description,category,icon]) => {
             const connected = connectedConnectors.includes(name);
             return <article className={"external-card " + (connected ? "is-connected" : "")} key={name}>
-              <div className="external-card-top"><span className="external-icon">{icon}</span><Status label={connected ? "Подключено" : "Не подключено"} /></div>
+              <div className="external-card-top"><span className="external-icon">{icon}</span><Status label={connected ? "Подключено" : "Не подключено"} connected={connected} /></div>
               <span className="external-category">{category}</span><h3>{name}</h3><p>{description}</p>
               <button type="button" onClick={() => onToggleConnector(name)}>{connected ? "Управление подключением" : "Подробнее о подключении"}</button>
             </article>;
