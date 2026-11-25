@@ -117,3 +117,10 @@ Existing usage_records may remain a compatibility/analytics projection while the
 - API-провайдеры обычно тарифицируют платформу по факту использования. «Купить токены автоматически» — не универсальная операция; это зависит от billing API каждого поставщика. Часто достаточно настроить автосписание/оплату счёта на provider account, а КВАРД отдельно учитывает расход каждого пользователя.
 - В первой версии безопаснее использовать общий platform balance с жёстким бюджетом, а не пытаться создавать отдельный provider account на каждого пользователя.
 - Никакие production secrets, миграции, provider top-ups или production deployments не выполняются без отдельного согласования.
+
+
+## 8. Межпровайдерная совместимость
+
+Отдельный обязательный контракт адаптеров зафиксирован в `docs/KVARD_AI_PROVIDER_ADAPTER_CONTRACT.md`. Все новые AI-функции должны идти через канонический запрос/ответ КВАРД, а не зависеть от формата конкретного поставщика. Текущий `generate(message)` считается legacy bridge; до завершения миграции нельзя заявлять полноценную поддержку tools, vision, streaming или structured output там, где конкретный adapter этого не реализует.
+
+Новый provider допускается в production только после conformance tests на fake HTTP server, sandbox smoke test, проверки нормализации usage/errors, pricing и fallback policy.
