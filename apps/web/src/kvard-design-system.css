@@ -487,10 +487,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .kv-home-starters button { flex: 1 1 auto; justify-content: center; }
 }
 
-.nx-builder-status.live, .nx-agent-state.done { color: var(--kv-success); }
+.nx-builder-status.live, .nx-builder-status.done, .nx-agent-state.done { color: var(--kv-success); }
 .nx-builder-status.building, .nx-agent-state.live { color: var(--kv-action); }
 .nx-builder-status.error, .nx-agent-state.error { color: var(--kv-danger); }
-.nx-builder-status.live i, .nx-builder-status.building i { border: 0; background: currentColor; }
+.nx-builder-status.live i, .nx-builder-status.building i, .nx-builder-status.done i { border: 0; background: currentColor; }
 .nx-builder-status.error i { border-color: currentColor; background: var(--kv-danger-soft); }
 .nx-agent-state.error { border-color: var(--kv-danger); background: var(--kv-danger-soft); }
 .nx-agent-state.done { border-color: var(--kv-success); background: var(--kv-success-soft); }
