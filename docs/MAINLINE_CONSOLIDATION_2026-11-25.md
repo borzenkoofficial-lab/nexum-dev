@@ -4,7 +4,7 @@
 
 - The only active development branch is `main`.
 - New feature/fix/design branches and routine pull requests are not part of the development workflow.
-- New work is committed directly to `main) in small, reviewable commits.
+- New work is committed directly to `main` in small, reviewable commits.
 - Existing branches are historical inputs only. They are not independent product sources of truth.
 - Do not delete historical branches until their unique work has been reviewed and either integrated, explicitly rejected, or archived in this document.
 
