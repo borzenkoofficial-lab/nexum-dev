@@ -5,7 +5,7 @@ type Props = {
   projects: Проект[];
   onNewProject: (description?: string) => void;
   onOpenProject: (id: string, tab?: "preview" | "files" | "agent" | "code") => void;
-  onOpenView: (view: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents") => void;
+  onOpenView: (view: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents" | "business-agents") => void;
 };
 
 const starters = [
@@ -47,6 +47,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
         <nav className="kv-home-nav" aria-label="Разделы">
           <button className="selected" type="button" aria-current="page" onClick={() => onOpenView("home")}><span aria-hidden="true">⌂</span>Обзор</button>
           <button type="button" onClick={() => onOpenView("agents")}><span aria-hidden="true">◈</span>AI-агенты</button>
+          <button type="button" onClick={() => onOpenView("business-agents")}><span aria-hidden="true">✦</span>Бизнес-агенты</button>
           <button type="button" onClick={() => onOpenView("news")}><span aria-hidden="true">▤</span>Журнал</button>
           <button type="button" onClick={() => onOpenView("connectors")}><span aria-hidden="true">⌁</span>Интеграции</button>
           <button type="button" onClick={() => onOpenView("diagnostics")}><span aria-hidden="true">◷</span>Диагностика</button>
