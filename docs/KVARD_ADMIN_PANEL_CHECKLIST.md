@@ -272,3 +272,6 @@
 | Дата | Пункты | Изменение | Доказательство / статус |
 |---|---|---|---|
 | 2026-11-25 | SEC-01–06, SEC-08, SEC-12–13, SEC-17–18; ARCH-03–05, ARCH-07, ARCH-10 | Добавлены PostgreSQL-таблицы RBAC и append-only audit log; серверный default-deny middleware; роли Super Admin/Admin/Support/Finance/Developer/Auditor; permission map; bootstrap по UUID существующих аккаунтов; защищённые `/api/admin/me` и `/api/admin/overview`; production admin API закрыт до MFA. | Commits: `5d4ac94`, `0c6f431`, `76990ac`, `db6cae0`, `ad22fc1`, `cfe3a3d`, `1111176`, `ba2aa2e`. Тесты и CI ожидают выполнения; migration не применялась к production. |
+
+
+| 2026-11-25 | SEC-03–05, SEC-08, SEC-13; ARCH-03–07 | Добавлены API просмотра/назначения/отзыва административных ролей и чтения аудита. Изменения ролей и события аудита записываются атомарно в одной транзакции; запрещено самоназначение/самоотзыв; нельзя отозвать последнего Super Admin; конкурентный отзыв Super Admin сериализован advisory lock. Bootstrap теперь не перезаписывает существующую роль, поэтому явный отзыв не будет автоматически отменён следующим запросом. | Код в apps/api/routes/admin.ts и apps/api/adminAccess.ts. Первый CI выявил типовую ошибку Express 5 req.params.userId; исправлено в d75b565. Новый CI запущен, результат ожидается. |
