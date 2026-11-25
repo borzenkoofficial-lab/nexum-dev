@@ -747,7 +747,6 @@ function App() {
         if (data?.job?.pendingApproval?.status === "pending") {
           setPendingApproval(data.job.pendingApproval);
           setPendingApprovalProjectId(data.job.projectId ?? activeПроектId);
-          setApprovalActionError("");
         } else {
           setPendingApproval(null);
           setPendingApprovalProjectId(null);
