@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Project } from "./types";
 
 type Job = { id: string; status: string; createdAt: number; updatedAt: number; error?: string; problems?: Array<{ message: string; source?: string }> };
@@ -55,7 +55,7 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
     }
   }, [projects, selectedProject]);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setLoadError("");
     try {
@@ -67,9 +67,9 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const jobs = diagnostics.jobs ?? [];
   const activeJobs = jobs.filter((job) => job.status === "queued" || job.status === "running");
