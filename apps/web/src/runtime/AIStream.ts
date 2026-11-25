@@ -90,6 +90,7 @@ export async function consumeAIStream(
   let eventName = "";
   let dataLines: string[] = [];
   let firstLine = true;
+  let terminalReceived = false;
 
   const dispatch = async () => {
     if (dataLines.length === 0) {
@@ -99,6 +100,8 @@ export async function consumeAIStream(
     const event = decodeEvent(eventName, dataLines.join("\n"));
     eventName = "";
     dataLines = [];
+    if (terminalReceived) throw new AIStreamProtocolError("AI stream contained events after its terminal event.");
+    if (event.type === "message_end" || event.type === "error") terminalReceived = true;
     await onEvent(event);
   };
 
@@ -144,6 +147,7 @@ export async function consumeAIStream(
       if (done) {
         if (buffer.length > 0) await processLine(buffer);
         await dispatch();
+        if (!terminalReceived) throw new AIStreamProtocolError("AI stream ended without a terminal event.");
         break;
       }
     }
