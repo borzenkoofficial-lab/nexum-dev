@@ -55,3 +55,43 @@
   .nx-builder-status { display: none; }
   .nx-files, .nx-code-body { grid-template-columns: 120px minmax(0,1fr); }
 }
+
+
+/* Agent activity, file controls, attachments and build feedback. */
+.nx-chat-mark { display: grid; place-items: center; width: 38px; height: 38px; margin: 0 auto 12px; border: 1px solid var(--nx-border); border-radius: 8px; font-weight: 650; }
+.nx-live-reply { width: min(720px, 100%); margin: 14px auto; padding: 12px; border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface); line-height: 1.55; font-size: 13px; overflow-wrap: anywhere; }
+.nx-attachments { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 0; }
+.nx-attachment { display: flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 8px; border: 1px solid var(--nx-border); border-radius: 5px; font-size: 10px; }
+.nx-attachment span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-attachment button { padding: 2px 5px; }
+.nx-cancel, .nx-send { min-height: 34px; }
+.nx-send { background: var(--nx-text) !important; color: white; }
+.nx-cancel { color: var(--nx-muted); }
+.nx-composer button:disabled, .nx-tool button:disabled, .nx-code button:disabled { cursor: not-allowed; opacity: .5; }
+.nx-agent { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow: auto; padding: 14px; gap: 12px; }
+.nx-run, .nx-progress, .nx-agent-list, .nx-problems, .nx-plan, .nx-events { padding: 12px; border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface); }
+.nx-run { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.nx-progress { display: grid; gap: 8px; }
+.nx-progress > div { height: 5px; overflow: hidden; background: var(--nx-surface-muted); }
+.nx-progress > div > i { display: block; height: 100%; background: #777; }
+.nx-agent-list, .nx-problems, .nx-plan, .nx-events { display: grid; gap: 8px; }
+.nx-agent-list > div, .nx-problems > div, .nx-plan > div, .nx-events > div { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 1px solid var(--nx-border); font-size: 11px; }
+.nx-agent-list > div:first-child, .nx-problems > div:first-child, .nx-plan > div:first-child, .nx-events > div:first-child { padding-top: 0; border-top: 0; }
+.nx-agent-list small, .nx-problems small, .nx-plan small, .nx-events small { color: var(--nx-muted); }
+.nx-agent-list button, .nx-problems button, .nx-plan button, .nx-events button { padding: 5px 7px; }
+.nx-tool-actions { justify-content: flex-end; }
+.nx-device-tabs button.active { background: var(--nx-surface-muted); }
+.nx-files aside button, .nx-code-body aside button { padding: 7px 8px; border: 1px solid transparent; border-radius: 4px; background: transparent; text-align: left; overflow-wrap: anywhere; }
+.nx-files aside button.active, .nx-code-body aside button.active { border-color: var(--nx-border); background: var(--nx-surface-muted); }
+.nx-file-head, .nx-code-file { gap: 10px; min-width: 0; }
+.nx-file-head strong, .nx-code-file strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-error { border-color: #999; border-radius: 5px; color: var(--nx-text); font-size: 12px; overflow-wrap: anywhere; }
+.nx-chat-head button, .nx-tool-head button, .nx-code > header button { padding: 6px 8px; border: 1px solid var(--nx-border); border-radius: 5px; background: var(--nx-surface); }
+@media (max-width: 760px) {
+  .nx-builder { position: relative; min-height: 100dvh; height: 100dvh; }
+  .nx-builder-body { flex-direction: column; }
+  .nx-chat, .nx-tool, .nx-code { min-height: 45dvh; }
+  .nx-files, .nx-code-body { grid-template-columns: 100px minmax(0,1fr); }
+  .nx-chat-scroll { padding: 12px; }
+  .nx-composer { width: calc(100% - 20px); }
+}
