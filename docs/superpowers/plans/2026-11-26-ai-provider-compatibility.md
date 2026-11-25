@@ -157,3 +157,10 @@
 - Existing product string calls are bridged into canonical requests for native adapters; if both interfaces exist, native canonical generation is preferred.
 - Configured transient fallback supports native-only adapters.
 - Dedicated workflow `45707392285` passed on `4d947cc4096519c7e1fdf7fc6732e5a1067c3ad7`: API typecheck passed; 246/246 API tests passed.
+
+
+### Streaming fail-closed boundary — 2026-11-26
+
+- `generateRequest()` is explicitly a complete-response API. It rejects `stream: true` even if an adapter claims streaming capability.
+- A separate stream event protocol and `streamRequest()` are prerequisites before enabling real streaming.
+- Dedicated workflow `45708228452` passed on `83ae24ea58875a3868279bb80820348d6943e900`: API typecheck passed; 247/247 API tests passed.
