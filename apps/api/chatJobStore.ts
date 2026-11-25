@@ -221,6 +221,7 @@ export async function requestChatJobApproval(
   const event = {
     id: now,
     timestamp: now,
+    iteration: current.steps?.length ?? 0,
     type: "approval",
     name: "agent.approval.requested",
     tool: approval.toolName,
@@ -270,6 +271,7 @@ export async function resolveChatJobApproval(
   const event = {
     id: now,
     timestamp: now,
+    iteration: current.steps?.length ?? 0,
     type: "approval",
     name: `agent.approval.${decision}`,
     tool: pending.toolName,
@@ -376,18 +378,32 @@ export async function cancelChatJob(id: string, userId: string, message = "Agent
     const current = memoryJobs.get(id);
     if (!current || current.userId !== userId || !["queued", "running"].includes(current.status)) return null;
     const events = Array.isArray(current.events) ? current.events : [];
+    const now = Date.now();
+    const approvalWasPending = current.pendingApproval?.status === "pending";
+    const approvalEvent = approvalWasPending ? {
+      id: now,
+      timestamp: now,
+      iteration: current.steps?.length ?? 0,
+      type: "approval",
+      name: "agent.approval.cancelled",
+      tool: current.pendingApproval?.toolName,
+      message: `Ожидающее действие ${current.pendingApproval?.toolName ?? "агента"} отменено вместе с заданием.`,
+    } : null;
+    const withApprovalEvent = approvalEvent && !events.some((event) => event && typeof event === "object" && (event as { name?: unknown }).name === "agent.approval.cancelled")
+      ? [...events, approvalEvent]
+      : events;
     const next = cloneJob({
       ...current,
       status: "cancelled",
       stage: "cancelled",
       error: message,
-      pendingApproval: current.pendingApproval?.status === "pending"
-        ? { ...current.pendingApproval, status: "cancelled", resolvedAt: Date.now(), resolvedBy: "system" }
+      pendingApproval: approvalWasPending
+        ? { ...current.pendingApproval!, status: "cancelled", resolvedAt: now, resolvedBy: "system" }
         : current.pendingApproval,
-      updatedAt: Date.now(),
-      events: events.some((event) => event && typeof event === "object" && (event as { name?: unknown }).name === "agent.cancelled")
-        ? events
-        : [...events, { id: Date.now(), timestamp: Date.now(), type: "cancelled", name: "agent.cancelled", message }].slice(-100),
+      updatedAt: now,
+      events: withApprovalEvent.some((event) => event && typeof event === "object" && (event as { name?: unknown }).name === "agent.cancelled")
+        ? withApprovalEvent
+        : [...withApprovalEvent, { id: now + 1, timestamp: now, type: "cancelled", name: "agent.cancelled", message }].slice(-100),
     });
     memoryJobs.set(id, next);
     if (next.projectId) {
@@ -401,19 +417,28 @@ export async function cancelChatJob(id: string, userId: string, message = "Agent
     `UPDATE agent_chat_jobs
         SET status='cancelled',
             updated_at=$3,
-            payload=jsonb_set(
-              jsonb_set(
+            payload=CASE
+              WHEN payload->'pendingApproval'->>'status'='pending' THEN
                 jsonb_set(
                   jsonb_set(
                     jsonb_set(payload, '{stage}', '"cancelled"'::jsonb, true),
                     '{error}', to_jsonb($4::text), true
                   ),
-                  '{pendingApproval,status}', '"cancelled"'::jsonb, true
-                ),
-                '{pendingApproval,resolvedAt}', to_jsonb($5::bigint), true
-              ),
-              '{pendingApproval,resolvedBy}', '"system"'::jsonb, true
-            )
+                  '{pendingApproval}',
+                  jsonb_set(
+                    jsonb_set(
+                      jsonb_set(payload->'pendingApproval', '{status}', '"cancelled"'::jsonb, true),
+                      '{resolvedAt}', to_jsonb($5::bigint), true
+                    ),
+                    '{resolvedBy}', '"system"'::jsonb, true
+                  ),
+                  true
+                )
+              ELSE jsonb_set(
+                jsonb_set(payload, '{stage}', '"cancelled"'::jsonb, true),
+                '{error}', to_jsonb($4::text), true
+              )
+            END
       WHERE id=$1 AND user_id=$2 AND status IN ('queued','running')
       RETURNING *`,
     [id, userId, Date.now(), message, Date.now()],
@@ -421,14 +446,29 @@ export async function cancelChatJob(id: string, userId: string, message = "Agent
   if (!result.rows[0]) return null;
   const cancelled = decode(result.rows[0]);
   const events = Array.isArray(cancelled.events) ? cancelled.events : [];
-  if (!events.some((event) => event && typeof event === "object" && (event as { name?: unknown }).name === "agent.cancelled")) {
-    cancelled.events = [...events, {
+  const nextEvents = [...events];
+  if (cancelled.pendingApproval?.status === "cancelled" && !events.some((event) => event && typeof event === "object" && (event as { name?: unknown }).name === "agent.approval.cancelled")) {
+    nextEvents.push({
       id: Date.now(),
+      timestamp: Date.now(),
+      iteration: cancelled.steps?.length ?? 0,
+      type: "approval",
+      name: "agent.approval.cancelled",
+      tool: cancelled.pendingApproval.toolName,
+      message: `Ожидающее действие ${cancelled.pendingApproval.toolName} отменено вместе с заданием.`,
+    });
+  }
+  if (!events.some((event) => event && typeof event === "object" && (event as { name?: unknown }).name === "agent.cancelled")) {
+    nextEvents.push({
+      id: Date.now() + 1,
       timestamp: Date.now(),
       type: "cancelled",
       name: "agent.cancelled",
       message,
-    }].slice(-100);
+    });
+  }
+  if (nextEvents.length !== events.length) {
+    cancelled.events = nextEvents.slice(-100);
     await query(
       `UPDATE agent_chat_jobs SET updated_at=$2, payload=jsonb_set(payload, '{events}', $3::jsonb, true) WHERE id=$1 AND user_id=$4`,
       [id, cancelled.updatedAt, JSON.stringify(cancelled.events), userId],
