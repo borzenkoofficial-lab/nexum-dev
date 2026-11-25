@@ -89,11 +89,11 @@ function createSdkClient(apiKey: string): DaytonaClientLike {
 }
 
 function isExcludedPath(relativePath: string, includeBuildArtifacts = false): boolean {
-  const normalized = relativePath.replaceAll("\\\\", "/");
+  const normalized = relativePath.replaceAll("\\", "/");
   const parts = normalized.split("/");
   const fileName = parts.at(-1)?.toLowerCase() ?? "";
-  const sensitiveFile = /^(?:id_rsa|id_ed25519|id_ecdsa|credentials\\.json|service-account(?:[-_].*)?\\.json|\\.dockerconfigjson)$/.test(fileName) ||
-    /\\.(?:pem|key|p12|pfx|jks|keystore)$/.test(fileName) ||
+  const sensitiveFile = /^(?:id_rsa|id_ed25519|id_ecdsa|credentials\.json|service-account(?:[-_].*)?\.json|\.dockerconfigjson)$/.test(fileName) ||
+    /\.(?:pem|key|p12|pfx|jks|keystore)$/.test(fileName) ||
     fileName.endsWith(".secret") || fileName.endsWith(".token");
   return sensitiveFile || parts.some((part) =>
     BLOCKED_PATH_PARTS.has(part) ||
