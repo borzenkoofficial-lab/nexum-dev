@@ -86,7 +86,7 @@ test("gateway forwards AbortSignal unchanged to native adapters", async () => {
 
 test("gateway rejects unsupported capabilities before making a provider call", async () => {
   const provider = new NativeFixture();
-  const gateway = new AIGateway([provider], "native");
+  const gateway = new AIGateway([provider], provider.id);
   await assert.rejects(
     () => gateway.generateRequest(request({ stream: true })),
     (error: any) => error?.code === "MODEL_ERROR",
