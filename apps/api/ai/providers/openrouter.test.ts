@@ -92,3 +92,89 @@ test("does not silently switch an explicitly selected model", async () => {
   assert.equal(result, "qwen/example-explicit-model");
   assert.deepEqual(requestedModels, ["qwen/example-explicit-model"]);
 });
+
+
+test("OpenRouter streams canonical text, tool calls and final usage from SSE", async () => {
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  const frames = [
+    ': OPENROUTER PROCESSING\n\n',
+    'data: {"id":"gen-1","model":"openai/gpt-test","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}\n\n',
+    'data: {"id":"gen-1","model":"openai/gpt-test","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n',
+    'data: {"id":"gen-1","model":"openai/gpt-test","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"lookup","arguments":"{\\"q\\":\\"x\\"}"}}]},"finish_reason":null}]}\n\n',
+    'data: {"id":"gen-1","model":"openai/gpt-test","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n',
+    'data: {"id":"gen-1","model":"openai/gpt-test","choices":[],"usage":{"prompt_tokens":12,"completion_tokens":5,"total_tokens":17,"prompt_tokens_details":{"cached_tokens":2},"completion_tokens_details":{"reasoning_tokens":1}}}\n\n',
+    'data: [DONE]\n\n',
+  ];
+  const bytes = new TextEncoder().encode(frames.join(""));
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(bytes.slice(0, 29));
+      controller.enqueue(bytes.slice(29, 143));
+      controller.enqueue(bytes.slice(143, 301));
+      controller.enqueue(bytes.slice(301));
+      controller.close();
+    },
+  });
+  const provider = new OpenRouterProvider("https://openrouter.test/api/v1", "openai/gpt-test", 1000, async (input, init) => {
+    const url = String(input);
+    calls.push({ url, init });
+    if (url.includes("/models?")) {
+      return jsonResponse(200, { data: [{
+        id: "openai/gpt-test",
+        architecture: { input_modalities: ["text"], output_modalities: ["text"] },
+        supported_parameters: ["tools", "tool_choice"],
+        context_length: 128000,
+      }] });
+    }
+    return new Response(stream, { status: 200, headers: { "content-type": "text/event-stream", "X-Generation-Id": "generation-header-id" } });
+  });
+  provider.setRuntimeApiKey("test-only-key");
+  await provider.listModels();
+  assert.equal(provider.getCapabilities("openai/gpt-test").streaming, true);
+  const events = [];
+  for await (const event of provider.streamRequest({
+    version: 1,
+    model: "openai/gpt-test",
+    stream: true,
+    messages: [{ role: "user", content: "Hello" }],
+    tools: [{ name: "lookup", inputSchema: { type: "object" } }],
+  })) events.push(event);
+
+  const streamCall = calls.find((call) => call.url.endsWith("/chat/completions"));
+  assert.ok(streamCall);
+  assert.equal((JSON.parse(String(streamCall.init?.body)) as Record<string, unknown>).stream, true);
+  assert.equal((streamCall.init?.headers as Record<string, string>).Accept, "text/event-stream");
+  assert.deepEqual(events, [
+    { type: "message_start", provider: "openrouter", model: "openai/gpt-test", requestId: "gen-1" },
+    { type: "text_delta", text: "Hello" },
+    { type: "tool_call_start", index: 0, id: "call-1", name: "lookup" },
+    { type: "tool_call_delta", index: 0, argumentsDelta: '{"q":"x"}' },
+    { type: "usage", usage: { inputTokens: 12, outputTokens: 5, totalTokens: 17, cachedInputTokens: 2, reasoningTokens: 1 }, source: "provider_reported" },
+    { type: "message_end", finishReason: "tool_calls" },
+  ]);
+});
+
+test("OpenRouter streaming requires catalog-verified model and rejects missing DONE sentinel", async () => {
+  let streamCalls = 0;
+  const truncated = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('data: {"id":"gen-2","model":"openai/gpt-test","choices":[{"index":0,"delta":{"content":"partial"},"finish_reason":"stop"}]}\n\n'));
+      controller.close();
+    },
+  });
+  const provider = new OpenRouterProvider("https://openrouter.test/api/v1", "openrouter/free", 1000, async (input) => {
+    if (String(input).includes("/models?")) return jsonResponse(200, { data: [{ id: "openai/gpt-test", architecture: { input_modalities: ["text"], output_modalities: ["text"] } }] });
+    streamCalls += 1;
+    return new Response(truncated, { status: 200, headers: { "content-type": "text/event-stream" } });
+  });
+  provider.setRuntimeApiKey("test-only-key");
+  await assert.rejects(async () => {
+    for await (const _event of provider.streamRequest({ version: 1, model: "openai/gpt-test", stream: true, messages: [{ role: "user", content: "Hello" }] })) { /* consume */ }
+  }, /catalog/);
+  assert.equal(streamCalls, 0);
+  await provider.listModels();
+  await assert.rejects(async () => {
+    for await (const _event of provider.streamRequest({ version: 1, model: "openai/gpt-test", stream: true, messages: [{ role: "user", content: "Hello" }] })) { /* consume */ }
+  }, /\[DONE\]/);
+  assert.equal(streamCalls, 1);
+});
