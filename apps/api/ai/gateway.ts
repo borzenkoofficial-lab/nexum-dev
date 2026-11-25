@@ -27,6 +27,7 @@ export interface GatewayProviderInfo {
   model: string;
   isDefault: boolean;
   protocol?: string;
+  legacyProtocol?: string;
   adapterVersion?: string;
   adapterMode: "native" | "legacy";
 }
@@ -359,6 +360,7 @@ export class AIGateway {
       model: provider.model,
       isDefault: provider.id === this.defaultProviderId,
       ...(provider.protocol ? { protocol: provider.protocol } : {}),
+      ...(provider.legacyProtocol ? { legacyProtocol: provider.legacyProtocol } : {}),
       ...(provider.adapterVersion ? { adapterVersion: provider.adapterVersion } : {}),
       adapterMode: provider.generateRequest ? "native" : "legacy",
     }));
