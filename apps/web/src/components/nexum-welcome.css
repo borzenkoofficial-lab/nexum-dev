@@ -1,37 +1,37 @@
 /* Onboarding/auth wireframe — no cinematic effects or decorative theme. */
-.nexum-welcome { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; overflow: auto; padding: 24px; background: var(--nx-bg, #f5f5f5); color: var(--nx-text, #202020); font-family: inherit; }
-.nexum-welcome-nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: min(1100px, 100%); margin: 0 auto; padding: 12px 0; border-bottom: 1px solid var(--nx-border, #d8d8d8); }
+.nexum-welcome { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; overflow: auto; padding: 24px; background: var(--nx-bg); color: var(--nx-text); font-family: inherit; }
+.nexum-welcome-nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: min(1100px, 100%); margin: 0 auto; padding: 12px 0; border-bottom: 1px solid var(--nx-border); }
 .nexum-brand { display: flex; align-items: center; gap: 8px; font-weight: 650; }
-.nexum-brand em, .nexum-os-session, .nexum-welcome-footer, .nexum-sequence-eyebrow, .nexum-card-kicker { color: var(--nx-muted, #707070); font-size: 11px; font-style: normal; letter-spacing: .04em; }
-.nexum-logo-mark { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--nx-border, #d8d8d8); border-radius: 6px; }
+.nexum-brand em, .nexum-os-session, .nexum-welcome-footer, .nexum-sequence-eyebrow, .nexum-card-kicker { color: var(--nx-muted); font-size: 11px; font-style: normal; letter-spacing: .04em; }
+.nexum-logo-mark { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--nx-border); border-radius: 6px; }
 .nexum-logo-mark.small { width: 26px; height: 26px; }
 .nexum-os-session { display: flex; align-items: center; gap: 8px; }
 .nx-live-dot { width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 50%; }
 .nexum-boot-sequence { display: grid; grid-template-columns: minmax(0,1fr) minmax(260px,.8fr); align-items: center; gap: 28px; width: min(900px, 100%); margin: auto; padding: 40px 0; }
 .nexum-sequence-copy h1 { margin: 8px 0; font-size: clamp(30px, 5vw, 48px); font-weight: 600; line-height: 1.1; }
-.nexum-sequence-copy p { max-width: 520px; color: var(--nx-muted, #707070); line-height: 1.6; }
-.nexum-boot-console, .nexum-auth-window { border: 1px solid var(--nx-border, #d8d8d8); border-radius: 8px; background: var(--nx-surface, #fff); }
-.nexum-console-head, .nexum-window-chrome { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--nx-border, #d8d8d8); color: var(--nx-muted, #707070); font-size: 11px; }
+.nexum-sequence-copy p { max-width: 520px; color: var(--nx-muted); line-height: 1.6; }
+.nexum-boot-console, .nexum-auth-window { border: 1px solid var(--nx-border); border-radius: 8px; background: var(--nx-surface); }
+.nexum-console-head, .nexum-window-chrome { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--nx-border); color: var(--nx-muted); font-size: 11px; }
 .nexum-console-lines { display: grid; gap: 10px; padding: 14px; }
 .nexum-console-lines > div { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
-.nexum-console-lines b { color: var(--nx-muted, #707070); font-size: 10px; font-weight: 500; }
-.nexum-boot-progress { height: 5px; margin: 0 14px 12px; overflow: hidden; background: var(--nx-surface-muted, #f0f0f0); }
-.nexum-boot-progress i { display: block; height: 100%; background: #777; }
-.nexum-boot-status { padding: 0 14px 14px; color: var(--nx-muted, #707070); font-size: 10px; }
+.nexum-console-lines b { color: var(--nx-muted); font-size: 10px; font-weight: 500; }
+.nexum-boot-progress { height: 5px; margin: 0 14px 12px; overflow: hidden; background: var(--nx-surface-muted); }
+.nexum-boot-progress i { display: block; height: 100%; background: var(--kv-action); }
+.nexum-boot-status { padding: 0 14px 14px; color: var(--nx-muted); font-size: 10px; }
 .nexum-auth-window { width: min(480px, 100%); margin: auto; }
 .nexum-auth-content { display: grid; gap: 18px; padding: 24px; }
 .nexum-auth-intro h2 { margin: 8px 0; font-size: 24px; font-weight: 600; }
-.nexum-auth-intro p, .nexum-auth-note { color: var(--nx-muted, #707070); font-size: 13px; line-height: 1.5; }
+.nexum-auth-intro p, .nexum-auth-note { color: var(--nx-muted); font-size: 13px; line-height: 1.5; }
 .nexum-auth-content form { display: grid; gap: 12px; }
 .nexum-auth-content label { display: grid; gap: 6px; font-size: 12px; }
-.nexum-auth-content input { width: 100%; min-height: 42px; border: 1px solid var(--nx-border, #d8d8d8); border-radius: 6px; padding: 9px 10px; background: white; color: var(--nx-text, #202020); }
-.nexum-enter, .nexum-auth-switch button, .nexum-skip-intro { border: 1px solid var(--nx-border, #d8d8d8); border-radius: 6px; padding: 10px 12px; background: white; color: inherit; }
+.nexum-auth-content input { width: 100%; min-height: 42px; border: 1px solid var(--nx-border); border-radius: 6px; padding: 9px 10px; background: var(--kv-surface); color: var(--nx-text); }
+.nexum-enter, .nexum-auth-switch button, .nexum-skip-intro { border: 1px solid var(--nx-border); border-radius: 6px; padding: 10px 12px; background: var(--kv-surface); color: inherit; }
 .nexum-enter { display: flex; justify-content: space-between; align-items: center; min-height: 44px; }
 .nexum-enter:disabled { opacity: .6; }
-.nexum-auth-error { padding: 10px; border: 1px solid var(--nx-border, #d8d8d8); font-size: 12px; }
-.nexum-auth-switch { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--nx-muted, #707070); font-size: 12px; }
+.nexum-auth-error { padding: 10px; border: 1px solid var(--kv-danger); border-radius: var(--kv-radius-sm); background: var(--kv-danger-soft); color: var(--nx-text); font-size: 12px; }
+.nexum-auth-switch { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--nx-muted); font-size: 12px; }
 .nexum-skip-intro { align-self: center; margin: 12px 0; }
-.nexum-welcome-footer { display: flex; justify-content: space-between; width: min(1100px, 100%); margin: 0 auto; padding-top: 14px; border-top: 1px solid var(--nx-border, #d8d8d8); }
+.nexum-welcome-footer { display: flex; justify-content: space-between; width: min(1100px, 100%); margin: 0 auto; padding-top: 14px; border-top: 1px solid var(--nx-border); }
 @media (max-width: 700px) {
   .nexum-welcome { padding: 14px; }
   .nexum-boot-sequence { grid-template-columns: 1fr; padding: 24px 0; }
@@ -44,24 +44,24 @@
 .nexum-boot-center { display: grid; justify-items: center; width: min(420px, 100%); gap: 14px; margin: auto; text-align: center; }
 .nexum-boot-center .nexum-logo-mark { width: 64px; height: 64px; font-size: 24px; }
 .nexum-boot-word { font-size: 20px; font-weight: 700; letter-spacing: .08em; }
-.nexum-boot-word span { color: var(--nx-muted, #707070); font-size: 11px; font-weight: 500; }
-.nexum-boot-center p { margin: 0; color: var(--nx-muted, #707070); font-size: 13px; }
+.nexum-boot-word span { color: var(--nx-muted); font-size: 11px; font-weight: 500; }
+.nexum-boot-center p { margin: 0; color: var(--nx-muted); font-size: 13px; }
 .nexum-boot-center .nexum-boot-progress { width: 100%; margin: 10px 0 0; }
 .nexum-boot-center .nexum-boot-status { padding: 0; font-size: 10px; letter-spacing: .08em; }
 .nexum-sequence-core { display: grid; place-items: center; width: 100%; min-height: 160px; }
-.nexum-sequence-core::before { display: grid; place-items: center; width: 104px; height: 104px; border: 1px solid var(--nx-border, #d8d8d8); border-radius: 50%; background: var(--nx-surface, #fff); color: var(--nx-text, #202020); font-size: 30px; font-weight: 650; content: "N"; }
+.nexum-sequence-core::before { display: grid; place-items: center; width: 104px; height: 104px; border: 1px solid var(--nx-border); border-radius: var(--kv-radius-panel); background: var(--kv-surface); color: var(--nx-text); font-size: 30px; font-weight: 650; content: "К"; }
 .nexum-window-dots { display: flex; gap: 5px; }
 .nexum-window-dots i { width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 50%; }
 .nexum-window-status { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.nexum-console-lines > div.online b { color: var(--nx-text, #202020); }
-.nexum-auth-switch button { color: var(--nx-text, #202020); font-weight: 600; }
+.nexum-console-lines > div.online b { color: var(--nx-text); }
+.nexum-auth-switch button { color: var(--nx-text); font-weight: 600; }
 .nexum-enter { width: 100%; cursor: pointer; }
 .nexum-enter:disabled { cursor: wait; }
 .nexum-skip-intro { cursor: pointer; }
-.nexum-welcome kbd { padding: 2px 5px; border: 1px solid var(--nx-border, #d8d8d8); border-radius: 4px; background: var(--nx-surface-muted, #f0f0f0); font: inherit; font-size: 10px; }
-.nexum-auth-window { box-shadow: 0 8px 28px rgb(0 0 0 / 5%); }
+.nexum-welcome kbd { padding: 2px 5px; border: 1px solid var(--nx-border); border-radius: 4px; background: var(--nx-surface-muted); font: inherit; font-size: 10px; }
+.nexum-auth-window { box-shadow: var(--kv-shadow-panel); }
 .nexum-auth-content form button:focus-visible, .nexum-auth-switch button:focus-visible,
-.nexum-skip-intro:focus-visible { outline: 2px solid var(--nx-text, #202020); outline-offset: 3px; }
+.nexum-skip-intro:focus-visible { outline: 2px solid var(--kv-focus); outline-offset: 3px; }
 @media (max-width: 700px) {
   .nexum-sequence-core { min-height: 100px; }
   .nexum-sequence-core::before { width: 76px; height: 76px; font-size: 24px; }
