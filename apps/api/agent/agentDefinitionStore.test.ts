@@ -67,3 +67,10 @@ test("agent definitions reject tools without a registered security policy", asyn
     /No security policy registered/,
   );
 });
+
+test("agent definitions reject unsupported AI providers", async () => {
+  await assert.rejects(
+    () => createAgentDefinition(`agent-user-provider-${Date.now()}`, { ...input("Провайдер"), provider: "unknown-provider" }),
+    /Неподдерживаемый провайдер/,
+  );
+});
