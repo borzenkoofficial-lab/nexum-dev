@@ -24,7 +24,7 @@ export interface AIProviderStatus {
   error?: string;
 }
 
-export type AgentStage = "thinking" | "analyzing" | "planning" | "reading" | "editing" | "running" | "building" | "testing" | "completed" | "error" | null;
+export type AgentStage = "thinking" | "analyzing" | "planning" | "reading" | "editing" | "running" | "building" | "testing" | "awaiting_approval" | "completed" | "error" | null;
 
 export interface PreviewStatus {
   online: boolean;

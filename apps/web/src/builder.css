@@ -1,4 +1,4 @@
-/* NEXUM Builder — scoped structural styles, using the shared neutral foundation. */
+/* КВАРД Studio — scoped structural styles; semantic colors and global controls live in kvard-design-system.css. */
 .nx-builder { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; width: 100vw; height: 100dvh; overflow: hidden; background: var(--nx-bg); color: var(--nx-text); }
 .nx-builder *, .nx-builder *::before, .nx-builder *::after { box-sizing: border-box; }
 .nx-builder button, .nx-builder input, .nx-builder textarea, .nx-builder select { font: inherit; }
@@ -73,7 +73,7 @@
 .nx-run { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .nx-progress { display: grid; gap: 8px; }
 .nx-progress > div { height: 5px; overflow: hidden; background: var(--nx-surface-muted); }
-.nx-progress > div > i { display: block; height: 100%; background: #777; }
+.nx-progress > div > i { display: block; height: 100%; background: var(--kv-action); }
 .nx-agent-list, .nx-problems, .nx-plan, .nx-events { display: grid; gap: 8px; }
 .nx-agent-list > div, .nx-problems > div, .nx-plan > div, .nx-events > div { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 1px solid var(--nx-border); font-size: 11px; }
 .nx-agent-list > div:first-child, .nx-problems > div:first-child, .nx-plan > div:first-child, .nx-events > div:first-child { padding-top: 0; border-top: 0; }
@@ -85,7 +85,7 @@
 .nx-files aside button.active, .nx-code-body aside button.active { border-color: var(--nx-border); background: var(--nx-surface-muted); }
 .nx-file-head, .nx-code-file { gap: 10px; min-width: 0; }
 .nx-file-head strong, .nx-code-file strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nx-error { border-color: #999; border-radius: 5px; color: var(--nx-text); font-size: 12px; overflow-wrap: anywhere; }
+.nx-error { border-color: var(--kv-danger); border-radius: var(--kv-radius-sm); background: var(--kv-danger-soft); color: var(--nx-text); font-size: 12px; overflow-wrap: anywhere; }
 .nx-chat-head button, .nx-tool-head button, .nx-code > header button { padding: 6px 8px; border: 1px solid var(--nx-border); border-radius: 5px; background: var(--nx-surface); }
 @media (max-width: 760px) {
   .nx-builder { position: relative; min-height: 100dvh; height: 100dvh; }
@@ -121,8 +121,8 @@
 .nx-run > span { color: var(--nx-muted); font-size: 10px; }
 .nx-progress { display: flex; align-items: center; gap: 4px; height: 6px; padding: 0; border: 0; border-radius: 0; background: transparent; }
 .nx-progress > i { flex: 1; height: 5px; border-radius: 2px; background: var(--nx-surface-muted); }
-.nx-progress > i.done { background: #777; }
-.nx-progress > i.active { background: #222; }
+.nx-progress > i.done { background: var(--kv-success); }
+.nx-progress > i.active { background: var(--kv-action); }
 .nx-agent-list > div { justify-content: flex-start; align-items: center; }
 .nx-agent-list > div b { color: var(--nx-muted); font-size: 10px; }
 .nx-agent-list > div.active span { font-weight: 650; }
@@ -157,5 +157,5 @@
 .nx-messages article.user { margin-left: auto; width: min(88%, 620px); background: var(--nx-surface-muted); }
 .nx-messages article:not(.user) { width: min(96%, 680px); }
 .nx-messages article aside { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; color: var(--nx-muted); font-size: 10px; }
-.nx-model-pop { max-height: min(360px, 55dvh); overflow: auto; box-shadow: 0 8px 24px rgb(0 0 0 / 8%); }
+.nx-model-pop { max-height: min(360px, 55dvh); overflow: auto; box-shadow: var(--kv-shadow-popover); }
 .nx-send { min-width: 36px; font-size: 18px; font-weight: 650; }

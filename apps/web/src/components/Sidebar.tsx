@@ -29,13 +29,13 @@ export function Sidebar({
 
   return (
     <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
-      <div className="logo" aria-label="NEXUM.DEV">NEXUM<span>.DEV</span></div>
+      <div className="logo" aria-label="КВАРД">КВАРД</div>
 
-      <nav className="sidebar-nav os-primary-nav" aria-label="NEXUM OS">
+      <nav className="sidebar-nav os-primary-nav" aria-label="КВАРД">
         <button className={view === "home" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("home")} title="Рабочий стол">
           <span aria-hidden="true">⌂</span><b>Рабочий стол</b>
         </button>
-        <button className={view === "news" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("news")} title="Журнал NEXUM">
+        <button className={view === "news" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("news")} title="Журнал КВАРД">
           <span aria-hidden="true">✦</span><b>Журнал</b>
         </button>
         <button className={view === "connectors" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("connectors")} title="Интеграции">
@@ -46,25 +46,25 @@ export function Sidebar({
         </button>
       </nav>
 
-      <div className="os-dock-apps" aria-label="Приложения NEXUM OS">
+      <div className="os-dock-apps" aria-label="Приложения КВАРД">
         <div className="os-dock-caption">ПРИЛОЖЕНИЯ</div>
         <button type="button" className="os-dock-app" onClick={openFirstProject} title="Проекты">
-          <span className="os-dock-icon projects">N</span><b>Проекты</b>
+          <span className="os-dock-icon projects">К</span><b>Проекты</b>
         </button>
         <button type="button" className="os-dock-app" onClick={openFirstProject} title="AI Agent">
-          <span className="os-dock-icon agent">✦</span><b>AI Agent</b>
+          <span className="os-dock-icon agent">✦</span><b>AI-агент</b>
         </button>
         <button type="button" className="os-dock-app" onClick={openFirstProject} title="Code">
-          <span className="os-dock-icon code">{"{}"}</span><b>Code</b>
+          <span className="os-dock-icon code">{"{}"}</span><b>Код</b>
         </button>
         <button type="button" className="os-dock-app" onClick={openFirstProject} title="Preview">
-          <span className="os-dock-icon preview">◫</span><b>Preview</b>
+          <span className="os-dock-icon preview">◫</span><b>Предпросмотр</b>
         </button>
         <button type="button" className="os-dock-app" onClick={() => onViewChange("connectors")} title="Connectors">
-          <span className="os-dock-icon connectors">◇</span><b>Connectors</b>
+          <span className="os-dock-icon connectors">◇</span><b>Интеграции</b>
         </button>
         <button type="button" className="os-dock-app" onClick={() => onViewChange("diagnostics")} title="Diagnostics">
-          <span className="os-dock-icon diagnostics">⌁</span><b>Diagnostics</b>
+          <span className="os-dock-icon diagnostics">⌁</span><b>Диагностика</b>
         </button>
       </div>
 

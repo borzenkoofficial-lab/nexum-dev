@@ -618,7 +618,7 @@ export class AgentLoop {
       }
 
       if (plan.done) {
-        if (!executionSnapshot.completedStepIds.includes("observe")) {
+        if (executionSnapshot.observations.length === 0) {
           setAgentState("FAILED", "agent.failed", "Completion was requested before execution/observation evidence existed.");
           return { phase, success: false, iterations: iteration, steps, productPlan: productPlan ?? undefined, intent, executionPlan: executionSnapshot.plan, finalState: "FAILED", error: "Completion blocked: no execution evidence.", errorInfo: { code: "VALIDATION_ERROR", message: "Agent cannot complete before at least one observed execution step.", retryable: false, repairable: true, fatal: false, category: "completion", summary: "NO_EXECUTION_EVIDENCE", recoveryStrategy: "Execute and observe a concrete plan step, then validate again." } };
         }

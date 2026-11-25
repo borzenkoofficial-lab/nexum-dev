@@ -449,8 +449,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .kv-home-brand-copy strong { font-size: 15px; }
   .kv-home-brand-copy small { font-size: 8px; }
   .kv-home-create, .kv-home-nav-label, .kv-home-project-head, .kv-home-project-nav, .kv-home-sidebar-bottom { display: none; }
-  .kv-home-nav { display: flex; gap: 4px; overflow-x: auto; margin-top: 12px; padding-bottom: 1px; }
-  .kv-home-nav button { flex: 0 0 auto; min-height: 44px; padding: 8px 11px; font-size: 11px; white-space: nowrap; }
+  .kv-home-nav { display: flex; flex-wrap: wrap; gap: 4px; overflow: visible; margin-top: 12px; padding-bottom: 1px; }
+  .kv-home-nav button { flex: 0 0 auto; width: auto; min-height: 44px; padding: 8px 11px; font-size: 11px; white-space: nowrap; }
   .kv-home-nav button > span { width: auto; font-size: 14px; }
   .kv-home-topbar { min-height: 52px; padding-inline: 16px; }
   .kv-home-top-context { font-size: 10px; }
@@ -707,7 +707,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agent-approval-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .kv-agent-approval-actions > span { color: var(--kv-text-tertiary); font-size: 10px; line-height: 1.45; }
 .kv-agent-approval-actions > div { display: flex; flex: 0 0 auto; gap: 8px; }
-.kv-agent-approval-actions button { min-height: 36px; padding: 7px 12px; border: 1px solid var(--kv-border-strong); border-radius: var(--kv-radius-control); background: var(--kv-surface); color: var(--kv-text); font-size: 11px; font-weight: 650; }
+.kv-agent-approval-actions button { min-height: 40px; padding: 7px 12px; border: 1px solid var(--kv-border-strong); border-radius: var(--kv-radius-control); background: var(--kv-surface); color: var(--kv-text); font-size: 11px; font-weight: 650; }
 .kv-agent-approval-actions button:disabled { opacity: .5; cursor: wait; }
 .kv-agent-approval-actions .kv-agent-approval-approve { border-color: var(--kv-action); background: var(--kv-action); color: var(--kv-on-action); }
 .kv-agent-approval-actions .kv-agent-approval-approve:hover:not(:disabled) { background: var(--kv-action-hover); }
@@ -717,7 +717,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .kv-agent-approval-meta { grid-template-columns: 1fr; }
   .kv-agent-approval-actions { align-items: stretch; flex-direction: column; }
   .kv-agent-approval-actions > div { display: grid; grid-template-columns: 1fr 1fr; }
-  .kv-agent-approval-actions button { white-space: normal; }
+  .kv-agent-approval-actions button { min-height: 44px; white-space: normal; }
 }
 
 
@@ -816,7 +816,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agent-approval-preview > div strong { font-size: 12px; }
 .kv-agent-approval-preview pre { font-size: 11px; line-height: 1.6; }
 .kv-agent-approval-actions > span { font-size: 11px; }
-.kv-agent-approval-actions button { min-height: 42px; padding: 9px 14px; font-size: 12px; }
+.kv-agent-approval-actions button { min-height: 44px; padding: 9px 14px; font-size: 12px; }
 
 .kv-agents-form input:focus-visible,
 .kv-agents-form textarea:focus-visible,

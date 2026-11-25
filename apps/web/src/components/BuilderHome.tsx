@@ -5,92 +5,134 @@ type Props = {
   projects: Проект[];
   onNewProject: (description?: string) => void;
   onOpenProject: (id: string, tab?: "preview" | "files" | "agent" | "code") => void;
-  onOpenView: (view: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics") => void;
+  onOpenView: (view: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents") => void;
 };
 
+const starters = [
+  { label: "Сайт компании", prompt: "Создай современный сайт для моей компании с услугами, преимуществами и формой заявки." },
+  { label: "Веб-приложение", prompt: "Создай полноценное веб-приложение с авторизацией, личным кабинетом и основными рабочими сценариями." },
+  { label: "AI-агент", prompt: "Создай AI-агента для автоматизации бизнес-процесса. Сначала определи архитектуру и необходимые инструменты." },
+];
+
 export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView }: Props) {
-  const recent = projects.slice(0, 6);
+  const recent = projects.slice(0, 5);
+  const activeProjects = projects.filter((project) => project.status === "active");
   const [brief, setBrief] = useState("");
 
   function createFromBrief() {
-    onNewProject(brief.trim());
+    const description = brief.trim();
+    if (!description) return;
+    onNewProject(description);
   }
 
   function setPrompt(value: string) {
     setBrief(value);
+    document.querySelector<HTMLTextAreaElement>(".kv-home-composer textarea")?.focus();
   }
 
   return (
-    <section className="builder-home">
-      <header className="builder-home-header">
-        <button className="builder-home-brand" type="button" onClick={() => onOpenView("home")} aria-label="NEXUM home">NEXUM</button>
-        <nav className="builder-home-nav" aria-label="Main navigation">
-          <button type="button" onClick={() => onOpenView("news")}>Journal</button>
-          <button type="button" onClick={() => onOpenView("connectors")}>Connectors</button>
-          <button type="button" onClick={() => onOpenView("settings")}>Settings</button>
+    <section className="builder-home kv-home">
+      <a className="kv-skip-link" href="#kv-home-content">Перейти к содержимому</a>
+      <aside className="kv-home-sidebar" aria-label="Основная навигация">
+        <button className="kv-home-brand" type="button" onClick={() => onOpenView("home")} aria-label="КВАРД — на главную">
+          <span className="kv-home-brand-mark">К</span>
+          <span className="kv-home-brand-copy"><strong>КВАРД</strong><small>WORKSPACE</small></span>
+        </button>
+
+        <button className="kv-home-create" type="button" onClick={() => onNewProject()}>
+          <span aria-hidden="true">＋</span> Новый проект
+        </button>
+
+        <div className="kv-home-nav-label">РАБОЧАЯ СРЕДА</div>
+        <nav className="kv-home-nav" aria-label="Разделы">
+          <button className="selected" type="button" aria-current="page" onClick={() => onOpenView("home")}><span aria-hidden="true">⌂</span>Обзор</button>
+          <button type="button" onClick={() => onOpenView("agents")}><span aria-hidden="true">◈</span>AI-агенты</button>
+          <button type="button" onClick={() => onOpenView("news")}><span aria-hidden="true">▤</span>Журнал</button>
+          <button type="button" onClick={() => onOpenView("connectors")}><span aria-hidden="true">⌁</span>Интеграции</button>
+          <button type="button" onClick={() => onOpenView("diagnostics")}><span aria-hidden="true">◷</span>Диагностика</button>
         </nav>
-      </header>
 
-      <main className="builder-home-main">
-        <div className="builder-home-hero">
-          <p className="builder-home-kicker">NEXUM.DEV</p>
-          <h1>Что создадим?</h1>
-          <p className="builder-home-subtitle">Опишите идею. NEXUM спланирует продукт, создаст код и покажет результат в реальном времени.</p>
-
-          <div className="builder-home-composer">
-            <textarea
-              aria-label="Describe what you want to build"
-              value={brief}
-              onChange={(event) => setBrief(event.target.value)}
-              placeholder="Создай сайт, приложение или интерфейс…"
-              onKeyDown={(event) => {
-                if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-                  event.preventDefault();
-                  createFromBrief();
-                }
-              }}
-            />
-            <div className="builder-home-composer-footer">
-              <span>⌘ Enter</span>
-              <button type="button" onClick={createFromBrief}>Создать</button>
-            </div>
-          </div>
-
-          <div className="builder-home-prompts">
-            <button type="button" onClick={() => setPrompt("Создай лендинг для бизнеса")}>Лендинг для бизнеса</button>
-            <button type="button" onClick={() => setPrompt("Создай SaaS-продукт")}>SaaS-продукт</button>
-            <button type="button" onClick={() => setPrompt("Создай мобильное приложение")}>Мобильное приложение</button>
-          </div>
+        <div className="kv-home-project-head">
+          <span>ПРОЕКТЫ</span><small>{activeProjects.length}</small>
+        </div>
+        <div className="kv-home-project-nav">
+          {activeProjects.length ? activeProjects.slice(0, 7).map((project) => (
+            <button key={project.id} type="button" onClick={() => onOpenProject(project.id, "agent")} title={project.name}>
+              <span>{project.name.slice(0, 1).toUpperCase()}</span><b>{project.name}</b>
+            </button>
+          )) : <p>Здесь появятся ваши проекты</p>}
         </div>
 
-        {recent.length > 0 && (
-          <section className="builder-home-projects">
-            <div className="builder-home-section-head">
-              <h2>Последние проекты</h2>
-              <span>{recent.length}</span>
+        <div className="kv-home-sidebar-bottom">
+          <button type="button" onClick={() => onOpenView("settings")}><span aria-hidden="true">⚙</span>Настройки</button>
+          <div className="kv-home-profile"><span>К</span><div><strong>Моё пространство</strong><small>Рабочее пространство</small></div><i>•••</i></div>
+        </div>
+      </aside>
+
+      <div className="kv-home-workspace">
+        <header className="kv-home-topbar">
+          <div className="kv-home-breadcrumb"><span>Рабочая среда</span><i>/</i><strong>Обзор</strong></div>
+          <div className="kv-home-top-actions">
+            <span className="kv-home-top-context">Панель управления</span>
+            <button type="button" onClick={() => onOpenView("settings")} aria-label="Открыть настройки">⚙</button>
+          </div>
+        </header>
+
+        <main className="kv-home-content" id="kv-home-content">
+          <div className="kv-home-heading">
+            <div><p className="kv-home-eyebrow">КВАРД / WORKSPACE</p><h1>Рабочая среда</h1><p>Создавайте цифровые продукты и управляйте разработкой в одном месте.</p></div>
+            <div className="kv-home-project-count"><strong>{projects.length}</strong><span>проектов</span></div>
+          </div>
+
+          <section className="kv-home-create-section" aria-labelledby="kv-home-create-title">
+            <div className="kv-home-section-title"><div><span>НОВАЯ ЗАДАЧА</span><h2 id="kv-home-create-title">Что будем создавать?</h2></div><small>Опишите результат — детали проработает агент</small></div>
+            <div className="builder-home-composer kv-home-composer">
+              <textarea
+                aria-label="Опишите, что нужно создать"
+                value={brief}
+                onChange={(event) => setBrief(event.target.value)}
+                placeholder="Например: создай CRM для строительной компании с заказами, клиентами и аналитикой…"
+                onKeyDown={(event) => {
+                  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                    event.preventDefault();
+                    createFromBrief();
+                  }
+                }}
+              />
+              <div className="builder-home-composer-footer">
+                <span><kbd>Ctrl</kbd><kbd>Enter</kbd> для запуска</span>
+                <button type="button" onClick={createFromBrief} disabled={!brief.trim()}>Начать создание <span aria-hidden="true">↗</span></button>
+              </div>
             </div>
-            <div className="builder-home-project-grid">
-              {recent.map((project) => (
-                <button key={project.id} type="button" className="builder-home-project" onClick={() => onOpenProject(project.id, "agent")}>
-                  <span className="builder-home-project-preview">
-                    <span>{project.name.slice(0, 1).toUpperCase()}</span>
-                  </span>
-                  <span className="builder-home-project-meta">
-                    <strong>{project.name}</strong>
-                    <small>{project.status === "active" ? "Active project" : "Project"}</small>
-                  </span>
-                  <span className="builder-home-project-arrow">Open</span>
-                </button>
-              ))}
+            <div className="kv-home-starters" aria-label="Шаблоны задач">
+              <span>БЫСТРЫЙ СТАРТ</span>
+              {starters.map((starter) => <button key={starter.label} type="button" onClick={() => setPrompt(starter.prompt)}>{starter.label}<span aria-hidden="true">↗</span></button>)}
             </div>
           </section>
-        )}
-      </main>
 
-      <footer className="builder-home-footer">
-        <span>Build with NEXUM</span>
-        <span>AI-powered development</span>
-      </footer>
+          <section className="kv-home-recent" aria-labelledby="kv-home-recent-title">
+            <div className="kv-home-section-title"><div><span>ВАША РАБОТА</span><h2 id="kv-home-recent-title">Последние проекты</h2></div><small>{projects.length ? `Всего: ${projects.length}` : "Пока нет проектов"}</small></div>
+            {recent.length ? (
+              <div className="kv-home-project-list">
+                {recent.map((project) => (
+                  <button key={project.id} type="button" className="kv-home-project-row" onClick={() => onOpenProject(project.id, "agent")}>
+                    <span className="kv-home-project-avatar">{project.name.slice(0, 1).toUpperCase()}</span>
+                    <span className="kv-home-project-details"><strong>{project.name}</strong><small>{project.status === "active" ? "Активный проект" : "Проект"}</small></span>
+                    <span className="kv-home-project-open">Открыть <b aria-hidden="true">→</b></span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="kv-home-empty">
+                <span className="kv-home-empty-mark">К</span>
+                <div><strong>Ваше первое рабочее пространство начинается здесь</strong><p>Опишите задачу выше. КВАРД создаст проект и откроет среду разработки.</p></div>
+                <button type="button" onClick={() => document.querySelector<HTMLTextAreaElement>(".kv-home-composer textarea")?.focus()}>Описать проект</button>
+              </div>
+            )}
+          </section>
+        </main>
+        <footer className="kv-home-footer"><span>КВАРД <i>•</i> Среда разработки</span><button type="button" onClick={() => onOpenView("news")}>Обновления продукта</button></footer>
+      </div>
     </section>
   );
 }

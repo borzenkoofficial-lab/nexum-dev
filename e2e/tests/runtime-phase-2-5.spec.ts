@@ -73,13 +73,13 @@ test.afterEach(async ({ page }, testInfo) => {
 
 test("boot, runtime inspection and browser-visible navigation", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("body")).toContainText("NEXUM", { timeout: 15_000 });
+  await expect(page.locator("body")).toContainText("КВАРД", { timeout: 15_000 });
   const status = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   expect(["READY", "BUSY", "DEGRADED"]).toContain(status.lifecycle);
   expect(status.activeTasks).toBe(0);
   expect(status.activeResources).toBeGreaterThanOrEqual(0);
 
-  for (const route of ["/projects", "/connectors", "/settings", "/news", "/diagnostics"]) {
+  for (const route of ["/projects", "/agents", "/connectors", "/settings", "/news", "/diagnostics"]) {
     await page.goto(route);
     await expect(page.locator("body")).not.toContainText("Application Error");
   }
@@ -100,12 +100,12 @@ test("real Agent user cancellation aborts the Agent task and releases Runtime ow
   await setAgentFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, runtimeWorkspaceId);
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
-  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+  await page.getByRole("button", { name: "Отправить задачу AI-агенту КВАРД" }).click();
 
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   expect(jobId).toBeTruthy();
-  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
+  const cancel = page.getByRole("button", { name: "Отменить выполнение задачи" });
   await expect(cancel).toBeVisible({ timeout: 5_000 });
   await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
   await cancel.click();
@@ -368,7 +368,7 @@ test("real browser main thread pressure recovery degrades and recovers", async (
 test("Agent Job creation produces exactly one canonical Runtime Task", async ({ page }) => {
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Покажи статус Git");
-  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+  await page.getByRole("button", { name: "Отправить задачу AI-агенту КВАРД" }).click();
 
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
@@ -392,7 +392,7 @@ test("real Agent user cancellation aborts the Agent task and leaves terminal sta
   await setAgentFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, runtimeWorkspaceId);
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
-  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+  await page.getByRole("button", { name: "Отправить задачу AI-агенту КВАРД" }).click();
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   expect(jobId).toBeTruthy();
@@ -475,4 +475,67 @@ test("shutdown releases runtime resources and prevents active work", async ({ pa
   expect(status.activeTasks).toBe(0);
   expect(status.network).toEqual([]);
   expect(status.activeResources).toBe(0);
+});
+
+test("responsive workspace, agents and Studio layouts stay within supported viewports", async ({ page }, testInfo) => {
+  const widths = [320, 375, 390, 768, 1024, 1440];
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "Рабочая среда" })).toBeVisible({ timeout: 15_000 });
+    const layout = await page.evaluate(() => ({
+      viewportWidth: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      bodyWidth: document.body.scrollWidth,
+      rootWidth: document.getElementById("root")?.scrollWidth ?? 0,
+    }));
+    expect(layout.documentWidth, `Workspace document overflow at ${width}px: ${JSON.stringify(layout)}`).toBeLessThanOrEqual(width);
+    expect(layout.bodyWidth, `Workspace body overflow at ${width}px`).toBeLessThanOrEqual(width);
+    expect(layout.rootWidth, `Workspace root overflow at ${width}px`).toBeLessThanOrEqual(width);
+
+    if (width <= 390) {
+      const nav = page.locator(".kv-home-nav button");
+      await expect(nav).toHaveCount(5);
+      const navBounds = await nav.evaluateAll((items) => items.map((item) => {
+        const rect = item.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, width: rect.width };
+      }));
+      for (const item of navBounds) {
+        expect(item.width, `Workspace navigation item is collapsed at ${width}px`).toBeGreaterThan(0);
+        expect(item.left, `Workspace navigation item is outside the viewport at ${width}px`).toBeGreaterThanOrEqual(0);
+        expect(item.right, `Workspace navigation item is outside the viewport at ${width}px`).toBeLessThanOrEqual(width);
+      }
+    }
+
+    if ([320, 390, 768, 1440].includes(width)) {
+      await testInfo.attach(`workspace-${width}.png`, { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
+    }
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const homeControls = await page.locator(".kv-home-nav button, .kv-home-top-actions button, .kv-home-composer-footer button").evaluateAll((items) =>
+    items.map((item) => ({ label: item.textContent?.trim(), height: item.getBoundingClientRect().height })),
+  );
+  expect(homeControls.length).toBeGreaterThan(0);
+  for (const control of homeControls) {
+    expect(control.height, `Workspace touch target too small: ${control.label}`).toBeGreaterThanOrEqual(40);
+  }
+
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/agents");
+    await expect(page.getByRole("heading", { name: "Агенты и профили запуска" })).toBeVisible({ timeout: 15_000 });
+    const layout = await page.evaluate(() => ({ viewportWidth: window.innerWidth, documentWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth }));
+    expect(layout.documentWidth, `Agents document overflow at ${width}px: ${JSON.stringify(layout)}`).toBeLessThanOrEqual(width);
+    expect(layout.bodyWidth, `Agents body overflow at ${width}px`).toBeLessThanOrEqual(width);
+    if (width === 390) await testInfo.attach("agents-390.png", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/projects/" + encodeURIComponent(runtimeWorkspaceId));
+  await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 10_000 });
+  const studioLayout = await page.evaluate(() => ({ viewportWidth: window.innerWidth, documentWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth }));
+  expect(studioLayout.documentWidth, `Studio document overflow: ${JSON.stringify(studioLayout)}`).toBeLessThanOrEqual(390);
+  expect(studioLayout.bodyWidth, `Studio body overflow: ${JSON.stringify(studioLayout)}`).toBeLessThanOrEqual(390);
+  await testInfo.attach("studio-390.png", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
 });

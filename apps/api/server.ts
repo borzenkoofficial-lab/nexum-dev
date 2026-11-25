@@ -11,6 +11,9 @@ import { AnthropicProvider } from "./ai/providers/anthropic.js";
 import { OrcaRouterProvider } from "./ai/providers/orcarouter.js";
 import { MockProvider } from "./ai/providers/mock.js";
 import { NexumAgent } from "./agent/agent.js";
+import { createApprovalPreview } from "./agent/approval.js";
+import { waitForChatJobApproval } from "./agent/approvalWaiter.js";
+import { getToolSecurityPolicy } from "./agent/toolPolicy.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
 import type { ProductPlan } from "./agent/types.js";
 import { ProjectManager, ProjectManagerError } from "./projects/projectManager.js";
@@ -27,13 +30,15 @@ import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
 import { closeDatabase, pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
-import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, updateChatJob, type ChatJob } from "./chatJobStore.js";
+import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
+import { agentProfilesUseDatabase, createAgentProfile, deleteAgentProfile, listAgentProfiles } from "./agent/profileStore.js";
+import { agentDefinitionsUseDatabase, createAgentDefinition, deleteAgentDefinition, listAgentDefinitions, updateAgentDefinition, type AgentDefinition, type AgentDefinitionInput, type AgentDefinitionPatch } from "./agent/agentDefinitionStore.js";
 
 
 const requestIds = new WeakMap<object, string>();
@@ -245,6 +250,7 @@ function getAIGatewayForUser(userId: string): AIGateway {
 
 const chatJobControllers = new Map<string, AbortController>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
+const AGENT_APPROVAL_TIMEOUT_MS = 10 * 60 * 1000;
 
 async function persistChatJob(job: ChatJob): Promise<void> {
   await enqueueChatJobPersistence(job.id, async () => {
@@ -306,7 +312,12 @@ async function runChatJob(
   requestId?: string,
   parentSignal?: AbortSignal,
   runtimeTaskId?: string,
+  agentDefinition?: AgentDefinition,
 ) {
+  if (agentDefinition) {
+    provider = agentDefinition.provider ?? provider;
+    model = agentDefinition.model ?? model;
+  }
   const runtimeTask = runtimeTaskId ? serverRuntime.tasks.get(runtimeTaskId) : undefined;
   if (!runtimeTask) throw new Error("Canonical Runtime Task is unavailable for Agent Job");
   const cancellationBridge = createAgentCancellationBridge(jobId, userId, parentSignal);
@@ -417,7 +428,55 @@ ${attachment.content.slice(0, 80_000)}`);
     throwIfAgentAborted(signal);
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const userGateway = getAIGatewayForUser(userId);
-    const agent = new NexumAgent(userGateway, project.path, serverRuntime, { projectId: project.id, taskId: runtimeTask.id });
+    const agent = new NexumAgent(
+      userGateway,
+      project.path,
+      serverRuntime,
+      { projectId: project.id, taskId: runtimeTask.id },
+      agentDefinition ? {
+        systemPrompt: agentDefinition.systemPrompt,
+        allowedTools: agentDefinition.allowedTools,
+        approvalPolicy: agentDefinition.approvalPolicy,
+        requestApproval: async ({ toolName, risk, input }, approvalSignal) => {
+          const createdAt = Date.now();
+          const approvalId = randomUUID();
+          const approval: ChatJobApproval = {
+            id: approvalId,
+            toolName,
+            risk,
+            inputPreview: createApprovalPreview(input),
+            status: "pending",
+            createdAt,
+            expiresAt: createdAt + AGENT_APPROVAL_TIMEOUT_MS,
+            resumeStage: job.stage ?? "analyzing",
+          };
+          let persistedRequest: ChatJob | null = null;
+          await enqueueChatJobPersistence(jobId, async () => {
+            persistedRequest = await requestChatJobApproval(jobId, userId, approval);
+            if (persistedRequest) chatJobCache.set(jobId, persistedRequest);
+          });
+          if (!persistedRequest) throw new Error("Не удалось создать запрос подтверждения для текущего задания.");
+          Object.assign(job, persistedRequest);
+
+          const decision = await waitForChatJobApproval({
+            jobId,
+            userId,
+            approvalId,
+            signal: approvalSignal ?? signal,
+            readJob: getChatJob,
+            resolveExpired: async (currentJobId, ownerId, currentApprovalId) => {
+              const expired = await resolveChatJobApproval(currentJobId, ownerId, currentApprovalId, "expired", "system");
+              if (expired) chatJobCache.set(currentJobId, expired);
+              return expired;
+            },
+          });
+          const latest = await getChatJob(jobId, userId);
+          if (!latest || latest.status !== "running") throw new DOMException("Agent task cancelled while waiting for approval.", "AbortError");
+          Object.assign(job, latest);
+          return decision;
+        },
+      } : {},
+    );
     const agentLoop = new AgentLoop(
       agent,
       userGateway,
@@ -797,6 +856,8 @@ app.post("/api/auth/logout", (_req, res) => {
 app.use("/api/projects", authMiddleware, projectLimiter);
 app.use("/api/chat", authMiddleware, chatLimiter);
 app.use("/api/agent/history", authMiddleware);
+app.use("/api/agent/profiles", authMiddleware);
+app.use("/api/agents", authMiddleware);
 app.use("/api/agent/diagnostics", authMiddleware);
 
 app.get("/api/ai/providers", authMiddleware, (req, res) => {
@@ -1312,13 +1373,14 @@ app.get("/api/projects/:id/preview/status", async (req, res) => {
 });
 
 app.post("/api/chat", async (req, res) => {
-  const { message, projectId, provider, model, attachments, conversation } = req.body as {
+  const { message, projectId, provider, model, attachments, conversation, agentDefinitionId } = req.body as {
     message?: unknown;
     projectId?: unknown;
     provider?: unknown;
     model?: unknown;
     attachments?: unknown;
     conversation?: unknown;
+    agentDefinitionId?: unknown;
   };
 
   if (typeof message !== "string" || !message.trim()) {
@@ -1332,6 +1394,25 @@ app.post("/api/chat", async (req, res) => {
   }
   if (model !== undefined && typeof model !== "string") {
     return res.status(400).json({ error: "model must be a string" });
+  }
+  if (agentDefinitionId !== undefined && typeof agentDefinitionId !== "string") {
+    return res.status(400).json({ error: "agentDefinitionId must be a string" });
+  }
+  let selectedAgentDefinition: AgentDefinition | undefined;
+  if (typeof agentDefinitionId === "string") {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(agentDefinitionId)) {
+      return res.status(404).json({ success: false, error: "Агент не найден." });
+    }
+    const ownedAgents = await listAgentDefinitions(getAuthUser(req).id);
+    selectedAgentDefinition = ownedAgents.find((item) => item.id === agentDefinitionId);
+    if (!selectedAgentDefinition) return res.status(404).json({ success: false, error: "Агент не найден." });
+    if (selectedAgentDefinition.status !== "active") return res.status(409).json({ success: false, error: "Агент приостановлен. Активируйте его перед запуском." });
+    if (selectedAgentDefinition.allowedTools.length === 0) {
+      return res.status(409).json({ success: false, error: "Добавьте агенту хотя бы один разрешённый инструмент." });
+    }
+    if (selectedAgentDefinition.approvalPolicy === "autonomous" && selectedAgentDefinition.allowedTools.some((name) => getToolSecurityPolicy(name).risk !== "READ")) {
+      return res.status(409).json({ success: false, error: "Автономный запуск разрешён только с инструментами чтения." });
+    }
   }
   if (attachments !== undefined && (!Array.isArray(attachments) || attachments.length > 5)) {
     return res.status(400).json({ error: "attachments must be an array of up to 5 files" });
@@ -1402,13 +1483,14 @@ app.post("/api/chat", async (req, res) => {
       message.trim(),
       projectId,
       getAuthUser(req).id,
-      provider,
-      model,
+      selectedAgentDefinition?.provider ?? provider,
+      selectedAgentDefinition?.model ?? model,
       normalizedAttachments,
       normalizedConversation,
       getRequestId(req),
       controller.signal,
       runtimeTask.id,
+      selectedAgentDefinition,
     );
 
     return res.status(202).json({
@@ -1427,7 +1509,7 @@ app.post("/api/chat", async (req, res) => {
 app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   const userId = getAuthUser(req).id;
   await cleanupChatJobs();
-  const job = await loadChatJob(req.params.id, userId, getChatJob);
+  const job = await loadChatJob(req.params.id, userId, getChatJob, true);
   if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired" });
   if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
     return res.json({ success: true, cancelled: job.status === "cancelled", job });
@@ -1435,7 +1517,7 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   await waitForChatJobPersistence(job.id);
   const cancelled = await cancelChatJob(job.id, userId);
   if (!cancelled) {
-    const current = await loadChatJob(job.id, userId, getChatJob);
+    const current = await loadChatJob(job.id, userId, getChatJob, true);
     return res.json({ success: true, cancelled: current?.status === "cancelled", job: current });
   }
   syncTerminalChatJobCache(cancelled);
@@ -1443,6 +1525,194 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   if (runtimeTaskId) serverRuntime.cancelTask(runtimeTaskId);
   chatJobControllers.get(job.id)?.abort();
   return res.json({ success: true, cancelled: true, job: cancelled });
+});
+
+app.post("/api/chat/jobs/:id/approvals/:approvalId", aiWriteLimiter, async (req, res) => {
+  const userId = getAuthUser(req).id;
+  const decision = req.body?.decision;
+  if (decision !== "approve" && decision !== "reject") {
+    return res.status(400).json({ success: false, error: "decision must be approve or reject" });
+  }
+  const jobId = typeof req.params.id === "string" ? req.params.id : "";
+  const approvalId = typeof req.params.approvalId === "string" ? req.params.approvalId : "";
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidPattern.test(jobId) || !uuidPattern.test(approvalId)) {
+    return res.status(404).json({ success: false, error: "Chat job or approval request not found." });
+  }
+  await waitForChatJobPersistence(jobId);
+  const job = await loadChatJob(jobId, userId, getChatJob, true);
+  if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired." });
+  if (job.status !== "running" || !job.pendingApproval || job.pendingApproval.id !== approvalId || job.pendingApproval.status !== "pending") {
+    return res.status(409).json({ success: false, error: "Approval request is no longer pending." });
+  }
+  if (Date.now() >= job.pendingApproval.expiresAt) {
+    const expired = await resolveChatJobApproval(jobId, userId, approvalId, "expired", "system");
+    if (expired) chatJobCache.set(jobId, expired);
+    return res.status(409).json({ success: false, error: "Approval request expired.", job: expired });
+  }
+  const resolved = await resolveChatJobApproval(
+    jobId,
+    userId,
+    approvalId,
+    decision === "approve" ? "approved" : "rejected",
+    userId,
+  );
+  if (!resolved) {
+    const current = await loadChatJob(jobId, userId, getChatJob, true);
+    return res.status(409).json({ success: false, error: "Approval request was already resolved or cancelled.", job: current });
+  }
+  chatJobCache.set(jobId, resolved);
+  return res.json({ success: true, job: resolved });
+});
+
+app.get("/api/agent/profiles", async (req, res) => {
+  try {
+    const profiles = await listAgentProfiles(getAuthUser(req).id);
+    return res.json({
+      success: true,
+      storage: agentProfilesUseDatabase() ? "database" : "memory",
+      profiles: profiles.map(({ userId: _userId, ...profile }) => profile),
+    });
+  } catch (error) {
+    return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Не удалось загрузить профили агента" });
+  }
+});
+
+app.post("/api/agent/profiles", aiWriteLimiter, async (req, res) => {
+  const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+  const description = typeof req.body?.description === "string" ? req.body.description.trim() : "";
+  const prompt = typeof req.body?.prompt === "string" ? req.body.prompt.trim() : "";
+  const kind = typeof req.body?.kind === "string" ? req.body.kind.trim() : "Мой профиль";
+  if (!name || name.length > 48) return res.status(400).json({ success: false, error: "Название профиля обязательно и должно содержать не более 48 символов." });
+  if (!prompt || prompt.length > 5000) return res.status(400).json({ success: false, error: "Инструкция обязательна и должна содержать не более 5 000 символов." });
+  if (description.length > 160 || kind.length > 40) return res.status(400).json({ success: false, error: "Описание или категория слишком длинные." });
+  try {
+    const profile = await createAgentProfile(getAuthUser(req).id, { name, description, prompt, kind });
+    const { userId: _userId, ...safeProfile } = profile;
+    return res.status(201).json({ success: true, profile: safeProfile, storage: agentProfilesUseDatabase() ? "database" : "memory" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Не удалось создать профиль агента";
+    if (message.includes("уже существует") || (error as { code?: string })?.code === "23505") {
+      return res.status(409).json({ success: false, error: "Профиль с таким названием уже существует." });
+    }
+    console.error("[КВАРД] Agent profile create failed", error);
+    return res.status(503).json({ success: false, error: message });
+  }
+});
+
+app.delete("/api/agent/profiles/:id", async (req, res) => {
+  try {
+    const deleted = await deleteAgentProfile(getAuthUser(req).id, req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, error: "Профиль не найден." });
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Не удалось удалить профиль агента" });
+  }
+});
+
+function parseAgentDefinitionInput(body: Record<string, unknown>, partial = false): AgentDefinitionInput | AgentDefinitionPatch | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const result: Record<string, unknown> = {};
+  const fields = ["name", "description", "systemPrompt", "provider", "model", "allowedTools", "approvalPolicy", "status"] as const;
+  for (const field of fields) {
+    if (!(field in body)) continue;
+    const value = body[field];
+    if (field === "allowedTools") {
+      if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) return null;
+      result[field] = value;
+    } else if (field === "approvalPolicy") {
+      if (value !== "always" && value !== "writes" && value !== "autonomous") return null;
+      result[field] = value;
+    } else if (field === "status") {
+      if (value !== "active" && value !== "paused") return null;
+      result[field] = value;
+    } else if (field === "provider" || field === "model") {
+      if (value !== null && typeof value !== "string") return null;
+      if (typeof value === "string" && value.length > (field === "provider" ? 40 : 120)) return null;
+      if (field === "provider" && typeof value === "string" && !["ollama", "openrouter", "anymodel", "openai", "anthropic", "orcarouter"].includes(value)) return null;
+      result[field] = value;
+    } else {
+      if (typeof value !== "string") return null;
+      const max = field === "name" ? 48 : field === "description" ? 160 : 5000;
+      if (value.trim().length > max || (!value.trim() && field !== "description")) return null;
+      result[field] = value.trim();
+    }
+  }
+  if (!partial && (!("name" in result) || !("systemPrompt" in result) || !("allowedTools" in result))) return null;
+  if (!partial && !("approvalPolicy" in result)) result.approvalPolicy = "always";
+  if (!partial && !("status" in result)) result.status = "active";
+  if (!partial && !("description" in result)) result.description = "";
+  if (partial && !Object.keys(result).length) return null;
+  return result as AgentDefinitionInput | AgentDefinitionPatch;
+}
+
+app.get("/api/agents", async (req, res) => {
+  try {
+    const agents = await listAgentDefinitions(getAuthUser(req).id);
+    return res.json({
+      success: true,
+      storage: agentDefinitionsUseDatabase() ? "database" : "memory",
+      agents: agents.map(({ userId: _userId, ...agent }) => agent),
+    });
+  } catch (error) {
+    return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Не удалось загрузить агентов" });
+  }
+});
+
+app.post("/api/agents", aiWriteLimiter, async (req, res) => {
+  const parsed = parseAgentDefinitionInput(req.body as Record<string, unknown>);
+  if (!parsed || !("name" in parsed) || !("systemPrompt" in parsed) || !("allowedTools" in parsed)) {
+    return res.status(400).json({ success: false, error: "Проверьте название, системную инструкцию, список инструментов и параметры агента." });
+  }
+  try {
+    const agent = await createAgentDefinition(getAuthUser(req).id, parsed as AgentDefinitionInput);
+    const { userId: _userId, ...safeAgent } = agent;
+    return res.status(201).json({ success: true, agent: safeAgent, storage: agentDefinitionsUseDatabase() ? "database" : "memory" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Не удалось создать агента";
+    if (message.includes("уже существует") || (error as { code?: string })?.code === "23505") {
+      return res.status(409).json({ success: false, error: "Агент с таким названием уже существует." });
+    }
+    if (message.includes("security policy") || message.includes("инструмент")) {
+      return res.status(400).json({ success: false, error: message });
+    }
+    console.error("[КВАРД] Agent definition create failed", error);
+    return res.status(503).json({ success: false, error: message });
+  }
+});
+
+app.patch("/api/agents/:id", aiWriteLimiter, async (req, res) => {
+  const agentId = typeof req.params.id === "string" ? req.params.id : "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(agentId)) return res.status(404).json({ success: false, error: "Агент не найден." });
+  const parsed = parseAgentDefinitionInput(req.body as Record<string, unknown>, true);
+  if (!parsed) return res.status(400).json({ success: false, error: "Нет допустимых полей для обновления агента." });
+  try {
+    const agent = await updateAgentDefinition(getAuthUser(req).id, agentId, parsed as AgentDefinitionPatch);
+    if (!agent) return res.status(404).json({ success: false, error: "Агент не найден." });
+    const { userId: _userId, ...safeAgent } = agent;
+    return res.json({ success: true, agent: safeAgent });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Не удалось обновить агента";
+    if (message.includes("уже существует") || (error as { code?: string })?.code === "23505") {
+      return res.status(409).json({ success: false, error: "Агент с таким названием уже существует." });
+    }
+    if (message.includes("security policy") || message.includes("инструмент")) {
+      return res.status(400).json({ success: false, error: message });
+    }
+    return res.status(503).json({ success: false, error: message });
+  }
+});
+
+app.delete("/api/agents/:id", async (req, res) => {
+  const agentId = typeof req.params.id === "string" ? req.params.id : "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(agentId)) return res.status(404).json({ success: false, error: "Агент не найден." });
+  try {
+    const deleted = await deleteAgentDefinition(getAuthUser(req).id, agentId);
+    if (!deleted) return res.status(404).json({ success: false, error: "Агент не найден." });
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Не удалось удалить агента" });
+  }
 });
 
 app.get("/api/agent/history", async (req, res) => {
@@ -1520,7 +1790,7 @@ app.get("/api/chat/jobs", async (req, res) => {
 app.get("/api/chat/jobs/:id", async (req, res) => {
   await cleanupChatJobs();
   const userId = getAuthUser(req).id;
-  const job = await loadChatJob(req.params.id, userId, getChatJob);
+  const job = await loadChatJob(req.params.id, userId, getChatJob, true);
   if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired" });
   return res.json({ success: true, job });
 });

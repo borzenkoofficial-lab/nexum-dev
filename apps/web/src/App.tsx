@@ -1,5 +1,6 @@
 import "./App.css";
 import "./builder.css";
+import "./kvard-design-system.css";
 import { NexumWelcome } from "./components/NexumWelcome";
 import { useEffect, useRef, useState } from "react";
 import { CommandPalette } from "./components/CommandPalette";
@@ -7,6 +8,8 @@ import { NewProjectModal } from "./components/NewProjectModal";
 import { NewsPage } from "./components/NewsPage";
 import { IntegrationPage } from "./components/IntegrationPage";
 import { DiagnosticsPage } from "./components/DiagnosticsPage";
+import { AgentsPage } from "./components/AgentsPage";
+import { AgentApprovalPanel, type AgentApprovalView } from "./components/AgentApprovalPanel";
 import { BuilderShell } from "./components/BuilderShell";
 import { BuilderChat } from "./components/BuilderChat";
 import { BuilderTools } from "./components/BuilderTools";
@@ -38,13 +41,22 @@ function ConnectorModal({ name, onClose }: { name: string; onClose: () => void }
 }
 
 function App() {
-  useEffect(() => { startDiagnostics(); diagnosticsEvent({ type: "app-mounted", level: "info", message: "NEXUM application mounted" }); }, []);
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    try { return localStorage.getItem("kvard:theme") === "dark" ? "dark" : "light"; } catch { return "light"; }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("kvard:theme", theme); } catch {}
+  }, [theme]);
+  useEffect(() => { startDiagnostics(); diagnosticsEvent({ type: "app-mounted", level: "info", message: "КВАРД application mounted" }); }, []);
   const [projects, setПроектs] = useState<Проект[]>([]);
   const [activeПроектId, setActiveПроектId] = useState(() => {
     const segments = window.location.pathname.split("/").filter(Boolean);
     return segments[0] === "projects" && segments[1] ? decodeURIComponent(segments[1]) : "nexum";
   });
   const [message, setMessage] = useState("");
+  const [pendingAgentDefinitionId, setPendingAgentDefinitionId] = useState<string | null>(null);
+  const [pendingAgentProjectId, setPendingAgentProjectId] = useState<string | null>(null);
   const [reply, setReply] = useState("");
   const [lastMessage, setLastMessage] = useState("");
   const [agentStage, setАгентStage] = useState<АгентStage>(null);
@@ -110,8 +122,18 @@ function App() {
   const [previewOnline, setПредпросмотрOnline] = useState(false);
   const [previewKey, setПредпросмотрKey] = useState(0);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
+  const [pendingApproval, setPendingApproval] = useState<AgentApprovalView | null>(null);
+  const [pendingApprovalProjectId, setPendingApprovalProjectId] = useState<string | null>(null);
+  const [approvalActionLoading, setApprovalActionLoading] = useState(false);
+  const [approvalActionError, setApprovalActionError] = useState("");
   const chatJobIdRef = useRef<string | null>(null);
   const setAuthoritativeChatJobId = (jobId: string | null) => {
+    if (chatJobIdRef.current !== jobId) {
+      setPendingApproval(null);
+      setPendingApprovalProjectId(null);
+      setApprovalActionError("");
+      setApprovalActionLoading(false);
+    }
     chatJobIdRef.current = jobId;
     setChatJobId(jobId);
     if (import.meta.env.VITE_E2E === "true") {
@@ -124,9 +146,9 @@ function App() {
     return true;
   };
   const [projectTaskMeta, setProjectTaskMeta] = useState<Record<string, { task: string; timestamp: number; status: "queued" | "running" | "completed" | "failed" | "cancelled" }>>(() => { try { return JSON.parse(localStorage.getItem("nexum:project-task-meta") || "{}"); } catch { return {}; } });
-  const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news" | "diagnostics">(() => {
+  const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents">(() => {
     const path = window.location.pathname;
-    return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : path === "/diagnostics" ? "diagnostics" : "home";
+    return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : path === "/diagnostics" ? "diagnostics" : path === "/agents" ? "agents" : "home";
   });
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
   const connectedConnectors: string[] = [];
@@ -184,20 +206,20 @@ function App() {
 
 
   useEffect(() => { try { localStorage.setItem("nexum:project-task-meta", JSON.stringify(projectTaskMeta)); } catch {} }, [projectTaskMeta]);
-  function navigate(nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics", projectId?: string, replace = false) {
+  function navigate(nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents", projectId?: string, replace = false) {
     setViewState(nextView);
     const target = nextView === "project"
       ? "/projects/" + encodeURIComponent(projectId ?? activeПроектId)
       : nextView === "connectors" ? "/connectors"
       : nextView === "settings" ? "/settings"
-      : nextView === "news" ? "/news" : nextView === "diagnostics" ? "/diagnostics" : "/projects";
+      : nextView === "news" ? "/news" : nextView === "diagnostics" ? "/diagnostics" : nextView === "agents" ? "/agents" : "/projects";
     if (window.location.pathname !== target) {
       if (replace) window.history.replaceState({ view: nextView, projectId }, "", target);
       else window.history.pushState({ view: nextView, projectId }, "", target);
     }
   }
 
-  const setView = (nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics") => navigate(nextView);
+  const setView = (nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents") => navigate(nextView);
 
   useEffect(() => {
     const onPopState = () => {
@@ -210,6 +232,7 @@ function App() {
       else if (path === "/settings") setViewState("settings");
       else if (path === "/news") setViewState("news");
       else if (path === "/diagnostics") setViewState("diagnostics");
+      else if (path === "/agents") setViewState("agents");
       else setViewState("home");
     };
     window.addEventListener("popstate", onPopState);
@@ -571,8 +594,44 @@ function App() {
     }
   }
 
+  async function decideAgentApproval(decision: "approve" | "reject") {
+    const jobId = chatJobIdRef.current;
+    const approval = pendingApproval;
+    if (!jobId || !approval || approvalActionLoading) return;
+    setApprovalActionLoading(true);
+    setApprovalActionError("");
+    try {
+      const response = await nexumRuntime.network.fetch(
+        `/api/chat/jobs/${encodeURIComponent(jobId)}/approvals/${encodeURIComponent(approval.id)}`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) },
+      );
+      const data = await response.json().catch(() => ({})) as {
+        success?: boolean;
+        error?: string;
+        job?: { pendingApproval?: AgentApprovalView };
+      };
+      if (data.job?.pendingApproval && data.job.pendingApproval.status !== "pending") {
+        setPendingApproval(null);
+        setPendingApprovalProjectId(null);
+        setCurrentActivity(decision === "approve" ? "Действие подтверждено. Агент продолжает работу." : "Действие отклонено. Агент получил отказ и продолжает работу.");
+      }
+      if (!response.ok || !data.success) throw new Error(data.error || `Approval API: HTTP ${response.status}`);
+      setPendingApproval(null);
+      setPendingApprovalProjectId(null);
+      setCurrentActivity(decision === "approve" ? "Подтверждение получено. Агент продолжает работу." : "Действие отклонено. Агент получил отказ.");
+    } catch (error) {
+      setApprovalActionError(error instanceof Error ? error.message : "Не удалось отправить решение.");
+    } finally {
+      setApprovalActionLoading(false);
+    }
+  }
+
   async function sendMessage(task = message, projectIdOverride?: string) {
+    setPendingApproval(null);
+    setPendingApprovalProjectId(null);
+    setApprovalActionError("");
     const targetПроектId = projectIdOverride ?? activeПроектId;
+    const agentDefinitionIdForRequest = pendingAgentProjectId === (projectIdOverride ?? activeПроектId) ? pendingAgentDefinitionId : null;
     if (!task.trim() || !targetПроектId) return;
     setLastMessage(task);
     setProjectTaskMeta((items) => ({ ...items, [targetПроектId]: { task: task.trim(), timestamp: Date.now(), status: "queued" } }));
@@ -607,6 +666,7 @@ function App() {
           model: aiModel,
           attachments: serializedAttachments,
           conversation: chatContext,
+          ...(agentDefinitionIdForRequest ? { agentDefinitionId: agentDefinitionIdForRequest } : {}),
         }),
       });
 
@@ -623,6 +683,10 @@ function App() {
       };
       if (!data.jobId) throw new Error(data.error || "API чата не вернул идентификатор задачи");
 
+      if (agentDefinitionIdForRequest && pendingAgentDefinitionId === agentDefinitionIdForRequest) {
+        setPendingAgentDefinitionId(null);
+        setPendingAgentProjectId(null);
+      }
       setAuthoritativeChatJobId(data.jobId);
       if (import.meta.env.VITE_E2E === "true") {
         const testWindow = window as unknown as { __NEXUM_E2E_LAST_JOB_ID__?: string; __NEXUM_E2E_RUNTIME_TASK_ID__?: string };
@@ -652,6 +716,8 @@ function App() {
               success?: boolean;
               job?: {
                 status?: "queued" | "running" | "completed" | "failed" | "cancelled";
+                projectId?: string;
+                pendingApproval?: AgentApprovalView;
                 stage?: string;
                 reply?: string | null;
                 steps?: Array<{ iteration: number; tool: string; success: boolean }>;
@@ -678,6 +744,13 @@ function App() {
         }
 
         const status = data?.job?.status;
+        if (data?.job?.pendingApproval?.status === "pending") {
+          setPendingApproval(data.job.pendingApproval);
+          setPendingApprovalProjectId(data.job.projectId ?? activeПроектId);
+        } else {
+          setPendingApproval(null);
+          setPendingApprovalProjectId(null);
+        }
         if (status === "completed") {
           setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "completed" } }));
           setActivitySteps(data?.job?.steps ?? []);
@@ -915,6 +988,7 @@ function App() {
     { label: "Перезапустить предпросмотр", hint: "R", run: () => { if (!activeПроектId) return; setProjectMode("preview"); setПредпросмотрKey((key) => key + 1); setNotice("Предпросмотр перезапущен"); } },
     { label: "Ask ИИ", hint: "A", run: () => focusTask() },
     { label: "Сменить модель", hint: "M", run: () => document.querySelector<HTMLButtonElement>(".composer-model-button")?.click() },
+    { label: "AI-агенты", hint: "A", run: () => setView("agents") },
     { label: "Диагностика Agent", hint: "D", run: () => setView("diagnostics") },
     { label: "Настройки", hint: "", run: () => setView("settings") },
   ];
@@ -941,8 +1015,8 @@ function App() {
       />}
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
         {view !== "home" && view !== "project" && <OSSystemChrome
-          appName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал NEXUM" : "Диагностика"}
-          appIcon={view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : "⌁"}
+          appName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал КВАРД" : view === "agents" ? "AI-агенты" : "Диагностика"}
+          appIcon={view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : view === "agents" ? "◈" : "⌁"}
           status={aiStatus?.available ? "AI Core подключён" : "Система готова"}
           activeView={view}
           onHome={() => navigate("home")}
@@ -950,7 +1024,30 @@ function App() {
           onSettings={() => navigate("settings")}
           onNewProject={() => openNewProject()}
         />}
-        {view === "diagnostics" ? (
+        {view === "agents" ? (
+          <OSAppWindow title="AI-агенты" subtitle="Профили запуска и состояние Runtime" icon="◈" status="Рабочая среда" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
+            <AgentsPage
+              projects={projects}
+              onUseProfile={(projectId, prompt) => {
+                setPendingAgentDefinitionId(null);
+                setPendingAgentProjectId(null);
+                openПроект(projectId, "agent");
+                setProjectMode("agent");
+                setMessage(prompt);
+                setNotice("Профиль загружен в Studio. Проверьте инструкцию и запустите задачу.");
+              }}
+              onUseAgent={(projectId, agentId, task) => {
+                setPendingAgentDefinitionId(agentId);
+                setPendingAgentProjectId(projectId);
+                openПроект(projectId, "agent");
+                setProjectMode("agent");
+                setMessage(task);
+                setNotice("Агент выбран. Проверьте задачу в Studio и отправьте её: сервер применит его системную инструкцию и список разрешённых инструментов.");
+              }}
+              onCreateProject={(description) => openNewProject(description)}
+            />
+          </OSAppWindow>
+        ) : view === "diagnostics" ? (
           <OSAppWindow title="Диагностика" subtitle="Системное состояние и события" icon="⌁" status="Система готова" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
             <DiagnosticsPage />
           </OSAppWindow>
@@ -962,7 +1059,7 @@ function App() {
             onOpenView={(next) => setView(next)}
           />
         ) : view === "news" ? (
-          <OSAppWindow title="Журнал NEXUM" subtitle="Новости и системные обновления" icon="✦" status="Актуально" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
+          <OSAppWindow title="Журнал КВАРД" subtitle="Новости и системные обновления" icon="✦" status="Актуально" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
             <NewsPage />
           </OSAppWindow>
         ) : view === "connectors" ? (
@@ -979,7 +1076,7 @@ function App() {
           <section className="settings-page settings-page-v2">
             <div className="settings-hero">
               <div>
-                <div className="eyebrow">NEXUM.DEV / SETTINGS</div>
+                <div className="eyebrow">КВАРД / НАСТРОЙКИ</div>
                 <h1>Настройки</h1>
                 <p>Единый центр управления интерфейсом, AI Engine, проектами и рабочим процессом.</p>
               </div>
@@ -1003,13 +1100,22 @@ function App() {
                     <span>01</span>
                     <div><h2>Интерфейс</h2><p>Масштаб, плотность и движение интерфейса.</p></div>
                   </div>
+                  <div className="settings-card settings-card-wide kvard-theme-card">
+                    <strong>Цветовая тема</strong>
+                    <span>{theme === "light" ? "Светлая тема" : "Тёмная тема"}</span>
+                    <small>Выберите оформление рабочего пространства. Настройка сохраняется на этом устройстве.</small>
+                    <div className="settings-option-row kvard-theme-options" role="group" aria-label="Цветовая тема">
+                      <button type="button" className={theme === "light" ? "selected" : ""} aria-pressed={theme === "light"} onClick={() => setTheme("light")}>Светлая</button>
+                      <button type="button" className={theme === "dark" ? "selected" : ""} aria-pressed={theme === "dark"} onClick={() => setTheme("dark")}>Тёмная</button>
+                    </div>
+                  </div>
                   <div className="settings-card settings-card-wide">
                     <strong>Масштаб интерфейса</strong>
                     <span>{uiSettings.scale}% · оптимизировано для HiDPI</span>
                     <small>100% — базовый режим. 110% увеличивает читаемость на плотных экранах.</small>
                     <div className="settings-scale-group">
                       {[90, 100, 110].map((scale) => (
-                        <button key={scale} type="button" className={uiSettings.scale === scale ? "selected" : ""} onClick={() => setUiSettings((state) => ({ ...state, scale }))}>{scale}%</button>
+                        <button key={scale} type="button" className={uiSettings.scale === scale ? "selected" : ""} aria-pressed={uiSettings.scale === scale} onClick={() => setUiSettings((state) => ({ ...state, scale }))}>{scale}%</button>
                       ))}
                     </div>
                   </div>
@@ -1020,7 +1126,7 @@ function App() {
                       <small>Определяет расстояния и размер служебных элементов.</small>
                       <div className="settings-option-row">
                         <div className="settings-option-copy"><b>Компактный режим</b><span>Больше информации на экране</span></div>
-                        <button type="button" aria-label="Toggle compact mode" className={`nexum-toggle ${uiSettings.compact ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, compact: !state.compact }))} />
+                        <button type="button" aria-label="Компактный режим" aria-pressed={uiSettings.compact} className={`nexum-toggle ${uiSettings.compact ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, compact: !state.compact }))} />
                       </div>
                     </div>
                     <div className="settings-card">
@@ -1029,7 +1135,7 @@ function App() {
                       <small>Только функциональная анимация без постоянного декоративного свечения.</small>
                       <div className="settings-option-row">
                         <div className="settings-option-copy"><b>Анимации</b><span>120–220 ms</span></div>
-                        <button type="button" aria-label="Toggle animations" className={`nexum-toggle ${uiSettings.animations ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, animations: !state.animations }))} />
+                        <button type="button" aria-label="Анимации" aria-pressed={uiSettings.animations} className={`nexum-toggle ${uiSettings.animations ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, animations: !state.animations }))} />
                       </div>
                     </div>
                   </div>
@@ -1038,15 +1144,15 @@ function App() {
                 <section id="settings-ai" className="settings-section">
                   <div className="settings-section-head">
                     <span>02</span>
-                    <div><h2>AI Engine</h2><p>Провайдер, модель и ключи доступа.</p></div>
+                    <div><h2>AI-движок</h2><p>Провайдер, модель и ключи доступа.</p></div>
                   </div>
                   <div className="settings-grid">
                     <div className="settings-card settings-card-wide">
-                      <strong>AI provider</strong>
+                      <strong>AI-провайдер</strong>
                       <span>{aiProviders.length ? "Выберите маршрут, который будет использовать Agent." : "Загрузка списка провайдеров…"}</span>
                       <div className="settings-api-row">
                         <select
-                          aria-label="AI provider"
+                          aria-label="AI-провайдер"
                           value={aiProvider}
                           disabled={!aiProviders.length || aiApiKeyLoading}
                           onChange={(event) => selectAIProvider(event.target.value)}
@@ -1056,7 +1162,7 @@ function App() {
                           ))}
                         </select>
                         <select
-                          aria-label="AI model"
+                          aria-label="AI-модель"
                           value={aiModel}
                           disabled={!aiProvider || aiApiKeyLoading}
                           onChange={(event) => setAIModel(event.target.value)}
@@ -1075,7 +1181,7 @@ function App() {
                     <div className="settings-card">
                       <strong>Статус</strong>
                       <span className={aiStatus?.available ? "settings-status-ok" : "settings-status-muted"}>{aiStatus?.available ? "Подключено" : "Ожидание подключения"}</span>
-                      <small>{aiStatus?.error || "NEXUM проверяет доступность выбранной модели."}</small>
+                      <small>{aiStatus?.error || "КВАРД проверяет доступность выбранной модели."}</small>
                     </div>
                   </div>
                 </section>
@@ -1092,7 +1198,7 @@ function App() {
                       <small>Обновлять Preview после успешной работы Agent.</small>
                       <div className="settings-option-row">
                         <div className="settings-option-copy"><b>Автопредпросмотр</b><span>Обновлять после сборки</span></div>
-                        <button type="button" aria-label="Toggle auto preview" className={`nexum-toggle ${uiSettings.autoПредпросмотр ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, autoПредпросмотр: !state.autoПредпросмотр }))} />
+                        <button type="button" aria-label="Автоматически обновлять предпросмотр" aria-pressed={uiSettings.autoПредпросмотр} className={`nexum-toggle ${uiSettings.autoПредпросмотр ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, autoПредпросмотр: !state.autoПредпросмотр }))} />
                       </div>
                     </div>
                     <div className="settings-card"><strong>Активные проекты</strong><span>{projects.filter((project) => project.status === "active").length} проектов</span><small>Каждый проект хранит собственные файлы, Preview и контекст.</small></div>
@@ -1105,7 +1211,7 @@ function App() {
                     <strong>Звук завершения</strong><span>{uiSettings.sound ? "Включён" : "Выключен"}</span><small>Сигнал при завершении или ошибке Agent.</small>
                     <div className="settings-option-row">
                       <div className="settings-option-copy"><b>Уведомлять звуком</b><span>Без визуального шума</span></div>
-                      <button type="button" aria-label="Toggle completion sound" className={`nexum-toggle ${uiSettings.sound ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, sound: !state.sound }))} />
+                      <button type="button" aria-label="Звук завершения задачи" aria-pressed={uiSettings.sound} className={`nexum-toggle ${uiSettings.sound ? "on" : ""}`} onClick={() => setUiSettings((state) => ({ ...state, sound: !state.sound }))} />
                     </div>
                   </div>
                 </section>
@@ -1113,7 +1219,7 @@ function App() {
                 <section id="settings-shortcuts" className="settings-section">
                   <div className="settings-section-head"><span>05</span><div><h2>Горячие клавиши</h2><p>Быстрый доступ к рабочему пространству.</p></div></div>
                   <div className="settings-card settings-card-wide settings-shortcuts">
-                    <div><strong>Command Palette</strong><small>Открыть палитру команд</small></div>
+                    <div><strong>Палитра команд</strong><small>Открыть палитру команд</small></div>
                     <kbd>⌘ K</kbd>
                     <div><strong>Навигация</strong><small>Ctrl / Command + K поддерживается</small></div>
                   </div>
@@ -1128,7 +1234,7 @@ function App() {
                 </section>
 
                 <section className="settings-section">
-                  <div className="settings-section-head"><span>07</span><div><h2>API access</h2><p>Подключение внешних AI-моделей.</p></div></div>
+                  <div className="settings-section-head"><span>07</span><div><h2>Доступ к API</h2><p>Подключение внешних AI-моделей.</p></div></div>
                   <div className="settings-card settings-card-wide anymodel-api-card">
                     <div className="anymodel-api-head">
                       <div>
@@ -1201,7 +1307,7 @@ function App() {
           </OSAppWindow>
         ) : (
         <BuilderShell
-          projectName={activeПроект?.name ?? "NEXUM"}
+          projectName={activeПроект?.name ?? "КВАРД"}
           activeTool={codeMode ? "code" : rightTab}
           previewOnline={previewOnline}
           agentStage={agentStage}
@@ -1218,13 +1324,21 @@ function App() {
           }}
           onOpenPreview={() => { window.open("/api/preview/" + activeПроектId + "/index.html", "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }}
         >
+          {pendingApproval && pendingApprovalProjectId === activeПроектId && (
+            <AgentApprovalPanel
+              approval={pendingApproval}
+              loading={approvalActionLoading}
+              error={approvalActionError}
+              onDecision={(decision) => void decideAgentApproval(decision)}
+            />
+          )}
           {codeMode ? (
-            <BuilderCode projectId={activeПроектId} projectName={activeПроект?.name ?? "NEXUM"} previewOnline={previewOnline}
+            <BuilderCode projectId={activeПроектId} projectName={activeПроект?.name ?? "КВАРД"} previewOnline={previewOnline}
               onRefresh={() => setПредпросмотрKey((key) => key + 1)} onClose={() => { setCodeMode(false); setProjectMode("files"); }} />
           ) : (
             <div className="nx-builder-grid">
               <BuilderChat
-                projectName={activeПроект?.name ?? "NEXUM"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel}
+                projectName={activeПроект?.name ?? "КВАРД"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel}
                 aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} jobId={chatJobId}
                 messages={conversation} attachments={pendingAttachments}
                 onMessageChange={setMessage} onSubmit={() => void sendMessage()} onCancel={() => void cancelAgent()}
@@ -1235,12 +1349,12 @@ function App() {
                 onProviderChange={selectAIProvider} onModelChange={setAIModel}
               />
               <BuilderTools
-                tab={rightTab} projectName={activeПроект?.name ?? "NEXUM"} projectId={activeПроектId}
+                tab={rightTab} projectName={activeПроект?.name ?? "КВАРД"} projectId={activeПроектId}
                 previewOnline={previewOnline} previewKey={previewKey} stage={agentStage} jobId={chatJobId}
                 activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity}
                 problems={problems} productPlan={productPlan}
                 onTabChange={(tab) => { setRightTab(tab); setProjectMode(tab); }}
-                onRefresh={() => setПредпросмотрKey((key) => key + 1)} onRepair={repairLastTask} onOpenChat={() => { setProjectMode("preview"); }}
+                onRefresh={() => setПредпросмотрKey((key) => key + 1)} onRepair={repairLastTask} onOpenAgent={() => { setProjectMode("agent"); }}
               />
             </div>
           )}
