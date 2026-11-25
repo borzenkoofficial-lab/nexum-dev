@@ -494,16 +494,19 @@ test("responsive workspace, agents and Studio layouts stay within supported view
     expect(layout.rootWidth, `Workspace root overflow at ${width}px`).toBeLessThanOrEqual(width);
 
     if (width <= 390) {
-      const nav = page.locator(".kv-home-nav button");
-      await expect(nav).toHaveCount(6);
-      const navBounds = await nav.evaluateAll((items) => items.map((item) => {
+      const nav = page.locator(".sidebar-nav .nav-item");
+      await expect(nav).toHaveCount(7);
+      const navContainer = await page.locator(".sidebar-nav").boundingBox();
+      expect(navContainer, "Workspace navigation container should be visible").not.toBeNull();
+      expect(navContainer!.x, `Workspace navigation starts outside the viewport at ${width}px`).toBeGreaterThanOrEqual(0);
+      expect(navContainer!.x + navContainer!.width, `Workspace navigation container exceeds the viewport at ${width}px`).toBeLessThanOrEqual(width);
+      const navItems = await nav.evaluateAll((items) => items.map((item) => {
         const rect = item.getBoundingClientRect();
-        return { left: rect.left, right: rect.right, width: rect.width };
+        return { width: rect.width, height: rect.height };
       }));
-      for (const item of navBounds) {
+      for (const item of navItems) {
         expect(item.width, `Workspace navigation item is collapsed at ${width}px`).toBeGreaterThan(0);
-        expect(item.left, `Workspace navigation item is outside the viewport at ${width}px`).toBeGreaterThanOrEqual(0);
-        expect(item.right, `Workspace navigation item is outside the viewport at ${width}px`).toBeLessThanOrEqual(width);
+        expect(item.height, `Workspace navigation touch target is too small at ${width}px`).toBeGreaterThanOrEqual(40);
       }
     }
 
@@ -513,7 +516,7 @@ test("responsive workspace, agents and Studio layouts stay within supported view
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
-  const homeControls = await page.locator(".kv-home-nav button, .kv-home-top-actions button, .kv-home-composer-footer button").evaluateAll((items) =>
+  const homeControls = await page.locator(".sidebar-nav .nav-item, .kv-home-composer-footer button").evaluateAll((items) =>
     items.map((item) => ({ label: item.textContent?.trim(), height: item.getBoundingClientRect().height })),
   );
   expect(homeControls.length).toBeGreaterThan(0);
