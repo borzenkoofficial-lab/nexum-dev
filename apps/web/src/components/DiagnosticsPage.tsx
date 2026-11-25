@@ -48,7 +48,7 @@ export function DiagnosticsPage() {
     setNotice("");
     try {
       const response = await fetch("/api/agent/diagnostics?limit=300");
-      if (!response.ok) throw new Error(`Diagnostics HTTP ${response.status}`);
+      if (!response.ok) throw new Error(`Диагностика HTTP ${response.status}`);
       setData(await response.json() as DiagnosticsResponse);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Не удалось загрузить диагностику");
@@ -65,7 +65,7 @@ export function DiagnosticsPage() {
     setNotice("");
     try {
       const response = await fetch(`/api/chat/jobs/${encodeURIComponent(jobId)}`);
-      if (!response.ok) throw new Error(`Job HTTP ${response.status}`);
+      if (!response.ok) throw new Error(`Задание HTTP ${response.status}`);
       const result = await response.json() as { job?: { events?: DiagnosticEvent[]; problems?: Array<{ message: string; source?: string }>; error?: string } };
       setJobEvents([
         ...(result.job?.events ?? []),
@@ -146,7 +146,7 @@ export function DiagnosticsPage() {
 
         <main className="diagnostics-main">
           <div className="diagnostics-panel-head">
-            <div><span>{selectedJob ? "JOB TRACE" : "SYSTEM TRACE"}</span><h2>{selectedJob ? `Задание ${selectedJob.slice(0, 12)}` : "Последние события"}</h2></div>
+            <div><span>{selectedJob ? "ИСТОРИЯ ЗАДАНИЯ" : "СИСТЕМНЫЙ ЖУРНАЛ"}</span><h2>{selectedJob ? `Задание ${selectedJob.slice(0, 12)}` : "Последние события"}</h2></div>
             <div className="diagnostics-filters">
               {(["all", "errors", "jobs"] as const).map((value) => <button key={value} type="button" className={filter === value ? "selected" : ""} aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === "all" ? "Все" : value === "errors" ? "Ошибки" : "Jobs"}</button>)}
             </div>
