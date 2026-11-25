@@ -26,6 +26,9 @@ export interface GatewayProviderInfo {
   name: string;
   model: string;
   isDefault: boolean;
+  protocol?: string;
+  adapterVersion?: string;
+  adapterMode: "native" | "legacy";
 }
 
 export interface GatewayFallbackEvent {
@@ -354,6 +357,9 @@ export class AIGateway {
       name: provider.name,
       model: provider.model,
       isDefault: provider.id === this.defaultProviderId,
+      ...(provider.protocol ? { protocol: provider.protocol } : {}),
+      ...(provider.adapterVersion ? { adapterVersion: provider.adapterVersion } : {}),
+      adapterMode: provider.generateRequest ? "native" : "legacy",
     }));
   }
 
