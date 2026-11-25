@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { KvardMark } from "./KvardMark.ts";
 import "./nexum-welcome.css";
 import "../kvard-design-system.css";
 
@@ -112,7 +113,7 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
     return (
       <main className={"nexum-welcome nexum-post-auth-boot " + (ready ? "is-ready" : "")}>
         <div className="nexum-boot-center">
-          <div className="nexum-logo-mark" aria-label="КВАРД WORKSPACE"><span>К</span></div>
+          <KvardMark size={64} />
           <div className="nexum-boot-word">КВАРД <span>WORKSPACE</span></div>
           <p>{ready ? "Рабочий стол готов." : "Запуск рабочего пространства…"}</p>
           <div className="nexum-boot-progress"><i style={{ width: `${bootProgress}%` }} /></div>
@@ -126,12 +127,12 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
   return (
     <main className={"nexum-welcome " + sceneClass}>
       <header className="nexum-welcome-nav">
-        <div className="nexum-brand"><span className="nexum-logo-mark small"><span>К</span></span><b>КВАРД</b><em>WORKSPACE</em></div>
+        <div className="nexum-brand"><KvardMark size={26} /><b>КВАРД</b><em>WORKSPACE</em></div>
         <div className="nexum-os-session"><span className="nx-live-dot" /> ЗАПУСК СИСТЕМЫ <b>1.0</b></div>
       </header>
 
       <section className="nexum-boot-sequence" aria-live="polite">
-        <div className="nexum-sequence-core" aria-hidden="true" />
+        <div className="nexum-sequence-core" aria-hidden="true"><KvardMark size={104} className="nexum-sequence-mark" /></div>
         <div className="nexum-sequence-copy">
           <span className="nexum-sequence-eyebrow" key={scene.eyebrow}>{scene.eyebrow}</span>
           <h1 key={scene.title}>{scene.title}</h1>
