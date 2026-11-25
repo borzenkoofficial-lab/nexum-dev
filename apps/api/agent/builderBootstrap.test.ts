@@ -102,7 +102,7 @@ test("empty Builder project is scaffolded before the first model request", async
   );
 
   assert.ok(result.steps.some((step) => step.tool === "scaffoldProject" && step.success));
-  assert.ok(result.steps.some((step) => step.tool === "writeFile" && step.success), "Builder must start implementing after scaffold");
+  assert.ok(result.steps.some((step) => step.tool === "writeFile" && step.success), "Builder must start implementing after scaffold: " + JSON.stringify(result.steps));
   const successfulTools = result.steps.filter((step) => step.success).map((step) => step.tool);
   const scaffoldAt = successfulTools.indexOf("scaffoldProject");
   const refreshedListingAt = successfulTools.indexOf("listFiles", scaffoldAt + 1);
