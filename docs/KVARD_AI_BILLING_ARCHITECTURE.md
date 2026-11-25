@@ -124,3 +124,8 @@ Existing usage_records may remain a compatibility/analytics projection while the
 Отдельный обязательный контракт адаптеров зафиксирован в `docs/KVARD_AI_PROVIDER_ADAPTER_CONTRACT.md`. Все новые AI-функции должны идти через канонический запрос/ответ КВАРД, а не зависеть от формата конкретного поставщика. Текущий `generate(message)` считается legacy bridge; до завершения миграции нельзя заявлять полноценную поддержку tools, vision, streaming или structured output там, где конкретный adapter этого не реализует.
 
 Новый provider допускается в production только после conformance tests на fake HTTP server, sandbox smoke test, проверки нормализации usage/errors, pricing и fallback policy.
+
+
+## Canonical provider compatibility dependency
+
+The implemented contract foundation is specified in `docs/KVARD_AI_PROVIDER_ADAPTER_CONTRACT.md` and designed in `docs/superpowers/specs/2026-11-26-ai-provider-compatibility-design.md`. All future model catalog, entitlement and usage-ledger work must build on `AIGateway.generateRequest()` and normalized `AIResponse`, not provider-specific request payloads. Real provider adapters and product-call migration remain prerequisites before enabling advanced model capabilities or precise billing.
