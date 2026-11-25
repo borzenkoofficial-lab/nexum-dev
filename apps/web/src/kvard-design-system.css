@@ -816,7 +816,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agent-approval-preview > div strong { font-size: 12px; }
 .kv-agent-approval-preview pre { font-size: 11px; line-height: 1.6; }
 .kv-agent-approval-actions > span { font-size: 11px; }
-.kv-agent-approval-actions button { min-height: 42px; padding: 9px 14px; font-size: 12px; }
+.kv-agent-approval-actions button { min-height: 44px; padding: 9px 14px; font-size: 12px; }
 
 .kv-agents-form input:focus-visible,
 .kv-agents-form textarea:focus-visible,
