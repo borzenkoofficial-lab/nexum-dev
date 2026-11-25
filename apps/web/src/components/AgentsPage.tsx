@@ -25,9 +25,10 @@ function dateText(value?: number | string) {
   return Number.isNaN(date.getTime()) ? "Время неизвестно" : date.toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
-export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
+export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject }: {
   projects: Project[];
   onUseProfile: (projectId: string, prompt: string) => void;
+  onUseAgent: (projectId: string, agentId: string, task: string) => void;
   onCreateProject: (description: string) => void;
 }) {
   const [diagnostics, setDiagnostics] = useState<Diagnostics>({});
@@ -60,6 +61,7 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
   const [agentApproval, setAgentApproval] = useState<AgentDefinition["approvalPolicy"]>("always");
   const [agentFormError, setAgentFormError] = useState("");
   const [agentSaving, setAgentSaving] = useState(false);
+  const [agentTask, setAgentTask] = useState("");
 
   useEffect(() => {
     if (!projects.some((item) => item.id === selectedProject && item.status === "active")) {
@@ -272,7 +274,12 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
 
       <section className="kv-agents-profiles" aria-labelledby="kv-agent-definitions-title">
         <div className="kv-agents-section-head"><div><span>AGENT CONTROL</span><h2 id="kv-agent-definitions-title">Мои AI-агенты</h2><p>Постоянные конфигурации с отдельными инструкциями и списком разрешённых инструментов.</p></div><button type="button" className="kv-agents-create" onClick={() => openAgentForm()}>＋ Создать агента</button></div>
-        <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Текущий этап.</strong> Конфигурации уже сохраняются на сервере. Расписания, триггеры и самостоятельный запуск ещё не подключены; политика подтверждений и список инструментов пока являются настройками, а не исполняемыми ограничениями Runtime. Пауза меняет статус конфигурации и не останавливает уже запущенные задачи.</p></div>
+        <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Безопасный запуск.</strong> Активные агенты можно запускать вручную из Studio в автономном режиме только с инструментами чтения. Изменение файлов, команды и другие действия записи заблокированы. Политики с подтверждениями станут доступны после подключения очереди согласования. Расписания и триггеры пока не включены.</p></div>
+        <div className="kv-agents-launchbar">
+          <label htmlFor="kv-agent-task">Задача для выбранного агента</label>
+          <textarea id="kv-agent-task" rows={3} value={agentTask} onChange={(event) => setAgentTask(event.target.value)} maxLength={5000} placeholder="Опишите, что агент должен изучить в выбранном проекте…" />
+          <span>Сначала выберите проект выше. Запуск откроет задачу в Studio; перед отправкой её можно проверить.</span>
+        </div>
         {agentsStorage === "memory" && <p className="kv-agents-storage-warning">База данных не подключена: агенты будут потеряны после перезапуска сервера.</p>}
         {agentsStorage === "database" && <p className="kv-agents-storage-ok">Конфигурации агентов хранятся в базе данных аккаунта.</p>}
         {agentsError && <div className="kv-agents-error" role="alert">{agentsError} <button type="button" onClick={() => void loadAgents()}>Повторить</button></div>}
@@ -282,15 +289,15 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
           <label>Описание<input value={agentDescription} onChange={(event) => setAgentDescription(event.target.value)} maxLength={160} placeholder="Назначение агента" /></label>
           <label>Системная инструкция<textarea value={agentPrompt} onChange={(event) => setAgentPrompt(event.target.value)} maxLength={5000} rows={5} required placeholder="Роль, задачи, правила и ограничения агента…" /></label>
           <div className="kv-agents-launchbar"><label>Провайдер (необязательно)<select value={agentProvider} onChange={(event) => setAgentProvider(event.target.value)}><option value="">По умолчанию</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="openrouter">OpenRouter</option><option value="anymodel">AnyModel</option><option value="orcarouter">OrcaRouter</option><option value="ollama">Ollama</option></select></label><label>Модель (необязательно)<input value={agentModel} onChange={(event) => setAgentModel(event.target.value)} maxLength={120} placeholder="Например, gpt-…" /></label></div>
-          <label>Политика подтверждения<select value={agentApproval} onChange={(event) => setAgentApproval(event.target.value as AgentDefinition["approvalPolicy"])}><option value="always">Подтверждать каждое действие</option><option value="writes">Подтверждать изменения</option><option value="autonomous">Автономная политика (пока не применяется)</option></select></label>
+          <label>Политика подтверждения<select value={agentApproval} onChange={(event) => setAgentApproval(event.target.value as AgentDefinition["approvalPolicy"])}><option value="always">Подтверждать каждое действие</option><option value="writes">Подтверждать изменения</option><option value="autonomous">Автономная — только чтение</option></select></label>
           <fieldset className="kv-agents-tool-picker"><legend>Разрешённые инструменты</legend><div>{availableAgentTools.map((tool) => <label key={tool.id}><input type="checkbox" checked={agentTools.includes(tool.id)} onChange={(event) => setAgentTools((items) => event.target.checked ? [...items, tool.id] : items.filter((item) => item !== tool.id))} />{tool.label}</label>)}</div></fieldset>
           {agentFormError && <p className="kv-agents-form-error" role="alert">{agentFormError}</p>}
           <div className="kv-agents-form-footer"><span>{agentTools.length}/32 инструментов</span><button type="submit" className="kv-agents-primary" disabled={agentSaving}>{agentSaving ? "Сохраняю…" : "Сохранить агента"}</button></div>
         </form>}
         {agentsLoading ? <p className="kv-agents-empty">Загружаю конфигурации агентов…</p> : agents.length ? <div className="kv-agents-profile-list">{agents.map((agent) => <article className="kv-agents-profile" key={agent.id}>
           <div className="kv-agents-profile-mark" aria-hidden="true">A</div>
-          <div className="kv-agents-profile-copy"><div className="kv-agents-profile-meta"><span>{agent.provider || "Провайдер по умолчанию"}</span><b>{agent.status === "active" ? "КОНФИГУРАЦИЯ ВКЛЮЧЕНА" : "ПРИОСТАНОВЛЕНА"}</b></div><h3>{agent.name}</h3><p>{agent.description || "Без описания"} · {agent.allowedTools.length} инструментов · {agent.approvalPolicy === "always" ? "подтверждение всех действий" : agent.approvalPolicy === "writes" ? "подтверждение изменений" : "автономная политика (пока не применяется)"}</p></div>
-          <div className="kv-agents-profile-actions"><button type="button" className="kv-agents-use" onClick={() => openAgentForm(agent)}>Настроить</button><button type="button" className="kv-agents-delete" onClick={() => void toggleAgent(agent)}>{agent.status === "active" ? "Пауза" : "Активировать"}</button><button type="button" className="kv-agents-delete" onClick={() => void removeAgent(agent)}>Удалить</button></div>
+          <div className="kv-agents-profile-copy"><div className="kv-agents-profile-meta"><span>{agent.provider || "Провайдер по умолчанию"}</span><b>{agent.status === "active" ? "КОНФИГУРАЦИЯ ВКЛЮЧЕНА" : "ПРИОСТАНОВЛЕНА"}</b></div><h3>{agent.name}</h3><p>{agent.description || "Без описания"} · {agent.allowedTools.length} инструментов · {agent.approvalPolicy === "always" ? "требуется подтверждение каждого действия" : agent.approvalPolicy === "writes" ? "требуется подтверждение изменений" : "автономный режим: только чтение"}</p></div>
+          <div className="kv-agents-profile-actions"><button type="button" className="kv-agents-use" disabled={!selectedProject || !agentTask.trim() || agent.status !== "active" || agent.approvalPolicy !== "autonomous" || agent.allowedTools.length === 0} onClick={() => onUseAgent(selectedProject, agent.id, agentTask.trim())}>Открыть в Studio</button><button type="button" className="kv-agents-use" onClick={() => openAgentForm(agent)}>Настроить</button><button type="button" className="kv-agents-delete" onClick={() => void toggleAgent(agent)}>{agent.status === "active" ? "Пауза" : "Активировать"}</button><button type="button" className="kv-agents-delete" onClick={() => void removeAgent(agent)}>Удалить</button></div>
         </article>)}</div> : <p className="kv-agents-empty">Пока нет созданных агентов. Создайте первого и сохраните его конфигурацию.</p>}
       </section>
 
