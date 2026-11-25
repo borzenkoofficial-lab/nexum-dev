@@ -24,10 +24,26 @@ class DockerSandboxProvider implements SandboxProvider {
 
 let configuredProvider: SandboxProvider | undefined;
 const sessions = new Map<string, Promise<SandboxSession>>();
+const activeOperations = new Set<Promise<unknown>>();
 let shuttingDown = false;
+let shutdownPromise: Promise<void> | undefined;
 
 function assertRunnerAvailable(): void {
   if (shuttingDown) throw new Error("Sandbox runner is shutting down");
+}
+
+function trackOperation<T>(operation: Promise<T>): Promise<T> {
+  activeOperations.add(operation);
+  void operation.then(
+    () => activeOperations.delete(operation),
+    () => activeOperations.delete(operation),
+  );
+  return operation;
+}
+
+/** Test-only provider injection; no HTTP route exposes this hook. */
+export function setSandboxProviderForTests(provider: SandboxProvider): void {
+  configuredProvider = provider;
 }
 
 function getProvider(runtime?: ServerRuntime, context: RuntimeContext = {}): SandboxProvider {
@@ -48,7 +64,18 @@ function getSessionKey(context: RuntimeContext): string | undefined {
   return context.taskId ? `task:${context.taskId}` : undefined;
 }
 
-export async function runInConfiguredSandbox(
+export function runInConfiguredSandbox(
+  projectRoot: string,
+  request: SandboxRequest,
+  runtime?: ServerRuntime,
+  context: RuntimeContext = {},
+  signal?: AbortSignal,
+): Promise<SandboxResult> {
+  assertRunnerAvailable();
+  return trackOperation(runInConfiguredSandboxInternal(projectRoot, request, runtime, context, signal));
+}
+
+async function runInConfiguredSandboxInternal(
   projectRoot: string,
   request: SandboxRequest,
   runtime?: ServerRuntime,
@@ -95,8 +122,12 @@ export async function runInConfiguredSandbox(
   }
 }
 
-export async function releaseSandboxSession(taskId?: string): Promise<void> {
-  if (!taskId) return;
+export function releaseSandboxSession(taskId?: string): Promise<void> {
+  if (!taskId) return Promise.resolve();
+  return trackOperation(releaseSandboxSessionInternal(taskId));
+}
+
+async function releaseSandboxSessionInternal(taskId: string): Promise<void> {
   const key = `task:${taskId}`;
   const pending = sessions.get(key);
   if (!pending) return;
@@ -112,29 +143,41 @@ export async function releaseSandboxSession(taskId?: string): Promise<void> {
   }
 }
 
-export async function disposeAllSandboxSessions(): Promise<void> {
+export function disposeAllSandboxSessions(): Promise<void> {
+  if (shutdownPromise) return shutdownPromise;
   shuttingDown = true;
-  const pending = [...sessions.entries()];
-  sessions.clear();
-  await Promise.all(pending.map(async ([key, sessionPromise]) => {
-    try {
-      await (await sessionPromise).dispose();
-    } catch (error) {
-      console.error("[Nexum] Failed to dispose sandbox during shutdown", {
-        sessionKey: key,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }));
+  shutdownPromise = (async () => {
+    const pending = [...sessions.entries()];
+    sessions.clear();
+    const sessionDisposals = pending.map(async ([key, sessionPromise]) => {
+      try {
+        await (await sessionPromise).dispose();
+      } catch (error) {
+        console.error("[Nexum] Failed to dispose sandbox during shutdown", {
+          sessionKey: key,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+    // Includes one-shot creates/runs and task releases that may already have
+    // removed their sessions from the map before shutdown took its snapshot.
+    const operations = [...activeOperations];
+    await Promise.allSettled([...sessionDisposals, ...operations]);
+  })();
+  return shutdownPromise;
 }
 
 /** Test-only reset hook; not exposed through an HTTP route. */
 export async function resetSandboxRunnerForTests(): Promise<void> {
-  shuttingDown = false;
   const pending = [...sessions.values()];
   sessions.clear();
+  await Promise.allSettled([
+    ...pending.map(async (sessionPromise) => {
+      try { await (await sessionPromise).dispose(); } catch { /* best-effort test cleanup */ }
+    }),
+    ...activeOperations,
+  ]);
   configuredProvider = undefined;
-  await Promise.all(pending.map(async (sessionPromise) => {
-    try { await (await sessionPromise).dispose(); } catch { /* best-effort test cleanup */ }
-  }));
+  shuttingDown = false;
+  shutdownPromise = undefined;
 }
