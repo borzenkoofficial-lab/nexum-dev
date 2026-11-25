@@ -228,7 +228,7 @@ test("rejects streaming on the complete-response API even if a provider advertis
       return { content: "complete response", provider: "streaming-advertised", model: "streaming-model" };
     },
   } as unknown as AIProvider;
-  const gateway = new AIGateway([provider], "native");
+  const gateway = new AIGateway([provider], "streaming-advertised");
   await assert.rejects(
     () => gateway.generateRequest(request({ stream: true })),
     (error: any) => error?.code === "MODEL_ERROR" && /stream/i.test(String(error?.technicalDetails)),
