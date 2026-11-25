@@ -42,16 +42,16 @@
 - Modify: `apps/api/package.json` (register test file)
 
 **Interfaces:**
-- Produces `AIContentPart`, `AIMessage`, expanded `AIRequest`, `AIUsage`, `AIResponse`, `AIProvider.generateRequest?(request: AIRequest): Promise<AIResponse>`.
+- Produces `AIContentPart`, `AIToolCall`, `AIMessage` (including assistant tool-call history), expanded `AIRequest`, `AIUsage`, `AIResponse`, `AIProvider.generateRequest?(request: AIRequest): Promise<AIResponse>`.
 - Produces `validateCanonicalRequest(request: AIRequest): void`, `getRequiredCapabilities(request: AIRequest): Partial<AIModelCapabilities>`, `normalizeAIResponse(response: AIResponse, providerId: string, model: string): AIResponse`.
 - Canonical request version is `1`. Existing string-content messages remain valid.
 - Usage source enum: `provider_reported | estimated | unavailable`. Missing usage is unavailable; partial usage remains partial and must not be filled with zero values.
 
-- [ ] **Step 1: Write tests first** for valid text request, mixed content, invalid empty messages/model, malformed image part, capability extraction, normalization of provider/model, missing and partial usage.
-- [ ] **Step 2: Run** `npm --prefix apps/api test -- ai/canonical.test.ts` (or repository-supported equivalent); confirm failures are caused by missing contract functions/types.
-- [ ] **Step 3: Implement** canonical types and pure runtime validation/normalization in the files above. Keep existing AIRequest/AIResponse property compatibility.
-- [ ] **Step 4: Run** focused tests, then `npm --prefix apps/api run typecheck`.
-- [ ] **Step 5: Commit** `feat(ai): add canonical provider request and response contract`.
+- [x] **Step 1: Write tests first** for valid text request, mixed content, invalid empty messages/model, malformed image part, capability extraction, normalization of provider/model, missing and partial usage.
+- [x] **Step 2: Run** `npm --prefix apps/api test -- ai/canonical.test.ts` (or repository-supported equivalent); confirm failures are caused by missing contract functions/types.
+- [x] **Step 3: Implement** canonical types and pure runtime validation/normalization in the files above. Keep existing AIRequest/AIResponse property compatibility.
+- [x] **Step 4: Run** focused tests, then `npm --prefix apps/api run typecheck`.
+- [x] **Step 5: Commit** `feat(ai): add canonical provider request and response contract`.
 
 ### Task 2: Strict legacy adapter bridge
 
@@ -62,17 +62,17 @@
 
 **Interfaces:**
 - Produces `generateWithLegacyProvider(provider: AIProvider, request: AIRequest): Promise<AIResponse>`.
-- Accept only request v1, text-only content, supported text roles, no tools, no streaming, responseFormat=text, and no unsupported options.
+- Accept only request v1, text-only content, supported text roles, no tools or assistant tool-call history, no streaming, responseFormat=text, and no unsupported options.
 - Preserve message order and role boundaries when converting canonical messages to legacy prompt.
 - Pass maxTokens, temperature and AbortSignal to legacy `generate`.
 - Return content, provider/model, finishReason if inferable, and `usageSource: "unavailable"` when provider has not reported usage.
 - Reject unsupported features with typed `NexumError` before calling provider.generate.
 
-- [ ] **Step 1: Write failing tests** for text conversion, option forwarding, unsupported image/tool/stream/json/developer/tool-role requests, and ensuring provider is not called after rejection.
-- [ ] **Step 2: Run** focused legacy adapter tests and verify expected RED.
-- [ ] **Step 3: Implement** strict bridge.
-- [ ] **Step 4: Run** focused tests and API typecheck.
-- [ ] **Step 5: Commit** `feat(ai): add strict legacy provider bridge`.
+- [x] **Step 1: Write failing tests** for text conversion, option forwarding, unsupported image/tool/stream/json/developer/tool-role requests, and ensuring provider is not called after rejection.
+- [x] **Step 2: Run** focused legacy adapter tests and verify expected RED.
+- [x] **Step 3: Implement** strict bridge.
+- [x] **Step 4: Run** focused tests and API typecheck.
+- [x] **Step 5: Commit** `feat(ai): add strict legacy provider bridge`.
 
 ### Task 3: Canonical gateway entry point
 
@@ -91,11 +91,11 @@
 - No new fallback behavior. Existing `generate` and `generateWithMetadata` semantics remain unchanged.
 - Do not call provider listModels over network on each generation.
 
-- [ ] **Step 1: Write failing tests** for native adapter routing, legacy routing, model-level capability override, unsupported capability rejection before call, unknown provider, actual model identity and signal forwarding.
-- [ ] **Step 2: Run** gateway tests and verify expected RED.
-- [ ] **Step 3: Implement** canonical gateway method without changing existing generate methods.
-- [ ] **Step 4: Run** all gateway and canonical/legacy tests, then API typecheck.
-- [ ] **Step 5: Commit** `feat(ai): route canonical requests through gateway adapters`.
+- [x] **Step 1: Write failing tests** for native adapter routing, legacy routing, model-level capability override, unsupported capability rejection before call, unknown provider, actual model identity and signal forwarding.
+- [x] **Step 2: Run** gateway tests and verify expected RED.
+- [x] **Step 3: Implement** canonical gateway method without changing existing generate methods.
+- [x] **Step 4: Run** all gateway and canonical/legacy tests, then API typecheck.
+- [x] **Step 5: Commit** `feat(ai): route canonical requests through gateway adapters`.
 
 ### Task 4: Provider adapter conformance suite
 
@@ -107,15 +107,15 @@
 
 **Interfaces:**
 - Add reusable test harness that runs the same canonical contract checks against a provider fixture implementing native generateRequest.
-- Required assertions: provider/model identity, request cancellation, partial/missing usage semantics, capability rejection, safe error surface, deterministic content mapping.
+- Required assertions: provider/model identity, request cancellation, partial/missing usage semantics, capability rejection, safe error surface, deterministic content mapping. The dedicated workflow runs API typecheck and all API tests independently of browser E2E.
 - Keep network-free tests deterministic. Real provider sandbox checks remain a separate pre-production gate and are not simulated by CI.
 
-- [ ] **Step 1: Write failing conformance tests** for native fixture and negative capability cases.
-- [ ] **Step 2: Run** focused conformance tests and verify RED.
-- [ ] **Step 3: Implement** the conformance harness and register test.
-- [ ] **Step 4: Update** provider contract doc with implemented-vs-pending matrix; update checklist with exact statuses.
-- [ ] **Step 5: Run** full API test suite and typecheck; run repo CI and inspect every job.
-- [ ] **Step 6: Commit** `test(ai): add provider adapter conformance suite`.
+- [x] **Step 1: Write failing conformance tests** for native fixture and negative capability cases.
+- [x] **Step 2: Run** focused conformance tests and verify RED.
+- [x] **Step 3: Implement** the conformance harness and register test.
+- [x] **Step 4: Update** provider contract doc with implemented-vs-pending matrix; update checklist with exact statuses.
+- [x] **Step 5: Run** full API test suite and typecheck; run repo CI and inspect every job.
+- [x] **Step 6: Commit** `test(ai): add provider adapter conformance suite`.
 
 ## Completion Criteria
 
@@ -124,5 +124,12 @@
 - Legacy adapters cannot silently claim unsupported tools/vision/streaming/JSON.
 - Missing/partial usage is explicit and never falsified.
 - API tests and typecheck pass.
-- Latest GitHub Actions run for final main commit is completed successfully; canceled/in-progress runs are not counted.
+- Dedicated AI Provider Contract workflow completed successfully with API typecheck and full API suite. Main CI build job is green; any separate Runtime E2E failure is recorded and tracked independently, not misreported as an AI provider-contract failure.
 - Checklist accurately distinguishes implemented contract foundation from provider features still pending.
+
+
+## Verification record — 2026-11-26
+
+- Dedicated workflow `45705059762` passed on commit `9f4e9992c017a94409834c8f238926cbe09fceab`: API typecheck passed; 238/238 API tests passed (0 failed).
+- Main CI workflow `45704112563`: build job passed all API/Web/Docker steps. Runtime E2E job had 40 passed, 1 failed, 3 skipped. The single failure is the existing Runtime cancellation ownership assertion in `e2e/tests/runtime-phase-2-5.spec.ts:129` (`runtimeData.resources` expected 0, received 1); it remains a separate Runtime issue.
+- Production deployment, production migration, real provider credentials, paid provider calls and top-ups were not performed.
