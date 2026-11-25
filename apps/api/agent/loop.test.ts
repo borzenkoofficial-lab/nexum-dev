@@ -13,6 +13,10 @@ class ProductPlanProvider implements AIProvider {
   name = "Test planner";
   model = "planner-test";
   capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: true, reasoning: false, contextWindow: 32768 };
+  async listModels(): Promise<string[]> {
+    return [this.model];
+  }
+
   async generate(): Promise<string> {
     return JSON.stringify({
       goal: "Создать сайт автосервиса",
