@@ -170,3 +170,44 @@ test("gateway rejects provider entries with neither native nor legacy generation
   } as unknown as AIProvider;
   assert.throws(() => new AIGateway([invalidProvider], "invalid"), /generation method/i);
 });
+
+
+test("prefers native canonical generation when a provider exposes both interfaces", async () => {
+  const provider = new NativeFixture();
+  const gateway = new AIGateway([provider], "native");
+  const result = await gateway.generateWithMetadata("Use the native path");
+  assert.equal(result.response, "native answer");
+  assert.equal(provider.received.length, 1);
+  assert.equal(provider.calls, 0);
+});
+
+test("supports a native-only provider as an automatic transient fallback", async () => {
+  class RateLimitedLegacy extends LegacyFixture {
+    override async generate(): Promise<string> {
+      this.calls += 1;
+      throw new Error("429 rate limit");
+    }
+  }
+  const primary = new RateLimitedLegacy();
+  const received: AIRequest[] = [];
+  const fallback = {
+    id: "native-fallback",
+    name: "Native fallback",
+    model: "fallback-model",
+    capabilities: {
+      text: true, code: false, vision: false, toolCalling: false,
+      streaming: false, structuredOutput: false, reasoning: false, contextWindow: 16_000,
+    },
+    async generateRequest(input: AIRequest): Promise<AIResponse> {
+      received.push(input);
+      return { content: "fallback answer", provider: "native-fallback", model: "fallback-resolved-model" };
+    },
+  } as unknown as AIProvider;
+  const gateway = new AIGateway([primary, fallback], "legacy", { fallbackProviderId: fallback.id });
+  const result = await gateway.generateWithMetadata("Fallback safely");
+  assert.equal(result.response, "fallback answer");
+  assert.equal(result.provider, "native-fallback");
+  assert.equal(result.model, "fallback-resolved-model");
+  assert.equal(result.fallback, true);
+  assert.equal(received.length, 1);
+});
