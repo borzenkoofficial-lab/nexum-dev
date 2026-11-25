@@ -114,7 +114,7 @@ export function DiagnosticsPage() {
         </div>
         <div className="diagnostics-actions">
           <button type="button" onClick={() => void load()} disabled={loading}>{loading ? "Обновляю…" : "Обновить"}</button>
-          <button type="button" className="home-primary" onClick={exportDiagnostics}>Экспорт JSON</button>
+          <button type="button" onClick={exportDiagnostics}>Экспорт JSON</button>
         </div>
       </header>
 
@@ -148,18 +148,28 @@ export function DiagnosticsPage() {
           {jobLoading && <div className="diagnostics-empty">Загружаю историю задания…</div>}
           {!jobLoading && visibleEvents.length === 0 && <div className="diagnostics-empty">Событий пока нет.</div>}
           <div className="diagnostics-timeline">
-            {visibleEvents.map((event, index) => (
-              <article className={`diagnostics-event ${event.level === "error" ? "error" : event.level === "warn" ? "warn" : ""}`} key={event.id ?? `${event.timestamp}-${index}`}>
-                <div className="diagnostics-event-meta"><span>{event.type ?? "Событие"}</span><time>{event.timestamp ? new Date(event.timestamp).toLocaleTimeString("ru-RU") : "—"}</time></div>
-                <strong>{event.message ?? "Без сообщения"}</strong>
-                <div className="diagnostics-event-tags">
-                  {event.jobId && <span>Задание: {event.jobId.slice(0, 8)}</span>}
-                  {event.projectId && <span>Проект: {event.projectId}</span>}
-                  {event.route && <span>{event.route}</span>}
-                </div>
-                {event.metadata && <details className="diagnostics-event-details"><summary>Подробности события</summary><pre>{JSON.stringify(event.metadata, null, 2)}</pre></details>}
-              </article>
-            ))}
+            {visibleEvents.map((event, index) => {
+              const message = event.message ?? "Без сообщения";
+              const isLong = message.length > 220;
+              return (
+                <article className={`diagnostics-event ${event.level === "error" ? "error" : event.level === "warn" ? "warn" : ""}`} key={event.id ?? `${event.timestamp}-${index}`}>
+                  <div className="diagnostics-event-meta"><span>{event.type ?? "Событие"}</span><time>{event.timestamp ? new Date(event.timestamp).toLocaleTimeString("ru-RU") : "—"}</time></div>
+                  <strong>{isLong ? `${message.slice(0, 220)}…` : message}</strong>
+                  <div className="diagnostics-event-tags">
+                    {event.jobId && <span>Задание: {event.jobId.slice(0, 8)}</span>}
+                    {event.projectId && <span>Проект: {event.projectId}</span>}
+                    {event.route && <span>{event.route}</span>}
+                  </div>
+                  {(isLong || event.metadata) && (
+                    <details className="diagnostics-event-details">
+                      <summary>Подробности события</summary>
+                      {isLong && <pre>{message}</pre>}
+                      {event.metadata && <pre>{JSON.stringify(event.metadata, null, 2)}</pre>}
+                    </details>
+                  )}
+                </article>
+              );
+            })}
           </div>
         </section>
       </div>
