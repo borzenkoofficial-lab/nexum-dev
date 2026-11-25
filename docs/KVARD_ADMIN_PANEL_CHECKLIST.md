@@ -373,3 +373,12 @@
 - Gateway разрешает функцию только при строгом значении `true`; `false` и `unknown` fail-closed. Model selection requirements остаются boolean-only.
 - Добавлен тест: неизвестная vision capability отклоняется до вызова адаптера.
 - Dedicated workflow `45706535742` passed на commit `d9d2c03b5de7a7800df5972e96d91ea185d5b4d3`: API typecheck passed, 242/242 API tests passed.
+
+
+### AI Provider Contract — native-only provider compatibility
+
+- `AIProvider.generate()` сделан optional; новый provider может реализовать только `generateRequest()`. Gateway не допускает регистрацию provider без обоих методов.
+- Старые продуктовые вызовы через string facade автоматически переводятся в canonical request, если у выбранного provider есть native adapter. При наличии обоих методов приоритет у native canonical adapter; legacy-only adapters продолжают работать через strict bridge.
+- Автоматический transient fallback теперь также поддерживает native-only provider.
+- Dedicated workflow `45707392285` passed на commit `4d947cc4096519c7e1fdf7fc6732e5a1067c3ad7`: API typecheck passed, 246/246 API tests passed.
+- Это снижает стоимость будущей миграции: продуктовые модули можно переводить постепенно, не требуя одновременного переписывания всех call sites.
