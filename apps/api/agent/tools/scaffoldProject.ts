@@ -45,7 +45,7 @@ export class ScaffoldProjectTool implements Tool {
           // be absent in older workspaces, but if present it must still be the
           // untouched NEXUM starter before we replace the starter files.
           canInitializeStarter =
-            /Your project is ready\\. Ask the Agent to design and build it\\./i.test(starterHtml) &&
+            /Your project is ready\. Ask the Agent to design and build it\./i.test(starterHtml) &&
             (!starterApp || /NEXUM Agent can now replace this starter|NEXUM project foundation ready/i.test(starterApp));
         } catch {
           canInitializeStarter = false;
