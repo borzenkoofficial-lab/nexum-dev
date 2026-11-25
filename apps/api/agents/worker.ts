@@ -12,12 +12,13 @@ import {
   claimNextAgentRun, getAgentVersionForRun, getRun, renewAgentRunLease, releaseAgentRunLease, updateRun, addRunEvent,
 } from "./agentRepository.js";
 import { AgentRuntime } from "./agentRuntime.js";
+import type { RuntimeAgent } from "./types.js";
 import { recordAgentRunUsage } from "../billing/quotaService.js";
 import { closeDatabase } from "../db.js";
 
 const leaseMs = Math.max(30_000, Math.min(300_000, Number(process.env.NEXUM_AGENT_RUN_LEASE_MS || 60_000)));
 const pollMs = Math.max(250, Math.min(10_000, Number(process.env.NEXUM_AGENT_RUN_POLL_MS || 1_000)));
-const workerId = process.env.NEXUM_WORKER_ID?.trim() || randomUUID();
+const workerId = (process.env.NEXUM_WORKER_ID?.trim() || "agent-worker") + ":" + randomUUID();
 const configuredProvider = process.env.AI_PROVIDER?.toLowerCase();
 const providerId = configuredProvider === "ollama" || configuredProvider === "openrouter" ||
   configuredProvider === "openai" || configuredProvider === "anthropic" ||
@@ -70,7 +71,7 @@ async function processOne(): Promise<boolean> {
     const agent = await getAgentVersionForRun(claimed.organization_id, claimed.agent_id, claimed.agent_version_id);
     if (!agent) throw new Error("The immutable agent version for this queued run no longer exists.");
     await runtime.execute(
-      agent as never, claimed.id, claimed.created_by, claimed.input, controller.signal, workerId,
+      agent as unknown as RuntimeAgent, claimed.id, claimed.created_by, claimed.input, controller.signal, workerId,
     );
     const persistedRun = await getRun(claimed.organization_id, claimed.id);
     const terminal = ["completed", "failed", "cancelled", "timed_out", "limit_reached"].includes(String(persistedRun?.status));
