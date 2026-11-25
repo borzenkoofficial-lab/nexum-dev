@@ -1517,7 +1517,7 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   await waitForChatJobPersistence(job.id);
   const cancelled = await cancelChatJob(job.id, userId);
   if (!cancelled) {
-    const current = await loadChatJob(job.id, userId, getChatJob);
+    const current = await loadChatJob(job.id, userId, getChatJob, true);
     return res.json({ success: true, cancelled: current?.status === "cancelled", job: current });
   }
   syncTerminalChatJobCache(cancelled);
@@ -1790,7 +1790,7 @@ app.get("/api/chat/jobs", async (req, res) => {
 app.get("/api/chat/jobs/:id", async (req, res) => {
   await cleanupChatJobs();
   const userId = getAuthUser(req).id;
-  const job = await loadChatJob(req.params.id, userId, getChatJob);
+  const job = await loadChatJob(req.params.id, userId, getChatJob, true);
   if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired" });
   return res.json({ success: true, job });
 });
