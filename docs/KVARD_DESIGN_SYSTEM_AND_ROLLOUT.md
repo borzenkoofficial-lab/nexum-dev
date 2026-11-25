@@ -2,8 +2,8 @@
 
 **Статус:** аудит завершён; первый брендовый этап внедрён; UI Kit и browser visual QA ещё впереди  
 **Дата проверки:** 26 ноября 2026  
-**Проверенная ветка:** \`main\`  
-**Проверенный HEAD:** \`96ded2b09890bfea300febc947a95af6e8d398e1\`  
+**Проверенная ветка:** `main`  
+**HEAD исходного snapshot:** `66990520c9e23c1c7c9cfe250045518fa2b5b509`  
 **Направление:** Balanced  
 **Область:** только пользовательский продукт
 
@@ -49,7 +49,7 @@
 
 ### 1.3 Технические и организационные ограничения
 
-- Разработка только в \`main\`, без создания рабочих веток.
+- Разработка только в `main`, без создания рабочих веток.
 - Не удалять существующие ветки.
 - Не менять бизнес-логику, API-контракты, хранение данных, авторизацию или runtime в рамках визуального редизайна.
 - Не добавлять фиктивные данные, фальшивые статусы, декоративные действия и неработающие кнопки.
@@ -78,8 +78,8 @@
 ### Исключено до отдельного распоряжения
 
 - Admin Control Center и его UI.
-- \`AdminControlCenter.tsx\`, \`AdminControlCenter.css\`.
-- \`/admin\`, административные API, MFA, роли и permissions.
+- `AdminControlCenter.tsx`, `AdminControlCenter.css`.
+- `/admin`, административные API, MFA, роли и permissions.
 - Административные метрики, security rollout и admin checklist.
 
 Если пользовательский сценарий зависит от административного API, зависимость фиксируется отдельно. Административный код не меняется в рамках этого плана.
@@ -90,29 +90,29 @@
 
 | URL / режим | Назначение | Основные компоненты | Что сохраняем |
 |---|---|---|---|
-| Первичная сессия | Welcome / регистрация | \`NexumWelcome\` | Регистрацию, валидацию и текущий переход в Workspace |
-| \`/\`, \`/projects\` | Главная / обзор | \`Sidebar\`, \`BuilderHome\` | Композер задачи, шаблоны-подсказки, реальные последние проекты |
-| \`/projects/:id\` | Project Studio | \`BuilderShell\`, \`BuilderChat\`, \`BuilderTools\`, \`BuilderCode\` | Выполнение задач, отмену, retry, preview, файлы, код и approvals |
-| \`/agents\` | Персональные AI Agents | \`AgentsPage\` | Разделение prompt-профилей и постоянных определений агентов |
-| \`/business-agents\` | Организационные агенты | \`BusinessAgentsPage\` | Организации, версии, запуски, знания, approvals, workforce |
-| \`/connectors\` | Интеграции | \`IntegrationPage\`, \`ConnectorModal\` | Честные статусы и явное обозначение неподключённых интеграций |
-| \`/diagnostics\` | Диагностика | \`DiagnosticsPage\`, Event Center | Реальные события и отдельные источники диагностики |
-| \`/news\` | Журнал продукта | \`NewsPage\` | Даты, категории и редакционную структуру |
-| \`/settings\` | Пользовательские настройки | Разметка в \`App.tsx\` | Тему, масштаб, компактность, провайдеры и локальные предпочтения |
+| Первичная сессия | Welcome / регистрация | `NexumWelcome` | Регистрацию, валидацию и текущий переход в Workspace |
+| `/`, `/projects` | Главная / обзор | `Sidebar`, `BuilderHome` | Композер задачи, шаблоны-подсказки, реальные последние проекты |
+| `/projects/:id` | Project Studio | `BuilderShell`, `BuilderChat`, `BuilderTools`, `BuilderCode` | Выполнение задач, отмену, retry, preview, файлы, код и approvals |
+| `/agents` | Персональные AI Agents | `AgentsPage` | Разделение prompt-профилей и постоянных определений агентов |
+| `/business-agents` | Организационные агенты | `BusinessAgentsPage` | Организации, версии, запуски, знания, approvals, workforce |
+| `/connectors` | Интеграции | `IntegrationPage`, `ConnectorModal` | Честные статусы и явное обозначение неподключённых интеграций |
+| `/diagnostics` | Диагностика | `DiagnosticsPage`, Event Center | Реальные события и отдельные источники диагностики |
+| `/news` | Журнал продукта | `NewsPage` | Даты, категории и редакционную структуру |
+| `/settings` | Пользовательские настройки | Разметка в `App.tsx` | Тему, масштаб, компактность, провайдеры и локальные предпочтения |
 
-Отдельный public marketing website в \`apps/web/src\` не обнаружен. Это не доказывает, что его нет в отдельном приложении или deployment. Не включать его в реализацию до подтверждения фактического маршрута/репозитория.
+Отдельный public marketing website в `apps/web/src` не обнаружен. Это не доказывает, что его нет в отдельном приложении или deployment. Не включать его в реализацию до подтверждения фактического маршрута/репозитория.
 
 ### 3.1 Общая композиция приложения
 
 Текущая оболочка включает:
 
-- \`Sidebar\` — основная навигация и список проектов.
-- \`BuilderHome\` — рабочий обзор и запуск новой задачи.
-- \`NexumApplicationManager\` — переключение между открытыми проектами.
-- \`NexumOSEventCenter\` — системные события.
-- \`OSAppWindow\` — сейчас нейтральный контейнер содержимого, не должен возвращать декоративную оконную метафору.
-- \`BuilderShell\` — специализированная шапка Studio и навигация по инструментам.
-- \`CommandPalette\` — быстрые команды.
+- `Sidebar` — основная навигация и список проектов.
+- `BuilderHome` — рабочий обзор и запуск новой задачи.
+- `NexumApplicationManager` — переключение между открытыми проектами.
+- `NexumOSEventCenter` — системные события.
+- `OSAppWindow` — сейчас нейтральный контейнер содержимого, не должен возвращать декоративную оконную метафору.
+- `BuilderShell` — специализированная шапка Studio и навигация по инструментам.
+- `CommandPalette` — быстрые команды.
 
 Оболочка и Studio должны восприниматься как одна платформа, но иметь разные режимы работы. Не нужно насильно превращать каждый раздел в IDE.
 
@@ -122,20 +122,20 @@
 
 ### 4.1 Существующие токены
 
-В \`apps/web/src/kvard-design-system.css\` уже определены семантические light/dark tokens:
+В `apps/web/src/kvard-design-system.css` уже определены семантические light/dark tokens:
 
 | Назначение | Текущее значение light | Текущее значение dark |
 |---|---:|---:|
-| Canvas | \`#F6F7F9\` | \`#111217\` |
-| Surface | \`#FFFFFF\` | \`#191B23\` |
-| Raised surface | \`#FFFFFF\` | \`#222530\` |
-| Subtle surface | \`#F1F2F5\` | \`#20222B\` |
-| Border | \`#E5E6EB\` | \`#30333F\` |
-| Primary text | \`#191923\` | \`#F5F5F8\` |
-| Secondary text | \`#555966\` | \`#B6BAC7\` |
-| Action | \`#7040D8\` | \`#A78BFA\` |
-| Action hover | \`#6032C5\` | \`#B69CFF\` |
-| Focus | \`#8B5CF6\` | \`#B69CFF\` |
+| Canvas | `#F6F7F9` | `#111217` |
+| Surface | `#FFFFFF` | `#191B23` |
+| Raised surface | `#FFFFFF` | `#222530` |
+| Subtle surface | `#F1F2F5` | `#20222B` |
+| Border | `#E5E6EB` | `#30333F` |
+| Primary text | `#191923` | `#F5F5F8` |
+| Secondary text | `#555966` | `#B6BAC7` |
+| Action | `#7040D8` | `#A78BFA` |
+| Action hover | `#6032C5` | `#B69CFF` |
+| Focus | `#8B5CF6` | `#B69CFF` |
 
 Также уже есть семантические success / warning / danger / info, радиусы, тени, spacing и базовые размеры шрифтов.
 
@@ -155,7 +155,7 @@
 В нескольких компонентах знак пока представлен текстовой буквой «К» или локальными реализациями. Единый повторно используемый SVG-компонент в проверенных точках не подтверждён.
 
 Следующий брендовый шаг:
-1. Один компонент \`KvardMark\` с размерами и доступным именем.
+1. Один компонент `KvardMark` с размерами и доступным именем.
 2. Единая геометрия для welcome, sidebar, Studio и системных поверхностей.
 3. Отдельный wordmark с точным кириллическим названием «КВАРД».
 4. Чёткий clear space и минимальный размер.
@@ -167,23 +167,23 @@
 
 | Файл | Строк | Селекторы (прибл.) | Уникальные hex-цвета | Определения tokens |
 |---|---:|---:|---:|---:|
-| \`App.css\` | 395 | 351 | 16 | 8 |
-| \`builder.css\` | 163 | 141 | 0 | 0 |
-| \`kvard-design-system.css\` | 808 | 500 | 43 | 77 определений / 50 имён |
-| \`nexum-welcome.css\` | 72 | 60 | 0 | 0 |
-| \`BusinessAgentsPage.css\` | 102 | 116 | 25 | 0 |
-| \`index.css\` | 2 | 0 | 0 | 0 |
+| `App.css` | 395 | 351 | 16 | 8 |
+| `builder.css` | 163 | 141 | 0 | 0 |
+| `kvard-design-system.css` | 808 | 500 | 43 | 77 определений / 50 имён |
+| `nexum-welcome.css` | 72 | 60 | 0 | 0 |
+| `BusinessAgentsPage.css` | 102 | 116 | 25 | 0 |
+| `index.css` | 2 | 0 | 0 | 0 |
 
 Найдено буквальное пересечение selector strings:
-- \`App.css\` ↔ \`kvard-design-system.css\`: 23.
-- \`builder.css\` ↔ \`kvard-design-system.css\`: 28.
-- \`nexum-welcome.css\` ↔ \`kvard-design-system.css\`: 17.
+- `App.css` ↔ `kvard-design-system.css`: 23.
+- `builder.css` ↔ `kvard-design-system.css`: 28.
+- `nexum-welcome.css` ↔ `kvard-design-system.css`: 17.
 
 Это сигналы для проверки каскада, но не доказательство, что каждый повтор является визуальным дефектом. Нельзя удалять или объединять селекторы автоматически.
 
-**Самая явная зона долга:** \`BusinessAgentsPage.css\` содержит 94 вхождения hex-цветов (25 уникальных) и не определяет собственных semantic tokens. Переводить стили на \`--kv-*\` постепенно, проверяя каждое состояние и обе темы.
+**Самая явная зона долга:** `BusinessAgentsPage.css` содержит 94 вхождения hex-цветов (25 уникальных) и не определяет собственных semantic tokens. Переводить стили на `--kv-*` постепенно, проверяя каждое состояние и обе темы.
 
-Порядок импорта в \`App.tsx\`: \`App.css\` → \`builder.css\` → \`kvard-design-system.css\`. Welcome дополнительно импортирует \`nexum-welcome.css\` и design system. Реальный cascade необходимо проверить в browser runtime до удаления правил.
+Порядок импорта в `App.tsx`: `App.css` → `builder.css` → `kvard-design-system.css`. Welcome дополнительно импортирует `nexum-welcome.css` и design system. Реальный cascade необходимо проверить в browser runtime до удаления правил.
 
 ---
 
@@ -191,7 +191,7 @@
 
 ### P1 — пользовательский login не подтверждён как реальный
 
-В текущем \`NexumWelcome\` регистрация вызывает \`POST /api/auth/register\`, но login path использует локальный demo-flow и записывает onboarding flag в localStorage. Кроме того, доступ к Workspace завязан на локальный onboarding state. Визуально не выдавать этот flow за полноценную подтверждённую пользовательскую сессию.
+В текущем `NexumWelcome` регистрация вызывает `POST /api/auth/register`, но login path использует локальный demo-flow и записывает onboarding flag в localStorage. Кроме того, доступ к Workspace завязан на локальный onboarding state. Визуально не выдавать этот flow за полноценную подтверждённую пользовательскую сессию.
 
 ### P1 — заставка сообщает о шагах, которые не являются health-check
 
@@ -199,16 +199,16 @@ Welcome проходит фиксированные timed scenes. Прогрес
 
 ### P1 — каталог интеграций
 
-В \`App.tsx\` \`connectedConnectors\` инициализируется пустым массивом. Нажатие открывает модальное окно, которое сообщает, что серверное подключение не реализовано. Не показывать connected state без реального backend connection status.
+В `App.tsx` `connectedConnectors` инициализируется пустым массивом. Нажатие открывает модальное окно, которое сообщает, что серверное подключение не реализовано. Не показывать connected state без реального backend connection status.
 
 ### P1 — состояние AI-профилей
 
-\`AgentsPage\` умеет отображать режим хранения профилей. Если API сообщает \`memory\`, пользователь должен видеть предупреждение о непостоянном хранении. Не обещать сохранность до подтверждения persistent storage.
+`AgentsPage` умеет отображать режим хранения профилей. Если API сообщает `memory`, пользователь должен видеть предупреждение о непостоянном хранении. Не обещать сохранность до подтверждения persistent storage.
 
 ### P1 — источники диагностики не смешивать
 
-- Agent job history: \`GET /api/agent/diagnostics?limit=50\`, серверный JSONL history.
-- Chat job details: \`GET /api/chat/jobs/:id\`.
+- Agent job history: `GET /api/agent/diagnostics?limit=50`, серверный JSONL history.
+- Chat job details: `GET /api/chat/jobs/:id`.
 - Browser diagnostics: отдельный pipeline событий и session storage на сервере.
 
 В интерфейсе указывать источник, период и состояние обновления. Не суммировать разнородные события в одну метрику без определённой семантики.
@@ -272,7 +272,7 @@ Welcome проходит фиксированные timed scenes. Прогрес
 
 - Короткие переходы интерфейса, без искусственной «загрузки ядра».
 - Анимация не скрывает и не задерживает доступ к основному действию.
-- Поддерживать \`prefers-reduced-motion\`.
+- Поддерживать `prefers-reduced-motion`.
 - Прогресс и live-индикаторы отображать только при реальном событии/процессе.
 
 ---
@@ -372,7 +372,7 @@ Welcome проходит фиксированные timed scenes. Прогрес
 
 ### Этап 0 — закрыть аудит
 
-- [x] Сверен актуальный HEAD \`main\`.
+- [x] Сверен актуальный HEAD `main`.
 - [x] Зафиксирована карта пользовательских маршрутов.
 - [x] Зафиксированы фактические ограничения login, welcome, integrations, diagnostics и storage.
 - [x] Проведена первичная инвентаризация CSS и selector overlap.
@@ -384,8 +384,8 @@ Welcome проходит фиксированные timed scenes. Прогрес
 ### Этап 1 — единый brand foundation
 
 - [ ] Зафиксировать финальную редакцию semantic tokens после контраст-проверки.
-- [ ] Создать единый SVG-компонент \`KvardMark\` и wordmark.
-- [ ] Перевести Welcome, Sidebar и Studio на единый знак.
+- [x] Создать единый SVG-компонент `KvardMark`; wordmark consolidation остаётся открытой.
+- [x] Перевести Welcome, Sidebar, системную панель, desktop и Builder surfaces на единый знак.
 - [ ] Проверить clear space, 16/24/32/48 px, light/dark.
 - [ ] Зафиксировать владельца каждого CSS-слоя.
 
@@ -393,7 +393,7 @@ Welcome проходит фиксированные timed scenes. Прогрес
 
 - [ ] Составить список реально используемых селекторов.
 - [ ] Проверить 23 / 28 / 17 повторяющихся selector strings по computed styles.
-- [ ] Перевести \`BusinessAgentsPage.css\` с hardcoded colors на semantic tokens.
+- [ ] Перевести `BusinessAgentsPage.css` с hardcoded colors на semantic tokens.
 - [ ] Убрать дубли только после визуальной проверки каждого потребителя.
 - [ ] Собрать Button, Input, Select, Tabs, Card, Modal, Status, Alert, Empty и Loading patterns.
 - [ ] Добавить/обновить компонентные тесты.
@@ -460,21 +460,22 @@ Welcome проходит фиксированные timed scenes. Прогрес
 
 ## 12. Проверенное состояние на момент фиксации
 
-- HEAD \`main\`: \`96ded2b09890bfea300febc947a95af6e8d398e1\`.
-- Последний CI workflow для этого HEAD: \`NEXUM CI\`, run \`45700454058\`, conclusion \`success\`.
-- CI success подтверждает проверки workflow на этом commit, но не заменяет браузерную визуальную приёмку.
-- Изменения кода в рамках данного аудита не выполнялись.
-- Документ добавляется отдельным commit только в \`docs/\`.
-- Текущий статус: статический аудит и план внедрения зафиксированы; runtime visual QA остаётся открытым.
+- Проверены implementation commits: `c90c38c`, `96e3f08`, `dec6cf2`, `d7e8502`, `ef636e0`; каждый затронул только запланированные user-facing brand files.
+- В implementation commits не затронуты административные файлы, маршруты, API, MFA или permissions.
+- CI run `45704112563`: brand tests, API typecheck/tests, Web runtime tests, Web typecheck/build/lint, Docker build и production-container smoke test прошли в build job.
+- E2E job run `45704112563` завершился ошибкой существующего runtime resource-cleanup assertion: после отмены ожидалось `runtimeData.resources === 0`. Это не связано с рендерингом бренда.
+- Более поздний run `45704411330`: brand tests и Web build в E2E job прошли; build job остановился на трёх API-тестах по tool-call capability, legacy bridge validation и bearer-credential redaction.
+- CI не считается полностью зелёным. Browser visual QA, скриншоты, clear-space и ручная проверка light/dark остаются открытыми.
+- Разработка выполняется непосредственно в `main`, без отдельных веток и PR, по прямому требованию владельца продукта.
 
 ## 13. Источники внутри репозитория
 
-- \`docs/KVARD_USER_FACING_DESIGN_CONTRACT.md\`
-- \`docs/KVARD_USER_FACING_AUDIT.md\`
-- \`docs/KVARD_COMPETITOR_RESEARCH.md\`
-- \`docs/KVARD_BUILDER_UX_SPEC.md\`
-- \`docs/KVARD_AI_AGENTS_UX_SPEC.md\`
-- \`docs/KVARD_PLATFORM_SECTIONS_UX_SPEC.md\`
-- \`docs/KVARD_DESIGN_SYSTEM.md\`
-- \`docs/KVARD_GLOBAL_DESIGN_PLAN.md\`
-- \`docs/KVARD_BALANCED_BRAND_ROLLOUT.md\`
+- `docs/KVARD_USER_FACING_DESIGN_CONTRACT.md`
+- `docs/KVARD_USER_FACING_AUDIT.md`
+- `docs/KVARD_COMPETITOR_RESEARCH.md`
+- `docs/KVARD_BUILDER_UX_SPEC.md`
+- `docs/KVARD_AI_AGENTS_UX_SPEC.md`
+- `docs/KVARD_PLATFORM_SECTIONS_UX_SPEC.md`
+- `docs/KVARD_DESIGN_SYSTEM.md`
+- `docs/KVARD_GLOBAL_DESIGN_PLAN.md`
+- `docs/KVARD_BALANCED_BRAND_ROLLOUT.md`
