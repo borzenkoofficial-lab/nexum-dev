@@ -25,6 +25,7 @@ test("approval preview redacts credential fields and bearer tokens", () => {
   const preview = createApprovalPreview(JSON.stringify({
     path: "src/app.ts",
     apiKey: "sk-live-super-secret-value",
+    accessKey: "access-key-secret-value",
     nested: { password: "hunter2", access_token: "token-value" },
     authorization: "Bearer eyJhbGciOiJIUzI1NiJ9.secret",
     content: "safe source code",
@@ -32,7 +33,7 @@ test("approval preview redacts credential fields and bearer tokens", () => {
   assert.match(preview, /src\/app\.ts/);
   assert.match(preview, /REDACTED/i);
   assert.match(preview, /safe source code/);
-  for (const secret of ["sk-live-super-secret-value", "hunter2", "token-value", "eyJhbGciOiJIUzI1NiJ9.secret"]) {
+  for (const secret of ["sk-live-super-secret-value", "access-key-secret-value", "hunter2", "token-value", "eyJhbGciOiJIUzI1NiJ9.secret"]) {
     assert.equal(preview.includes(secret), false);
   }
 });
