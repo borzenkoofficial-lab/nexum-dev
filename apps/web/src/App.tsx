@@ -1,5 +1,4 @@
 import "./App.css";
-import "./nexum-os.css";
 import "./builder.css";
 import { NexumWelcome } from "./components/NexumWelcome";
 import { useEffect, useRef, useState } from "react";
