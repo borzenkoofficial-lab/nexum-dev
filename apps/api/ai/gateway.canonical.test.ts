@@ -350,3 +350,31 @@ test("gateway rejects native adapters without an explicit protocol and semantic 
     /protocol and adapter version/i,
   );
 });
+
+
+test("caches verified model catalogs and invalidates them after credential rotation", async () => {
+  let listCalls = 0;
+  let storedKey = "";
+  const provider = {
+    id: "catalog-cache",
+    name: "Catalog cache",
+    model: "configured-model",
+    capabilities: {
+      text: true, code: false, vision: false, toolCalling: false,
+      streaming: false, structuredOutput: false, reasoning: false, contextWindow: 8192,
+    },
+    async generate() { return "ok"; },
+    async listModels() {
+      listCalls += 1;
+      return ["verified-model"];
+    },
+    setRuntimeApiKey(value: string) { storedKey = value; },
+  } as unknown as AIProvider;
+  const gateway = new AIGateway([provider], provider.id);
+  await Promise.all([gateway.getModelCatalog(), gateway.getModelCatalog()]);
+  assert.equal(listCalls, 1);
+  gateway.setRuntimeProviderApiKey(provider.id, "rotated-key");
+  assert.equal(storedKey, "rotated-key");
+  await gateway.getModelCatalog();
+  assert.equal(listCalls, 2);
+});
