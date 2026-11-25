@@ -114,3 +114,8 @@
 - Existing string-based product calls are transparently converted to canonical requests when the selected adapter supports `generateRequest()`. If both methods exist, the native canonical method is preferred.
 - This provides a migration bridge: product modules can move to canonical requests independently, while native provider adapters can be introduced one at a time.
 - Automatic transient fallback can target a native-only adapter through the same canonical route.
+
+
+## Streaming boundary
+
+Canonical request v1 carries a stream intent flag, but `AIGateway.generateRequest()` is a complete-response operation. It must reject `stream: true` even when an adapter advertises streaming. Real streaming requires a separate event contract and gateway async-iterator method, followed by provider-specific conformance tests; do not silently buffer and label the result as streaming.
