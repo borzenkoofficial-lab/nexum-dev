@@ -13,7 +13,7 @@ export interface RunSandboxResult extends ToolResult {
 
 export class RunSandboxTool implements Tool {
   name = "runSandbox";
-  description = "Runs an allowlisted build or test command in an isolated Docker container";
+  description = "Runs an allowlisted build or test command in an isolated sandbox";
 
   private readonly projectRoot: string;
   private readonly runtime?: ServerRuntime;
