@@ -34,6 +34,7 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
   const [selectedProject, setSelectedProject] = useState(projects.find((item) => item.status === "active")?.id ?? "");
   const [customProfiles, setCustomProfiles] = useState<Profile[]>([]);
   const [profilesLoading, setProfilesLoading] = useState(true);
+  const [profileSaving, setProfileSaving] = useState(false);
   const [profileStorage, setProfileStorage] = useState<"database" | "memory" | "unknown">("unknown");
   const [profileLoadError, setProfileLoadError] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -94,6 +95,7 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
     if (!name || !prompt) { setFormError("Укажите название и инструкцию профиля."); return; }
     if (name.length > 48 || prompt.length > 5000) { setFormError("Название — до 48 символов, инструкция — до 5 000 символов."); return; }
     setFormError("");
+    setProfileSaving(true);
     try {
       const response = await fetch("/api/agent/profiles", {
         method: "POST",
@@ -108,6 +110,8 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
       setNotice(profileStorage === "database" || data.storage === "database" ? "Профиль сохранён в аккаунте." : "Профиль сохранён в памяти сервера.");
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Не удалось сохранить профиль.");
+    } finally {
+      setProfileSaving(false);
     }
   }
 
@@ -132,7 +136,7 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
         <button className="kv-agents-refresh" type="button" onClick={() => void load()} disabled={loading}>{loading ? "Обновление…" : "Обновить состояние"}</button>
       </header>
 
-      <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Как это работает сейчас.</strong> Профиль хранит инструкцию в этом браузере и передаёт её существующему AI Runtime как задачу. Постоянные автономные агенты с собственным расписанием, инструментами и серверной конфигурацией пока не включены.</p></div>
+      <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Как это работает сейчас.</strong> Профиль хранит инструкцию в аккаунте и передаёт её существующему AI Runtime как задачу. Постоянные автономные агенты с собственным расписанием, инструментами и независимой конфигурацией пока не включены.</p></div>
       {notice && <p className="kv-agents-feedback" role="status">{notice}</p>}
       {loadError && <div className="kv-agents-error" role="alert">{loadError} <button type="button" onClick={() => void load()}>Повторить</button></div>}
 
@@ -144,7 +148,7 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
           <label>Краткое описание<input value={profileDescription} onChange={(event) => setProfileDescription(event.target.value)} maxLength={140} placeholder="Для каких задач предназначен профиль" /></label>
           <label>Инструкция для агента<textarea value={profilePrompt} onChange={(event) => setProfilePrompt(event.target.value)} maxLength={5000} rows={5} placeholder="Опишите роль, цель, правила работы и ожидаемый результат…" required /></label>
           {formError && <p className="kv-agents-form-error" role="alert">{formError}</p>}
-          <div className="kv-agents-form-footer"><span>{profilePrompt.length}/5000</span><button type="submit" className="kv-agents-primary">Сохранить профиль</button></div>
+          <div className="kv-agents-form-footer"><span>{profilePrompt.length}/5000</span><button type="submit" className="kv-agents-primary" disabled={profileSaving}>{profileSaving ? "Сохраняю…" : "Сохранить профиль"}</button></div>
         </form>}
 
         <div className="kv-agents-launchbar"><label htmlFor="kv-agent-project">Проект для запуска</label><select id="kv-agent-project" value={selectedProject} onChange={(event) => setSelectedProject(event.target.value)} disabled={!projects.some((item) => item.status === "active")}><option value="">Выберите проект</option>{projects.filter((item) => item.status === "active").map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><span>{selectedProject ? "Инструкция откроется в Studio и останется доступной для редактирования до запуска." : "Сначала создайте или выберите проект."}</span></div>
