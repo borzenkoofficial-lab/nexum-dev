@@ -20,7 +20,7 @@ test("local object store writes, reads, verifies and deletes objects", async () 
     const body = new TextEncoder().encode("durable object contract");
     const metadata = await store.put("workspace/revision/file.txt", body);
     assert.equal(metadata.sizeBytes, body.byteLength);
-    assert.equal((await store.get(metadata.key))?.toString(), body.toString());
+    assert.deepEqual(await store.get(metadata.key), body);
     assert.deepEqual(await store.head(metadata.key), metadata);
     await assert.rejects(store.put("workspace/revision/file.txt", body, "0".repeat(64)), /checksum mismatch/i);
     await store.delete(metadata.key);
