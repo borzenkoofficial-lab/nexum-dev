@@ -324,3 +324,14 @@
 - Поддерживаются постоянные платформенные ключи для OpenAI, Anthropic, OpenRouter, OrcaRouter и AnyModel. Ollama не требует API key и пока остаётся отдельной локальной конфигурацией.
 - Важно: migration 019 не применялась к production; Admin API в production остаётся закрытым. Перед запуском необходимо задать encryption key в серверном secret store и выполнить контролируемое применение миграции.
 - CI для commit `6983425` запущен (workflow `45700399162`), результат ещё не получен. Не считать реализацию проверенной до завершения API tests/typecheck/Web build/E2E.
+
+
+### AI-совместимость — контракт провайдеров
+
+- Добавлен документ `docs/KVARD_AI_PROVIDER_ADAPTER_CONTRACT.md`: единый canonical request/response, протокольные adapters, model-level capabilities, usage normalization, error taxonomy, retry/fallback rules, credential redaction и conformance test suite.
+- Аудит выявил ограничение текущей архитектуры: существующий `AIProvider.generate(message)` — текстовый legacy-интерфейс; capabilities нескольких адаптеров статически выставлены в false для vision/tools/streaming/structured output/reasoning. Нельзя считать эти функции поддержанными без отдельной реализации.
+- Целевой принцип: новый провайдер добавляется отдельным адаптером и не требует изменений продуктовых модулей КВАРД. Протоколы провайдеров остаются разными; единым является внутренний контракт КВАРД.
+- Следующий engineering этап: canonical request/response types + legacy bridge, затем conformance tests и перевод одного адаптера за раз. Только после этого строить model entitlements и usage billing на каноническом формате.
+- Production rollout, реальные запросы с платными ключами и provider billing не выполнялись.
+
+| 2026-11-25 | AI-ADAPTER-01–08 | Специфицирован стандарт совместимости провайдеров и правила допуска нового адаптера. Зафиксирован gap между текущим string-only generate и необходимым контрактом для мультимодальности, tools, streaming и достоверного usage. | Документ `docs/KVARD_AI_PROVIDER_ADAPTER_CONTRACT.md`, commit `da5e510`. Статус: спецификация готова, кодовая миграция и conformance suite ещё не начаты. IN_PROGRESS |
