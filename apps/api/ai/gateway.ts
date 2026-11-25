@@ -225,28 +225,27 @@ export class AIGateway {
     model: string | undefined,
     options: AIGenerateOptions = {},
   ): Promise<{ response: string; model: string }> {
+    if (provider.generateRequest) {
+      const response = await this.generateRequest({
+        version: 1,
+        model: model ?? provider.model,
+        messages: [{ role: "user", content: message }],
+        ...(options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens }),
+        ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
+        ...(options.signal === undefined ? {} : { signal: options.signal }),
+      }, { provider: provider.id });
+      return { response: response.content, model: response.model };
+    }
     if (provider.generate) {
       return {
         response: await provider.generate(message, model, options),
         model: model ?? provider.model,
       };
     }
-    if (!provider.generateRequest) {
-      throw new NexumError("CONFIG_ERROR", "AI-провайдер не реализует поддерживаемый интерфейс генерации.", {
-        retryable: false,
-        technicalDetails: `Provider ${provider.id} has no generation method`,
-      });
-    }
-
-    const response = await this.generateRequest({
-      version: 1,
-      model: model ?? provider.model,
-      messages: [{ role: "user", content: message }],
-      ...(options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens }),
-      ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
-      ...(options.signal === undefined ? {} : { signal: options.signal }),
-    }, { provider: provider.id });
-    return { response: response.content, model: response.model };
+    throw new NexumError("CONFIG_ERROR", "AI-провайдер не реализует поддерживаемый интерфейс генерации.", {
+      retryable: false,
+      technicalDetails: `Provider ${provider.id} has no generation method`,
+    });
   }
 
   async generateWithMetadata(message: string, options: GatewayGenerateOptions | string = {}): Promise<GatewayGenerationResult> {
