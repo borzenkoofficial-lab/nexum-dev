@@ -73,13 +73,13 @@ test.afterEach(async ({ page }, testInfo) => {
 
 test("boot, runtime inspection and browser-visible navigation", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("body")).toContainText("NEXUM", { timeout: 15_000 });
+  await expect(page.locator("body")).toContainText("КВАРД", { timeout: 15_000 });
   const status = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   expect(["READY", "BUSY", "DEGRADED"]).toContain(status.lifecycle);
   expect(status.activeTasks).toBe(0);
   expect(status.activeResources).toBeGreaterThanOrEqual(0);
 
-  for (const route of ["/projects", "/connectors", "/settings", "/news", "/diagnostics"]) {
+  for (const route of ["/projects", "/agents", "/connectors", "/settings", "/news", "/diagnostics"]) {
     await page.goto(route);
     await expect(page.locator("body")).not.toContainText("Application Error");
   }
@@ -475,4 +475,28 @@ test("shutdown releases runtime resources and prevents active work", async ({ pa
   expect(status.activeTasks).toBe(0);
   expect(status.network).toEqual([]);
   expect(status.activeResources).toBe(0);
+});
+
+test("mobile workspace home keeps layout within viewport and controls are touch-friendly", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Рабочая среда" })).toBeVisible({ timeout: 15_000 });
+  const layout = await page.evaluate(() => ({
+    viewportWidth: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    bodyWidth: document.body.scrollWidth,
+  }));
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.bodyWidth).toBeLessThanOrEqual(layout.viewportWidth);
+
+  const controls = await page.locator(".kv-home-nav button, .kv-home-top-actions button, .kv-home-composer-footer button").evaluateAll((items) =>
+    items.map((item) => {
+      const rect = item.getBoundingClientRect();
+      return { label: item.textContent?.trim(), width: rect.width, height: rect.height };
+    }),
+  );
+  expect(controls.length).toBeGreaterThan(0);
+  for (const control of controls) {
+    expect(control.height, `Touch target too small: ${control.label}`).toBeGreaterThanOrEqual(40);
+  }
 });
