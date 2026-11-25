@@ -34,6 +34,7 @@ import { serverRuntime } from "./runtime/runtime.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
+import { releaseSandboxSession } from "./sandbox/runner.js";
 
 
 const requestIds = new WeakMap<object, string>();
@@ -679,6 +680,9 @@ ${attachment.content.slice(0, 80_000)}`);
       console.error("[Nexum] project lock release failed", jobId, lockError);
     }
     cancellationBridge.stop();
+    // A task-scoped Daytona session is reused across tools in this Agent run.
+    // Release it at the single job lifecycle boundary on success, failure or cancellation.
+    await releaseSandboxSession(runtimeTask.id);
     if (attachmentDir) {
       await rm(attachmentDir, { recursive: true, force: true }).catch((error) => {
         console.error("[Nexum] attachment cleanup failed", { jobId, error });
