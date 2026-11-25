@@ -218,7 +218,7 @@ test("native Messages adapter rejects system messages after conversation has sta
 
 test("model discovery and provider status verify the selected Claude model", async () => {
   const provider = createProvider(async (input) => {
-    if (String(input).endsWith("/models")) {
+    if (String(input).includes("/models?limit=1000")) {
       return response({ data: [{ id: "claude-sonnet-5" }, { id: "claude-opus-5" }] });
     }
     return response({});
