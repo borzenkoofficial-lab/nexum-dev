@@ -72,7 +72,8 @@ test.afterEach(async ({ page }) => {
   await page.request.post("/api/test/agent-failures", { data: { operation: "reset" } }).catch(() => {});
 });
 
-test("Studio pauses a configured agent before a READ tool and resumes after approval", async ({ page }) => {
+test("Studio pauses a configured agent before a READ tool and resumes after approval", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   const projectId = await createWorkspace(page);
   const agent = await createAgent(page, "always");
   const jobId = await launchConfiguredAgent(page, projectId, agent);
@@ -83,6 +84,12 @@ test("Studio pauses a configured agent before a READ tool and resumes after appr
   expect(pending.risk).toBe("READ");
   expect(pending.inputPreview).toContain(".");
   expect((await getJob(page, jobId)).steps ?? []).toHaveLength(0);
+  const layout = await page.evaluate(() => ({ viewportWidth: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  const decisionButtons = await page.locator(".kv-agent-approval-actions button").evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
+  expect(decisionButtons).toHaveLength(2);
+  for (const height of decisionButtons) expect(height).toBeGreaterThanOrEqual(44);
+  await testInfo.attach("agent-approval-390.png", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
 
   await page.getByRole("button", { name: "Разрешить действие" }).click();
   const completed = await waitForTerminal(page, jobId);
