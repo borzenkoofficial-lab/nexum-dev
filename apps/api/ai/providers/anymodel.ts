@@ -140,7 +140,9 @@ export class AnyModelProvider implements AIProvider {
       clearTimeout(timeout);
       callerSignal?.removeEventListener("abort", abortFromCaller);
     }
-  }  async listModels(signal?: AbortSignal): Promise<string[]> {
+  }
+
+  async listModels(signal?: AbortSignal): Promise<string[]> {
     const data = await this.request<ModelsResponse>("/models", {
       method: "GET",
       ...(signal ? { signal } : {}),
