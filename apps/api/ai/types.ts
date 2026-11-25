@@ -105,6 +105,10 @@ export interface AIProvider {
   id: string;
   name: string;
   model: string;
+  /** External wire protocol implemented by this adapter, e.g. anthropic-messages. */
+  protocol?: string;
+  /** Adapter implementation version, independent of the provider's model version. */
+  adapterVersion?: string;
   capabilities: AIModelCapabilities;
   generate?(message: string, model?: string, options?: AIGenerateOptions): Promise<string>;
   generateRequest?(request: AIRequest): Promise<AIResponse>;
