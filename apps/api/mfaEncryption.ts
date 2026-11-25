@@ -27,6 +27,10 @@ export function decryptMfaSecret(envelope: string, keyMaterial: string): string 
   const iv = Buffer.from(ivText!, "base64url");
   const tag = Buffer.from(tagText!, "base64url");
   const ciphertext = Buffer.from(ciphertextText!, "base64url");
+  // Node base64url decoding accepts non-canonical trailing bits; reject alternate encodings.
+  if (iv.toString("base64url") !== ivText || tag.toString("base64url") !== tagText || ciphertext.toString("base64url") !== ciphertextText) {
+    throw new Error("Invalid MFA ciphertext encoding.");
+  }
   if (iv.length !== 12 || tag.length !== 16 || ciphertext.length === 0) throw new Error("Invalid MFA ciphertext format.");
   const decipher = createDecipheriv("aes-256-gcm", deriveKey(keyMaterial), iv);
   decipher.setAuthTag(tag);
