@@ -145,6 +145,7 @@ export interface AIGenerateOptions {
   maxTokens?: number;
   temperature?: number;
   signal?: AbortSignal;
+  onTextDelta?: (delta: string) => void;
 }
 
 export interface AIProviderStatus {
