@@ -4,7 +4,7 @@ import { createAdaptiveTokenBudget } from "./tokenBudget.js";
 
 test("Builder lifecycle reserves enough bounded budget for planning, implementation and review", () => {
   const budget = createAdaptiveTokenBudget("Создай сайт ресторана с меню", {
-    legacyHardCap: 22_000,
+    legacyHardCap: 30_000,
     builderLifecycle: true,
   });
 
