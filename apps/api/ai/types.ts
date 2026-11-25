@@ -101,10 +101,21 @@ export interface AIResponse {
   latencyMs?: number;
 }
 
+export type AIProviderProtocol =
+  | "openai-chat-completions"
+  | "anthropic-messages"
+  | "ollama-chat"
+  | "mock"
+  | "custom";
+
 export interface AIProvider {
   id: string;
   name: string;
   model: string;
+  /** Exact upstream protocol implemented by this adapter, not a compatibility guess. */
+  protocol?: AIProviderProtocol;
+  /** Adapter implementation version, independent of upstream model/API version. */
+  adapterVersion?: string;
   /** External wire protocol implemented by this adapter, e.g. anthropic-messages. */
   protocol?: string;
   /** Adapter implementation version, independent of the provider's model version. */
