@@ -105,7 +105,7 @@ adminMfaRouter.post("/step-up", authMiddleware, async (req, res) => {
   if (!sessionId || user.mfaVerified !== true) {
     return res.status(403).json({ success: false, code: "MFA_STEP_UP_REQUIRED", error: "Sign in with MFA before requesting step-up." });
   }
-  if (!/^\\d{6}$/.test(code) && !/^[0-9a-fA-F-]{20,24}$/.test(code)) {
+  if (!/^\d{6}$/.test(code) && !/^[0-9a-fA-F-]{20,24}$/.test(code)) {
     return res.status(400).json({ success: false, error: "Enter a 6-digit authenticator code or an unused recovery code." });
   }
   try {
@@ -137,7 +137,7 @@ adminMfaRouter.post("/step-up", authMiddleware, async (req, res) => {
 
       let acceptedCounter: number | null = null;
       let recoveryHashes = row.recovery_code_hashes ?? [];
-      if (/^\\d{6}$/.test(code)) {
+      if (/^\d{6}$/.test(code)) {
         const secret = decryptMfaSecret(row.encrypted_secret, key);
         const matched = matchTotpCounter(secret, code);
         const last = row.last_accepted_totp_counter === null ? -1 : Number(row.last_accepted_totp_counter);
