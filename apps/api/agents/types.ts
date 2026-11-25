@@ -30,7 +30,7 @@ export interface AgentMemoryConfig {
   retentionDays: number;
 }
 export interface AgentPermissionConfig {
-  scopes: string[];
+  scopes?: string[];
   requireApprovalFor: string[];
   allowExternalSideEffects: boolean;
 }
