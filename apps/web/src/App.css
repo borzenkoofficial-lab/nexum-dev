@@ -440,3 +440,11 @@ input, textarea, select { max-width: 100%; border: 1px solid var(--nx-border); b
   .news-product-screen > main { padding: 6px; }
   .nexum-os-event-center { top: 10px; right: 8px; }
 }
+
+.nexum-os-event { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface); box-shadow: 0 6px 18px rgb(0 0 0 / 6%); pointer-events: auto; font-size: 11px; }
+.nexum-os-event > span { color: var(--nx-muted); line-height: 1.45; overflow-wrap: anywhere; }
+.nexum-os-event-head strong { display: flex; align-items: center; gap: 5px; }
+.nexum-os-event-head button { width: 22px; height: 22px; border: 1px solid var(--nx-border); border-radius: 4px; background: var(--nx-surface); }
+.nexum-os-event-success .nexum-os-event-dot { background: #777; }
+.nexum-os-event-error { border-left: 3px solid #666; }
+.nexum-os-event-info { border-left: 3px solid #bbb; }
