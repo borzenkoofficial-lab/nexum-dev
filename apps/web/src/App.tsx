@@ -1064,7 +1064,7 @@ function App() {
             projects={projects}
             onNewProject={(description) => openNewProject(description)}
             onOpenProject={(id, tab) => openПроект(id, tab)}
-            onOpenView={(next) => setView(next)}
+            onOpenView={(next) => navigate(next)}
           />
         ) : view === "news" ? (
           <OSAppWindow title="Журнал КВАРД" subtitle="Новости и системные обновления" icon="✦" status="Актуально" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
