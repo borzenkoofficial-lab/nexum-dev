@@ -190,7 +190,7 @@ export async function authMiddleware(request: Request, response: Response, next:
        RETURNING id`,
       [user.sessionId, user.id],
     );
-    if (active.rowCount !== 1) {
+    if (active.rows.length !== 1) {
       clearSessionCookie(response);
       response.status(401).json({ success: false, error: "Session revoked, expired, or idle for too long" });
       return;
