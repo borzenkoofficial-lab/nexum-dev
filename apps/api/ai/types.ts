@@ -20,10 +20,17 @@ export type AIContentPart =
         | { type: "base64"; mediaType: string; data: string };
     };
 
+export interface AIToolCall {
+  id: string;
+  name: string;
+  arguments: unknown;
+}
+
 export interface AIMessage {
   role: AIMessageRole;
   content: string | AIContentPart[];
   toolCallId?: string;
+  toolCalls?: AIToolCall[];
 }
 
 export interface AIToolDefinition {
@@ -78,11 +85,7 @@ export interface AIResponse {
   requestId?: string;
   usage?: AIUsage;
   usageSource?: AIUsageSource;
-  toolCalls?: Array<{
-    id: string;
-    name: string;
-    arguments: unknown;
-  }>;
+  toolCalls?: AIToolCall[];
   finishReason?: string;
   latencyMs?: number;
 }
