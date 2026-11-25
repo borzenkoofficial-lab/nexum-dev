@@ -4,7 +4,7 @@
 
 **Принцип готовности:** пункт получает `DONE` только после реализации в коде, проверки серверной авторизации, тестов и фиксации доказательства (commit/PR/CI). Наличие макета или UI без работающего backend не считается выполнением.
 
-**Текущий статус:** `IN_PROGRESS` — RBAC/MFA, защищённый `/admin`, базовые реестры пользователей и организаций, account suspension и live dashboard metrics реализованы в коде. API tests, Web typecheck/build/lint проходят в CI на текущем этапе; Docker smoke и Runtime E2E ещё не подтверждены. Production admin API остаётся закрытым.
+**Текущий статус:** `IN_PROGRESS` — RBAC/MFA, защищённый `/admin`, реестры пользователей и организаций, карточка пользователя, блокировка аккаунтов, фильтры аудита и live dashboard metrics реализованы в коде. Последний CI: API tests, Web typecheck/build/lint, Docker build и smoke test прошли; Runtime E2E был отменён до завершения. Отдельные security-интеграционные тесты административных маршрутов ещё нужны. Production admin API остаётся закрытым.
 
 ## Правила ведения чек-листа
 
@@ -261,7 +261,7 @@
 | 2026-11-25 | SEC-11 privilege-change invalidation | `0d2e807` | Administrative role promotion/demotion/revocation now revokes all target user sessions inside the same transaction; audit metadata records the revoked-session count. CI pending. | IN_PROGRESS |
 | 2026-11-25 | Users, organizations, dashboard | `b78c5c2`–`4c0126a` (migration 018, suspended account enforcement, audited suspend/reactivate endpoints, live PostgreSQL dashboard metrics, directory UI) | API tests, Web typecheck/build/lint pass in workflow `45697446895`; Docker smoke and Runtime E2E still running. No production migration/deploy. | IN_PROGRESS |
 
-## Первичная проверка текущего репозитория
+## Историческая первичная проверка репозитория (до реализации Admin Control Center)
 
 Подтверждено чтением текущего `main`:
 - `apps/api/auth.ts` реализует JWT-сессию и `authMiddleware`.
@@ -281,3 +281,15 @@
 
 
 | 2026-11-25 | SEC-03–05, SEC-08, SEC-13; ARCH-03–07 | Добавлены API просмотра/назначения/отзыва административных ролей и чтения аудита. Изменения ролей и события аудита записываются атомарно в одной транзакции; запрещено самоназначение/самоотзыв; нельзя отозвать последнего Super Admin; конкурентный отзыв Super Admin сериализован advisory lock. Bootstrap теперь не перезаписывает существующую роль, поэтому явный отзыв не будет автоматически отменён следующим запросом. | Код в apps/api/routes/admin.ts и apps/api/adminAccess.ts. Первый CI выявил типовую ошибку Express 5 req.params.userId; исправлено в d75b565. CI `45675626580` успешно завершился на commit `735d4cd` (build + E2E). После этого найден SQL синтаксический дефект bootstrap upsert; исправлен commit `ebf2005`, новый CI ожидается. |
+
+## Последнее обновление — пользовательские карточки и аудит
+
+- [ ] USER-02. Детальная карточка пользователя — PARTIAL: добавлен защищённый GET /api/admin/users/:userId; карточка показывает статус, организации и роли, проекты, подписки организаций, агрегаты AI usage и счётчики запусков агентов. Содержимое prompt/input/output не раскрывается.
+- [ ] AUDIT-01. Поиск по журналу административных действий — PARTIAL: API поддерживает фильтры по UUID актора, действию, типу объекта, ID объекта и временному диапазону.
+- [ ] AUDIT-02. Фильтры по актору, действию, объекту и периоду — PARTIAL: добавлена форма фильтров в UI; запрос выполняется по кнопке, а не на каждый введённый символ.
+- [ ] SEC-13. Критические действия журналируются — PARTIAL: блокировка/разблокировка аккаунта записывается атомарно вместе с изменением статуса; блокировка отзывает сессии. Изменение административных аккаунтов ограничено Super Admin; последний активный Super Admin не может быть заблокирован.
+
+| Дата | Пункты | Изменение | Проверки / статус |
+|---|---|---|---|
+| 2026-11-25 | USER-02, AUDIT-01–02 | Карточка пользователя: организации/роли, проекты, подписки, AI usage, агрегаты запусков. Аудит API: фильтры actor/action/target/date, пагинация; UI применяет фильтры явно. | Commits `19f4527`, `e1844cc`, `adb8734`. Workflow `45698449442`: API tests, Web typecheck/build/lint, Docker build и smoke test прошли; Runtime E2E отменён до результата. IN_PROGRESS. |
+| 2026-11-25 | SEC-13, USER-05 | Защита административных аккаунтов от блокировки обычным Admin; только Super Admin может блокировать/активировать администраторов. Последний активный Super Admin защищён advisory lock + транзакционной проверкой. | Commit `f5763a0`; вошёл в build workflow `45698449442` (build success), отдельные abuse-case tests pending. IN_PROGRESS. |
