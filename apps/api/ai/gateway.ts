@@ -52,6 +52,16 @@ export class AIGateway {
   private readonly defaultProviderId: string;
   private readonly fallbackProviderId?: string;
   private readonly onFallback?: (event: GatewayFallbackEvent) => void;
+  private readonly modelCatalogTtlMs = 60_000;
+  private modelCatalogRevision = 0;
+  private modelCatalogCache?: {
+    expiresAt: number;
+    value: { providers: AIModelCatalogEntry[] };
+  };
+  private modelCatalogInFlight?: {
+    revision: number;
+    promise: Promise<{ providers: AIModelCatalogEntry[] }>;
+  };
 
   constructor(
     providers: AIProvider[],
@@ -93,6 +103,13 @@ export class AIGateway {
     const setter = provider && (provider as unknown as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey;
     if (!setter) throw new Error(`Provider ${providerId} does not support API credentials`);
     setter.call(provider, apiKey);
+    this.invalidateModelCatalogCache();
+  }
+
+  private invalidateModelCatalogCache(): void {
+    this.modelCatalogRevision += 1;
+    this.modelCatalogCache = undefined;
+    this.modelCatalogInFlight = undefined;
   }
 
   hasRuntimeProviderApiKey(providerId: string): boolean {
@@ -102,11 +119,7 @@ export class AIGateway {
   }
 
   setRuntimeOpenAIKey(apiKey: string): void {
-    const provider = this.providers.get("openai");
-    if (!provider || typeof (provider as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey !== "function") {
-      throw new Error("OpenAI provider is unavailable");
-    }
-    (provider as unknown as { setRuntimeApiKey: (key: string) => void }).setRuntimeApiKey(apiKey);
+    this.setRuntimeProviderApiKey("openai", apiKey);
   }
 
   hasOpenAIKey(): boolean {
@@ -115,11 +128,7 @@ export class AIGateway {
   }
 
   setRuntimeOrcaRouterKey(apiKey: string): void {
-    const provider = this.providers.get("orcarouter");
-    if (!provider || typeof (provider as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey !== "function") {
-      throw new Error("OrcaRouter provider is unavailable");
-    }
-    (provider as unknown as { setRuntimeApiKey: (key: string) => void }).setRuntimeApiKey(apiKey);
+    this.setRuntimeProviderApiKey("orcarouter", apiKey);
   }
 
   hasOrcaRouterKey(): boolean {
@@ -128,11 +137,7 @@ export class AIGateway {
   }
 
   setRuntimeOpenRouterKey(apiKey: string): void {
-    const provider = this.providers.get("openrouter");
-    if (!provider || typeof (provider as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey !== "function") {
-      throw new Error("OpenRouter provider is unavailable");
-    }
-    (provider as unknown as { setRuntimeApiKey: (key: string) => void }).setRuntimeApiKey(apiKey);
+    this.setRuntimeProviderApiKey("openrouter", apiKey);
   }
 
   hasOpenRouterKey(): boolean {
@@ -141,11 +146,7 @@ export class AIGateway {
   }
 
   setRuntimeAnyModelKey(apiKey: string): void {
-    const provider = this.providers.get("anymodel");
-    if (!provider || typeof (provider as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey !== "function") {
-      throw new Error("AnyModel provider is unavailable");
-    }
-    (provider as unknown as { setRuntimeApiKey: (key: string) => void }).setRuntimeApiKey(apiKey);
+    this.setRuntimeProviderApiKey("anymodel", apiKey);
   }
 
   hasAnyModelKey(): boolean {
@@ -364,6 +365,32 @@ export class AIGateway {
   }
 
   async getModelCatalog(signal?: AbortSignal): Promise<{ providers: AIModelCatalogEntry[] }> {
+    const now = Date.now();
+    if (this.modelCatalogCache && this.modelCatalogCache.expiresAt > now) {
+      return this.modelCatalogCache.value;
+    }
+
+    const revision = this.modelCatalogRevision;
+    if (!signal && this.modelCatalogInFlight?.revision === revision) {
+      return this.modelCatalogInFlight.promise;
+    }
+
+    const promise = this.fetchModelCatalog(signal);
+    if (!signal) this.modelCatalogInFlight = { revision, promise };
+    try {
+      const value = await promise;
+      if (revision === this.modelCatalogRevision && !signal?.aborted) {
+        this.modelCatalogCache = { value, expiresAt: Date.now() + this.modelCatalogTtlMs };
+      }
+      return value;
+    } finally {
+      if (this.modelCatalogInFlight?.promise === promise) {
+        this.modelCatalogInFlight = undefined;
+      }
+    }
+  }
+
+  private async fetchModelCatalog(signal?: AbortSignal): Promise<{ providers: AIModelCatalogEntry[] }> {
     const providers = await Promise.all([...this.providers.values()].map(async (provider): Promise<AIModelCatalogEntry> => {
       if (!provider.listModels) {
         return {
@@ -421,21 +448,9 @@ export class AIGateway {
     }));
     return { providers };
   }
-
   async getModels(signal?: AbortSignal): Promise<Record<string, string[]>> {
-    const models: Record<string, string[]> = {};
-
-    for (const provider of this.providers.values()) {
-      try {
-        models[provider.id] = provider.listModels
-          ? await provider.listModels(signal)
-          : [provider.model];
-      } catch {
-        models[provider.id] = [provider.model];
-      }
-    }
-
-    return models;
+    const catalog = await this.getModelCatalog(signal);
+    return Object.fromEntries(catalog.providers.map((entry) => [entry.provider, entry.models]));
   }
 
   async getStatus(providerId = this.defaultProviderId, model?: string, signal?: AbortSignal): Promise<AIProviderStatus & { provider: string }> {
