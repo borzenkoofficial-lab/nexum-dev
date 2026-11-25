@@ -330,7 +330,7 @@ export async function* streamOpenAICompatibleChat(
       return [];
     }
     if (line === "") {
-      const raw = dataLines.join("\\n");
+      const raw = dataLines.join("\n");
       dataLines = [];
       return emitPayload(raw);
     }
@@ -341,13 +341,13 @@ export async function* streamOpenAICompatibleChat(
     while (true) {
       const part = await reader.read();
       buffer += decoder.decode(part.value, { stream: !part.done });
-      const lines = buffer.split(/\\r?\\n/);
+      const lines = buffer.split(/\r?\n/);
       buffer = lines.pop() ?? "";
       for (const line of lines) for (const event of processLine(line)) yield event;
       if (part.done) break;
     }
     if (buffer) for (const event of processLine(buffer)) yield event;
-    if (dataLines.length) for (const event of emitPayload(dataLines.join("\\n"))) yield event;
+    if (dataLines.length) for (const event of emitPayload(dataLines.join("\n"))) yield event;
     if (!terminal) throw new Error(provider + " stream ended before [DONE]");
   } finally {
     try { await reader.cancel(); } catch { /* stream may already be closed */ }
