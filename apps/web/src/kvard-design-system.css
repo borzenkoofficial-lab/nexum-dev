@@ -109,15 +109,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   background: var(--kv-surface); border-right: 1px solid var(--kv-border);
   color: var(--kv-text);
 }
+.kvard-mark { display: block; flex: 0 0 auto; }
 .logo {
   display: flex; align-items: center; gap: 10px; min-height: 40px;
   margin: 0 8px 24px; color: var(--kv-text); font-size: 16px;
   font-weight: 700; letter-spacing: -.035em;
-}
-.logo-mark {
-  display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px;
-  border-radius: 8px; background: var(--kv-brand-ink); color: var(--kv-on-brand);
-  font-size: 17px; font-weight: 700; letter-spacing: -.04em;
 }
 .logo strong { font-weight: 700; }
 .sidebar-nav { display: grid; gap: 3px; }
@@ -144,7 +140,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 .nx-system-chrome { min-height: 60px; padding: 0 24px; border-bottom: 1px solid var(--kv-border); }
 .nx-system-brand { display: inline-flex; align-items: center; gap: 9px; border: 0; background: transparent; color: var(--kv-text); font-size: 14px; font-weight: 750; letter-spacing: -.04em; }
-.nx-system-brand span, .nx-builder-logo { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 9px; background: var(--kv-brand-ink); color: var(--kv-on-brand); font-weight: 700; }
 .nx-system-nav button, .nx-system-icon-button, .nx-system-clock, .nx-app-window-controls button {
   border: 1px solid transparent; border-radius: var(--kv-radius-control); background: transparent; color: var(--kv-text-secondary);
 }
@@ -208,7 +203,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .nx-chat-head button:hover, .nx-tool-head button:hover, .nx-tool-actions button:hover { background: var(--kv-surface-subtle); color: var(--kv-text); }
 .nx-chat-empty h1 { color: var(--kv-text); letter-spacing: -.045em; }
 .nx-chat-empty p { color: var(--kv-text-secondary); }
-.nx-chat-mark { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto; border-radius: 14px; background: var(--kv-brand-ink); color: var(--kv-on-brand); font-size: 24px; font-weight: 700; }
+.nx-chat-mark { display: block; width: 48px; height: 48px; margin: 0 auto; }
 .nx-suggestions button { border-color: var(--kv-border); border-radius: 999px; background: var(--kv-surface); color: var(--kv-text-secondary); }
 .nx-suggestions button:hover { border-color: var(--kv-action); background: var(--kv-action-soft); color: var(--kv-action); }
 .nx-composer { border-color: var(--kv-border-strong); border-radius: var(--kv-radius-large); background: var(--kv-surface); box-shadow: var(--kv-shadow-panel); }
@@ -289,14 +284,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .nexum-welcome-nav, .nexum-welcome-footer { border-color: var(--kv-border); }
 .nexum-brand { color: var(--kv-text); letter-spacing: -.035em; }
 .nexum-brand em { color: var(--kv-text-tertiary); }
-.nexum-logo-mark, .nexum-boot-center .nexum-logo-mark {
-  border: 0; border-radius: 14px; background: var(--kv-brand-ink); color: var(--kv-on-brand);
-}
 .nexum-sequence-core { min-height: 120px; }
-.nexum-sequence-core::before {
-  width: 84px; height: 84px; border: 0; border-radius: 20px;
-  background: var(--kv-brand-ink); color: var(--kv-on-brand); content: "К"; font-size: 34px;
-}
 .nexum-sequence-copy h1 { color: var(--kv-text); letter-spacing: -.05em; }
 .nexum-sequence-copy p, .nexum-auth-intro p { color: var(--kv-text-secondary); }
 .nexum-boot-console, .nexum-auth-window {
@@ -340,11 +328,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   display: block; min-height: 100%;
   background: var(--kv-canvas); color: var(--kv-text);
 }
-.kv-home-empty-mark {
-  display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px;
-  border-radius: 10px; background: var(--kv-brand-ink); color: var(--kv-on-brand);
-  font-size: 19px; font-weight: 700;
-}
 .kv-home-workspace { display: flex; flex-direction: column; min-width: 0; min-height: 100dvh; }
 .kv-home-content { width: min(1320px, 100%); flex: 1; margin: 0 auto; padding: 42px clamp(22px, 4vw, 58px) 56px; }
 .kv-home-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 36px; }
@@ -380,7 +363,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-home-project-open { display: inline-flex; align-items: center; gap: 9px; margin-left: auto; color: var(--kv-text-tertiary); font-size: 11px; }
 .kv-home-project-open b { color: var(--kv-action); font-size: 15px; font-weight: 500; }
 .kv-home-empty { display: flex; align-items: center; gap: 15px; padding: 22px; border: 1px dashed var(--kv-border-strong); border-radius: var(--kv-radius-panel); background: var(--kv-surface); }
-.kv-home-empty-mark { flex-basis: 42px; width: 42px; height: 42px; }
 .kv-home-empty > div { min-width: 0; }
 .kv-home-empty strong { color: var(--kv-text); font-size: 12px; font-weight: 650; }
 .kv-home-empty p { margin: 4px 0 0; color: var(--kv-text-secondary); font-size: 11px; }
