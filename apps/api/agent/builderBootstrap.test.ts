@@ -28,6 +28,10 @@ class ScriptedProvider implements AIProvider {
     const index = this.index++;
     return this.respondToMessage?.(message, index) ?? this.responses[index] ?? '{"done":true,"finalResponse":"Done"}';
   }
+
+  async listModels(): Promise<string[]> {
+    return [this.model];
+  }
 }
 
 test("empty Builder project is scaffolded before the first model request", async () => {
