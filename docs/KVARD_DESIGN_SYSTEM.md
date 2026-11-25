@@ -20,11 +20,13 @@
 Семантические CSS tokens находятся в `apps/web/src/kvard-design-system.css`.
 - Canvas: `#F6F7F9`
 - Surface: `#FFFFFF`
-- Text: `#191923`
-- Secondary text: `#666A78`
+- Primary text: `#191923`
+- Secondary text: `#555966`
+- Tertiary text: `#666A78`
 - Border: `#E5E6EB`
 - Action: `#7040D8`
 - Action hover: `#6032C5`
+- Action foreground: `#FFFFFF` (dark theme uses `#191923`)
 - Action soft: `#F1EBFF`
 
 Dark theme is independently tuned under `:root[data-theme="dark"]`.
