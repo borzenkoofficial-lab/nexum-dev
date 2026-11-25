@@ -2,6 +2,7 @@ import { access, readFile, writeFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { createHash } from "node:crypto";
 import type { ProductPlan } from "../agent/types.js";
+import { classifyProjectDomain } from "../agent/domainIntent.js";
 
 export interface ProjectState {
   version: 1 | 2;
@@ -14,6 +15,10 @@ export interface ProjectState {
   buildCommand: string | null;
   previewMode: "static" | "built-app" | "unknown";
   currentGoal: string | null;
+  intentDomain?: string;
+  intentProductType?: string;
+  intentAudience?: string;
+  intentConfidence?: number;
   completedActions: string[];
   failedActions: string[];
   changedFiles: string[];
@@ -52,6 +57,8 @@ export class ProjectStateManager {
     const framework = deps.includes("next") ? "Next.js" : deps.includes("vite") ? "Vite" : deps.includes("react") ? "React" : null;
     const projectType = framework === "Next.js" ? "react" : framework ? "react" : files.includes("package.json") ? "node" : files.includes("index.html") ? "static" : "unknown";
     const previous = await this.read();
+    const currentGoal = goal ?? previous?.currentGoal ?? null;
+    const intent = classifyProjectDomain(currentGoal ?? "");
     const successfulChanges = [...new Set([...(previous?.changedFiles ?? []), ...changedFiles])].slice(-100);
     const state: ProjectState = {
       version: 1,
@@ -63,7 +70,11 @@ export class ProjectStateManager {
       dependencies: deps.sort(),
       buildCommand: typeof pkg.scripts?.build === "string" ? pkg.scripts.build : null,
       previewMode: files.includes("package.json") ? (await this.exists("dist/index.html") ? "built-app" : "unknown") : files.includes("index.html") ? "static" : "unknown",
-      currentGoal: goal ?? previous?.currentGoal ?? null,
+      currentGoal,
+      intentDomain: intent.domain,
+      intentProductType: intent.productType,
+      intentAudience: intent.audience,
+      intentConfidence: intent.confidence,
       completedActions: previous?.completedActions ?? [],
       failedActions: errors.length ? [...(previous?.failedActions ?? []), ...errors].slice(-50) : previous?.failedActions ?? [],
       changedFiles: successfulChanges,
