@@ -594,6 +594,16 @@ export class NexumAgent implements AgentRuntime {
       };
     }
     const approvalPolicy = this.configuration.approvalPolicy;
+    if (approvalPolicy === "autonomous" && toolPolicy.risk !== "READ") {
+      return {
+        success: false,
+        output: "Автономный режим разрешает только инструменты чтения. Действие не запускалось.",
+        toolCallId: crypto.randomUUID(),
+        toolName: tool.name,
+        error: { code: "AUTONOMOUS_READ_ONLY", message: "Autonomous agent attempted a non-READ tool.", retryable: false, repairable: false, fatal: true },
+        metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId },
+      };
+    }
     if (approvalPolicy && shouldRequireToolApproval(approvalPolicy, toolPolicy.risk)) {
       if (!this.configuration.requestApproval) {
         return {
