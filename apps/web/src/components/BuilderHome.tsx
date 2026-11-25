@@ -45,11 +45,11 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
 
         <div className="kv-home-nav-label">РАБОЧАЯ СРЕДА</div>
         <nav className="kv-home-nav" aria-label="Разделы">
-          <button className="selected" type="button" aria-current="page" onClick={() => onOpenView("home")}><span>⌂</span>Обзор</button>
-          <button type="button" onClick={() => onOpenView("agents")}><span>◈</span>AI-агенты</button>
-          <button type="button" onClick={() => onOpenView("news")}><span>▤</span>Журнал</button>
-          <button type="button" onClick={() => onOpenView("connectors")}><span>⌁</span>Интеграции</button>
-          <button type="button" onClick={() => onOpenView("diagnostics")}><span>◷</span>Диагностика</button>
+          <button className="selected" type="button" aria-current="page" onClick={() => onOpenView("home")}><span aria-hidden="true">⌂</span>Обзор</button>
+          <button type="button" onClick={() => onOpenView("agents")}><span aria-hidden="true">◈</span>AI-агенты</button>
+          <button type="button" onClick={() => onOpenView("news")}><span aria-hidden="true">▤</span>Журнал</button>
+          <button type="button" onClick={() => onOpenView("connectors")}><span aria-hidden="true">⌁</span>Интеграции</button>
+          <button type="button" onClick={() => onOpenView("diagnostics")}><span aria-hidden="true">◷</span>Диагностика</button>
         </nav>
 
         <div className="kv-home-project-head">
@@ -64,7 +64,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
         </div>
 
         <div className="kv-home-sidebar-bottom">
-          <button type="button" onClick={() => onOpenView("settings")}><span>⚙</span>Настройки</button>
+          <button type="button" onClick={() => onOpenView("settings")}><span aria-hidden="true">⚙</span>Настройки</button>
           <div className="kv-home-profile"><span>К</span><div><strong>Моё пространство</strong><small>Рабочее пространство</small></div><i>•••</i></div>
         </div>
       </aside>
