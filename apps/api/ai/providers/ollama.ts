@@ -1,4 +1,5 @@
-import type { AIProvider, AIProviderStatus, AIGenerateOptions } from "../types.js";
+import type { AIProvider, AIProviderStatus, AIGenerateOptions, AIRequest, AIStreamEvent, AIModelCapabilities } from "../types.js";
+import { validateCanonicalRequest } from "../canonical.js";
 
 const DEFAULT_BASE_URL = "http://localhost:11434";
 const DEFAULT_MODEL = "qwen3:4b";
@@ -20,6 +21,12 @@ export class OllamaProvider implements AIProvider {
   adapterVersion = "1.0.0";
   model: string;
   capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: false, reasoning: false, contextWindow: null } as const;
+  private readonly installedModels = new Set<string>();
+
+  getCapabilities(model = this.model): AIModelCapabilities {
+    const installed = this.installedModels.has(model) || [...this.installedModels].some((item) => item.startsWith(model + ":"));
+    return { ...this.capabilities, streaming: installed };
+  }
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly fetchImpl: typeof fetch;
@@ -64,9 +71,12 @@ export class OllamaProvider implements AIProvider {
 
   async listModels(signal?: AbortSignal): Promise<string[]> {
     const data = await this.request<OllamaTagsResponse>("/api/tags", { method: "GET", ...(signal ? { signal } : {}) });
-    return (data.models ?? [])
+    const models = (data.models ?? [])
       .map((model) => model.name)
       .filter((model): model is string => typeof model === "string" && model.length > 0);
+    this.installedModels.clear();
+    for (const model of models) this.installedModels.add(model);
+    return models;
   }
 
   async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
