@@ -119,3 +119,10 @@
 ## Streaming boundary
 
 Canonical request v1 carries a stream intent flag, but `AIGateway.generateRequest()` is a complete-response operation. It must reject `stream: true` even when an adapter advertises streaming. Real streaming requires a separate event contract and gateway async-iterator method, followed by provider-specific conformance tests; do not silently buffer and label the result as streaming.
+
+
+## Protocol metadata and model discovery
+
+- Adapters declare the exact upstream wire protocol and adapter implementation version. Native adapters missing either field are rejected during Gateway registration; duplicate provider IDs are rejected.
+- Model discovery distinguishes verified provider API results from configured fallback IDs. Fallback IDs remain visible for diagnostics but are never selectable for inference until verified by the provider's model catalog.
+- Capability checks remain model-level and fail-closed when values are false or unknown.
