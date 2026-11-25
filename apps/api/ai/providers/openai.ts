@@ -80,7 +80,7 @@ export class OpenAIProvider implements AIProvider {
       code: knownTextModel ? true : "unknown",
       vision: "unknown",
       toolCalling: "unknown",
-      streaming: false,
+      streaming: knownTextModel,
       structuredOutput: "unknown",
       reasoning: "unknown",
       contextWindow: null,
@@ -261,6 +261,143 @@ export class OpenAIProvider implements AIProvider {
       ...(typeof data.status === "string" ? { finishReason: data.status } : data.incomplete_details?.reason ? { finishReason: data.incomplete_details.reason } : {}),
       latencyMs: Date.now() - startedAt,
     };
+  }
+
+
+  async *streamRequest(request: AIRequest): AsyncGenerator<import("../types.js").AIStreamEvent> {
+    validateCanonicalRequest({ ...request, stream: true });
+    if (request.stopSequences?.length) throw new Error("OpenAI Responses streaming does not support stop sequences");
+    const model = this.validateModel(request.model);
+    const input: Array<Record<string, unknown>> = [];
+    for (const message of request.messages) {
+      if (message.role === "tool") {
+        const output = typeof message.content === "string" ? message.content : message.content.map((part) => {
+          if (part.type !== "text") throw new Error("OpenAI tool output cannot contain images");
+          return part.text;
+        }).join("\n");
+        input.push({ type: "function_call_output", call_id: message.toolCallId, output });
+        continue;
+      }
+      const content = typeof message.content === "string" ? message.content : toResponsesContent(message.content);
+      if ((typeof content === "string" && content.length) || (Array.isArray(content) && content.length)) {
+        input.push({ role: message.role, content });
+      }
+      for (const call of message.toolCalls ?? []) {
+        input.push({ type: "function_call", call_id: call.id, name: call.name, arguments: JSON.stringify(call.arguments) });
+      }
+    }
+    const body: Record<string, unknown> = { model, input, stream: true };
+    if (request.maxTokens !== undefined) body.max_output_tokens = request.maxTokens;
+    if (request.temperature !== undefined) body.temperature = request.temperature;
+    if (request.topP !== undefined) body.top_p = request.topP;
+    if (request.tools?.length) body.tools = request.tools.map((tool) => ({
+      type: "function", name: tool.name, ...(tool.description ? { description: tool.description } : {}), parameters: tool.inputSchema,
+    }));
+    if (request.toolChoice !== undefined) body.tool_choice = typeof request.toolChoice === "object"
+      ? { type: "function", name: request.toolChoice.name } : request.toolChoice;
+    if (request.responseFormat === "json") body.text = { format: { type: "json_object" } };
+    else if (request.responseFormat && request.responseFormat !== "text") body.text = { format: {
+      type: "json_schema", name: request.responseFormat.name, schema: request.responseFormat.schema, strict: request.responseFormat.strict ?? false,
+    } };
+
+    const apiKey = this.runtimeApiKey;
+    if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), request.timeoutMs ?? this.timeoutMs);
+    const abort = () => controller.abort(request.signal?.reason);
+    if (request.signal) {
+      if (request.signal.aborted) abort();
+      else request.signal.addEventListener("abort", abort, { once: true });
+    }
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    let completed = false;
+    try {
+      const headers: Record<string, string> = { Accept: "text/event-stream", Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
+      if (request.metadata?.idempotencyKey) headers["Idempotency-Key"] = request.metadata.idempotencyKey;
+      const response = await this.fetchImpl(`${this.responsesBaseUrl}/responses`, {
+        method: "POST", headers, body: JSON.stringify(body), signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(this.httpError(response.status));
+      if (!response.body) throw new Error("OpenAI Responses stream has no body");
+      reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "", eventName = "", dataLines: string[] = [];
+      let resolvedModel = model, requestId: string | undefined;
+      const tools = new Map<number, { id: string; name: string }>();
+      const dispatch = (name: string, raw: string): import("../types.js").AIStreamEvent[] => {
+        if (!raw || raw === "[DONE]") return [];
+        const payload = JSON.parse(raw) as Record<string, any>;
+        if (name === "response.created" || name === "response.in_progress") {
+          const responseObject = payload.response ?? payload;
+          resolvedModel = typeof responseObject.model === "string" ? responseObject.model : model;
+          requestId = typeof responseObject.id === "string" ? responseObject.id : requestId;
+          return name === "response.created" ? [{ type: "message_start", provider: this.id, model: resolvedModel, ...(requestId ? { requestId } : {}) }] : [];
+        }
+        if (name === "response.output_item.added" && payload.item?.type === "function_call") {
+          const index = Number(payload.output_index);
+          const tool = { id: String(payload.item.call_id ?? ""), name: String(payload.item.name ?? "") };
+          if (!Number.isInteger(index) || index < 0 || !tool.id || !/^[A-Za-z0-9_-]{1,64}$/.test(tool.name)) throw new Error("OpenAI stream returned an invalid function call header");
+          tools.set(index, tool);
+          return [{ type: "tool_call_start", index, ...tool }];
+        }
+        if (name === "response.output_text.delta" && typeof payload.delta === "string") return [{ type: "text_delta", text: payload.delta }];
+        if (name === "response.function_call_arguments.delta" && typeof payload.delta === "string") {
+          const index = Number(payload.output_index);
+          if (!tools.has(index)) throw new Error("OpenAI stream returned function arguments before the function call header");
+          return [{ type: "tool_call_delta", index, argumentsDelta: payload.delta }];
+        }
+        if (name === "response.completed" || name === "response.incomplete") {
+          const result = payload.response ?? payload;
+          resolvedModel = typeof result.model === "string" ? result.model : resolvedModel;
+          requestId = typeof result.id === "string" ? result.id : requestId;
+          const usage = result.usage;
+          const valid = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+          const completeUsage = valid(usage?.input_tokens) && valid(usage?.output_tokens) && valid(usage?.total_tokens);
+          const usageEvent: import("../types.js").AIStreamEvent = completeUsage
+            ? { type: "usage", usage: { inputTokens: usage.input_tokens, outputTokens: usage.output_tokens, totalTokens: usage.total_tokens,
+                ...(valid(usage.input_tokens_details?.cached_tokens) ? { cachedInputTokens: usage.input_tokens_details.cached_tokens } : {}),
+                ...(valid(usage.output_tokens_details?.reasoning_tokens) ? { reasoningTokens: usage.output_tokens_details.reasoning_tokens } : {}) }, source: "provider_reported" }
+            : { type: "usage", usage: {}, source: "unavailable" };
+          completed = true;
+          return [usageEvent, { type: "message_end", finishReason: result.status === "incomplete" ? (result.incomplete_details?.reason ?? "incomplete") : "completed" }];
+        }
+        if (name === "response.failed" || name === "error") throw new Error("OpenAI Responses stream failed");
+        return [];
+      };
+      const processLine = (line: string): import("../types.js").AIStreamEvent[] => {
+        if (line.startsWith(":")) return [];
+        if (line.startsWith("event:")) { eventName = line.slice(6).trim(); return []; }
+        if (line.startsWith("data:")) { dataLines.push(line.slice(5).replace(/^ /, "")); return []; }
+        if (line === "") {
+          const events = dispatch(eventName, dataLines.join("\n"));
+          eventName = ""; dataLines = [];
+          return events;
+        }
+        return [];
+      };
+      while (true) {
+        const part = await reader.read();
+        buffer += decoder.decode(part.value, { stream: !part.done });
+        const lines = buffer.split(/\r?\n/);
+        buffer = lines.pop() ?? "";
+        for (const line of lines) for (const event of processLine(line)) yield event;
+        if (part.done) break;
+      }
+      if (buffer) for (const event of processLine(buffer)) yield event;
+      if (dataLines.length) for (const event of dispatch(eventName, dataLines.join("\n"))) yield event;
+      if (!completed) throw new Error("OpenAI Responses stream ended before a terminal response event");
+    } catch (error) {
+      if (request.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+      if (controller.signal.aborted) throw new Error("OpenAI request timed out");
+      throw error instanceof Error ? error : new Error("OpenAI streaming request failed");
+    } finally {
+      if (reader) {
+        try { await reader.cancel(); } catch { /* stream may already be closed */ }
+        reader.releaseLock();
+      }
+      clearTimeout(timeout);
+      request.signal?.removeEventListener("abort", abort);
+    }
   }
 
   async listModels(signal?: AbortSignal): Promise<string[]> {
