@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authMiddleware, clearAdminMfaChallenge, getAuthUser, issueSession, readAdminMfaChallenge } from "../auth.js";
 import { query, withDatabaseTransaction } from "../db.js";
-import { encryptMfaSecret } from "../mfaEncryption.js";
+import { decryptMfaSecret, encryptMfaSecret } from "../mfaEncryption.js";
 import { generateTotpSecret, generateRecoveryCodes, matchTotpCounter, verifyRecoveryCode, verifyTotpCode } from "../totp.js";
 
 export const adminMfaRouter = Router();
@@ -51,7 +51,6 @@ adminMfaRouter.post("/challenge/verify", async (req, res) => {
       let acceptedCounter: number | null = null;
       let recoveryHashes = row.recovery_code_hashes ?? [];
       if (/^\d{6}$/.test(code)) {
-        const { decryptMfaSecret } = await import("../mfaEncryption.js");
         const secret = decryptMfaSecret(row.encrypted_secret, key);
         const matched = matchTotpCounter(secret, code);
         const last = row.last_accepted_totp_counter === null ? -1 : Number(row.last_accepted_totp_counter);
@@ -95,6 +94,91 @@ adminMfaRouter.post("/challenge/verify", async (req, res) => {
     return res.json({ success: true, mfaVerified: true, user: { id: outcome.user.id, email: outcome.user.email, name: outcome.user.name, createdAt: outcome.user.createdAt } });
   } catch (error) {
     return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "MFA verification unavailable." });
+  }
+});
+
+
+adminMfaRouter.post("/step-up", authMiddleware, async (req, res) => {
+  const user = getAuthUser(req);
+  const sessionId = user.sessionId;
+  const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
+  if (!sessionId || user.mfaVerified !== true) {
+    return res.status(403).json({ success: false, code: "MFA_STEP_UP_REQUIRED", error: "Sign in with MFA before requesting step-up." });
+  }
+  if (!/^\\d{6}$/.test(code) && !/^[0-9a-fA-F-]{20,24}$/.test(code)) {
+    return res.status(400).json({ success: false, error: "Enter a 6-digit authenticator code or an unused recovery code." });
+  }
+  try {
+    const key = getEncryptionKey();
+    const outcome = await withDatabaseTransaction(async (client) => {
+      const session = await client.query<{ id: string }>(
+        `SELECT id FROM auth_sessions
+         WHERE id = $1 AND user_id = $2 AND mfa_verified = TRUE
+           AND revoked_at IS NULL AND expires_at > NOW()
+           AND last_seen_at > NOW() - INTERVAL '30 minutes'
+         FOR UPDATE`,
+        [sessionId, user.id],
+      );
+      if (session.rows.length !== 1) return { ok: false as const, status: 401, error: "Session is no longer active. Sign in again." };
+
+      const result = await client.query<{
+        encrypted_secret: string | null; recovery_code_hashes: string[];
+        last_accepted_totp_counter: string | number | null; failed_attempts: number; locked_until: string | null;
+      }>(
+        `SELECT encrypted_secret, recovery_code_hashes, last_accepted_totp_counter, failed_attempts, locked_until
+         FROM admin_mfa WHERE user_id = $1 AND enabled = TRUE FOR UPDATE`,
+        [user.id],
+      );
+      const row = result.rows[0];
+      if (!row?.encrypted_secret) return { ok: false as const, status: 403, error: "An enabled admin MFA authenticator is required." };
+      if (row.locked_until && new Date(row.locked_until).getTime() > Date.now()) {
+        return { ok: false as const, status: 429, error: "MFA verification is temporarily locked." };
+      }
+
+      let acceptedCounter: number | null = null;
+      let recoveryHashes = row.recovery_code_hashes ?? [];
+      if (/^\\d{6}$/.test(code)) {
+        const secret = decryptMfaSecret(row.encrypted_secret, key);
+        const matched = matchTotpCounter(secret, code);
+        const last = row.last_accepted_totp_counter === null ? -1 : Number(row.last_accepted_totp_counter);
+        if (matched !== null && matched > last) acceptedCounter = matched;
+      } else {
+        const index = recoveryHashes.findIndex((hash) => verifyRecoveryCode(code, hash));
+        if (index >= 0) recoveryHashes = recoveryHashes.filter((_, itemIndex) => itemIndex !== index);
+      }
+
+      const accepted = acceptedCounter !== null || recoveryHashes.length !== (row.recovery_code_hashes ?? []).length;
+      if (!accepted) {
+        const failures = (row.failed_attempts ?? 0) + 1;
+        await client.query(
+          `UPDATE admin_mfa SET failed_attempts = $2,
+             locked_until = CASE WHEN $2 >= 5 THEN NOW() + INTERVAL '15 minutes' ELSE locked_until END,
+             updated_at = NOW() WHERE user_id = $1`,
+          [user.id, failures],
+        );
+        return { ok: false as const, status: failures >= 5 ? 429 : 401, error: "Invalid or already used MFA code." };
+      }
+
+      const updated = await client.query(
+        `UPDATE admin_mfa SET
+           last_accepted_totp_counter = CASE WHEN $2::bigint IS NULL THEN last_accepted_totp_counter ELSE $2::bigint END,
+           recovery_code_hashes = $3, failed_attempts = 0, locked_until = NULL, updated_at = NOW()
+         WHERE user_id = $1 RETURNING user_id`,
+        [user.id, acceptedCounter, recoveryHashes],
+      );
+      if (updated.rowCount !== 1) return { ok: false as const, status: 409, error: "MFA state changed. Retry." };
+      await client.query(
+        `UPDATE auth_sessions SET mfa_verified_at = NOW()
+         WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL`,
+        [sessionId, user.id],
+      );
+      return { ok: true as const };
+    });
+    if (!outcome.ok) return res.status(outcome.status).json({ success: false, error: outcome.error });
+    return res.json({ success: true, mfaVerifiedAt: new Date().toISOString(), validForSeconds: 600 });
+  } catch (error) {
+    console.error("[КВАРД] MFA step-up failed closed", error);
+    return res.status(503).json({ success: false, error: "MFA step-up is temporarily unavailable." });
   }
 });
 
@@ -144,7 +228,6 @@ adminMfaRouter.post("/confirm", authMiddleware, async (req, res) => {
     if ((pendingRow.enrollment_failed_attempts ?? 0) >= 5) {
       return res.status(429).json({ success: false, error: "MFA enrollment confirmation is locked. Start a new setup after cooldown." });
     }
-    const { decryptMfaSecret } = await import("../mfaEncryption.js");
     const secret = decryptMfaSecret(encryptedSecret, key);
     if (!verifyTotpCode(secret, code)) {
       await query("UPDATE admin_mfa SET enrollment_failed_attempts = enrollment_failed_attempts + 1, updated_at = NOW() WHERE user_id = $1", [user.id]);
