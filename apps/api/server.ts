@@ -3,9 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import "dotenv/config";
 import { AIGateway, type GatewayFallbackEvent } from "./ai/gateway.js";
-import { validateCanonicalRequest } from "./ai/canonical.js";
-import { encodeAIStreamEvent } from "./ai/sse.js";
-import type { AIRequest, AIStreamEvent } from "./ai/types.js";
+import { createAIStreamHandler } from "./ai/streamRoute.js";
 import { OllamaProvider } from "./ai/providers/ollama.js";
 import { OpenRouterProvider } from "./ai/providers/openrouter.js";
 import { AnyModelProvider } from "./ai/providers/anymodel.js";
@@ -922,95 +920,7 @@ app.get("/api/ai/models", authMiddleware, async (req, res) => {
   return res.json({ success: true, models, catalog });
 });
 
-app.post("/api/ai/stream", authMiddleware, aiWriteLimiter, async (req, res) => {
-  const body = req.body as Record<string, unknown> | undefined;
-  const requestId = getRequestId(req);
-  if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return res.status(400).json({ success: false, error: "Request body must be an object." });
-  }
-  if (body.provider !== undefined && (
-    typeof body.provider !== "string" || !body.provider.trim() || body.provider.length > 80
-  )) {
-    return res.status(400).json({ success: false, error: "provider must be a non-empty provider ID." });
-  }
-
-  const userId = getAuthUser(req).id;
-  const controller = new AbortController();
-  const onClose = () => {
-    if (!res.writableEnded) controller.abort();
-  };
-  res.once("close", onClose);
-
-  const request: AIRequest = {
-    version: 1,
-    messages: body.messages as AIRequest["messages"],
-    model: body.model as string,
-    stream: true,
-    ...(body.maxTokens !== undefined ? { maxTokens: body.maxTokens as number } : {}),
-    ...(body.temperature !== undefined ? { temperature: body.temperature as number } : {}),
-    ...(body.topP !== undefined ? { topP: body.topP as number } : {}),
-    ...(body.stopSequences !== undefined ? { stopSequences: body.stopSequences as string[] } : {}),
-    ...(body.tools !== undefined ? { tools: body.tools as AIRequest["tools"] } : {}),
-    ...(body.toolChoice !== undefined ? { toolChoice: body.toolChoice as AIRequest["toolChoice"] } : {}),
-    ...(body.responseFormat !== undefined ? { responseFormat: body.responseFormat as AIRequest["responseFormat"] } : {}),
-    ...(body.timeoutMs !== undefined ? { timeoutMs: body.timeoutMs as number } : {}),
-    metadata: { requestId, userId },
-    signal: controller.signal,
-  };
-
-  try {
-    validateCanonicalRequest(request);
-  } catch (error) {
-    res.removeListener("close", onClose);
-    return sendSafeError(res, error, requestId, "Некорректный запрос потоковой генерации.");
-  }
-
-  const writeEvent = async (event: AIStreamEvent): Promise<boolean> => {
-    if (controller.signal.aborted || res.destroyed) return false;
-    if (res.write(encodeAIStreamEvent(event))) return true;
-    await new Promise<void>((resolve) => {
-      const finish = () => {
-        res.removeListener("drain", finish);
-        res.removeListener("close", finish);
-        controller.signal.removeEventListener("abort", finish);
-        resolve();
-      };
-      res.once("drain", finish);
-      res.once("close", finish);
-      controller.signal.addEventListener("abort", finish, { once: true });
-    });
-    return !controller.signal.aborted && !res.destroyed;
-  };
-
-  res.status(200);
-  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
-  res.setHeader("Cache-Control", "no-cache, no-transform");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
-  res.setHeader("X-Request-Id", requestId);
-  res.flushHeaders();
-
-  try {
-    const gateway = getAIGatewayForUser(userId);
-    const provider = typeof body.provider === "string" ? body.provider : undefined;
-    for await (const event of gateway.streamRequest(request, provider ? { provider } : {})) {
-      if (!await writeEvent(event)) break;
-      if (event.type === "error" || event.type === "message_end") break;
-    }
-  } catch (error) {
-    if (!controller.signal.aborted && !res.destroyed) {
-      const normalized = error instanceof NexumError ? error : classifyAIError(error);
-      await writeEvent({
-        type: "error",
-        code: normalized.code,
-        message: normalized.message,
-      });
-    }
-  } finally {
-    res.removeListener("close", onClose);
-    if (!res.destroyed && !res.writableEnded) res.end();
-  }
-});
+app.post("/api/ai/stream", authMiddleware, aiWriteLimiter, createAIStreamHandler(getAIGatewayForUser));
 
 const agentFailureControlEnabled = process.env.NODE_ENV !== "production" && agentFailureInjection.active;
 if (agentFailureControlEnabled) {
