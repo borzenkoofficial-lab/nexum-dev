@@ -1,4 +1,11 @@
-import type { AIProvider, AIProviderStatus, AIGenerateOptions } from "../types.js";
+import type { AIModelCapabilities, AIProvider, AIProviderStatus, AIRequest, AIResponse, AIGenerateOptions } from "../types.js";
+import {
+  getOpenAICompatibleModelCapabilities,
+  normalizeOpenAICompatibleResponse,
+  serializeOpenAICompatibleRequest,
+  type OpenAICompatibleChatResponse,
+  type OpenAICompatibleModelMetadata,
+} from "../openaiCompatibleAdapter.js";
 
 const DEFAULT_BASE_URL = "https://anymodel.org/v1";
 const DEFAULT_MODEL = process.env.ANYMODEL_MODEL || "gpt-6-astra";
@@ -9,25 +16,26 @@ interface ChatResponse {
 }
 
 interface ModelsResponse {
-  data?: Array<{ id?: string }>;
+  data?: Array<OpenAICompatibleModelMetadata & { id?: string }>;
 }
 
 export class AnyModelProvider implements AIProvider {
   id = "anymodel";
   name = "AnyModel";
   protocol = "openai-compatible-chat-completions" as const;
-  adapterVersion = "1.0.0";
+  adapterVersion = "2.0.0";
   model: string;
   capabilities = {
-    text: true,
-    code: true,
-    vision: false,
-    toolCalling: false,
+    text: "unknown",
+    code: "unknown",
+    vision: "unknown",
+    toolCalling: "unknown",
     streaming: false,
-    structuredOutput: false,
-    reasoning: true,
-    contextWindow: 1_100_000,
+    structuredOutput: "unknown",
+    reasoning: "unknown",
+    contextWindow: null,
   } as const;
+  private readonly modelInfo = new Map<string, OpenAICompatibleModelMetadata>();
 
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
@@ -58,6 +66,10 @@ export class AnyModelProvider implements AIProvider {
     return Boolean(this.runtimeApiKey);
   }
 
+  getCapabilities(model = this.model): AIModelCapabilities {
+    return getOpenAICompatibleModelCapabilities(this.modelInfo.get(model), true);
+  }
+
   async generate(message: string, model = this.model, options: AIGenerateOptions = {}): Promise<string> {
     const data = await this.request<ChatResponse>("/chat/completions", {
       method: "POST",
@@ -74,15 +86,29 @@ export class AnyModelProvider implements AIProvider {
     return content;
   }
 
+  async generateRequest(request: AIRequest): Promise<AIResponse> {
+    const startedAt = Date.now();
+    const body = serializeOpenAICompatibleRequest(request);
+    const data = await this.request<OpenAICompatibleChatResponse>("/chat/completions", {
+      method: "POST",
+      body: JSON.stringify(body),
+      ...(request.signal ? { signal: request.signal } : {}),
+    }, request.timeoutMs);
+    return normalizeOpenAICompatibleResponse(data, this.id, request.model, Date.now() - startedAt);
+  }
+
   async listModels(signal?: AbortSignal): Promise<string[]> {
     const data = await this.request<ModelsResponse>("/models", {
       method: "GET",
       ...(signal ? { signal } : {}),
     });
-    return [...new Set((data.data ?? [])
-      .map((item) => item.id)
-      .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
-      .map((id) => id.trim()))];
+    const discovered = new Map<string, OpenAICompatibleModelMetadata>();
+    for (const item of data.data ?? []) {
+      if (typeof item.id === "string" && item.id.trim().length > 0) discovered.set(item.id.trim(), item);
+    }
+    this.modelInfo.clear();
+    for (const [id, info] of discovered) this.modelInfo.set(id, info);
+    return [...discovered.keys()];
   }
 
   async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
@@ -97,12 +123,14 @@ export class AnyModelProvider implements AIProvider {
     }
 
     try {
+      const selectedModel = this.validateModel(model);
       const models = await this.listModels(signal);
+      const available = models.includes(selectedModel) && this.getCapabilities(selectedModel).text === true;
       return {
-        available: models.length > 0,
-        model: this.validateModel(model),
+        available,
+        model: selectedModel,
         latencyMs: Date.now() - startedAt,
-        ...(models.length === 0 ? { error: "AnyModel returned no models" } : {}),
+        ...(!available ? { error: "Configured model is not a verified text generation model for this API account" } : {}),
       };
     } catch (error) {
       return {
@@ -114,12 +142,12 @@ export class AnyModelProvider implements AIProvider {
     }
   }
 
-  private async request<T>(path: string, init: RequestInit): Promise<T> {
+  private async request<T>(path: string, init: RequestInit, timeoutMs = this.timeoutMs): Promise<T> {
     const apiKey = this.runtimeApiKey;
     if (!apiKey) throw new Error("ANYMODEL_API_KEY is not configured");
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     const callerSignal = init.signal;
     const abortFromCaller = () => controller.abort(callerSignal?.reason);
 
