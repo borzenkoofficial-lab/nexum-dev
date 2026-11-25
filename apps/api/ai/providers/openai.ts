@@ -78,6 +78,7 @@ export class OpenAIProvider implements AIProvider {
     };
   }
   private readonly baseUrl: string;
+  private readonly responsesBaseUrl: string;
   private readonly timeoutMs: number;
   private readonly fetchImpl: typeof fetch;
   private runtimeApiKey = process.env.OPENAI_API_KEY?.trim() || "";
@@ -87,8 +88,10 @@ export class OpenAIProvider implements AIProvider {
     model = DEFAULT_MODEL,
     timeoutMs = 60_000,
     fetchImpl: typeof fetch = fetch,
+    responsesBaseUrl = process.env.OPENAI_RESPONSES_BASE_URL || baseUrl,
   ) {
     this.baseUrl = baseUrl.replace(/\/+$/, "");
+    this.responsesBaseUrl = responsesBaseUrl.replace(/\/+$/, "");
     this.model = this.validateModel(model);
     this.timeoutMs = timeoutMs;
     this.fetchImpl = fetchImpl;
@@ -197,7 +200,7 @@ export class OpenAIProvider implements AIProvider {
       body: JSON.stringify(body),
       ...(request.signal ? { signal: request.signal } : {}),
       ...(Object.keys(headers).length ? { headers } : {}),
-    }, request.timeoutMs);
+    }, request.timeoutMs, this.responsesBaseUrl);
 
     if (!Array.isArray(data.output)) throw new Error("OpenAI Responses returned an invalid response");
     if (data.error?.message) throw new Error("OpenAI Responses returned an unsuccessful response");
@@ -284,7 +287,7 @@ export class OpenAIProvider implements AIProvider {
     }
   }
 
-  private async request<T>(path: string, init: RequestInit, timeoutMs = this.timeoutMs): Promise<T> {
+  private async request<T>(path: string, init: RequestInit, timeoutMs = this.timeoutMs, baseUrl = this.baseUrl): Promise<T> {
     const apiKey = this.runtimeApiKey;
     if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
 
@@ -294,7 +297,7 @@ export class OpenAIProvider implements AIProvider {
     const abortFromCaller = () => controller.abort(callerSignal?.reason);
     if (callerSignal) { if (callerSignal.aborted) abortFromCaller(); else callerSignal.addEventListener("abort", abortFromCaller, { once: true }); }
     try {
-      const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+      const response = await this.fetchImpl(`${baseUrl}${path}`, {
         ...init,
         headers: {
           Accept: "application/json",
