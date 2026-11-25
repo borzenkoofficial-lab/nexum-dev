@@ -223,3 +223,33 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 - Even if a provider advertises `streaming: true`, `generateRequest({ stream: true })` is rejected before the adapter is invoked. This prevents a provider from claiming streaming while returning a buffered response.
 - A separate canonical stream event contract and `AIGateway.streamRequest()` must be implemented and conformance-tested before any real adapter can enable streaming.
 - Dedicated workflow `45708228452` passed on commit `83ae24ea58875a3868279bb80820348d6943e900`: API typecheck passed; 247/247 API tests passed.
+
+
+## 13. Реестр существующих интеграций и фактический уровень совместимости
+
+Эта таблица описывает именно текущую реализацию КВАРД в репозитории, а не гарантии или сертификацию со стороны поставщиков.
+
+| Provider ID | Текущий HTTP-протокол в адаптере | Текущий путь генерации | Модели | Ограничения текущего адаптера |
+|---|---|---|---|---|
+| `openai` | OpenAI Chat Completions | `/chat/completions` | `/models` | Legacy text bridge; нет canonical native adapter |
+| `anthropic` | Anthropic Messages | `/messages` | `/models` | Legacy text bridge; нет canonical native adapter |
+| `openrouter` | OpenAI-compatible Chat Completions | `/chat/completions` | `/models` | Legacy text bridge; нет canonical native adapter |
+| `orcarouter` | OpenAI-compatible Chat Completions (как реализовано в текущем клиенте) | `/chat/completions` | `/models` | Legacy text bridge; совместимость ограничена фактически проверенными полями |
+| `anymodel` | OpenAI-compatible Chat Completions (как реализовано в текущем клиенте) | `/chat/completions` | `/models` | Legacy text bridge; совместимость ограничена фактически проверенными полями |
+| `ollama` | Ollama Chat API | `/api/chat` | `/api/tags` | Legacy text bridge; нет canonical native adapter |
+
+### Правило добавления нового провайдера
+
+Нельзя подключать новый endpoint только потому, что он похож на OpenAI API. Перед включением нужно зафиксировать:
+1. точный API protocol и endpoint family (Chat Completions, Responses, Anthropic Messages, Ollama Chat или собственный);
+2. способ авторизации и проверку credentials;
+3. формат сообщений, ролей, content parts, tools и structured output;
+4. фактический формат ответа, finish reason и provider request ID;
+5. usage-поля и правила расчёта стоимости;
+6. модельный каталог, стабильные model IDs и capabilities по каждой модели;
+7. поведение 401/403/404/429/5xx, quota exhausted, timeout и cancellation;
+8. поддерживаемые регионы, ограничения аккаунта и version/deprecation policy.
+
+Если новый поставщик реализует только OpenAI-compatible endpoint, он всё равно получает отдельный adapter/configuration и собственный conformance suite. Нельзя считать его совместимым со всеми возможностями OpenAI автоматически.
+
+**Текущий статус:** внутренний canonical contract, validation, strict legacy bridge, provider conformance tests и CI gate реализованы. Все шесть перечисленных интеграций пока используют legacy text bridge. Реальные provider-specific canonical adapters, usage parsing, multimodal/tools/streaming и sandbox проверки подключаются по отдельным этапам; эти функции не объявляются готовыми заранее.
