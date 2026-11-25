@@ -1,4 +1,4 @@
-import type { AIProvider, AIProviderStatus, AIModelCapabilities, AIRequest, AIResponse, AIGenerateOptions } from "./types.js";
+import type { AIProvider, AIProviderStatus, AIModelCapabilities, AIRequest, AIResponse, AIGenerateOptions, AIModelCatalogEntry } from "./types.js";
 import { getRequiredCapabilities, normalizeAIResponse, validateCanonicalRequest } from "./canonical.js";
 import { generateWithLegacyProvider } from "./legacyProviderAdapter.js";
 import { NexumError } from "../core/errors.js";
@@ -355,6 +355,65 @@ export class AIGateway {
       model: provider.model,
       isDefault: provider.id === this.defaultProviderId,
     }));
+  }
+
+  async getModelCatalog(signal?: AbortSignal): Promise<{ providers: AIModelCatalogEntry[] }> {
+    const providers = await Promise.all([...this.providers.values()].map(async (provider): Promise<AIModelCatalogEntry> => {
+      if (!provider.listModels) {
+        return {
+          provider: provider.id,
+          configuredModel: provider.model,
+          models: [provider.model],
+          source: "configured_fallback",
+          verified: false,
+          status: "unavailable",
+          errorCode: "catalog_not_supported",
+        };
+      }
+
+      try {
+        const discovered = await provider.listModels(signal);
+        const models = [...new Set(discovered
+          .filter((model): model is string => typeof model === "string")
+          .map((model) => model.trim())
+          .filter((model) => model.length > 0 && model.length <= 200))];
+        if (models.length === 0) {
+          return {
+            provider: provider.id,
+            configuredModel: provider.model,
+            models: [provider.model],
+            source: "configured_fallback",
+            verified: false,
+            status: "empty",
+            errorCode: "catalog_empty",
+          };
+        }
+        return {
+          provider: provider.id,
+          configuredModel: provider.model,
+          models,
+          source: "provider_api",
+          verified: true,
+          status: "available",
+        };
+      } catch {
+        if (signal?.aborted) throw new NexumError("NETWORK_ERROR", "Получение списка моделей отменено.", {
+          status: 499,
+          retryable: false,
+          technicalDetails: "Model catalog request was aborted",
+        });
+        return {
+          provider: provider.id,
+          configuredModel: provider.model,
+          models: [provider.model],
+          source: "configured_fallback",
+          verified: false,
+          status: "unavailable",
+          errorCode: "catalog_request_failed",
+        };
+      }
+    }));
+    return { providers };
   }
 
   async getModels(signal?: AbortSignal): Promise<Record<string, string[]>> {
