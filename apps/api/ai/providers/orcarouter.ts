@@ -67,15 +67,11 @@ export class OrcaRouterProvider implements AIProvider {
   }
 
   async listModels(signal?: AbortSignal): Promise<string[]> {
-    try {
-      const data = await this.request<ModelsResponse>("/models", { method: "GET", ...(signal ? { signal } : {}) });
-      const remote = (data.data ?? [])
-        .map((item) => item.id)
-        .filter((id): id is string => typeof id === "string" && id.length > 0);
-      return [...new Set([this.model, DEFAULT_MODEL, ...remote])];
-    } catch {
-      return [this.model, DEFAULT_MODEL];
-    }
+    const data = await this.request<ModelsResponse>("/models", { method: "GET", ...(signal ? { signal } : {}) });
+    return [...new Set((data.data ?? [])
+      .map((item) => item.id)
+      .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+      .map((id) => id.trim()))];
   }
 
   async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
