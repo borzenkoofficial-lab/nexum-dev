@@ -160,7 +160,7 @@ function validUsage(usage: AIUsage | undefined): AIUsage | undefined {
   for (const key of ["inputTokens", "outputTokens", "totalTokens", "cachedInputTokens", "reasoningTokens"] as const) {
     const value = usage[key];
     if (value !== undefined) {
-      if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return undefined;
+      if (typeof value !== "number" || !Number.isInteger(value) || value < 0) return undefined;
       normalized[key] = value;
     }
   }
@@ -172,7 +172,15 @@ export function normalizeAIResponse(
   providerId: string,
   requestedModel: string,
 ): AIResponse {
-  const usage = validUsage(response.usage);
+  const reportedUsage = validUsage(response.usage);
+  const usageSource = reportedUsage
+    ? response.usageSource === "estimated"
+      ? "estimated"
+      : response.usageSource === "unavailable"
+        ? "unavailable"
+        : "provider_reported"
+    : "unavailable";
+  const usage = usageSource === "unavailable" ? undefined : reportedUsage;
   const contentBlocks = response.contentBlocks?.length
     ? response.contentBlocks
     : response.content
@@ -190,6 +198,6 @@ export function normalizeAIResponse(
     provider: typeof response.provider === "string" && response.provider.trim() ? response.provider : providerId,
     model: typeof response.model === "string" && response.model.trim() ? response.model : requestedModel,
     ...(usage ? { usage } : { usage: undefined }),
-    usageSource: response.usageSource ?? (usage ? "provider_reported" : "unavailable"),
+    usageSource,
   };
 }
