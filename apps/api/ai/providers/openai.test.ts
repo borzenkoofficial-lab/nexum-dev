@@ -105,3 +105,17 @@ test("OpenAI Responses adapter maps image content without flattening it into tex
     { type: "input_image", image_url: "https://example.test/image.png" },
   ]);
 });
+
+
+test("OpenAI Responses adapter marks partial provider usage as unavailable without inventing token counts", async () => {
+  const provider = new OpenAIProvider("https://openai.test/v1", "gpt-test", 1000, async () =>
+    new Response(JSON.stringify({
+      id: "resp-partial-usage", status: "completed", model: "gpt-test",
+      output: [{ type: "message", content: [{ type: "output_text", text: "partial" }] }],
+      usage: { input_tokens: 11 },
+    }), { status: 200, headers: { "content-type": "application/json" } }));
+  provider.setRuntimeApiKey("test-openai-canonical-key-1234567890");
+  const response = await provider.generateRequest({ version: 1, model: "gpt-test", messages: [{ role: "user", content: "Hello" }] });
+  assert.deepEqual(response.usage, { inputTokens: 11 });
+  assert.equal(response.usageSource, "unavailable");
+});
