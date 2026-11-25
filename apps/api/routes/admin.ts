@@ -95,6 +95,8 @@ adminRouter.delete("/roles/:userId", requireAdminPermission("roles.manage"), asy
       const assignment = existing.rows[0];
       if (!assignment) return false;
       if (assignment.role === "super_admin") {
+        // Serialize concurrent Super Admin revocations so two requests cannot remove the final pair.
+        await client.query("SELECT pg_advisory_xact_lock(hashtext('kvard_admin_super_admin_guard'))");
         const count = await client.query<{ count: string }>(
           "SELECT COUNT(*)::text AS count FROM admin_role_assignments WHERE role = 'super_admin'",
         );
