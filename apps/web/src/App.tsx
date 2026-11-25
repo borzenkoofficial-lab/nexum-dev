@@ -633,8 +633,9 @@ function WorkspaceApp() {
   function upsertAssistantReply(jobId: string, content: string) {
     const id = `assistant-${jobId}`;
     setConversation((items) => {
-      const existing = items.some((item) => item.id === id);
-      if (existing) return items.map((item) => item.id === id ? { ...item, content } : item);
+      const current = items.find((item) => item.id === id);
+      if (current?.content === content) return items;
+      if (current) return items.map((item) => item.id === id ? { ...item, content } : item);
       return [...items, { id, role: "assistant", content, timestamp: Date.now() }];
     });
   }
