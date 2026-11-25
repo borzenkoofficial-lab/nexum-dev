@@ -1,4 +1,6 @@
 import "./App.css";
+import { AuthGate } from "./auth/AuthGate";
+import { AdminControlCenter } from "./components/AdminControlCenter";
 import "./builder.css";
 import "./kvard-design-system.css";
 import { NexumWelcome } from "./components/NexumWelcome";
@@ -41,7 +43,7 @@ function ConnectorModal({ name, onClose }: { name: string; onClose: () => void }
   </div>;
 }
 
-function App() {
+function WorkspaceApp() {
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     try { return localStorage.getItem("kvard:theme") === "dark" ? "dark" : "light"; } catch { return "light"; }
   });
@@ -1386,4 +1388,10 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  const path = window.location.pathname;
+  if (path === "/admin" || path.startsWith("/admin/")) {
+    return <AuthGate><AdminControlCenter /></AuthGate>;
+  }
+  return <WorkspaceApp />;
+}
