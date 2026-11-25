@@ -24,7 +24,7 @@ export class TestProjectTool implements Tool {
       const scripts = pkg.scripts ?? {};
       const commands = ["test", "typecheck", "lint"].filter((name) => typeof scripts[name] === "string");
       if (!commands.length) {
-        if (typeof scripts.build === "string") return this.run(root, "npm", ["run", "build"], "build");
+        if (typeof scripts.build === "string") return this.run(root, "npm", ["run", "build"], "build", signal);
         return { success: true, output: "No automated test/typecheck/lint/build script is defined; project structure is valid for Preview." };
       }
 
