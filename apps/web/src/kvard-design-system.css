@@ -661,6 +661,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   resize: vertical;
 }
 .kv-agents-launchbar textarea:focus-visible {
-  outline: 2px solid var(--kv-focus-ring);
+  outline: 2px solid var(--kv-focus);
   outline-offset: 2px;
 }
