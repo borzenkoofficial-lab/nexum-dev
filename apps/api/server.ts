@@ -1509,7 +1509,7 @@ app.post("/api/chat", async (req, res) => {
 app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   const userId = getAuthUser(req).id;
   await cleanupChatJobs();
-  const job = await loadChatJob(req.params.id, userId, getChatJob);
+  const job = await loadChatJob(req.params.id, userId, getChatJob, true);
   if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired" });
   if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
     return res.json({ success: true, cancelled: job.status === "cancelled", job });
@@ -1540,7 +1540,7 @@ app.post("/api/chat/jobs/:id/approvals/:approvalId", aiWriteLimiter, async (req,
     return res.status(404).json({ success: false, error: "Chat job or approval request not found." });
   }
   await waitForChatJobPersistence(jobId);
-  const job = await loadChatJob(jobId, userId, getChatJob);
+  const job = await loadChatJob(jobId, userId, getChatJob, true);
   if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired." });
   if (job.status !== "running" || !job.pendingApproval || job.pendingApproval.id !== approvalId || job.pendingApproval.status !== "pending") {
     return res.status(409).json({ success: false, error: "Approval request is no longer pending." });
@@ -1558,7 +1558,7 @@ app.post("/api/chat/jobs/:id/approvals/:approvalId", aiWriteLimiter, async (req,
     userId,
   );
   if (!resolved) {
-    const current = await loadChatJob(jobId, userId, getChatJob);
+    const current = await loadChatJob(jobId, userId, getChatJob, true);
     return res.status(409).json({ success: false, error: "Approval request was already resolved or cancelled.", job: current });
   }
   chatJobCache.set(jobId, resolved);
