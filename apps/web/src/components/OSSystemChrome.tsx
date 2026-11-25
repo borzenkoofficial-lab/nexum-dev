@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { KvardMark } from "./KvardMark.ts";
 
 interface OSSystemChromeProps {
   appName: string;
@@ -30,7 +31,7 @@ export function OSSystemChrome({ appName, appIcon = "К", status = "Систем
       <header className="nx-system-chrome" aria-label="Навигация КВАРД">
         <div className="nx-system-left">
           <button type="button" className="nx-system-brand" onClick={onHome} aria-label="Открыть КВАРД">
-            <span>К</span><strong>КВАРД</strong>
+            <KvardMark size={30} /><strong>КВАРД</strong>
           </button>
           <span className="nx-system-divider" />
           <div className="nx-system-app">

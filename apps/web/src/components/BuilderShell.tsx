@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { AgentStage } from "./types";
+import { KvardMark } from "./KvardMark.ts";
 
 type Tool = "preview" | "agent" | "files" | "code";
 
@@ -43,7 +44,7 @@ export function BuilderShell({
     <section className="nx-builder" aria-label={"КВАРД Studio — " + projectName}>
       <header className="nx-builder-header">
         <button className="nx-builder-project" type="button" onClick={onClose} aria-label="Вернуться в рабочую среду">
-          <span className="nx-builder-logo" aria-hidden="true">К</span>
+          <KvardMark size={28} />
           <span className="nx-builder-project-copy">
             <strong>{projectName}</strong>
             <small>Рабочее пространство</small>

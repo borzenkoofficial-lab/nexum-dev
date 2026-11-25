@@ -1,4 +1,5 @@
 import type { Project } from "./types";
+import { KvardMark } from "./KvardMark.ts";
 
 type SidebarView = "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents" | "business-agents";
 
@@ -33,7 +34,7 @@ export function Sidebar({
   return (
     <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`} aria-label="Боковая панель КВАРД">
       <div className="logo" aria-label="КВАРД">
-        <span className="logo-mark" aria-hidden="true">К</span>
+        <KvardMark size={32} />
         <strong>КВАРД</strong>
       </div>
 
