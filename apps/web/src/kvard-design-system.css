@@ -276,3 +276,51 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Onboarding shares the same brand foundation without the former cinematic treatment. */
+.nexum-welcome {
+  background: var(--kv-canvas); color: var(--kv-text);
+  background-image: none; font-family: inherit;
+}
+.nexum-welcome-nav, .nexum-welcome-footer { border-color: var(--kv-border); }
+.nexum-brand { color: var(--kv-text); letter-spacing: -.035em; }
+.nexum-brand em { color: var(--kv-text-tertiary); }
+.nexum-logo-mark, .nexum-boot-center .nexum-logo-mark {
+  border: 0; border-radius: 14px; background: #24213A; color: #fff;
+}
+.nexum-sequence-core { min-height: 120px; }
+.nexum-sequence-core::before {
+  width: 84px; height: 84px; border: 0; border-radius: 20px;
+  background: #24213A; color: #fff; content: "К"; font-size: 34px;
+}
+.nexum-sequence-copy h1 { color: var(--kv-text); letter-spacing: -.05em; }
+.nexum-sequence-copy p, .nexum-auth-intro p { color: var(--kv-text-secondary); }
+.nexum-boot-console, .nexum-auth-window {
+  border: 1px solid var(--kv-border); border-radius: var(--kv-radius-large);
+  background: var(--kv-surface); box-shadow: var(--kv-shadow-panel);
+}
+.nexum-console-head, .nexum-window-chrome { border-color: var(--kv-border); color: var(--kv-text-secondary); }
+.nexum-console-lines b { color: var(--kv-text-tertiary); }
+.nexum-console-lines > div.online b { color: var(--kv-success); }
+.nexum-boot-progress { border-radius: 999px; background: var(--kv-surface-subtle); }
+.nexum-boot-progress i { border-radius: inherit; background: var(--kv-action); }
+.nexum-auth-intro h2 { color: var(--kv-text); letter-spacing: -.035em; }
+.nexum-auth-content label { color: var(--kv-text-secondary); font-weight: 550; }
+.nexum-auth-content input {
+  min-height: 44px; border: 1px solid var(--kv-border-strong); border-radius: var(--kv-radius-control);
+  background: var(--kv-surface); color: var(--kv-text); font-size: 16px;
+}
+.nexum-auth-content input::placeholder { color: var(--kv-text-tertiary); }
+.nexum-enter {
+  border: 1px solid var(--kv-action); border-radius: var(--kv-radius-control);
+  background: var(--kv-action); color: #fff; font-weight: 650;
+}
+.nexum-enter:hover { background: var(--kv-action-hover); border-color: var(--kv-action-hover); }
+.nexum-auth-switch { color: var(--kv-text-secondary); }
+.nexum-auth-switch button, .nexum-skip-intro {
+  border-color: var(--kv-border); border-radius: var(--kv-radius-control);
+  background: var(--kv-surface); color: var(--kv-text);
+}
+.nexum-auth-switch button:hover, .nexum-skip-intro:hover { background: var(--kv-surface-subtle); }
+.nexum-auth-error { border-color: var(--kv-danger); border-radius: var(--kv-radius-control); background: var(--kv-danger-soft); color: var(--kv-danger); }
+.nexum-welcome kbd { border-color: var(--kv-border); border-radius: 5px; background: var(--kv-surface-subtle); color: var(--kv-text-secondary); }
