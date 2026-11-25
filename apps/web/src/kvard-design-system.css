@@ -859,3 +859,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .kv-agent-approval-meta > div:last-child { grid-column: auto; }
   .kv-agent-approval-actions > div { grid-template-columns: 1fr; }
 }
+/* Prevent automatic focus zoom on iOS form controls across all mobile surfaces. */
+@media (max-width: 680px) {
+  #root input, #root textarea, #root select { font-size: 16px; }
+}
