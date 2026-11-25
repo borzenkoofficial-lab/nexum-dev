@@ -407,7 +407,7 @@ export class AnthropicProvider implements AIProvider {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
+           "x-api-key": apiKey,
           "anthropic-version": this.apiVersion,
           ...(init.headers ?? {}),
         },
