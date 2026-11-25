@@ -113,3 +113,35 @@ export function requireAdminPermission(permission: AdminPermission) {
     next();
   };
 }
+
+/**
+ * Require a recent, server-recorded MFA step-up for high-impact mutations.
+ * A signed session claim alone is insufficient: the timestamp is checked in PostgreSQL.
+ */
+export async function requireRecentMfa(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const userId = req.user?.id;
+  const sessionId = req.user?.sessionId;
+  if (!userId || !sessionId || req.user?.mfaVerified !== true) {
+    res.status(403).json({ success: false, code: "MFA_STEP_UP_REQUIRED", error: "Fresh MFA verification is required." });
+    return;
+  }
+  try {
+    const result = await query<{ id: string }>(
+      `SELECT id FROM auth_sessions
+       WHERE id = $1 AND user_id = $2 AND mfa_verified = TRUE
+         AND revoked_at IS NULL AND expires_at > NOW()
+         AND last_seen_at > NOW() - INTERVAL '30 minutes'
+         AND mfa_verified_at > NOW() - INTERVAL '10 minutes'
+       LIMIT 1`,
+      [sessionId, userId],
+    );
+    if (result.rows.length !== 1) {
+      res.status(403).json({ success: false, code: "MFA_STEP_UP_REQUIRED", error: "Fresh MFA verification is required before this action." });
+      return;
+    }
+    next();
+  } catch (error) {
+    console.error("[КВАРД] Recent MFA verification check failed closed", error);
+    res.status(503).json({ success: false, error: "MFA verification status unavailable." });
+  }
+}
