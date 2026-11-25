@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { AIStreamProtocolError, consumeAIStream, type AIStreamEvent } from "./AIStream.js";
+import { AIStreamProtocolError, consumeAIStream, type AIStreamEvent } from "./AIStream.ts";
 
 function responseFromChunks(chunks: string[], status = 200): Response {
   const encoder = new TextEncoder();
