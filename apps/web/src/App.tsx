@@ -9,6 +9,7 @@ import { NewsPage } from "./components/NewsPage";
 import { IntegrationPage } from "./components/IntegrationPage";
 import { DiagnosticsPage } from "./components/DiagnosticsPage";
 import { AgentsPage } from "./components/AgentsPage";
+import { BusinessAgentsPage } from "./components/BusinessAgentsPage";
 import { AgentApprovalPanel, type AgentApprovalView } from "./components/AgentApprovalPanel";
 import { BuilderShell } from "./components/BuilderShell";
 import { BuilderChat } from "./components/BuilderChat";
@@ -146,9 +147,9 @@ function App() {
     return true;
   };
   const [projectTaskMeta, setProjectTaskMeta] = useState<Record<string, { task: string; timestamp: number; status: "queued" | "running" | "completed" | "failed" | "cancelled" }>>(() => { try { return JSON.parse(localStorage.getItem("nexum:project-task-meta") || "{}"); } catch { return {}; } });
-  const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents">(() => {
+  const [view, setViewState] = useState<"home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents" | "business-agents">(() => {
     const path = window.location.pathname;
-    return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : path === "/diagnostics" ? "diagnostics" : path === "/agents" ? "agents" : "home";
+    return path.startsWith("/projects/") && path.split("/").filter(Boolean)[1] ? "project" : path === "/settings" ? "settings" : path === "/connectors" ? "connectors" : path === "/news" ? "news" : path === "/diagnostics" ? "diagnostics" : path === "/agents" ? "agents" : path === "/business-agents" ? "business-agents" : "home";
   });
   const [connectorModal, setConnectorModal] = useState<string | null>(null);
   const connectedConnectors: string[] = [];
@@ -212,7 +213,7 @@ function App() {
       ? "/projects/" + encodeURIComponent(projectId ?? activeПроектId)
       : nextView === "connectors" ? "/connectors"
       : nextView === "settings" ? "/settings"
-      : nextView === "news" ? "/news" : nextView === "diagnostics" ? "/diagnostics" : nextView === "agents" ? "/agents" : "/projects";
+      : nextView === "news" ? "/news" : nextView === "diagnostics" ? "/diagnostics" : nextView === "agents" ? "/agents" : nextView === "business-agents" ? "/business-agents" : "/projects";
     if (window.location.pathname !== target) {
       if (replace) window.history.replaceState({ view: nextView, projectId }, "", target);
       else window.history.pushState({ view: nextView, projectId }, "", target);
@@ -233,6 +234,7 @@ function App() {
       else if (path === "/news") setViewState("news");
       else if (path === "/diagnostics") setViewState("diagnostics");
       else if (path === "/agents") setViewState("agents");
+      else if (path === "/business-agents") setViewState("business-agents");
       else setViewState("home");
     };
     window.addEventListener("popstate", onPopState);
@@ -989,6 +991,7 @@ function App() {
     { label: "Ask ИИ", hint: "A", run: () => focusTask() },
     { label: "Сменить модель", hint: "M", run: () => document.querySelector<HTMLButtonElement>(".composer-model-button")?.click() },
     { label: "AI-агенты", hint: "A", run: () => setView("agents") },
+    { label: "Бизнес-агенты", hint: "B", run: () => setView("business-agents") },
     { label: "Диагностика Agent", hint: "D", run: () => setView("diagnostics") },
     { label: "Настройки", hint: "", run: () => setView("settings") },
   ];
@@ -1015,8 +1018,8 @@ function App() {
       />}
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
         {view !== "home" && view !== "project" && <OSSystemChrome
-          appName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал КВАРД" : view === "agents" ? "AI-агенты" : "Диагностика"}
-          appIcon={view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : view === "agents" ? "◈" : "⌁"}
+          appName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал КВАРД" : view === "agents" ? "AI-агенты" : view === "business-agents" ? "Бизнес-агенты" : "Диагностика"}
+          appIcon={view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : view === "agents" ? "◈" : view === "business-agents" ? "✦" : "⌁"}
           status={aiStatus?.available ? "AI Core подключён" : "Система готова"}
           activeView={view}
           onHome={() => navigate("home")}
@@ -1024,7 +1027,11 @@ function App() {
           onSettings={() => navigate("settings")}
           onNewProject={() => openNewProject()}
         />}
-        {view === "agents" ? (
+        {view === "business-agents" ? (
+          <OSAppWindow title="Бизнес-агенты" subtitle="AI-сотрудники, знания и автоматизация" icon="✦" status="Business AI" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
+            <BusinessAgentsPage />
+          </OSAppWindow>
+        ) : view === "agents" ? (
           <OSAppWindow title="AI-агенты" subtitle="Профили запуска и состояние Runtime" icon="◈" status="Рабочая среда" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
             <AgentsPage
               projects={projects}
