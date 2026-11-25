@@ -439,3 +439,18 @@ The Web runtime exports `consumeAIStream` from `apps/web/src/runtime/AIStream.ts
 
 The parser has 10 deterministic tests in `apps/web/src/runtime/AIStream.test.ts`, runs through `test:ai-stream`, and is part of the full NEXUM CI. This is a tested transport utility, not yet a Builder integration. The Builder currently uses persistent ChatJobs and AgentLoop; it must not be switched to a direct raw-model call that bypasses planning, tool execution, approvals, cancellation or Completion Gate. The next integration stage must stream the actual AgentLoop's user-visible output/progress into its existing job lifecycle.
 
+## 16. AgentLoop user-visible final-answer streaming
+
+The Builder's final user-facing answer now streams through the existing AgentLoop -> AIGateway -> ChatJob path; it does not call `POST /api/ai/stream` directly from the browser.
+
+- `GatewayGenerateOptions.onTextDelta` is optional. When supplied and the selected provider/model explicitly advertises native streaming, `AIGateway.generateWithMetadata` consumes native stream events and forwards text deltas while aggregating the same final response string.
+- If the selected model does not explicitly support streaming, the gateway preserves compatibility by using the existing non-stream generation path and emitting the complete response as one delta.
+- Once visible text has been emitted, a failed stream is not silently retried through another provider. This prevents duplicate or concatenated answers after partial output.
+- `AgentLoop` strips the callback from planner calls and reattaches it only at the finalizer. Internal planner JSON and tool-call arguments are never forwarded as user-visible text. Explicit planner-provided final text is emitted only after the Completion Gate passes.
+- `runChatJob` appends deltas to the existing `ChatJob.reply` field and persists them with a 350 ms write throttle; it flushes the last delta before completing, failing or cancelling the job.
+- The Web app upserts one stable assistant message per ChatJob while its existing job polling refreshes the partial reply. This is incremental Builder rendering over the ChatJob API, not an SSE subscription to ChatJob updates.
+- Builder tasks whose final response is deterministic after verification produce that summary at finalization; tool execution and internal code/planner output remain represented by existing activity/progress events rather than raw token output.
+- Tests cover gateway delta aggregation, non-stream compatibility, no fallback after partial output, and AgentLoop privacy of planner output. The full CI also exercises the existing ChatJob and runtime flows.
+
+The browser `consumeAIStream` utility remains the parser for direct canonical AI SSE responses. It is not the transport used by Builder ChatJob updates. A future ChatJob SSE subscription can replace polling if needed, but is not required for the current incremental final-answer behavior.
+
