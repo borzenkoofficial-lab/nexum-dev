@@ -378,3 +378,38 @@ test("caches verified model catalogs and invalidates them after credential rotat
   await gateway.getModelCatalog();
   assert.equal(listCalls, 2);
 });
+
+test("gateway forwards canonical stream events only for a stream-capable native adapter", async () => {
+  const received: AIRequest[] = [];
+  const provider: AIProvider = {
+    id: "stream-native", name: "Stream native", model: "stream-model",
+    protocol: "test-stream", adapterVersion: "1.0.0",
+    capabilities: { text: true, code: false, vision: false, toolCalling: false, streaming: true, structuredOutput: false, reasoning: false, contextWindow: 16000 },
+    async generate() { return "unused"; },
+    async *streamRequest(input) {
+      received.push(input);
+      yield { type: "message_start", provider: "stream-native", model: input.model };
+      yield { type: "text_delta", text: "Hello" };
+      yield { type: "message_end", finishReason: "stop" };
+    },
+  };
+  const gateway = new AIGateway([provider], provider.id);
+  const events = [];
+  for await (const event of gateway.streamRequest(request({ stream: true }))) events.push(event);
+  assert.deepEqual(received[0].stream, true);
+  assert.deepEqual(events.map((event) => event.type), ["message_start", "text_delta", "message_end"]);
+});
+
+test("gateway refuses streaming if the selected model does not explicitly advertise it", async () => {
+  let invoked = false;
+  const provider: AIProvider = {
+    id: "stream-unknown", name: "Stream unknown", model: "stream-model",
+    protocol: "test-stream", adapterVersion: "1.0.0",
+    capabilities: { text: true, code: false, vision: false, toolCalling: false, streaming: "unknown", structuredOutput: false, reasoning: false, contextWindow: null },
+    async generate() { return "unused"; },
+    async *streamRequest() { invoked = true; yield { type: "text_delta", text: "should not happen" }; },
+  };
+  const gateway = new AIGateway([provider], provider.id);
+  await assert.rejects(() => gateway.streamRequest(request({ stream: true })).next(), (error: any) => error?.code === "MODEL_ERROR");
+  assert.equal(invoked, false);
+});
