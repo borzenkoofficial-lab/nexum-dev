@@ -55,7 +55,7 @@ export class AnthropicProvider implements AIProvider {
     const data = await this.request<AnthropicModelsResponse>("/models", { method: "GET", ...(signal ? { signal } : {}) });
     return [...new Set((data.data ?? [])
       .map((item) => item.id)
-      .filter((id): id is string => typeof id === "string" && /^claude-/i.test(id))];
+      .filter((id): id is string => typeof id === "string" && /^claude-/i.test(id)))];
   }
 
   async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
