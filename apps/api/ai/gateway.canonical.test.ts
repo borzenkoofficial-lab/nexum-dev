@@ -19,6 +19,8 @@ class NativeFixture extends LegacyFixture {
   id = "native";
   name = "Native";
   model = "native-default";
+  protocol = "test-canonical";
+  adapterVersion = "1.0.0";
   received: AIRequest[] = [];
   response: AIResponse = { content: "native answer", provider: "untrusted-provider", model: "provider-resolved-model" };
   override async generateRequest(request: AIRequest): Promise<AIResponse> {
@@ -194,6 +196,8 @@ test("supports a native-only provider as an automatic transient fallback", async
     id: "native-fallback",
     name: "Native fallback",
     model: "fallback-model",
+    protocol: "test-canonical",
+    adapterVersion: "1.0.0",
     capabilities: {
       text: true, code: false, vision: false, toolCalling: false,
       streaming: false, structuredOutput: false, reasoning: false, contextWindow: 16_000,
@@ -218,6 +222,8 @@ test("rejects streaming on the complete-response API even if a provider advertis
     id: "streaming-advertised",
     name: "Streaming advertised",
     model: "streaming-model",
+    protocol: "test-canonical",
+    adapterVersion: "1.0.0",
     capabilities: {
       text: true, code: false, vision: false, toolCalling: false,
       streaming: true, structuredOutput: false, reasoning: false, contextWindow: 16_000,
