@@ -14,7 +14,7 @@ class CanonicalContractFixture implements AIProvider {
   id = "contract-fixture";
   name = "Canonical Contract Fixture";
   model = "fixture-v1";
-  protocol = "test-canonical";
+  protocol = "custom" as const;
   adapterVersion = "1.0.0";
   capabilities = {
     text: true,
