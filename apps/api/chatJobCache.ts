@@ -33,14 +33,17 @@ export async function loadChatJob(
   id: string,
   userId: string,
   loadPersisted: (id: string, userId: string) => Promise<ChatJob | null>,
+  refresh = false,
 ): Promise<ChatJob | null> {
   evictStaleJobs();
   const cached = chatJobCache.get(id);
-  if (cached && cached.userId === userId) return cached;
+  if (cached && cached.userId === userId && !refresh) return cached;
   const persisted = await loadPersisted(id, userId);
   if (persisted) {
     chatJobCache.set(id, persisted);
     evictStaleJobs();
+  } else if (refresh && cached?.userId === userId) {
+    chatJobCache.delete(id);
   }
   return persisted;
 }
