@@ -173,3 +173,15 @@
 - `GET /api/ai/models` preserves the legacy `models` object and adds `catalog.providers[]` metadata, so existing UI consumers remain compatible while newer UI can show verified/unverified state.
 - Added tests for deduplicated provider model IDs, empty catalogs, provider discovery failure, safe error surface and configured fallback.
 - Pending CI verification for this follow-up.
+
+
+### Task 5: Protocol metadata and verified model catalog
+
+- [x] Add an extensible `AIProviderProtocol` identifier and adapter version metadata.
+- [x] Require protocol + adapter version for native adapters; reject duplicate provider IDs.
+- [x] Add `AIGateway.getModelCatalog()` with provider API vs configured fallback source, verification status and explicit empty/unavailable error codes.
+- [x] Update `AIModelRegistry` so unverified fallback IDs can be displayed but cannot be selected for inference; explicit model selection must match a verified provider catalog.
+- [x] Add tests for protocol metadata enforcement, empty/unavailable catalogs, and verified-only model selection.
+- [x] Run API typecheck and dedicated AI provider workflow.
+- Evidence: workflow `45709473332` passed on `7746b9b8263fed0eef503d1c4fe73e2ffaf70211`; 66/66 focused AI contract tests passed.
+
