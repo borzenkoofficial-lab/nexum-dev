@@ -195,3 +195,41 @@ export function normalizeOpenAICompatibleResponse(
     latencyMs,
   };
 }
+
+
+export interface OpenAICompatibleModelMetadata {
+  architecture?: {
+    input_modalities?: string[];
+    output_modalities?: string[];
+  };
+  supported_parameters?: string[];
+  context_length?: number;
+}
+
+export function getOpenAICompatibleModelCapabilities(
+  info: OpenAICompatibleModelMetadata | undefined,
+  assumeTextForListedModel = false,
+): import("./types.js").AIModelCapabilities {
+  const input = info?.architecture?.input_modalities;
+  const output = info?.architecture?.output_modalities;
+  const parameters = info?.supported_parameters;
+  const text = input && output
+    ? input.includes("text") && output.includes("text")
+    : assumeTextForListedModel ? true : undefined;
+  const hasParameter = (...names: string[]) => parameters
+    ? names.some((name) => parameters.includes(name))
+    : undefined;
+  return {
+    text: text === true ? true : text === false ? false : "unknown",
+    code: text === true ? true : text === false ? false : "unknown",
+    vision: input ? input.includes("image") : "unknown",
+    toolCalling: hasParameter("tools", "tool_choice") ?? "unknown",
+    streaming: false,
+    structuredOutput: hasParameter("response_format", "structured_outputs") ?? "unknown",
+    reasoning: hasParameter("reasoning", "reasoning_effort") ?? "unknown",
+    contextWindow: typeof info?.context_length === "number" &&
+      Number.isSafeInteger(info.context_length) && info.context_length > 0
+      ? info.context_length
+      : null,
+  };
+}
