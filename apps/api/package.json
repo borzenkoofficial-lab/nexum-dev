@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "tsx db/migrate.ts",
     "test:runtime": "tsx --test runtime/runtime.test.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "worker": "tsx agents/worker.ts"
   },
   "keywords": [],
   "author": "",
