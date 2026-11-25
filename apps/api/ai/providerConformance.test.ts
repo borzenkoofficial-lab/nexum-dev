@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { AIGateway } from "./gateway.js";
+import { NexumError } from "../core/errors.js";
 import type { AIProvider, AIRequest, AIResponse } from "./types.js";
 
 interface FixtureOptions {
@@ -130,3 +131,24 @@ function createProviderWithError(error: Error): CanonicalContractFixture {
 }
 
 registerCanonicalProviderConformanceSuite("canonical provider adapter", () => new CanonicalContractFixture());
+
+
+test("canonical gateway redacts credentials from pre-classified provider errors too", async () => {
+  const secret = "sk-live-provider-secret-9876543210";
+  const provider = new CanonicalContractFixture({
+    error: new NexumError("AUTH_ERROR", `Bearer ${secret}`, {
+      userSafeMessage: `Bearer ${secret}`,
+      technicalDetails: `Authorization: Bearer ${secret}`,
+      retryable: false,
+      status: 401,
+    }),
+  });
+  await assert.rejects(
+    () => new AIGateway([provider], provider.id).generateRequest(request()),
+    (error: any) => {
+      assert.equal(String(error?.userSafeMessage).includes(secret), false);
+      assert.equal(String(error?.technicalDetails).includes(secret), false);
+      return true;
+    },
+  );
+});
