@@ -215,3 +215,11 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 - When both methods exist, the Gateway prefers `generateRequest()`. Existing legacy-only providers continue through the strict bridge.
 - Configured transient fallback also supports a native-only fallback provider. The original provider/model selection and fallback metadata remain intact.
 - Latest dedicated workflow `45707392285` passed on commit `4d947cc4096519c7e1fdf7fc6732e5a1067c3ad7`: API typecheck passed; 246/246 API tests passed.
+
+
+### Streaming is explicitly gated
+
+- `AIGateway.generateRequest()` returns one completed `AIResponse`; it is not a streaming API.
+- Even if a provider advertises `streaming: true`, `generateRequest({ stream: true })` is rejected before the adapter is invoked. This prevents a provider from claiming streaming while returning a buffered response.
+- A separate canonical stream event contract and `AIGateway.streamRequest()` must be implemented and conformance-tested before any real adapter can enable streaming.
+- Dedicated workflow `45708228452` passed on commit `83ae24ea58875a3868279bb80820348d6943e900`: API typecheck passed; 247/247 API tests passed.
