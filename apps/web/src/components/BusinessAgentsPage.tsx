@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import "./BusinessAgentsPage.css";
 
 type Organization = { id: string; name: string; role: string };
@@ -137,7 +138,7 @@ export function BusinessAgentsPage() {
 
   const refresh = () => organizationId ? loadWorkspace(organizationId) : loadOrganizations();
 
-  async function createWorkspace(event: React.FormEvent) {
+  async function createWorkspace(event: FormEvent) {
     event.preventDefault();
     setSaving(true); setError("");
     try {
@@ -158,7 +159,7 @@ export function BusinessAgentsPage() {
     setSelectedTools(tools.filter(tool => tool.riskLevel === "low").map(tool => tool.id));
   }
 
-  async function createAgent(event: React.FormEvent) {
+  async function createAgent(event: FormEvent) {
     event.preventDefault();
     if (!organizationId) return;
     setSaving(true); setError("");
@@ -192,7 +193,7 @@ export function BusinessAgentsPage() {
     finally { setSaving(false); }
   }
 
-  async function startRun(event: React.FormEvent) {
+  async function startRun(event: FormEvent) {
     event.preventDefault();
     if (!selectedAgent || !runInput.trim()) return;
     setSaving(true); setError(""); setActiveRun(null); setRunEvents([]);
@@ -210,7 +211,7 @@ export function BusinessAgentsPage() {
     finally { setSaving(false); }
   }
 
-  async function addKnowledge(event: React.FormEvent) {
+  async function addKnowledge(event: FormEvent) {
     event.preventDefault();
     setSaving(true); setError("");
     try {
@@ -234,7 +235,7 @@ export function BusinessAgentsPage() {
     finally { setSaving(false); }
   }
 
-  async function createTeam(event: React.FormEvent) {
+  async function createTeam(event: FormEvent) {
     event.preventDefault();
     if (!teamName.trim() || !teamAgentIds.length) return;
     setSaving(true); setError("");
