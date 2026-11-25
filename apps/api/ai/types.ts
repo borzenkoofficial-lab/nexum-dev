@@ -117,6 +117,8 @@ export interface AIProvider {
   model: string;
   /** Exact upstream protocol implemented by this adapter, not a compatibility guess. */
   protocol?: AIProviderProtocol;
+  /** Older protocol retained only for the legacy string facade, if different. */
+  legacyProtocol?: AIProviderProtocol;
   /** Adapter implementation version, independent of upstream model/API version. */
   adapterVersion?: string;
   capabilities: AIModelCapabilities;
