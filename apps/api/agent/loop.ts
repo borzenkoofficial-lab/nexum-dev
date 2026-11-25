@@ -593,7 +593,7 @@ export class AgentLoop {
           : needsPostScaffoldListing
             ? { tool: "listFiles", input: "./" }
             : needsPostScaffoldRead && postScaffoldEntryPath
-              ? { tool: "readFile", input: postScaffoldEntryPath }
+              ? { tool: "readFile", input: `./${postScaffoldEntryPath}` }
               : null;
       let plan = initialBootstrapPlan ?? modelPlan ?? this.runtime.plan(task, previousResults);
       // An AI plan can name a tool that is not registered in the current runtime.
