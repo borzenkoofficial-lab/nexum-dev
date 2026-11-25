@@ -1090,7 +1090,10 @@ export class AgentLoop {
         transition("finish");
         markStepCompletedLocal("complete", "Agent completed after validation and verification.");
         emit({ iteration, type: "completed", name: "agent.completed", message: "Финальный completion gate пройден. Проект действительно реализован и проверен." });
-        const finalResponse = plan.finalResponse ?? await this.finalResponse(task, previousResults, aiOptionsForTask(options, "finalizer"));
+        const finalizerOptions = aiOptionsForTask(options, "finalizer");
+        if (finalizerOptions && options?.onTextDelta) finalizerOptions.onTextDelta = options.onTextDelta;
+        const finalResponse = plan.finalResponse ?? await this.finalResponse(task, previousResults, finalizerOptions);
+        if (plan.finalResponse !== undefined || !finalizerOptions) options?.onTextDelta?.(finalResponse);
         const completedSteps = executionSnapshot.plan.steps.filter((step) => step.status === "COMPLETED").map((step) => step.id);
         const changedFiles = [...taskState.changedFiles].slice(-20);
         const summary: AgentResultSummary = {
@@ -1581,7 +1584,9 @@ export class AgentLoop {
       } catch (error) {
         if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
         const detail = error instanceof Error ? error.message : "AI response generation failed";
-        return `NEXUM завершил выполнение, но финальный ответ AI недоступен: ${detail}. Проверьте Preview и AI Activity.`;
+        const response = `NEXUM завершил выполнение, но финальный ответ AI недоступен: ${detail}. Проверьте Preview и AI Activity.`;
+        options?.onTextDelta?.(response);
+        return response;
       }
     }
 
@@ -1619,11 +1624,13 @@ export class AgentLoop {
         options.onTextDelta?.(response);
         return response;
       }
-      return await this.gateway.generate(`Задача выполнена: ${task}\\nРезультаты инструментов:\\n${summary}`, options);
+      return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, options);
     } catch (error) {
         if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
       const detail = error instanceof Error ? error.message : "AI response generation failed";
-      return `Задача выполнена, но финальный ответ AI недоступен: ${detail}. Откройте Preview и вкладку AI Activity для проверки результата.`;
+      const response = `Задача выполнена, но финальный ответ AI недоступен: ${detail}. Откройте Preview и вкладку AI Activity для проверки результата.`;
+      options?.onTextDelta?.(response);
+      return response;
     }
   }
 
