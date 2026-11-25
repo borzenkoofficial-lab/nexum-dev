@@ -335,3 +335,24 @@
 - Production rollout, реальные запросы с платными ключами и provider billing не выполнялись.
 
 | 2026-11-25 | AI-ADAPTER-01–08 | Специфицирован стандарт совместимости провайдеров и правила допуска нового адаптера. Зафиксирован gap между текущим string-only generate и необходимым контрактом для мультимодальности, tools, streaming и достоверного usage. | Документ `docs/KVARD_AI_PROVIDER_ADAPTER_CONTRACT.md`, commit `da5e510`. Статус: спецификация готова, кодовая миграция и conformance suite ещё не начаты. IN_PROGRESS |
+
+
+## 2026-11-26 — Canonical AI Provider Contract: implementation foundation
+
+- Статус AI-ADAPTER-01–08: **PARTIAL / foundation implemented**. Создана рабочая внутренняя граница совместимости, но не заявляется полная нативная поддержка функций каждым внешним провайдером.
+- `apps/api/ai/types.ts`: versioned canonical request/response types, content parts, image URL/base64, tool definitions/tool choice, assistant tool-call history, usage categories and usage source.
+- `apps/api/ai/canonical.ts`: runtime validation, size/type limits, HTTP(S)-only image URLs, MIME/base64 checks, tool-call validation, capability requirements and response/usage normalization.
+- `apps/api/ai/legacyProviderAdapter.ts`: strict bridge for existing `generate(string)` providers. It preserves message order/roles and explicitly rejects image content, developer/tool roles, assistant tool-call history, tools, streaming, JSON/structured output and unsupported options before provider invocation.
+- `apps/api/ai/gateway.ts`: added `AIGateway.generateRequest()`. Native adapters are preferred; otherwise the strict legacy bridge is used. Model-level capabilities are checked before dispatch. Existing string methods and fallback semantics remain unchanged.
+- Usage is never fabricated: missing usage = `unavailable`; partial provider usage remains partial. Provider identity is normalized, actual returned model ID is preserved, and bearer/API-key-like strings are redacted from normalized provider error details.
+- Added tests: `canonical.test.ts`, `legacyProviderAdapter.test.ts`, `gateway.canonical.test.ts`, `providerConformance.test.ts`. Conformance tests cover identity/content mapping, partial/missing usage, unsupported capabilities, aborted requests and credential redaction.
+- Added isolated workflow `.github/workflows/ai-provider-contract.yml` so provider-contract API tests/typecheck can run independently from browser E2E.
+- Dedicated workflow `45705059762` passed on commit `9f4e9992c017a94409834c8f238926cbe09fceab`: API typecheck + full API test suite. This run predates only documentation/checklist updates.
+- Full CI run `45704112563`: build job passed (API typecheck/tests, Web brand/runtime tests, Web typecheck/build/lint, Docker build and container smoke test). Runtime E2E had 40 passed, 1 failed, 3 skipped; failure was an existing Runtime ownership release assertion after user cancellation (`runtimeData.resources` expected 0, received 1). Do not mark full CI green; investigate this Runtime E2E failure in its own task.
+- Pending work: native provider-specific adapters and their real protocol mappings; per-model capability/pricing catalogs; migrate chat/Builder/agent/Runtime/Workforce call paths; sandbox smoke tests; usage ledger/reservations; plans and payments.
+- No production deploy, production migrations, provider purchases/top-ups, real provider credentials or real paid requests were performed.
+
+| Date | Checklist area | Result | Evidence |
+|---|---|---|---|
+| 2026-11-26 | AI-ADAPTER-01–08 | Canonical contract, validation, strict legacy bridge, gateway routing, usage normalization and conformance fixture tests implemented. Native adapters for real providers and product-call migration remain pending. | Dedicated workflow `45705059762` passed on `9f4e999`; commits include `1994066`, `46326d4`, `1be20a3`, `c75c394`, `b198745`, `bed827d`, `eedb792`, `9f4e999`. PARTIAL. |
+| 2026-11-26 | CI-BASELINE | Build job passed; Runtime E2E remains red on a cancellation/resource-release assertion unrelated to provider-contract tests. | Workflow `45704112563`; 40 passed, 1 failed, 3 skipped in E2E. Full CI not green. |
