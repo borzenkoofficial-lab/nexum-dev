@@ -27,10 +27,10 @@ import { assertExistingProjectPath, assertWritableProjectPath, ProjectPathError 
 import { AgentHistory } from "./agent/history.js";
 import { CheckpointManager } from "./agent/checkpoint.js";
 import { ProjectStateManager } from "./projects/projectState.js";
-import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
+import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueAdminMfaChallenge, issueSession } from "./auth.js";
 import { requireAdminAccess } from "./adminAccess.js";
 import { adminRouter } from "./routes/admin.js";
-import { closeDatabase, pingDatabase } from "./db.js";
+import { closeDatabase, pingDatabase, query } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
@@ -834,7 +834,7 @@ app.get("/api/health", async (_req, res) => {
 });
 
 
-app.use("/api/auth/admin-mfa", authMiddleware, createRateLimitMiddleware("admin-mfa", isProduction ? 10 : 100, 60_000), adminMfaRouter);
+app.use("/api/auth/admin-mfa", createRateLimitMiddleware("admin-mfa", isProduction ? 10 : 100, 60_000), adminMfaRouter);
 
 app.post("/api/auth/register", authRegisterLimiter, async (req, res) => {
   try {
@@ -856,8 +856,26 @@ app.post("/api/auth/login", authLoginLimiter, async (req, res) => {
     const password = typeof req.body?.password === "string" ? req.body.password : "";
     const user = await authenticateUser(email, password);
     if (!user) return res.status(401).json({ success: false, error: "Invalid email or password" });
+    const admin = await query<{ enabled: boolean }>(
+      `SELECT m.enabled FROM admin_role_assignments r
+       LEFT JOIN admin_mfa m ON m.user_id = r.user_id
+       WHERE r.user_id = $1 LIMIT 1`,
+      [user.id],
+    );
+    if (admin.rows.length > 0 && admin.rows[0]?.enabled) {
+      const nonce = randomUUID();
+      const challengeState = await query(
+        `UPDATE admin_mfa SET login_challenge_nonce = $2,
+           login_challenge_expires_at = NOW() + INTERVAL '5 minutes', updated_at = NOW()
+         WHERE user_id = $1 AND enabled = TRUE`,
+        [user.id, nonce],
+      );
+      if (!challengeState) return res.status(503).json({ success: false, error: "MFA challenge could not be created." });
+      issueAdminMfaChallenge(res, user.id, nonce);
+      return res.json({ success: true, mfaRequired: true });
+    }
     issueSession(res, user);
-    return res.json({ success: true, user });
+    return res.json({ success: true, user, ...(admin.rows.length > 0 ? { mfaEnrollmentRequired: true } : {}) });
   } catch (error) {
     return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Authentication service unavailable" });
   }
