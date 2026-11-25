@@ -207,7 +207,7 @@ function App() {
 
 
   useEffect(() => { try { localStorage.setItem("nexum:project-task-meta", JSON.stringify(projectTaskMeta)); } catch {} }, [projectTaskMeta]);
-  function navigate(nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents", projectId?: string, replace = false) {
+  function navigate(nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents" | "business-agents", projectId?: string, replace = false) {
     setViewState(nextView);
     const target = nextView === "project"
       ? "/projects/" + encodeURIComponent(projectId ?? activeПроектId)
@@ -220,7 +220,7 @@ function App() {
     }
   }
 
-  const setView = (nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents") => navigate(nextView);
+  const setView = (nextView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents" | "business-agents") => navigate(nextView);
 
   useEffect(() => {
     const onPopState = () => {
