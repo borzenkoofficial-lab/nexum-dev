@@ -1,4 +1,3 @@
-import "../nexum-os.css";
 import type { Project } from "./types";
 
 type SidebarView = "home" | "project" | "connectors" | "settings" | "news" | "diagnostics";

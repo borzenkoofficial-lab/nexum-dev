@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties, FormEvent } from "react";
+import type { FormEvent } from "react";
 import "./nexum-welcome.css";
 
 type AuthMode = "register" | "login";
@@ -110,8 +110,6 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
     const ready = phase === "ready";
     return (
       <main className={"nexum-welcome nexum-post-auth-boot " + (ready ? "is-ready" : "")}>
-        <div className="nexum-boot-glow" />
-        <div className="nexum-boot-particles" aria-hidden="true">{Array.from({ length: 18 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}</div>
         <div className="nexum-boot-center">
           <div className="nexum-logo-mark" aria-label="NEXUM OS"><span>N</span></div>
           <div className="nexum-boot-word">NEXUM <span>OS</span></div>
@@ -126,27 +124,13 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
   const sceneClass = `nexum-welcome-scene scene-${intro} signal-${bootSignal}`;
   return (
     <main className={"nexum-welcome " + sceneClass}>
-      <div className="nx-cinematic-noise" aria-hidden="true" />
-      <div className="nx-cinematic-vignette" aria-hidden="true" />
-      <div className="nx-scan-beam" aria-hidden="true" />
-      <div className="nx-light-streak streak-a" aria-hidden="true" />
-      <div className="nx-light-streak streak-b" aria-hidden="true" />
-      <div className="nx-light-streak streak-c" aria-hidden="true" />
-      <div className="nx-system-grid" aria-hidden="true" />
-      <div className="nx-system-pulse pulse-a" aria-hidden="true" />
-      <div className="nx-system-pulse pulse-b" aria-hidden="true" />
-      <div className="nexum-welcome-orb orb-a" /><div className="nexum-welcome-orb orb-b" /><div className="nexum-welcome-orb orb-c" />
-      <div className="nexum-welcome-particles" aria-hidden="true">{Array.from({ length: 24 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}</div>
-      <div className="nexum-liquid-rings" aria-hidden="true"><span /><span /><span /></div>
-      <div className="nexum-welcome-grain" />
-
       <header className="nexum-welcome-nav">
         <div className="nexum-brand"><span className="nexum-logo-mark small"><span>N</span></span><b>NEXUM</b><em>OS</em></div>
         <div className="nexum-os-session"><span className="nx-live-dot" /> ЗАПУСК СИСТЕМЫ <b>1.0</b></div>
       </header>
 
       <section className="nexum-boot-sequence" aria-live="polite">
-        <div className="nexum-sequence-core"><div className="nexum-core-halo" /><div className="nexum-core-glass"><span>N</span></div><div className="nexum-core-orbit orbit-one" /><div className="nexum-core-orbit orbit-two" /></div>
+        <div className="nexum-sequence-core" aria-hidden="true" />
         <div className="nexum-sequence-copy">
           <span className="nexum-sequence-eyebrow" key={scene.eyebrow}>{scene.eyebrow}</span>
           <h1 key={scene.title}>{scene.title}</h1>
