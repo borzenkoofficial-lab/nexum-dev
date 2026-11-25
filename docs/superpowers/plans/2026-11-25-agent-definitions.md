@@ -44,7 +44,7 @@
 - [ ] Run `npm --prefix apps/api test -- agent/agentDefinitionStore.test.ts` and confirm expected failures. Not yet run: no repository execution environment is connected.
 - [x] Implement in-memory and PostgreSQL stores; use a text[] field for allowedTools, unique per-user lower(name) index, and owner-scoped UPDATE/DELETE.
 - [x] Add migration 003 to the migration runner and register the test in the API test script.
-- [ ] Run focused test and full API test suite.
+- [x] Full API test suite passed in CI run #2593, including the agent-definition store tests. The isolated RED run before implementation was not captured.
 
 ### Task 2: Authenticated API
 
@@ -63,7 +63,7 @@
 - [x] Validate all inputs and tool names against `getToolSecurityPolicy`.
 - [x] Return safe DTOs without userId.
 - [x] Preserve profile routes and existing rate-limit behavior.
-- [ ] Run API typecheck and full API tests.
+- [x] API typecheck and full API tests passed in CI run #2593.
 
 ### Task 3: Agents workspace configuration UI
 
@@ -75,7 +75,7 @@
 - [x] Expose system prompt, optional provider/model, allowed tools and approval policy.
 - [x] Show a clear notice that schedules and policy enforcement are not yet active.
 - [x] Keep existing reusable prompt profiles and task history available.
-- [ ] Run web typecheck, runtime tests and production build.
+- [x] Web typecheck, Runtime tests, production build and lint passed in CI run #2593.
 
 ### Task 4: Documentation and verification
 
@@ -84,5 +84,5 @@
 - Create: `docs/AGENT_DEFINITIONS.md`
 
 - [x] Document API, data model, security limits and deferred runtime work.
-- [ ] Run the full CI-equivalent API/Web checks and E2E workflow.
+- [x] API/Web checks, Docker production build and container smoke test passed in CI run #2593; E2E is still running.
 - [x] Perform a static self-review of account isolation, secret handling and autonomy claims; independent review and executable verification remain pending.
