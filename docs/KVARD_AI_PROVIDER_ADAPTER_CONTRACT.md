@@ -280,3 +280,11 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 - `AIGateway.getModelCatalog()` distinguishes provider-verified model lists from configured fallback model IDs. Empty or failed catalog requests are explicitly unverified and carry an error category.
 - `AIModelRegistry.list()` exposes verified state/source/status for display. `AIModelRegistry.select()` only selects a model that the provider API actually listed; configured fallback IDs cannot be silently selected for real inference.
 - Dedicated workflow `45709473332` passed on commit `7746b9b8263fed0eef503d1c4fe73e2ffaf70211`: API typecheck passed; 66/66 focused AI provider contract tests passed.
+
+
+### Model catalog cache and credential invalidation
+
+- `AIGateway.getModelCatalog()` caches the provider catalog for 60 seconds and coalesces concurrent requests into one in-flight refresh.
+- Updating/rotating any provider API key invalidates the cache immediately; stale in-flight results cannot overwrite a newer cache revision.
+- Legacy `getModels()` reads from the same catalog cache, keeping model discovery consistent across callers.
+- Dedicated workflow `45710089229` passed on commit `63115817de617dd4803cf5f100f4a0aa8962fab9`: API typecheck passed; 67/67 focused AI provider contract tests passed.
