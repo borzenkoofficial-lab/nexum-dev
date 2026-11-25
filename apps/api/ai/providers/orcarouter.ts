@@ -118,7 +118,6 @@ export class OrcaRouterProvider implements AIProvider {
           Accept: "text/event-stream",
           Authorization: "Bearer " + apiKey,
           "Content-Type": "application/json",
-          "X-OrcaRouter-Include-Cost": "true",
         },
         body: JSON.stringify(body),
         signal: controller.signal,
