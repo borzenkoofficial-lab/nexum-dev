@@ -49,7 +49,8 @@ function fakeGateway(
 
 test("rejects unauthenticated requests before resolving a gateway", async () => {
   let gatewayCalls = 0;
-  await withServer(fakeGateway(async function* () {}), async (baseUrl) => {
+  const gateway = fakeGateway(async function* () { gatewayCalls += 1; });
+  await withServer(gateway, async (baseUrl) => {
     const response = await fetch(`${baseUrl}/api/ai/stream`, {
       method: "POST",
       headers: { "content-type": "application/json" },
