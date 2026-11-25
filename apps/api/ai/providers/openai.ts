@@ -203,7 +203,9 @@ export class OpenAIProvider implements AIProvider {
     }, request.timeoutMs, this.responsesBaseUrl);
 
     if (!Array.isArray(data.output)) throw new Error("OpenAI Responses returned an invalid response");
-    if (data.error?.message) throw new Error("OpenAI Responses returned an unsuccessful response");
+    if (data.error?.message || (data.status && data.status !== "completed" && data.status !== "incomplete")) {
+      throw new Error("OpenAI Responses returned an unsuccessful response");
+    }
     const textParts: string[] = [];
     const toolCalls = [];
     for (const item of data.output) {
