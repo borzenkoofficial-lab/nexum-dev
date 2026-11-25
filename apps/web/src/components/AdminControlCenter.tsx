@@ -7,7 +7,7 @@ type Identity = { role: Role; permissions: string[]; user: { id: string } };
 type Assignment = { user_id: string; role: Role; updated_at: string };
 type Session = { id: string; user_id: string; email: string; mfa_verified: boolean; last_seen_at: string; expires_at: string };
 type Event = { id: string; actor_user_id: string | null; action: string; target_type: string; target_id: string; created_at: string };
-type UserRow = { id: string; email: string; name: string; created_at: string; admin_role: Role | null; organizations_count: number; projects_count: number };
+type UserRow = { id: string; email: string; name: string; created_at: string; status: "active" | "suspended"; suspended_at: string | null; suspension_reason: string | null; admin_role: Role | null; organizations_count: number; projects_count: number };
 type OrganizationRow = { id: string; name: string; slug: string; created_at: string; members_count: number; agents_count: number; workforces_count: number; owner_email: string | null };
 type MemberRow = { id: string; email: string; name: string; role: string; joined_at: string };
 
@@ -32,7 +32,7 @@ export function AdminControlCenter() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [organizations, setOrganizations] = useState<OrganizationRow[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
-  const [directorySearch, setDirectorySearch] = useState("");
+  const [directorySearch, setDirectorySearch] = useState("");\n  const [suspensionReason, setSuspensionReason] = useState("");
   const [selectedOrganization, setSelectedOrganization] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -107,8 +107,8 @@ export function AdminControlCenter() {
       </section>}
 
       {section === "users" && can("users.read") && <section>
-        <div className="kvard-admin-panel"><small>USER DIRECTORY</small><h3>Пользователи платформы</h3><div className="kvard-admin-form"><input value={directorySearch} onChange={event => setDirectorySearch(event.target.value)} placeholder="Поиск по имени, email или UUID"/><button onClick={() => void refresh()}>Найти</button></div>
-          <div className="kvard-admin-table"><table><thead><tr><th>Пользователь</th><th>Регистрация</th><th>Организации</th><th>Проекты</th><th>Админ-доступ</th></tr></thead><tbody>{users.map(x => <tr key={x.id}><td><strong>{x.name}</strong><small>{x.email}</small><small>{x.id}</small></td><td>{date(x.created_at)}</td><td>{x.organizations_count}</td><td>{x.projects_count}</td><td>{x.admin_role ?? "Нет"}</td></tr>)}</tbody></table></div>
+        <div className="kvard-admin-panel"><small>USER DIRECTORY</small><h3>Пользователи платформы</h3><div className="kvard-admin-form"><input value={directorySearch} onChange={event => setDirectorySearch(event.target.value)} placeholder="Поиск по имени, email или UUID"/><button onClick={() => void refresh()}>Найти</button></div>{can("users.manage") && <div className="kvard-admin-form" style={{ marginTop: 10 }}><input value={suspensionReason} onChange={event => setSuspensionReason(event.target.value)} placeholder="Причина блокировки (обязательна для выбранного пользователя)"/></div>}
+          <div className="kvard-admin-table"><table><thead><tr><th>Пользователь</th><th>Регистрация</th><th>Организации</th><th>Проекты</th><th>Админ-доступ</th><th>Статус</th><th>Управление</th></tr></thead><tbody>{users.map(x => <tr key={x.id}><td><strong>{x.name}</strong><small>{x.email}</small><small>{x.id}</small></td><td>{date(x.created_at)}</td><td>{x.organizations_count}</td><td>{x.projects_count}</td><td>{x.admin_role ?? "Нет"}</td><td>{x.status === "suspended" ? "Заблокирован" : "Активен"}{x.suspension_reason && <small>{x.suspension_reason}</small>}</td><td>{can("users.manage") && (x.status === "suspended" ? <button onClick={() => void mutate(() => request("/api/admin/users/" + x.id + "/activate", { method: "POST", body: JSON.stringify({}) }).then(() => undefined))}>Разблокировать</button> : <button className="danger" disabled={!suspensionReason.trim()} onClick={() => void mutate(() => request("/api/admin/users/" + x.id + "/suspend", { method: "POST", body: JSON.stringify({ reason: suspensionReason }) }).then(() => undefined))}>Заблокировать</button>)}</td></tr>)}</tbody></table></div>
           {!users.length && <p>Пользователи не найдены.</p>}
         </div>
       </section>}
