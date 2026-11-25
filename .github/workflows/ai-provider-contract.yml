@@ -33,4 +33,4 @@ jobs:
       - name: Typecheck API
         run: npm --prefix apps/api run typecheck
       - name: Test API
-        run: npm --prefix apps/api run test
+        run: npm --prefix apps/api run test:ai-contract
