@@ -41,3 +41,35 @@
   .nexum-boot-sequence { grid-template-columns: 1fr; padding: 24px 0; }
   .nexum-auth-content { padding: 18px; }
 }
+
+
+/* Complete coverage for the live onboarding and post-auth boot states. */
+.nexum-post-auth-boot { align-items: center; justify-content: center; }
+.nexum-boot-center { display: grid; justify-items: center; width: min(420px, 100%); gap: 14px; margin: auto; text-align: center; }
+.nexum-boot-center .nexum-logo-mark { width: 64px; height: 64px; font-size: 24px; }
+.nexum-boot-word { font-size: 20px; font-weight: 700; letter-spacing: .08em; }
+.nexum-boot-word span { color: var(--nx-muted, #707070); font-size: 11px; font-weight: 500; }
+.nexum-boot-center p { margin: 0; color: var(--nx-muted, #707070); font-size: 13px; }
+.nexum-boot-center .nexum-boot-progress { width: 100%; margin: 10px 0 0; }
+.nexum-boot-center .nexum-boot-status { padding: 0; font-size: 10px; letter-spacing: .08em; }
+.nexum-sequence-core { display: grid; place-items: center; width: 100%; min-height: 160px; }
+.nexum-sequence-core::before { display: grid; place-items: center; width: 104px; height: 104px; border: 1px solid var(--nx-border, #d8d8d8); border-radius: 50%; background: var(--nx-surface, #fff); color: var(--nx-text, #202020); font-size: 30px; font-weight: 650; content: "N"; }
+.nexum-window-dots { display: flex; gap: 5px; }
+.nexum-window-dots i { width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 50%; }
+.nexum-window-status { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.nexum-console-lines > div.online b { color: var(--nx-text, #202020); }
+.nexum-auth-switch button { color: var(--nx-text, #202020); font-weight: 600; }
+.nexum-enter { width: 100%; cursor: pointer; }
+.nexum-enter:disabled { cursor: wait; }
+.nexum-skip-intro { cursor: pointer; }
+.nexum-welcome kbd { padding: 2px 5px; border: 1px solid var(--nx-border, #d8d8d8); border-radius: 4px; background: var(--nx-surface-muted, #f0f0f0); font: inherit; font-size: 10px; }
+.nexum-auth-window { box-shadow: 0 8px 28px rgb(0 0 0 / 5%); }
+.nexum-auth-content form button:focus-visible, .nexum-auth-switch button:focus-visible,
+.nexum-skip-intro:focus-visible { outline: 2px solid var(--nx-text, #202020); outline-offset: 3px; }
+@media (max-width: 700px) {
+  .nexum-sequence-core { min-height: 100px; }
+  .nexum-sequence-core::before { width: 76px; height: 76px; font-size: 24px; }
+  .nexum-window-chrome { flex-wrap: wrap; }
+  .nexum-window-status { font-size: 9px; }
+  .nexum-welcome-footer { gap: 10px; flex-wrap: wrap; }
+}
