@@ -82,16 +82,18 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
     if (!name || !prompt) { setFormError("Укажите название и инструкцию профиля."); return; }
     if (name.length > 48 || prompt.length > 5000) { setFormError("Название — до 48 символов, инструкция — до 5 000 символов."); return; }
     const next = [...customProfiles, { id: `custom-${Date.now()}`, name, description: profileDescription.trim() || "Пользовательский профиль запуска", prompt, kind: "Мой профиль", custom: true }];
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
+    catch { setFormError("Браузер не разрешил сохранить профиль. Проверьте настройки хранилища."); return; }
     setCustomProfiles(next);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { setFormError("Браузер не разрешил сохранить профиль. Проверьте настройки хранилища."); return; }
     setProfileName(""); setProfileDescription(""); setProfilePrompt(""); setFormError(""); setFormOpen(false); setNotice("Профиль сохранён в этом браузере.");
   }
 
   function deleteProfile(profileId: string) {
     const next = customProfiles.filter((profile) => profile.id !== profileId);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
+    catch { setFormError("Не удалось обновить локальное хранилище."); return; }
     setCustomProfiles(next);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); setNotice("Профиль удалён."); }
-    catch { setFormError("Не удалось обновить локальное хранилище."); }
+    setNotice("Профиль удалён.");
   }
 
   return (
