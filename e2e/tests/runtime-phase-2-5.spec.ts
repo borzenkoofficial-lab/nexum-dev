@@ -496,17 +496,15 @@ test("responsive workspace, agents and Studio layouts stay within supported view
     if (width <= 390) {
       const nav = page.locator(".sidebar-nav .nav-item");
       await expect(nav).toHaveCount(7);
-      const navContainer = await page.locator(".sidebar-nav").boundingBox();
-      expect(navContainer, "Workspace navigation container should be visible").not.toBeNull();
-      expect(navContainer!.x, `Workspace navigation starts outside the viewport at ${width}px`).toBeGreaterThanOrEqual(0);
-      expect(navContainer!.x + navContainer!.width, `Workspace navigation container exceeds the viewport at ${width}px`).toBeLessThanOrEqual(width);
       const navItems = await nav.evaluateAll((items) => items.map((item) => {
         const rect = item.getBoundingClientRect();
-        return { width: rect.width, height: rect.height };
+        return { left: rect.left, right: rect.right, width: rect.width, height: rect.height };
       }));
       for (const item of navItems) {
         expect(item.width, `Workspace navigation item is collapsed at ${width}px`).toBeGreaterThan(0);
         expect(item.height, `Workspace navigation touch target is too small at ${width}px`).toBeGreaterThanOrEqual(40);
+        expect(item.left, `Workspace navigation item starts outside the viewport at ${width}px`).toBeGreaterThanOrEqual(0);
+        expect(item.right, `Workspace navigation item exceeds the viewport at ${width}px`).toBeLessThanOrEqual(width);
       }
     }
 
@@ -536,6 +534,7 @@ test("responsive workspace, agents and Studio layouts stay within supported view
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/projects/" + encodeURIComponent(runtimeWorkspaceId));
+  await expect(page.getByRole("navigation", { name: "Основная навигация" })).toBeVisible();
   await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 10_000 });
   const studioLayout = await page.evaluate(() => ({ viewportWidth: window.innerWidth, documentWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth }));
   expect(studioLayout.documentWidth, `Studio document overflow: ${JSON.stringify(studioLayout)}`).toBeLessThanOrEqual(390);
