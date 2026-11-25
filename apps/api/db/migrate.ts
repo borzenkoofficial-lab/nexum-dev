@@ -6,7 +6,7 @@ import { query, withDatabaseTransaction } from "../db.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const migrationsDirectory = resolve(here, "migrations");
-const migrationPattern = /^(\\d{3,})_[a-z0-9_]+\\.sql$/i;
+const migrationPattern = /^(\d{3,})_[a-z0-9_]+\.sql$/i;
 
 interface MigrationFile {
   version: number;
