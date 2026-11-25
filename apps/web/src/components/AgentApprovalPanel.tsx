@@ -1,4 +1,4 @@
-import type { ToolRisk } from "../../../api/agent/toolPolicy";
+type ToolRisk = "READ" | "WRITE" | "EXECUTE" | "DESTRUCTIVE";
 
 export interface AgentApprovalView {
   id: string;
