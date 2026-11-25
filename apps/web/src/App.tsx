@@ -9,6 +9,7 @@ import { NewsPage } from "./components/NewsPage";
 import { IntegrationPage } from "./components/IntegrationPage";
 import { DiagnosticsPage } from "./components/DiagnosticsPage";
 import { AgentsPage } from "./components/AgentsPage";
+import { AgentApprovalPanel, type AgentApprovalView } from "./components/AgentApprovalPanel";
 import { BuilderShell } from "./components/BuilderShell";
 import { BuilderChat } from "./components/BuilderChat";
 import { BuilderTools } from "./components/BuilderTools";
@@ -121,8 +122,18 @@ function App() {
   const [previewOnline, setПредпросмотрOnline] = useState(false);
   const [previewKey, setПредпросмотрKey] = useState(0);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
+  const [pendingApproval, setPendingApproval] = useState<AgentApprovalView | null>(null);
+  const [pendingApprovalProjectId, setPendingApprovalProjectId] = useState<string | null>(null);
+  const [approvalActionLoading, setApprovalActionLoading] = useState(false);
+  const [approvalActionError, setApprovalActionError] = useState("");
   const chatJobIdRef = useRef<string | null>(null);
   const setAuthoritativeChatJobId = (jobId: string | null) => {
+    if (chatJobIdRef.current !== jobId) {
+      setPendingApproval(null);
+      setPendingApprovalProjectId(null);
+      setApprovalActionError("");
+      setApprovalActionLoading(false);
+    }
     chatJobIdRef.current = jobId;
     setChatJobId(jobId);
     if (import.meta.env.VITE_E2E === "true") {
@@ -583,7 +594,42 @@ function App() {
     }
   }
 
+  async function decideAgentApproval(decision: "approve" | "reject") {
+    const jobId = chatJobIdRef.current;
+    const approval = pendingApproval;
+    if (!jobId || !approval || approvalActionLoading) return;
+    setApprovalActionLoading(true);
+    setApprovalActionError("");
+    try {
+      const response = await nexumRuntime.network.fetch(
+        `/api/chat/jobs/${encodeURIComponent(jobId)}/approvals/${encodeURIComponent(approval.id)}`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) },
+      );
+      const data = await response.json().catch(() => ({})) as {
+        success?: boolean;
+        error?: string;
+        job?: { pendingApproval?: AgentApprovalView };
+      };
+      if (data.job?.pendingApproval && data.job.pendingApproval.status !== "pending") {
+        setPendingApproval(null);
+        setPendingApprovalProjectId(null);
+        setCurrentActivity(decision === "approve" ? "Действие подтверждено. Агент продолжает работу." : "Действие отклонено. Агент получил отказ и продолжает работу.");
+      }
+      if (!response.ok || !data.success) throw new Error(data.error || `Approval API: HTTP ${response.status}`);
+      setPendingApproval(null);
+      setPendingApprovalProjectId(null);
+      setCurrentActivity(decision === "approve" ? "Подтверждение получено. Агент продолжает работу." : "Действие отклонено. Агент получил отказ.");
+    } catch (error) {
+      setApprovalActionError(error instanceof Error ? error.message : "Не удалось отправить решение.");
+    } finally {
+      setApprovalActionLoading(false);
+    }
+  }
+
   async function sendMessage(task = message, projectIdOverride?: string) {
+    setPendingApproval(null);
+    setPendingApprovalProjectId(null);
+    setApprovalActionError("");
     const targetПроектId = projectIdOverride ?? activeПроектId;
     const agentDefinitionIdForRequest = pendingAgentProjectId === (projectIdOverride ?? activeПроектId) ? pendingAgentDefinitionId : null;
     if (!task.trim() || !targetПроектId) return;
@@ -696,6 +742,14 @@ function App() {
         }
 
         const status = data?.job?.status;
+        if (data?.job?.pendingApproval?.status === "pending") {
+          setPendingApproval(data.job.pendingApproval);
+          setPendingApprovalProjectId(data.job.projectId ?? activeПроектId);
+          setApprovalActionError("");
+        } else {
+          setPendingApproval(null);
+          setPendingApprovalProjectId(null);
+        }
         if (status === "completed") {
           setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "completed" } }));
           setActivitySteps(data?.job?.steps ?? []);
