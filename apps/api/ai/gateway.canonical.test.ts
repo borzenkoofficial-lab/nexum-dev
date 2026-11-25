@@ -93,3 +93,19 @@ test("gateway rejects unsupported capabilities before making a provider call", a
   );
   assert.equal(provider.received.length, 0);
 });
+
+
+test("treats unknown model capabilities as unsupported rather than assuming support", async () => {
+  class UnknownVisionProvider extends NativeFixture {
+    capabilities = { ...super.capabilities, vision: "unknown" as const };
+  }
+  const provider = new UnknownVisionProvider();
+  const gateway = new AIGateway([provider], "native");
+  await assert.rejects(
+    () => gateway.generateRequest(request({
+      messages: [{ role: "user", content: [{ type: "image", source: { type: "url", url: "https://example.com/image.png" } }] }],
+    })),
+    (error: any) => error?.code === "MODEL_ERROR",
+  );
+  assert.equal(provider.received.length, 0);
+});
