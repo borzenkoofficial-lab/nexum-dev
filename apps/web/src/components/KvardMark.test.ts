@@ -3,6 +3,16 @@ import { test } from "node:test";
 import type { ReactElement } from "react";
 import { KvardMark } from "./KvardMark.ts";
 
+type MarkChildProps = {
+  rx?: number;
+  fill?: string;
+  d?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  strokeLinecap?: string;
+  strokeLinejoin?: string;
+};
+
 type MarkProps = {
   viewBox: string;
   width: number;
@@ -10,7 +20,7 @@ type MarkProps = {
   role?: string;
   "aria-label"?: string;
   "aria-hidden"?: boolean;
-  children: ReactElement[];
+  children: ReactElement<MarkChildProps>[];
 };
 
 function propsOf(mark: ReactElement): MarkProps {
