@@ -513,3 +513,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .nx-agent-state.error { border-color: var(--kv-danger); background: var(--kv-danger-soft); }
 .nx-agent-state.done { border-color: var(--kv-success); background: var(--kv-success-soft); }
 .nx-agent-state.live { border-color: var(--kv-action); background: var(--kv-action-soft); }
+
+/* Integration catalog: neutral architecture labels, success only for real connections. */
+.integration-status { color: var(--kv-text-secondary); }
+.integration-status i { border: 0; background: var(--kv-text-tertiary); }
+.integration-status.connected { color: var(--kv-success); }
+.integration-status.connected i { background: var(--kv-success); }
