@@ -12,6 +12,7 @@ export function encodeBase32(bytes: Uint8Array): string {
     while (bits >= 5) {
       output += BASE32_ALPHABET[(value >>> (bits - 5)) & 31];
       bits -= 5;
+      value &= (1 << bits) - 1;
     }
   }
   if (bits > 0) output += BASE32_ALPHABET[(value << (5 - bits)) & 31];
@@ -30,6 +31,7 @@ export function decodeBase32(input: string): Buffer {
     if (bits >= 8) {
       output.push((value >>> (bits - 8)) & 255);
       bits -= 8;
+      value &= (1 << bits) - 1;
     }
   }
   return Buffer.from(output);
