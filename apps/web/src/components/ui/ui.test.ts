@@ -7,7 +7,7 @@ import { KvardStatusBadge } from "./KvardStatusBadge.ts";
 
 type ElementShape = { type: unknown; props: Record<string, unknown> };
 
-function propsOf(element: ReactElement): Record<string, unknown> {
+function propsOf(element: { props: unknown }): Record<string, unknown> {
   return element.props as unknown as Record<string, unknown>;
 }
 
