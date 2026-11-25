@@ -7,6 +7,8 @@ const builderStages = new Map<string, BuilderStage>();
 export class MockProvider implements AIProvider {
   id = "mock";
   name = "NEXUM E2E Mock";
+  protocol = "mock" as const;
+  adapterVersion = "1.0.0";
   model = "e2e-v1";
   capabilities = {
     text: true,
