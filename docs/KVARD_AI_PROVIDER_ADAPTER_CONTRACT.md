@@ -336,3 +336,11 @@ A provider's `listModels()` implementation is the source of truth for catalog ve
 The gateway may still expose the configured model as an explicitly unverified fallback for diagnostics and backwards-compatible display. `AIModelRegistry.select()` must never select such a fallback for real inference or plan entitlement assignment.
 
 Dedicated workflow `45710389512` passed on commit `5fbbd6b50784eeabf136175019d1e196fdac44db`: API typecheck passed and 79/79 API tests passed, including provider catalog discovery conformance tests.
+
+
+### OpenAI usage accounting hardening — 2026-11-26
+
+- OpenAI Responses usage fields are accepted only when they are non-negative safe integers.
+- Partial usage values are preserved as partial diagnostic data but now carry `usageSource=unavailable`; they are not treated as complete provider-reported usage and must not be used as a final billable amount.
+- No missing input/output/total token fields are fabricated as zero.
+- Dedicated workflow `45710906329` passed on commit `83e1de544b2b4c289ea0b4d2b8a8b383ac1c69f8`: API typecheck passed; all API tests passed, including the partial-usage regression test.
