@@ -40,6 +40,7 @@ export function AdminControlCenter() {
   const [auditTarget, setAuditTarget] = useState("");
   const [auditFrom, setAuditFrom] = useState("");
   const [auditTo, setAuditTo] = useState("");
+  const [auditFilterQuery, setAuditFilterQuery] = useState("");
   const [organizations, setOrganizations] = useState<OrganizationRow[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [directorySearch, setDirectorySearch] = useState("");
@@ -66,18 +67,12 @@ export function AdminControlCenter() {
       if (section === "roles" && me.permissions.includes("roles.manage")) setAssignments((await request<{ assignments: Assignment[] }>("/api/admin/roles")).assignments);
       if (section === "sessions" && me.permissions.includes("sessions.manage")) setSessions((await request<{ sessions: Session[] }>("/api/admin/sessions")).sessions);
       if (section === "audit" && me.permissions.includes("audit.read")) {
-        const params = new URLSearchParams({ limit: "100" });
-        if (auditActor.trim()) params.set("actorUserId", auditActor.trim());
-        if (auditAction.trim()) params.set("action", auditAction.trim());
-        if (auditTarget.trim()) params.set("targetType", auditTarget.trim());
-        if (auditFrom) params.set("from", new Date(auditFrom).toISOString());
-        if (auditTo) params.set("to", new Date(auditTo).toISOString());
-        setEvents((await request<{ events: Event[] }>("/api/admin/audit?" + params.toString())).events);
+        setEvents((await request<{ events: Event[] }>("/api/admin/audit?limit=100" + auditFilterQuery)).events);
       }
       if (section === "overview") setMetrics((await request<{ metrics: DashboardMetrics }>("/api/admin/overview")).metrics);
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка загрузки"); }
     finally { setLoading(false); }
-  }, [section, directorySearch, selectedUserId, auditActor, auditAction, auditTarget, auditFrom, auditTo]);
+  }, [section, directorySearch, selectedUserId, auditFilterQuery]);
   useEffect(() => { void refresh(); }, [refresh]);
 
   const can = (permission: string) => Boolean(identity?.permissions.includes(permission));
@@ -159,7 +154,7 @@ export function AdminControlCenter() {
         <div className="kvard-admin-panel"><small>ACCESS REGISTRY</small><h3>Текущие назначения</h3>{assignments.length ? <div className="kvard-admin-table"><table><thead><tr><th>User ID</th><th>Роль</th><th>Изменено</th><th/></tr></thead><tbody>{assignments.map(x => <tr key={x.user_id}><td>{x.user_id}</td><td>{x.role}</td><td>{date(x.updated_at)}</td><td><button className="danger" onClick={() => void mutate(() => request("/api/admin/roles/" + encodeURIComponent(x.user_id), { method: "DELETE" }).then(() => undefined))}>Отозвать</button></td></tr>)}</tbody></table></div> : <p>Назначений нет.</p>}</div>
       </section>}
       {section === "sessions" && can("sessions.manage") && <section><div className="kvard-admin-panel"><small>SESSION REGISTRY</small><h3>Активные сессии</h3>{sessions.length ? <div className="kvard-admin-table"><table><thead><tr><th>Пользователь</th><th>MFA</th><th>Активность</th><th>Истекает</th><th/></tr></thead><tbody>{sessions.map(x => <tr key={x.id}><td>{x.email}<small>{x.user_id}</small></td><td>{x.mfa_verified ? "Да" : "Нет"}</td><td>{date(x.last_seen_at)}</td><td>{date(x.expires_at)}</td><td><button className="danger" onClick={() => void mutate(() => request("/api/admin/sessions/" + encodeURIComponent(x.id), { method: "DELETE" }).then(() => undefined))}>Отозвать</button></td></tr>)}</tbody></table></div> : <p>Нет активных сессий.</p>}</div></section>}
-      {section === "audit" && can("audit.read") && <section><div className="kvard-admin-panel"><small>APPEND-ONLY LOG</small><h3>Журнал действий</h3><form className="kvard-admin-form" onSubmit={event => { event.preventDefault(); void refresh(); }}><input value={auditActor} onChange={event => setAuditActor(event.target.value)} placeholder="UUID актора"/><input value={auditAction} onChange={event => setAuditAction(event.target.value)} placeholder="Действие"/><input value={auditTarget} onChange={event => setAuditTarget(event.target.value)} placeholder="Тип объекта"/><input type="datetime-local" value={auditFrom} onChange={event => setAuditFrom(event.target.value)}/><input type="datetime-local" value={auditTo} onChange={event => setAuditTo(event.target.value)}/><button>Применить фильтры</button></form>{events.length ? <div className="kvard-admin-table"><table><thead><tr><th>Событие</th><th>Актор</th><th>Объект</th><th>Время</th></tr></thead><tbody>{events.map(x => <tr key={x.id}><td>{x.action}</td><td>{x.actor_user_id ?? "system"}</td><td>{x.target_type}: {x.target_id}</td><td>{date(x.created_at)}</td></tr>)}</tbody></table></div> : <p>Событий пока нет.</p>}</div></section>}
+      {section === "audit" && can("audit.read") && <section><div className="kvard-admin-panel"><small>APPEND-ONLY LOG</small><h3>Журнал действий</h3><form className="kvard-admin-form" onSubmit={event => { event.preventDefault(); const params = new URLSearchParams(); if (auditActor.trim()) params.set("actorUserId", auditActor.trim()); if (auditAction.trim()) params.set("action", auditAction.trim()); if (auditTarget.trim()) params.set("targetType", auditTarget.trim()); if (auditFrom) params.set("from", new Date(auditFrom).toISOString()); if (auditTo) params.set("to", new Date(auditTo).toISOString()); setAuditFilterQuery(params.toString() ? "&" + params.toString() : ""); }}><input value={auditActor} onChange={event => setAuditActor(event.target.value)} placeholder="UUID актора"/><input value={auditAction} onChange={event => setAuditAction(event.target.value)} placeholder="Действие"/><input value={auditTarget} onChange={event => setAuditTarget(event.target.value)} placeholder="Тип объекта"/><input type="datetime-local" value={auditFrom} onChange={event => setAuditFrom(event.target.value)}/><input type="datetime-local" value={auditTo} onChange={event => setAuditTo(event.target.value)}/><button>Применить фильтры</button></form>{events.length ? <div className="kvard-admin-table"><table><thead><tr><th>Событие</th><th>Актор</th><th>Объект</th><th>Время</th></tr></thead><tbody>{events.map(x => <tr key={x.id}><td>{x.action}</td><td>{x.actor_user_id ?? "system"}</td><td>{x.target_type}: {x.target_id}</td><td>{date(x.created_at)}</td></tr>)}</tbody></table></div> : <p>Событий пока нет.</p>}</div></section>}
     </main>
     {mfaOpen && <div className="kvard-admin-modal"><form onSubmit={confirmMfa}><small>SECURITY CHECK</small><h2>Подтвердите действие</h2><p>Введите новый код аутентификатора или неиспользованный резервный код. Подтверждение действует 10 минут.</p><input autoFocus value={mfaCode} onChange={event => setMfaCode(event.target.value)} placeholder="Код MFA" required/><div><button type="button" onClick={() => { setMfaOpen(false); setPending(null); setMfaCode(""); }}>Отмена</button><button>Подтвердить</button></div></form></div>}
   </div>;
