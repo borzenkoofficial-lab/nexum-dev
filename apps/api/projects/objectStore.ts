@@ -1,5 +1,3 @@
-import type { Buffer } from "node:buffer";
-
 export interface ObjectMetadata {
   key: string;
   sizeBytes: number;
