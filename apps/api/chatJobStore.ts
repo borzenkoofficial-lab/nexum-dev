@@ -79,20 +79,8 @@ async function ensureTable(): Promise<void> {
         ON agent_chat_jobs(user_id, updated_at DESC);
       ALTER TABLE agent_chat_jobs ALTER COLUMN project_id TYPE TEXT USING project_id::text;
       ALTER TABLE agent_project_locks ALTER COLUMN project_id TYPE TEXT USING project_id::text;
-      DO $
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-            FROM pg_constraint
-           WHERE conrelid = 'agent_project_locks'::regclass
-             AND contype = 'p'
-             AND pg_get_constraintdef(oid) = 'PRIMARY KEY (user_id, project_id)'
-        ) THEN
-          ALTER TABLE agent_project_locks DROP CONSTRAINT IF EXISTS agent_project_locks_pkey;
-          ALTER TABLE agent_project_locks ADD CONSTRAINT agent_project_locks_pkey PRIMARY KEY (user_id, project_id);
-        END IF;
-      END
-      $;
+      ALTER TABLE agent_project_locks DROP CONSTRAINT IF EXISTS agent_project_locks_pkey;
+      ALTER TABLE agent_project_locks ADD CONSTRAINT agent_project_locks_pkey PRIMARY KEY (user_id, project_id);
       CREATE INDEX IF NOT EXISTS agent_project_locks_expiry_idx
         ON agent_project_locks(expires_at);
     `).then(() => undefined).catch((error) => {
