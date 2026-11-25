@@ -93,3 +93,12 @@ The home screen uses a persistent left navigation rail on desktop and a compact 
 - Selecting a profile and project opens that project's Studio with the profile instruction prefilled. The user reviews and starts the task through the existing chat flow; no task starts merely by selecting a profile.
 - Runtime status and recent events are read from the existing authenticated /api/agent/diagnostics endpoint. The UI does not invent job counts or connection states.
 - Persistent autonomous agent definitions, schedules, independent tool policies, team orchestration and autonomous triggers remain future backend capabilities. Launch profiles are reusable task instructions, not autonomous processes. The interface states this limitation explicitly.
+
+
+## AI Agent workspace
+
+The Agents workspace includes two distinct concepts:
+- Reusable prompt profiles for quickly opening a task in Studio.
+- Persistent account-owned agent definitions with a system prompt, optional model selection, tool allowlist metadata, approval policy metadata, and active/paused status.
+
+The persistent configuration editor communicates that schedules, event triggers, autonomous execution, and runtime enforcement of the saved tool/approval policy are not yet available. See `docs/AGENT_DEFINITIONS.md`.
