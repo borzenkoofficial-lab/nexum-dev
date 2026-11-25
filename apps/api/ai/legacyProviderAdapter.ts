@@ -21,7 +21,8 @@ export async function generateWithLegacyProvider(
 ): Promise<AIResponse> {
   validateCanonicalRequest(request);
 
-  if (typeof provider.generate !== "function") {
+  const legacyGenerate = provider.generate;
+  if (typeof legacyGenerate !== "function") {
     throw new NexumError("CONFIG_ERROR", "Переходный адаптер недоступен для этого AI-провайдера.", {
       retryable: false,
       technicalDetails: `Provider ${provider.id} does not implement legacy generate()`,
@@ -60,7 +61,7 @@ export async function generateWithLegacyProvider(
     return `[${role}]\n${message.content as string}`;
   }).join("\n\n");
 
-  const content = await provider.generate(prompt, request.model, {
+  const content = await legacyGenerate.call(provider, prompt, request.model, {
     ...(request.maxTokens === undefined ? {} : { maxTokens: request.maxTokens }),
     ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
     ...(request.signal === undefined ? {} : { signal: request.signal }),
