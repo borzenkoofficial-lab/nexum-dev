@@ -287,3 +287,27 @@ NEXUM.DEV — браузерная платформа для создания и
 - Добавлены unit tests для UUID bootstrap и permission boundaries; они включены в API test script. CI ещё должен подтвердить typecheck/tests/build.
 - Миграция добавлена в репозиторий, но к production БД не применялась. UI `/admin`, MFA, полный audit writer, управление ролями, CSRF/session hardening и API integration tests остаются незавершёнными.
 - Главный чек-лист: `docs/KVARD_ADMIN_PANEL_CHECKLIST.md`.
+
+## КВАРД — серверный транспорт потоковой генерации (2026-11-26)
+
+**Статус: PARTIAL / IN_PROGRESS — API-контракт добавлен, Builder UI ещё не подключён.**
+
+- В `apps/api/server.ts` добавлен защищённый `POST /api/ai/stream`.
+- Endpoint использует `authMiddleware`, per-user `AIGateway` и существующий `aiWriteLimiter`; провайдер не вызывается напрямую из браузера.
+- Входной запрос собирается по allowlist полей, проходит `validateCanonicalRequest`; `userId` и `requestId` задаются сервером, а не принимаются из клиентского metadata.
+- Ответ передаётся как SSE (`text/event-stream`) без proxy buffering; события используют единый `AIStreamEvent` contract.
+- Учтены backpressure и отмена upstream через `AbortSignal` при закрытии клиентского соединения. Ошибки после начала SSE передаются безопасным событием `error`.
+- Добавлены `apps/api/ai/sse.ts` и `apps/api/ai/sse.test.ts`; тест включён в API full test и `test:ai-contract`.
+- Выбран отдельный endpoint, а не замена `POST /api/chat`: Builder по-прежнему запускает фоновые `ChatJob`, использует сохранение состояния, отмену и approvals. Замена текущего маршрута прямым SSE нарушила бы этот жизненный цикл.
+- Проверка: workflow [КВАРД AI Provider Contract #45716467312](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/45716467312) — **SUCCESS**; TypeScript API и `test:ai-contract` прошли. Проверка включает SSE framing tests, но не полноценный HTTP route integration test.
+- Полный [NEXUM CI #45716467287](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/45716467287) на commit `5359334fa4b35b8de650d5b9001033166da5bcbd` на момент обновления документа — **PENDING**.
+- Live provider requests, production secrets, production migrations и deployment не использовались.
+
+**Оставшиеся критерии приёмки:**
+1. Добавить HTTP integration tests для авторизации, валидации, SSE event order, ошибок до/после headers, backpressure и отмены provider stream при disconnect.
+2. Добавить браузерный fetch-stream parser с корректным разбором чанков, неполных SSE frames и отменой.
+3. Подключить поток к Builder/AgentLoop так, чтобы текстовые дельты и tool events отображались без потери ChatJob persistence, approvals, cancellation и Completion Gate.
+4. Проверить UI и полный CI; только после этого повышать статус.
+
+**Следующий шаг:** дождаться полного NEXUM CI, затем покрыть HTTP transport интеграционными тестами и подключить клиентский stream parser. Не считать пользовательский streaming chat готовым до интеграции с Builder.
+
