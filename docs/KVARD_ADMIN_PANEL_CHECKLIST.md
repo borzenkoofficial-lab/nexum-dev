@@ -34,7 +34,7 @@
 - [ ] SEC-09. Проверить, что обычный пользователь, даже зная URL и API endpoints, получает 403.
 - [ ] SEC-10. Проверить, что пользователь не может повысить собственную роль через изменение запроса, профиля, организации или JWT payload.
 - [ ] SEC-11. Административные сессии имеют отдельную политику: короткий idle timeout, повторное подтверждение для критических действий, отзыв сессий.
-- [ ] SEC-12. Добавить MFA для административных аккаунтов до production-доступа. — IN_PROGRESS: TOTP/recovery primitives, AES-256-GCM encrypted-secret helper, migration `013_admin_mfa.sql`, enrollment setup/confirm/status API mounted at `/api/auth/admin-mfa/*` (admin role required), and rate limiting added. Enrollment API does not yet enforce MFA on login/admin sessions; replay prevention for challenge login, session policy and integration tests remain. Recent CI runs were cancelled by consecutive commits; final verification still required. Production admin API remains closed.
+- [ ] SEC-12. Добавить MFA для административных аккаунтов до production-доступа. — IN_PROGRESS: TOTP/recovery primitives, AES-256-GCM encrypted-secret helper, migration `013_admin_mfa.sql`, enrollment setup/confirm/status API mounted at `/api/auth/admin-mfa/*` (admin role required), rate limiting, 10-minute pending enrollment expiry, rejection of setup over existing MFA, and five-attempt enrollment confirmation guard added. Migration `014_admin_mfa_enrollment_guard.sql` added. Enrollment API does not yet enforce MFA on login/admin sessions; replay prevention for challenge login, session policy and integration tests remain. Recent CI runs were cancelled by consecutive commits; final verification still required. Production admin API remains closed.
 - [ ] SEC-13. Все критические действия требуют подтверждения и пишутся в неизменяемый аудит. — PARTIAL: append-only audit schema создана; подтверждения и запись всех действий ещё не реализованы.
 - [ ] SEC-14. Секреты провайдеров никогда не возвращаются UI; показывать только маскированное значение/статус наличия.
 - [ ] SEC-15. Защита от CSRF, rate limiting, secure/HttpOnly/SameSite cookies, строгая CORS policy и проверка origin для административных операций.
@@ -254,7 +254,7 @@
 | Дата | Пункт/этап | Commit / PR | Проверки и результат | Статус |
 |---|---|---|---|---|
 | 2026-11-25 | Создан master checklist; аудит текущего auth | pending | Найдено: JWT session auth и authMiddleware; отдельный RBAC/admin allowlist пока не подтверждены | IN_PROGRESS |
-| 2026-11-25 | MFA groundwork + enrollment API | `2a251e3`–`4f959d7` (TOTP/recovery, AES-GCM encrypt/decrypt, migration 013, enrollment router + mount) | Setup/confirm/status endpoints; enrollment restricted to users with admin assignment; encrypted pending/enabled secret storage, recovery codes returned once, rate limit. CI runs cancelled due consecutive pushes; no login MFA challenge, verified admin-session claim, replay-safe login challenge, or E2E tests yet. | IN_PROGRESS |
+| 2026-11-25 | MFA groundwork + enrollment API | `2a251e3`–`e816fef` (TOTP/recovery, AES-GCM, migrations 013–014, enrollment API + mount) | Setup/confirm/status endpoints; admin-only enrollment; encrypted pending/enabled secret, one-time recovery codes, rate limit, 10-minute setup expiry, prevent replacing enabled MFA, and 5 bad confirmation attempts guard. CI queued; login challenge/session MFA and replay-safe login are still pending. | IN_PROGRESS |
 
 ## Первичная проверка текущего репозитория
 
