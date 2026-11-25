@@ -25,6 +25,8 @@ interface OpenRouterModelsResponse {
 export class OpenRouterProvider implements AIProvider {
   id = "openrouter";
   name = "OpenRouter";
+  protocol = "openai-chat-completions" as const;
+  adapterVersion = "1.0.0";
   model: string;
   capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: false, reasoning: false, contextWindow: null } as const;
   private readonly models: string[];
