@@ -232,7 +232,7 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 | Provider ID | Текущий HTTP-протокол в адаптере | Текущий путь генерации | Модели | Ограничения текущего адаптера |
 |---|---|---|---|---|
 | `openai` | OpenAI Responses API (native); Chat Completions (legacy facade) | `/responses`; legacy `/chat/completions` | `/models` | Native canonical adapter v2; model-level advanced capabilities remain unknown until verified |
-| `anthropic` | Anthropic Messages | `/messages` | `/models` | Legacy text bridge; нет canonical native adapter |
+| `anthropic` | Anthropic Messages API | `/messages` | `/models?lifecycle=active` | Native canonical adapter v2; model capabilities read from provider model metadata |
 | `openrouter` | OpenAI-compatible Chat Completions | `/chat/completions` | `/models` | Legacy text bridge; нет canonical native adapter |
 | `orcarouter` | OpenAI-compatible Chat Completions (как реализовано в текущем клиенте) | `/chat/completions` | `/models` | Legacy text bridge; совместимость ограничена фактически проверенными полями |
 | `anymodel` | OpenAI-compatible Chat Completions (как реализовано в текущем клиенте) | `/chat/completions` | `/models` | Legacy text bridge; совместимость ограничена фактически проверенными полями |
@@ -252,7 +252,7 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 
 Если новый поставщик реализует только OpenAI-compatible endpoint, он всё равно получает отдельный adapter/configuration и собственный conformance suite. Нельзя считать его совместимым со всеми возможностями OpenAI автоматически.
 
-**Текущий статус:** внутренний canonical contract, validation, strict legacy bridge, provider conformance tests и CI gate реализованы. OpenAI подключён через native Responses adapter; его старый string facade сохраняет Chat Completions для обратной совместимости. Остальные пять перечисленных поставщиков пока используют legacy text bridge. Реальные sandbox проверки с аккаунтами провайдеров не выполнялись; streaming и дополнительные capability включаются только после отдельной реализации и проверки.
+**Текущий статус:** внутренний canonical contract, validation, strict legacy bridge, provider conformance tests и CI gate реализованы. OpenAI подключён через native Responses adapter; его старый string facade сохраняет Chat Completions. Anthropic подключён через native Messages adapter. Остальные четыре перечисленных поставщика пока используют legacy text bridge. Реальные sandbox проверки с аккаунтами провайдеров не выполнялись; streaming и неподтверждённые capabilities остаются закрыты.
 
 
 ## 14. Проверяемость каталога моделей
@@ -344,3 +344,39 @@ Dedicated workflow `45710389512` passed on commit `5fbbd6b50784eeabf136175019d1e
 - Partial usage values are preserved as partial diagnostic data but now carry `usageSource=unavailable`; they are not treated as complete provider-reported usage and must not be used as a final billable amount.
 - No missing input/output/total token fields are fabricated as zero.
 - Dedicated workflow `45710906329` passed on commit `83e1de544b2b4c289ea0b4d2b8a8b383ac1c69f8`: API typecheck passed; all API tests passed, including the partial-usage regression test.
+
+
+## 16. Native Anthropic Messages adapter
+
+Anthropic is the second native adapter. Its implementation follows the current Messages and Models API references.
+
+### Protocol and versioning
+
+- Canonical requests use `POST /v1/messages`.
+- Model discovery uses `GET /v1/models?lifecycle=active&limit=1000`, follows `after_id` cursors, and excludes deprecated/retired models.
+- Authentication uses `Authorization: Bearer`; the `anthropic-version` header defaults to `2026-10-21` and can be overridden with `ANTHROPIC_API_VERSION`.
+- The adapter's protocol metadata is `anthropic-messages`, version `2.0.0`.
+- Current official references:
+  - https://platform.claude.com/docs/en/api/messages
+  - https://platform.claude.com/docs/en/api/models/list
+
+### Canonical mapping implemented
+
+- Leading system/developer messages are mapped to the top-level `system` field. Interleaved system/developer messages are rejected because moving them would change message semantics.
+- User/assistant turns, base64 images, assistant `tool_use` blocks, user `tool_result` blocks, function definitions and tool choice are mapped to Messages API structures.
+- JSON Schema output maps to `output_config.format`; plain JSON mode without a schema is rejected.
+- `maxTokens`, `temperature`, `topP`, stop sequences, timeout and AbortSignal are mapped. URL image sources are rejected rather than fetched server-side (SSRF-safe); supported base64 image media types are accepted.
+- Text, tool calls, actual model ID, message ID, stop reason and stop sequence are normalized.
+- Model API metadata is used for lifecycle, context window, image input, structured outputs and thinking/reasoning capabilities. Missing capability data remains `unknown`; it is never promoted to `true` from the model name alone.
+- Streaming remains disabled in the complete-response Gateway contract.
+- Usage maps input/output, cache-read, cache-creation and thinking tokens. `totalTokens` is derived only when all four provider counters are present; otherwise `usageSource=unavailable`.
+
+### Billing boundary — must be completed before production charging
+
+The adapter now preserves Anthropic cache-read and cache-creation token dimensions in the canonical usage object. However, the current `usage_records` table in migration `010_usage_billing.sql` stores only input/output tokens, tool calls, duration and estimated cost. It does not yet persist cache-read, cache-creation, reasoning tokens, provider request ID or usage source. Therefore cost reconciliation for cached Anthropic requests is **not production-ready**. Before enabling paid subscriptions or production AI calls, add the missing usage-ledger columns, idempotent settlement keyed by provider request/operation ID, provider-specific price dimensions and reconciliation tests.
+
+### Verification
+
+- Dedicated workflow `45712044538` passed on commit `04ef04e1283c`: API typecheck passed; 93/93 focused AI provider contract tests passed, including Anthropic serialization, tool/image/JSON Schema mapping, lifecycle pagination, capability metadata, cache usage and cancellation.
+- No live Anthropic credentials, live provider requests, production secrets or paid calls were used.
+- Full NEXUM CI for the latest Anthropic implementation is pending; do not infer E2E success from the focused adapter suite.
