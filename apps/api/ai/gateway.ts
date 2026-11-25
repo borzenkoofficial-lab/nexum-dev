@@ -1,4 +1,4 @@
-import type { AIProvider, AIProviderStatus, AIModelCapabilities, AIRequest, AIResponse } from "./types.js";
+import type { AIProvider, AIProviderStatus, AIModelCapabilities, AIRequest, AIResponse, AIGenerateOptions } from "./types.js";
 import { getRequiredCapabilities, normalizeAIResponse, validateCanonicalRequest } from "./canonical.js";
 import { generateWithLegacyProvider } from "./legacyProviderAdapter.js";
 import { NexumError } from "../core/errors.js";
@@ -60,6 +60,9 @@ export class AIGateway {
   ) {
     if (providers.length === 0) {
       throw new Error("AI Gateway requires at least one provider");
+    }
+    if (providers.some((provider) => typeof provider.generate !== "function" && typeof provider.generateRequest !== "function")) {
+      throw new Error("Every AI provider must implement a native or legacy generation method");
     }
 
     if (!defaultProviderId || !providers.some((provider) => provider.id === defaultProviderId)) {
@@ -216,6 +219,36 @@ export class AIGateway {
     }
   }
 
+  private async generateWithProvider(
+    provider: AIProvider,
+    message: string,
+    model: string | undefined,
+    options: AIGenerateOptions = {},
+  ): Promise<{ response: string; model: string }> {
+    if (provider.generate) {
+      return {
+        response: await provider.generate(message, model, options),
+        model: model ?? provider.model,
+      };
+    }
+    if (!provider.generateRequest) {
+      throw new NexumError("CONFIG_ERROR", "AI-провайдер не реализует поддерживаемый интерфейс генерации.", {
+        retryable: false,
+        technicalDetails: `Provider ${provider.id} has no generation method`,
+      });
+    }
+
+    const response = await this.generateRequest({
+      version: 1,
+      model: model ?? provider.model,
+      messages: [{ role: "user", content: message }],
+      ...(options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens }),
+      ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
+      ...(options.signal === undefined ? {} : { signal: options.signal }),
+    }, { provider: provider.id });
+    return { response: response.content, model: response.model };
+  }
+
   async generateWithMetadata(message: string, options: GatewayGenerateOptions | string = {}): Promise<GatewayGenerationResult> {
     const normalizedOptions = typeof options === "string" ? { provider: options } : options;
     const providerId = normalizedOptions.provider ?? this.defaultProviderId;
@@ -233,14 +266,15 @@ export class AIGateway {
     try {
       if (agentFailureInjection.consumeFailure("NETWORK_FAILURE")) throw new Error("Injected network failure");
       if (agentFailureInjection.consumeFailure("MODEL_FAILURE")) throw new Error("Injected model failure");
+      const generated = await this.generateWithProvider(provider, localizedMessage, normalizedOptions.model, {
+        ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
+        ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
+        ...(normalizedOptions.signal ? { signal: normalizedOptions.signal } : {}),
+      });
       return {
-        response: await provider.generate(localizedMessage, normalizedOptions.model, {
-          ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
-          ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
-          ...(normalizedOptions.signal ? { signal: normalizedOptions.signal } : {}),
-        }),
+        response: generated.response,
         provider: provider.id,
-        model: normalizedOptions.model ?? provider.model,
+        model: generated.model,
         fallback: false,
       };
     } catch (error) {
@@ -274,14 +308,15 @@ export class AIGateway {
       this.onFallback?.(event);
 
       try {
-        return {
-          response: await fallback.generate(localizedMessage, fallback.model, {
-            ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
-            ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
+        const generated = await this.generateWithProvider(fallback, localizedMessage, fallback.model, {
+          ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
+          ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
           ...(normalizedOptions.signal ? { signal: normalizedOptions.signal } : {}),
-          }),
+        });
+        return {
+          response: generated.response,
           provider: fallback.id,
-          model: fallback.model,
+          model: generated.model,
           fallback: true,
         };
       } catch (fallbackError) {
