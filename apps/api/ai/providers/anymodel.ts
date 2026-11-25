@@ -79,10 +79,10 @@ export class AnyModelProvider implements AIProvider {
       method: "GET",
       ...(signal ? { signal } : {}),
     });
-    const remote = (data.data ?? [])
+    return [...new Set((data.data ?? [])
       .map((item) => item.id)
-      .filter((id): id is string => typeof id === "string" && id.length > 0);
-    return [...new Set([this.model, ...remote])];
+      .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+      .map((id) => id.trim()))];
   }
 
   async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
