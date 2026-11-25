@@ -1,0 +1,93 @@
+/* Shared user-facing primitives. Colors and geometry come from the KVARD semantic tokens. */
+.kv-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--kv-radius-control);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.kv-button__content { display: inline-flex; align-items: center; justify-content: center; gap: inherit; }
+.kv-button--sm { min-height: 32px; padding-inline: 10px; font-size: 12px; }
+.kv-button--md { min-height: 40px; padding-inline: 14px; font-size: 13px; }
+.kv-button--lg { min-height: 44px; padding-inline: 16px; font-size: 14px; }
+.kv-button--primary { border-color: var(--kv-action); background: var(--kv-action); color: var(--kv-on-action); }
+.kv-button--primary:hover:not(:disabled) { border-color: var(--kv-action-hover); background: var(--kv-action-hover); }
+.kv-button--secondary { border-color: var(--kv-border-strong); background: var(--kv-surface); color: var(--kv-text); }
+.kv-button--secondary:hover:not(:disabled) { background: var(--kv-surface-subtle); }
+.kv-button--ghost { border-color: transparent; background: transparent; color: var(--kv-text-secondary); }
+.kv-button--ghost:hover:not(:disabled) { background: var(--kv-surface-subtle); color: var(--kv-text); }
+.kv-button--danger { border-color: var(--kv-danger-soft); background: var(--kv-danger-soft); color: var(--kv-danger); }
+.kv-button--danger:hover:not(:disabled) { border-color: var(--kv-danger); }
+.kv-button:focus-visible { outline: 2px solid var(--kv-focus); outline-offset: 2px; }
+.kv-button:disabled { opacity: .55; cursor: not-allowed; }
+.kv-button[aria-busy="true"] { cursor: wait; }
+.kv-button__spinner {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: kv-button-spin .8s linear infinite;
+}
+.kv-button--icon { width: 40px; padding-inline: 0; }
+.kv-button--icon.kv-button--sm { width: 32px; }
+.kv-button--icon.kv-button--lg { width: 44px; }
+@keyframes kv-button-spin { to { transform: rotate(360deg); } }
+
+.kv-field { display: grid; gap: 6px; min-width: 0; }
+.kv-field__label { color: var(--kv-text); font-size: 12px; font-weight: 600; }
+.kv-field__required { margin-left: 3px; color: var(--kv-danger); }
+.kv-field__control { min-width: 0; }
+.kv-field__control input,
+.kv-field__control textarea,
+.kv-field__control select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid var(--kv-border-strong);
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-surface);
+  color: var(--kv-text);
+  font: inherit;
+  font-size: 13px;
+}
+.kv-field__control textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
+.kv-field__control :is(input, textarea, select):focus-visible { outline: 2px solid var(--kv-focus); outline-offset: 2px; }
+.kv-field__control :is(input, textarea, select)[aria-invalid="true"] { border-color: var(--kv-danger); }
+.kv-field__hint, .kv-field__error { margin: 0; font-size: 11px; line-height: 1.45; }
+.kv-field__hint { color: var(--kv-text-tertiary); }
+.kv-field__error { color: var(--kv-danger); }
+
+.kv-status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.kv-status-badge--neutral { background: var(--kv-surface-subtle); color: var(--kv-text-secondary); }
+.kv-status-badge--success { background: var(--kv-success-soft); color: var(--kv-success); }
+.kv-status-badge--warning { background: var(--kv-warning-soft); color: var(--kv-warning); }
+.kv-status-badge--danger { background: var(--kv-danger-soft); color: var(--kv-danger); }
+.kv-status-badge--info { background: var(--kv-info-soft); color: var(--kv-info); }
+
+@media (prefers-reduced-motion: reduce) {
+  .kv-button__spinner { animation: none; border-right-color: currentColor; opacity: .7; }
+}
