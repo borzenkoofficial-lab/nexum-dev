@@ -10,6 +10,8 @@ test("Builder mock keeps its stage keyed to the final canonical user task", asyn
     const task = "Create a unique Builder workspace for stage-key regression";
     const first = await provider.generate([
       "You are the NEXUM.DEV autonomous project builder.",
+      "Earlier projectId: stale-project",
+      "projectId: canonical-builder-project",
       `User task: ${task}`,
       "Previous tool results:",
       "No tools have run yet.",
@@ -18,7 +20,8 @@ test("Builder mock keeps its stage keyed to the final canonical user task", asyn
 
     const second = await provider.generate([
       "You are the NEXUM.DEV autonomous project builder.",
-      "Earlier context: User task: stale unrelated task",
+      "Earlier context: projectId: stale-project; User task: stale unrelated task",
+      "projectId: canonical-builder-project",
       `User task: ${task}`,
       "Previous tool results:",
       "readFile: existing starter inspected",
