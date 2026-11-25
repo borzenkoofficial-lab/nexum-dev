@@ -134,3 +134,8 @@ The implemented contract foundation is specified in `docs/KVARD_AI_PROVIDER_ADAP
 ### Native-only provider migration bridge
 
 New adapters may implement only `AIProvider.generateRequest()`. Existing string-based product calls remain compatible: Gateway routes them through the canonical API whenever a native adapter is available, preferring native over legacy generation. This allows provider adapters and product modules to migrate independently. New product code should call the canonical interface directly; old string calls remain a compatibility facade.
+
+
+### Verified model catalog dependency
+
+AI model selection and plan entitlements must use the verified model catalog, not a configured fallback model ID. A fallback ID can be displayed for diagnostics when a provider's catalog is unavailable, but it is not eligible for inference or entitlement assignment until verified. Every native adapter declares its exact upstream protocol and adapter version.
