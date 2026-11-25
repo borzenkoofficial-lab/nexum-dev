@@ -450,12 +450,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .kv-home-brand-copy small { font-size: 8px; }
   .kv-home-create, .kv-home-nav-label, .kv-home-project-head, .kv-home-project-nav, .kv-home-sidebar-bottom { display: none; }
   .kv-home-nav { display: flex; gap: 4px; overflow-x: auto; margin-top: 12px; padding-bottom: 1px; }
-  .kv-home-nav button { flex: 0 0 auto; min-height: 34px; padding: 6px 9px; font-size: 11px; white-space: nowrap; }
+  .kv-home-nav button { flex: 0 0 auto; min-height: 44px; padding: 8px 11px; font-size: 11px; white-space: nowrap; }
   .kv-home-nav button > span { width: auto; font-size: 14px; }
-  .kv-home-topbar { min-height: 46px; padding-inline: 16px; }
+  .kv-home-topbar { min-height: 52px; padding-inline: 16px; }
   .kv-home-top-context { font-size: 10px; }
   .kv-home-top-actions { gap: 8px; }
-  .kv-home-top-actions button { width: 31px; height: 31px; }
+  .kv-home-top-actions button { width: 40px; height: 40px; }
+  .kv-home-composer-footer button { min-height: 44px; padding-inline: 12px; }
+  .kv-home-footer button { min-height: 44px; padding-inline: 8px; }
   .kv-home-content { padding: 28px 16px 42px; }
   .kv-home-heading { align-items: flex-start; margin-bottom: 24px; }
   .kv-home-heading h1 { font-size: 29px; }
