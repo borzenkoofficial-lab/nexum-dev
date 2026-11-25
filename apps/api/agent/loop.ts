@@ -307,7 +307,10 @@ export class AgentLoop {
     // legitimately spans inspection, scaffold, implementation, build, verification and finalization.
     // The shared adaptive token budget remains the hard cost bound.
     const maxAiPlannerCalls = builderTask ? 7 : MAX_AI_PLANNER_CALLS;
-    const maxModelTurns = builderTask ? 10 : MAX_MODEL_TURNS;
+    const maxModelTurns = builderTask ? 12 : MAX_MODEL_TURNS;
+    const iterationLimit = builderTask && this.maxIterations === DEFAULT_MAX_ITERATIONS
+      ? Math.min(DEFAULT_MAX_ITERATIONS + 4, 20)
+      : this.maxIterations;
     const repairRequested = /ИСПРАВЛЕНИЕ ПОСЛЕ ОШИБКИ АГЕНТА|исправь результат последней задачи|исправь последнюю задачу|продолжи исправление|repair the last task|fix the last task|fix the previous task/i.test(task);
     const requiresProjectUnderstanding = builderTask || /analy[sz]e|audit|review|проверь|проанализ|исправ|debug|debugger|рефактор|refactor|настрой|configure|измен|добав|удал|fix|bug/i.test(task);
     const markStepRunning = (id: string) => {
@@ -383,7 +386,7 @@ export class AgentLoop {
     publishExecution();
     emit({ iteration: 0, type: "thinking", phase: "analyze", message: "Принял запрос. Анализирую проект и выбираю следующий шаг." });
 
-    for (let iteration = 1; iteration <= this.maxIterations; iteration += 1) {
+    for (let iteration = 1; iteration <= iterationLimit; iteration += 1) {
       throwIfAborted(options?.signal);
       if (agentFailureInjection.consumeFailure("PLANNER_CHECKPOINT", this.journalContext?.projectId)) {
         await agentFailureInjection.waitForCheckpoint("PLANNER_CHECKPOINT", this.journalContext?.projectId, options?.signal);
@@ -1538,7 +1541,7 @@ export class AgentLoop {
     const lastFailure = [...previousResults].reverse().find((item) => !item.result.success);
     const error = lastFailure
       ? `Tool ${lastFailure.tool} failed after recovery attempts: ${lastFailure.result.output}`
-      : `Agent stopped: maximum iterations reached (${this.maxIterations})`;
+      : `Agent stopped: maximum iterations reached (${iterationLimit})`;
     const diagnosis = diagnoseError(lastFailure?.result.output ?? error);
     const code: AgentErrorInfo["code"] =
       diagnosis.category === "typescript" || diagnosis.category === "syntax" || diagnosis.category === "build" ? "BUILD_ERROR" :
@@ -1554,9 +1557,9 @@ export class AgentLoop {
       summary: diagnosis.summary,
       recoveryStrategy: diagnosis.strategy,
     };
-    this.log(this.maxIterations, "loop", "error");
-    emit({ iteration: this.maxIterations, type: "failed", message: diagnosis.summary });
-    return { phase, success: false, iterations: this.maxIterations, steps, productPlan: productPlan ?? undefined, error, errorInfo };
+    this.log(iterationLimit, "loop", "error");
+    emit({ iteration: iterationLimit, type: "failed", message: diagnosis.summary });
+    return { phase, success: false, iterations: iterationLimit, steps, productPlan: productPlan ?? undefined, error, errorInfo };
   }
 
   private async finalResponse(
