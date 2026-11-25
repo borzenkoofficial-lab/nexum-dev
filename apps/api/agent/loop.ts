@@ -296,7 +296,7 @@ export class AgentLoop {
     let productPlannerAttempts = 0;
     const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
     const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, {
-      legacyHardCap: builderTask ? 22_000 : DEFAULT_TASK_TOKEN_BUDGET,
+      legacyHardCap: builderTask ? 30_000 : DEFAULT_TASK_TOKEN_BUDGET,
       builderLifecycle: builderTask,
     });
     const aiOptionsForTask = (base?: GatewayGenerateOptions, role: "planner" | "coder" | "reviewer" | "debugger" | "tester" | "finalizer" | "general" = "general"): GatewayGenerateOptions | undefined => {
