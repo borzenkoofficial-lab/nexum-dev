@@ -7,6 +7,8 @@ class LegacyFixture implements AIProvider {
   id = "legacy";
   name = "Legacy";
   model = "legacy-default";
+  protocol = "custom" as const;
+  adapterVersion = "1.0.0";
   capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: false, reasoning: false, contextWindow: 8192 };
   calls = 0;
   async generate(message: string): Promise<string> {
@@ -131,6 +133,8 @@ test("legacy string facade supports providers that implement only the canonical 
     id: "native-only",
     name: "Native-only provider",
     model: "native-model",
+    protocol: "custom" as const,
+    adapterVersion: "1.0.0",
     protocol: "test-canonical",
     adapterVersion: "1.0.0",
     capabilities: {
@@ -198,6 +202,8 @@ test("supports a native-only provider as an automatic transient fallback", async
     id: "native-fallback",
     name: "Native fallback",
     model: "fallback-model",
+    protocol: "custom" as const,
+    adapterVersion: "1.0.0",
     protocol: "test-canonical",
     adapterVersion: "1.0.0",
     capabilities: {
@@ -224,6 +230,8 @@ test("rejects streaming on the complete-response API even if a provider advertis
     id: "streaming-advertised",
     name: "Streaming advertised",
     model: "streaming-model",
+    protocol: "custom" as const,
+    adapterVersion: "1.0.0",
     protocol: "test-canonical",
     adapterVersion: "1.0.0",
     capabilities: {
@@ -321,4 +329,24 @@ test("model catalog marks an empty provider response unverified", async () => {
   assert.equal(catalog.providers[0].verified, false);
   assert.equal(catalog.providers[0].status, "empty");
   assert.deepEqual(catalog.providers[0].models, ["configured-model"]);
+});
+
+
+test("gateway rejects native adapters without an explicit protocol and semantic version", () => {
+  const provider = {
+    id: "unversioned-native",
+    name: "Unversioned native",
+    model: "model",
+    capabilities: {
+      text: true, code: false, vision: false, toolCalling: false,
+      streaming: false, structuredOutput: false, reasoning: false, contextWindow: 16_000,
+    },
+    async generateRequest(): Promise<AIResponse> {
+      return { content: "ok", provider: "unversioned-native", model: "model" };
+    },
+  } as unknown as AIProvider;
+  assert.throws(
+    () => new AIGateway([provider], provider.id),
+    /protocol and semantic adapterVersion/i,
+  );
 });
