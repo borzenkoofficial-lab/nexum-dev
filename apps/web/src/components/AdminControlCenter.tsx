@@ -10,7 +10,8 @@ type Event = { id: string; actor_user_id: string | null; action: string; target_
 type UserRow = { id: string; email: string; name: string; created_at: string; status: "active" | "suspended"; suspended_at: string | null; suspension_reason: string | null; admin_role: Role | null; organizations_count: number; projects_count: number };
 type OrganizationRow = { id: string; name: string; slug: string; created_at: string; members_count: number; agents_count: number; workforces_count: number; owner_email: string | null };
 type MemberRow = { id: string; email: string; name: string; role: string; joined_at: string };
-type UserDetails = { user: UserRow & { suspended_by: string | null }; organizations: Array<{ id: string; name: string; slug: string; role: string; joined_at: string }>; projects: Array<{ id: string; project_id: string; name: string; project_type: string; status: string; created_at: string; updated_at: string }>; subscriptions: Array<{ organization_id: string; organization_name: string; plan_id: string; plan_name: string; status: string; period_start: string; period_end: string }>; usage: { records: string; input_tokens: string; output_tokens: string; estimated_cost: string; last_used_at: string | null } | null; runs: { total: string; completed: string; failed: string; last_run_at: string | null } | null };\ntype DashboardMetrics = { users: { total: number; active: number; suspended: number; new7d: number }; organizations: number; projects: number; agents: number; runs: { last24h: number; active: number; completed24h: number; failed24h: number }; ai: { cost30d: string; tokens30d: number } };
+type UserDetails = { user: UserRow & { suspended_by: string | null }; organizations: Array<{ id: string; name: string; slug: string; role: string; joined_at: string }>; projects: Array<{ id: string; project_id: string; name: string; project_type: string; status: string; created_at: string; updated_at: string }>; subscriptions: Array<{ organization_id: string; organization_name: string; plan_id: string; plan_name: string; status: string; period_start: string; period_end: string }>; usage: { records: string; input_tokens: string; output_tokens: string; estimated_cost: string; last_used_at: string | null } | null; runs: { total: string; completed: string; failed: string; last_run_at: string | null } | null };
+type DashboardMetrics = { users: { total: number; active: number; suspended: number; new7d: number }; organizations: number; projects: number; agents: number; runs: { last24h: number; active: number; completed24h: number; failed24h: number }; ai: { cost30d: string; tokens30d: number } };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...init, credentials: "include", headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) } });
@@ -31,7 +32,14 @@ export function AdminControlCenter() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
-  const [users, setUsers] = useState<UserRow[]>([]);\n  const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);\n  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);\n  const [auditActor, setAuditActor] = useState("");\n  const [auditAction, setAuditAction] = useState("");\n  const [auditTarget, setAuditTarget] = useState("");\n  const [auditFrom, setAuditFrom] = useState("");\n  const [auditTo, setAuditTo] = useState("");
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [auditActor, setAuditActor] = useState("");
+  const [auditAction, setAuditAction] = useState("");
+  const [auditTarget, setAuditTarget] = useState("");
+  const [auditFrom, setAuditFrom] = useState("");
+  const [auditTo, setAuditTo] = useState("");
   const [organizations, setOrganizations] = useState<OrganizationRow[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [directorySearch, setDirectorySearch] = useState("");
