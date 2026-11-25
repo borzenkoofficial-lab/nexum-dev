@@ -95,3 +95,22 @@
   .nx-chat-scroll { padding: 12px; }
   .nx-composer { width: calc(100% - 20px); }
 }
+
+
+/* Main project workspace split: conversation and tools must remain side by side. */
+.nx-builder-grid { display: grid; flex: 1; grid-template-columns: minmax(0, 1fr) minmax(320px, .82fr); min-width: 0; min-height: 0; overflow: hidden; }
+.nx-builder-grid > .nx-chat { min-width: 0; border-right: 1px solid var(--nx-border); }
+.nx-builder-grid > .nx-tool { min-width: 0; }
+.nx-tool { overflow: auto; }
+.nx-tool-head { position: sticky; top: 0; z-index: 2; background: var(--nx-surface); }
+.nx-chat-head { flex: 0 0 auto; }
+.nx-chat-scroll { overflow-wrap: anywhere; }
+.nx-messages article { white-space: pre-wrap; overflow-wrap: anywhere; }
+.nx-tool-actions button.active { background: var(--nx-surface-muted); }
+.nx-agent-list > div, .nx-problems > div, .nx-plan > div, .nx-events > div { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .nx-builder-grid { grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(360px, 1fr) minmax(320px, .85fr); overflow: auto; }
+  .nx-builder-grid > .nx-chat { border-right: 0; border-bottom: 1px solid var(--nx-border); }
+  .nx-tool { overflow: visible; }
+  .nx-tool-head { position: static; }
+}
