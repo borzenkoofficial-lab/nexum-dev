@@ -16,7 +16,6 @@ const starters = [
 
 export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView }: Props) {
   const recent = projects.slice(0, 5);
-  const activeProjects = projects.filter((project) => project.status === "active");
   const [brief, setBrief] = useState("");
 
   function createFromBrief() {
@@ -33,43 +32,6 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
   return (
     <section className="builder-home kv-home">
       <a className="kv-skip-link" href="#kv-home-content">Перейти к содержимому</a>
-      <aside className="kv-home-sidebar" aria-label="Основная навигация">
-        <button className="kv-home-brand" type="button" onClick={() => onOpenView("home")} aria-label="КВАРД — на главную">
-          <span className="kv-home-brand-mark">К</span>
-          <span className="kv-home-brand-copy"><strong>КВАРД</strong><small>WORKSPACE</small></span>
-        </button>
-
-        <button className="kv-home-create" type="button" onClick={() => onNewProject()}>
-          <span aria-hidden="true">＋</span> Новый проект
-        </button>
-
-        <div className="kv-home-nav-label">РАБОЧАЯ СРЕДА</div>
-        <nav className="kv-home-nav" aria-label="Разделы">
-          <button className="selected" type="button" aria-current="page" onClick={() => onOpenView("home")}><span aria-hidden="true">⌂</span>Обзор</button>
-          <button type="button" onClick={() => onOpenView("agents")}><span aria-hidden="true">◈</span>AI-агенты</button>
-          <button type="button" onClick={() => onOpenView("business-agents")}><span aria-hidden="true">✦</span>Бизнес-агенты</button>
-          <button type="button" onClick={() => onOpenView("news")}><span aria-hidden="true">▤</span>Журнал</button>
-          <button type="button" onClick={() => onOpenView("connectors")}><span aria-hidden="true">⌁</span>Интеграции</button>
-          <button type="button" onClick={() => onOpenView("diagnostics")}><span aria-hidden="true">◷</span>Диагностика</button>
-        </nav>
-
-        <div className="kv-home-project-head">
-          <span>ПРОЕКТЫ</span><small>{activeProjects.length}</small>
-        </div>
-        <div className="kv-home-project-nav">
-          {activeProjects.length ? activeProjects.slice(0, 7).map((project) => (
-            <button key={project.id} type="button" onClick={() => onOpenProject(project.id, "agent")} title={project.name}>
-              <span>{project.name.slice(0, 1).toUpperCase()}</span><b>{project.name}</b>
-            </button>
-          )) : <p>Здесь появятся ваши проекты</p>}
-        </div>
-
-        <div className="kv-home-sidebar-bottom">
-          <button type="button" onClick={() => onOpenView("settings")}><span aria-hidden="true">⚙</span>Настройки</button>
-          <div className="kv-home-profile"><span>К</span><div><strong>Моё пространство</strong><small>Рабочее пространство</small></div><i>•••</i></div>
-        </div>
-      </aside>
-
       <div className="kv-home-workspace">
         <header className="kv-home-topbar">
           <div className="kv-home-breadcrumb"><span>Рабочая среда</span><i>/</i><strong>Обзор</strong></div>
