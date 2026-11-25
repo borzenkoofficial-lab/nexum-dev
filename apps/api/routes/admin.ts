@@ -88,6 +88,66 @@ adminRouter.get("/users", requireAdminPermission("users.read"), async (req, res)
 });
 
 
+
+adminRouter.get("/users/:userId", requireAdminPermission("users.read"), async (req, res) => {
+  const userId = typeof req.params.userId === "string" ? req.params.userId : "";
+  if (!UUID_PATTERN.test(userId)) return res.status(400).json({ success: false, error: "A valid user UUID is required." });
+  try {
+    const userResult = await query(
+      "SELECT u.id, u.email, u.name, u.created_at, u.status, u.suspended_at, u.suspended_by, u.suspension_reason, ara.role AS admin_role " +
+      "FROM users u LEFT JOIN admin_role_assignments ara ON ara.user_id = u.id WHERE u.id = $1 LIMIT 1",
+      [userId],
+    );
+    const user = userResult.rows[0];
+    if (!user) return res.status(404).json({ success: false, error: "User not found." });
+
+    const [organizations, projects, subscriptions, usage, runs] = await Promise.all([
+      query(
+        "SELECT o.id, o.name, o.slug, om.role, om.created_at AS joined_at " +
+        "FROM organization_members om JOIN organizations o ON o.id = om.organization_id " +
+        "WHERE om.user_id = $1 ORDER BY om.created_at DESC",
+        [userId],
+      ),
+      query(
+        "SELECT id, project_id, name, project_type, status, created_at, updated_at " +
+        "FROM project_workspaces WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 50",
+        [userId],
+      ),
+      query(
+        "SELECT o.id AS organization_id, o.name AS organization_name, p.id AS plan_id, p.name AS plan_name, " +
+        "s.status, s.period_start, s.period_end " +
+        "FROM organization_members om JOIN organizations o ON o.id = om.organization_id " +
+        "JOIN LATERAL (SELECT os.* FROM organization_subscriptions os WHERE os.organization_id = o.id ORDER BY os.created_at DESC LIMIT 1) s ON TRUE " +
+        "JOIN subscription_plans p ON p.id = s.plan_id WHERE om.user_id = $1 ORDER BY o.name ASC",
+        [userId],
+      ),
+      query<{ records: string; input_tokens: string; output_tokens: string; estimated_cost: string; last_used_at: string | null }>(
+        "SELECT COUNT(*)::text AS records, COALESCE(SUM(input_tokens),0)::text AS input_tokens, " +
+        "COALESCE(SUM(output_tokens),0)::text AS output_tokens, COALESCE(SUM(estimated_cost),0)::text AS estimated_cost, " +
+        "MAX(created_at) AS last_used_at FROM usage_records WHERE user_id = $1",
+        [userId],
+      ),
+      query<{ total: string; completed: string; failed: string; last_run_at: string | null }>(
+        "SELECT COUNT(*)::text AS total, COUNT(*) FILTER (WHERE status = 'completed')::text AS completed, " +
+        "COUNT(*) FILTER (WHERE status IN ('failed','timed_out','limit_reached'))::text AS failed, MAX(created_at) AS last_run_at " +
+        "FROM agent_runs WHERE created_by = $1",
+        [userId],
+      ),
+    ]);
+    return res.json({
+      success: true,
+      user,
+      organizations: organizations.rows,
+      projects: projects.rows,
+      subscriptions: subscriptions.rows,
+      usage: usage.rows[0] ?? null,
+      runs: runs.rows[0] ?? null,
+    });
+  } catch {
+    return res.status(503).json({ success: false, error: "User details are temporarily unavailable." });
+  }
+});
+
 adminRouter.post("/users/:userId/suspend", requireAdminPermission("users.manage"), requireRecentMfa, async (req, res) => {
   const targetUserId = typeof req.params.userId === "string" ? req.params.userId : "";
   const reasonValue = (req.body as { reason?: unknown } | undefined)?.reason;
@@ -363,15 +423,39 @@ adminRouter.delete("/sessions/:sessionId", requireAdminPermission("sessions.mana
 });
 
 adminRouter.get("/audit", requireAdminPermission("audit.read"), async (req, res) => {
-  const parsedLimit = Number(req.query.limit ?? 50);
-  const limit = Number.isFinite(parsedLimit) ? Math.min(100, Math.max(1, Math.floor(parsedLimit))) : 50;
+  const page = Math.max(1, Math.min(100000, Math.floor(Number(req.query.page ?? 1) || 1)));
+  const limit = Math.max(1, Math.min(100, Math.floor(Number(req.query.limit ?? 50) || 50)));
+  const actorId = typeof req.query.actorUserId === "string" && UUID_PATTERN.test(req.query.actorUserId) ? req.query.actorUserId : null;
+  if (req.query.actorUserId && !actorId) return res.status(400).json({ success: false, error: "actorUserId must be a UUID." });
+  const action = typeof req.query.action === "string" ? req.query.action.trim().slice(0, 100) || null : null;
+  const targetType = typeof req.query.targetType === "string" ? req.query.targetType.trim().slice(0, 80) || null : null;
+  const targetId = typeof req.query.targetId === "string" ? req.query.targetId.trim().slice(0, 120) || null : null;
+  const from = typeof req.query.from === "string" ? req.query.from : null;
+  const to = typeof req.query.to === "string" ? req.query.to : null;
+  const fromDate = from ? new Date(from) : null;
+  const toDate = to ? new Date(to) : null;
+  if ((fromDate && !Number.isFinite(fromDate.getTime())) || (toDate && !Number.isFinite(toDate.getTime())) ||
+      (fromDate && toDate && fromDate > toDate)) {
+    return res.status(400).json({ success: false, error: "Audit date range is invalid." });
+  }
+  const filters = [actorId, action, targetType, targetId, fromDate?.toISOString() ?? null, toDate?.toISOString() ?? null];
+  const offset = (page - 1) * limit;
   try {
-    const result = await query(
-      `SELECT id, actor_user_id, action, target_type, target_id, request_id, metadata, created_at
-       FROM admin_audit_log ORDER BY created_at DESC LIMIT $1`,
-      [limit],
-    );
-    return res.json({ success: true, events: result.rows });
+    const where = `WHERE ($1::uuid IS NULL OR actor_user_id = $1::uuid)
+      AND ($2::text IS NULL OR action ILIKE '%' || $2 || '%')
+      AND ($3::text IS NULL OR target_type = $3)
+      AND ($4::text IS NULL OR target_id = $4)
+      AND ($5::timestamptz IS NULL OR created_at >= $5::timestamptz)
+      AND ($6::timestamptz IS NULL OR created_at <= $6::timestamptz)`;
+    const [result, count] = await Promise.all([
+      query(
+        `SELECT id, actor_user_id, action, target_type, target_id, request_id, metadata, created_at
+         FROM admin_audit_log ${where} ORDER BY created_at DESC, id DESC LIMIT $7 OFFSET $8`,
+        [...filters, limit, offset],
+      ),
+      query<{ total: string }>(`SELECT COUNT(*)::text AS total FROM admin_audit_log ${where}`, filters),
+    ]);
+    return res.json({ success: true, events: result.rows, pagination: { page, limit, total: Number(count.rows[0]?.total ?? 0) } });
   } catch {
     return res.status(503).json({ success: false, error: "Administrative audit storage unavailable" });
   }
