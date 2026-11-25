@@ -211,3 +211,17 @@ test("supports a native-only provider as an automatic transient fallback", async
   assert.equal(result.fallback, true);
   assert.equal(received.length, 1);
 });
+
+
+test("rejects streaming on the complete-response API even if a provider advertises streaming", async () => {
+  class StreamingAdvertisedProvider extends NativeFixture {
+    capabilities = { ...super.capabilities, streaming: true };
+  }
+  const provider = new StreamingAdvertisedProvider();
+  const gateway = new AIGateway([provider], "native");
+  await assert.rejects(
+    () => gateway.generateRequest(request({ stream: true })),
+    (error: any) => error?.code === "MODEL_ERROR" && /stream/i.test(String(error?.technicalDetails)),
+  );
+  assert.equal(provider.received.length, 0);
+});
