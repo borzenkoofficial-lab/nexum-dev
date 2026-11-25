@@ -5,7 +5,7 @@ type Props = {
   projects: Проект[];
   onNewProject: (description?: string) => void;
   onOpenProject: (id: string, tab?: "preview" | "files" | "agent" | "code") => void;
-  onOpenView: (view: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics") => void;
+  onOpenView: (view: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents") => void;
 };
 
 const starters = [
@@ -46,6 +46,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
         <div className="kv-home-nav-label">РАБОЧАЯ СРЕДА</div>
         <nav className="kv-home-nav" aria-label="Разделы">
           <button className="selected" type="button" aria-current="page" onClick={() => onOpenView("home")}><span>⌂</span>Обзор</button>
+          <button type="button" onClick={() => onOpenView("agents")}><span>◈</span>AI-агенты</button>
           <button type="button" onClick={() => onOpenView("news")}><span>▤</span>Журнал</button>
           <button type="button" onClick={() => onOpenView("connectors")}><span>⌁</span>Интеграции</button>
           <button type="button" onClick={() => onOpenView("diagnostics")}><span>◷</span>Диагностика</button>
