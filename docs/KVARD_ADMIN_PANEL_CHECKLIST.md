@@ -406,3 +406,12 @@
 - Изменение/ротация provider credentials немедленно инвалидирует каталог; результат старого запроса не может перезаписать новую ревизию cache.
 - `getModels()` использует тот же каталог, чтобы не было разных списков моделей у разных компонентов.
 - Dedicated workflow `45710089229` passed на commit `63115817de617dd4803cf5f100f4a0aa8962fab9`: API typecheck passed, 67/67 focused AI provider contract tests passed.
+
+
+### AI Provider Contract — authoritative model discovery
+
+- OpenAI, Anthropic, OrcaRouter and AnyModel model discovery now returns only IDs received from the authenticated upstream catalog. Static defaults and configured model IDs are no longer mixed into provider-confirmed results.
+- Anthropic no longer advertises static models without a credential; catalog request failures propagate to the gateway and are shown as unverified fallback state.
+- Added provider conformance tests covering exact upstream catalog results, missing credentials and provider outage behavior.
+- Dedicated workflow `45710389512` passed on commit `5fbbd6b50784eeabf136175019d1e196fdac44db`: API typecheck passed; 79/79 API tests passed.
+- Full NEXUM CI for the final documentation commit is pending. No production deployment, paid request or provider credential purchase occurred.
