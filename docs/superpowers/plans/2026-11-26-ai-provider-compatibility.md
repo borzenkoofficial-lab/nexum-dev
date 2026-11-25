@@ -148,3 +148,12 @@
 - Added `AIModelCapabilityValue = boolean | "unknown"` so adapter authors can represent capabilities they cannot verify.
 - Gateway fails closed: only explicit `true` satisfies a requested capability. Model-selection requirements remain boolean-only.
 - Dedicated workflow `45706535742` passed on `d9d2c03b5de7a7800df5972e96d91ea185d5b4d3`: API typecheck passed; 242/242 API tests passed.
+
+
+### Native-only provider registration and string-facade compatibility — 2026-11-26
+
+- `AIProvider.generate()` is optional; a new adapter may implement only `generateRequest()`.
+- Gateway constructor rejects adapters that implement neither interface.
+- Existing product string calls are bridged into canonical requests for native adapters; if both interfaces exist, native canonical generation is preferred.
+- Configured transient fallback supports native-only adapters.
+- Dedicated workflow `45707392285` passed on `4d947cc4096519c7e1fdf7fc6732e5a1067c3ad7`: API typecheck passed; 246/246 API tests passed.
