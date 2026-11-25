@@ -39,6 +39,11 @@ import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobP
 import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
 import { agentProfilesUseDatabase, createAgentProfile, deleteAgentProfile, listAgentProfiles } from "./agent/profileStore.js";
 import { agentDefinitionsUseDatabase, createAgentDefinition, deleteAgentDefinition, listAgentDefinitions, updateAgentDefinition, type AgentDefinition, type AgentDefinitionInput, type AgentDefinitionPatch } from "./agent/agentDefinitionStore.js";
+import { organizationsRouter } from "./routes/organizations.js";
+import { createAgentsRouter } from "./routes/agents.js";
+import { createWorkforcesRouter } from "./routes/workforces.js";
+import { knowledgeRouter } from "./routes/knowledge.js";
+import { approvalsRouter } from "./routes/approvals.js";
 
 
 const requestIds = new WeakMap<object, string>();
@@ -859,6 +864,13 @@ app.use("/api/agent/history", authMiddleware);
 app.use("/api/agent/profiles", authMiddleware);
 app.use("/api/agents", authMiddleware);
 app.use("/api/agent/diagnostics", authMiddleware);
+
+// Business-agent platform: separate namespace from the existing coding-agent API.
+app.use("/api/organizations", authMiddleware, organizationsRouter);
+app.use("/api/business-agents", authMiddleware, createAgentsRouter(aiGateway));
+app.use("/api/knowledge", authMiddleware, knowledgeRouter);
+app.use("/api/workforces", authMiddleware, createWorkforcesRouter(aiGateway));
+app.use("/api/approvals", authMiddleware, approvalsRouter);
 
 app.get("/api/ai/providers", authMiddleware, (req, res) => {
   return res.json({ success: true, providers: getAIGatewayForUser(getAuthUser(req).id).getProviders() });
