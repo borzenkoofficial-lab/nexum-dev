@@ -69,22 +69,11 @@ input, textarea, select { max-width: 100%; border: 1px solid var(--nx-border); b
   .nx-system-window-layer { padding: 8px; }
   .settings-layout { grid-template-columns: 1fr; }
   .settings-index { display: flex; flex-wrap: wrap; }
-  .builder-home-header, .builder-home-footer { padding-inline: 12px; }
-  .builder-home-nav { gap: 4px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
 
 /* Active-screen structural coverage: home, system chrome, app windows and settings. */
-.builder-home-kicker, .eyebrow { color: var(--nx-muted); font-size: 11px; letter-spacing: .08em; }
-.builder-home-projects { margin-top: 48px; }
-.builder-home-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-.builder-home-section-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
-.builder-home-section-head > span { color: var(--nx-muted); font-size: 12px; }
-.builder-home-project-preview { display: grid; flex: 0 0 44px; place-items: center; width: 44px; height: 44px; border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface-muted); font-weight: 650; }
-.builder-home-project-arrow { margin-left: auto; color: var(--nx-muted); font-size: 12px; }
-.builder-home-project:hover, .builder-home-prompts button:hover, .builder-home-nav button:hover,
-.builder-home-composer-footer button:hover, .builder-home-brand:hover { background: var(--nx-surface-muted); }
 .nx-system-divider { width: 1px; height: 24px; background: var(--nx-border); }
 .nx-system-app { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .nx-system-app-icon { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--nx-border); border-radius: 6px; }
