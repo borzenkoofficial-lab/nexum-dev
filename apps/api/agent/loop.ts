@@ -511,6 +511,21 @@ export class AgentLoop {
       // Prefer the model plan when available. If it repeats an action that
       // already failed, switch to the deterministic planner so recovery can continue.
       let plan = modelPlan ?? this.runtime.plan(task, previousResults);
+      // An AI plan can name a tool that is not registered in the current runtime.
+      // Re-plan from the latest observed project state before failing the whole task.
+      // The deterministic planner receives the same history and remains subject to the
+      // available-tool guard below; this is a bounded fallback, not an unrestricted retry.
+      if (plan && modelPlan && !availableTools.includes(plan.tool)) {
+        const stateAwareFallback = this.runtime.plan(task, previousResults);
+        if (stateAwareFallback && availableTools.includes(stateAwareFallback.tool)) {
+          emit({
+            iteration,
+            type: "thinking",
+            message: "Инструмент " + plan.tool + " недоступен в текущей среде. Выбираю следующий шаг по фактическому состоянию проекта.",
+          });
+          plan = stateAwareFallback;
+        }
+      }
       if (!plan && !builderTask && previousResults.length > 0 && previousResults[previousResults.length - 1]?.result.success) {
         const followUp = this.runtime.plan(task, previousResults);
         if (!followUp) {
