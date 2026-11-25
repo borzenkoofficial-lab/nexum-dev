@@ -37,7 +37,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
           <div className="kv-home-breadcrumb"><span>Рабочая среда</span><i>/</i><strong>Обзор</strong></div>
         </header>
 
-        <main className="kv-home-content" id="kv-home-content">
+        <section className="kv-home-content" id="kv-home-content" aria-label="Обзор">
           <div className="kv-home-heading">
             <div><p className="kv-home-eyebrow">КВАРД / WORKSPACE</p><h1>Рабочая среда</h1><p>Создавайте цифровые продукты и управляйте разработкой в одном месте.</p></div>
             <div className="kv-home-project-count"><strong>{projects.length}</strong><span>проектов</span></div>
@@ -89,7 +89,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
               </div>
             )}
           </section>
-        </main>
+        </section>
         <footer className="kv-home-footer"><span>КВАРД <i>•</i> Среда разработки</span><button type="button" onClick={() => onOpenView("news")}>Обновления продукта</button></footer>
       </div>
     </section>
