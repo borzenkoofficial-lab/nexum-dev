@@ -27,7 +27,7 @@ import { assertExistingProjectPath, assertWritableProjectPath, ProjectPathError 
 import { AgentHistory } from "./agent/history.js";
 import { CheckpointManager } from "./agent/checkpoint.js";
 import { ProjectStateManager } from "./projects/projectState.js";
-import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueAdminMfaChallenge, issueSession } from "./auth.js";
+import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueAdminMfaChallenge, issueSession, revokeCurrentSession } from "./auth.js";
 import { requireAdminAccess } from "./adminAccess.js";
 import { adminRouter } from "./routes/admin.js";
 import { closeDatabase, pingDatabase, query } from "./db.js";
@@ -842,7 +842,7 @@ app.post("/api/auth/register", authRegisterLimiter, async (req, res) => {
     const name = typeof req.body?.name === "string" ? req.body.name : "";
     const password = typeof req.body?.password === "string" ? req.body.password : "";
     const user = await createUser(email, name, password);
-    issueSession(res, user);
+    await issueSession(res, user);
     return res.status(201).json({ success: true, user });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Registration failed";
@@ -884,7 +884,8 @@ app.get("/api/auth/me", authMiddleware, (req, res) => {
   return res.json({ success: true, user: getAuthUser(req) });
 });
 
-app.post("/api/auth/logout", (_req, res) => {
+app.post("/api/auth/logout", async (req, res) => {
+  try { await revokeCurrentSession(req); } catch { return res.status(503).json({ success: false, error: "Could not revoke session." }); }
   clearSessionCookie(res);
   return res.json({ success: true });
 });
