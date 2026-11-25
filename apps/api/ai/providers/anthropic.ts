@@ -388,6 +388,7 @@ export class AnthropicProvider implements AIProvider {
       const decoder = new TextDecoder();
       let buffer = "", eventName = "", data = "";
       let inputTokens: number | undefined, outputTokens: number | undefined;
+      let finishReason: string | undefined, stopSequence: string | undefined;
       let resolvedModel = model, requestId: string | undefined;
       const tools = new Map<number, { id: string; name: string }>();
       const emit = (name: string, raw: string): import("../types.js").AIStreamEvent[] => {
@@ -411,11 +412,18 @@ export class AnthropicProvider implements AIProvider {
         }
         if (name === "message_delta") {
           if (validTokenCount(p.usage?.output_tokens)) outputTokens = p.usage.output_tokens;
-          if (typeof p.delta?.stop_reason === "string") return [{ type: "message_end", finishReason: p.delta.stop_reason, ...(typeof p.delta.stop_sequence === "string" ? { stopSequence: p.delta.stop_sequence } : {}) }];
+          if (typeof p.delta?.stop_reason === "string") finishReason = p.delta.stop_reason;
+          if (typeof p.delta?.stop_sequence === "string") stopSequence = p.delta.stop_sequence;
         }
-        if (name === "message_stop") { messageStopped = true; return [inputTokens !== undefined && outputTokens !== undefined
-          ? { type: "usage", usage: { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens }, source: "provider_reported" }
-          : { type: "usage", usage: {}, source: "unavailable" }]; }
+        if (name === "message_stop") {
+          messageStopped = true;
+          return [
+            inputTokens !== undefined && outputTokens !== undefined
+              ? { type: "usage", usage: { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens }, source: "provider_reported" }
+              : { type: "usage", usage: {}, source: "unavailable" },
+            { type: "message_end", ...(finishReason ? { finishReason } : {}), ...(stopSequence ? { stopSequence } : {}) },
+          ];
+        }
         if (name === "error") throw new Error("Anthropic stream returned an error event");
         return [];
       };
