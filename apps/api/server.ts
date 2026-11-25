@@ -35,6 +35,7 @@ import { agentFailureInjection, type AgentFailure } from "./agent/failureInjecti
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
 import { agentProfilesUseDatabase, createAgentProfile, deleteAgentProfile, listAgentProfiles } from "./agent/profileStore.js";
+import { agentDefinitionsUseDatabase, createAgentDefinition, deleteAgentDefinition, listAgentDefinitions, updateAgentDefinition, type AgentDefinitionInput, type AgentDefinitionPatch } from "./agent/agentDefinitionStore.js";
 
 
 const requestIds = new WeakMap<object, string>();
@@ -799,6 +800,7 @@ app.use("/api/projects", authMiddleware, projectLimiter);
 app.use("/api/chat", authMiddleware, chatLimiter);
 app.use("/api/agent/history", authMiddleware);
 app.use("/api/agent/profiles", authMiddleware);
+app.use("/api/agents", authMiddleware);
 app.use("/api/agent/diagnostics", authMiddleware);
 
 app.get("/api/ai/providers", authMiddleware, (req, res) => {
@@ -1489,6 +1491,105 @@ app.delete("/api/agent/profiles/:id", async (req, res) => {
     return res.json({ success: true });
   } catch (error) {
     return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Не удалось удалить профиль агента" });
+  }
+});
+
+function parseAgentDefinitionInput(body: Record<string, unknown>, partial = false): AgentDefinitionInput | AgentDefinitionPatch | null {
+  const result: Record<string, unknown> = {};
+  const fields = ["name", "description", "systemPrompt", "provider", "model", "allowedTools", "approvalPolicy", "status"] as const;
+  for (const field of fields) {
+    if (!(field in body)) continue;
+    const value = body[field];
+    if (field === "allowedTools") {
+      if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) return null;
+      result[field] = value;
+    } else if (field === "approvalPolicy") {
+      if (value !== "always" && value !== "writes" && value !== "autonomous") return null;
+      result[field] = value;
+    } else if (field === "status") {
+      if (value !== "active" && value !== "paused") return null;
+      result[field] = value;
+    } else if (field === "provider" || field === "model") {
+      if (value !== null && typeof value !== "string") return null;
+      if (typeof value === "string" && value.length > (field === "provider" ? 40 : 120)) return null;
+      result[field] = value;
+    } else {
+      if (typeof value !== "string") return null;
+      const max = field === "name" ? 48 : field === "description" ? 160 : 5000;
+      if (value.trim().length > max || (!partial && !value.trim() && field !== "description")) return null;
+      result[field] = value.trim();
+    }
+  }
+  if (!partial && (!("name" in result) || !("systemPrompt" in result) || !("allowedTools" in result))) return null;
+  if (!partial && !("approvalPolicy" in result)) result.approvalPolicy = "always";
+  if (!partial && !("status" in result)) result.status = "active";
+  if (!partial && !("description" in result)) result.description = "";
+  if (partial && !Object.keys(result).length) return null;
+  return result as AgentDefinitionInput | AgentDefinitionPatch;
+}
+
+app.get("/api/agents", async (req, res) => {
+  try {
+    const agents = await listAgentDefinitions(getAuthUser(req).id);
+    return res.json({
+      success: true,
+      storage: agentDefinitionsUseDatabase() ? "database" : "memory",
+      agents: agents.map(({ userId: _userId, ...agent }) => agent),
+    });
+  } catch (error) {
+    return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Не удалось загрузить агентов" });
+  }
+});
+
+app.post("/api/agents", aiWriteLimiter, async (req, res) => {
+  const parsed = parseAgentDefinitionInput(req.body as Record<string, unknown>);
+  if (!parsed || !("name" in parsed) || !("systemPrompt" in parsed) || !("allowedTools" in parsed)) {
+    return res.status(400).json({ success: false, error: "Проверьте название, системную инструкцию, список инструментов и параметры агента." });
+  }
+  try {
+    const agent = await createAgentDefinition(getAuthUser(req).id, parsed as AgentDefinitionInput);
+    const { userId: _userId, ...safeAgent } = agent;
+    return res.status(201).json({ success: true, agent: safeAgent, storage: agentDefinitionsUseDatabase() ? "database" : "memory" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Не удалось создать агента";
+    if (message.includes("уже существует") || (error as { code?: string })?.code === "23505") {
+      return res.status(409).json({ success: false, error: "Агент с таким названием уже существует." });
+    }
+    if (message.includes("security policy") || message.includes("инструмент")) {
+      return res.status(400).json({ success: false, error: message });
+    }
+    console.error("[КВАРД] Agent definition create failed", error);
+    return res.status(503).json({ success: false, error: message });
+  }
+});
+
+app.patch("/api/agents/:id", aiWriteLimiter, async (req, res) => {
+  const parsed = parseAgentDefinitionInput(req.body as Record<string, unknown>, true);
+  if (!parsed) return res.status(400).json({ success: false, error: "Нет допустимых полей для обновления агента." });
+  try {
+    const agent = await updateAgentDefinition(getAuthUser(req).id, req.params.id, parsed as AgentDefinitionPatch);
+    if (!agent) return res.status(404).json({ success: false, error: "Агент не найден." });
+    const { userId: _userId, ...safeAgent } = agent;
+    return res.json({ success: true, agent: safeAgent });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Не удалось обновить агента";
+    if (message.includes("уже существует") || (error as { code?: string })?.code === "23505") {
+      return res.status(409).json({ success: false, error: "Агент с таким названием уже существует." });
+    }
+    if (message.includes("security policy") || message.includes("инструмент")) {
+      return res.status(400).json({ success: false, error: message });
+    }
+    return res.status(503).json({ success: false, error: message });
+  }
+});
+
+app.delete("/api/agents/:id", async (req, res) => {
+  try {
+    const deleted = await deleteAgentDefinition(getAuthUser(req).id, req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, error: "Агент не найден." });
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Не удалось удалить агента" });
   }
 });
 
