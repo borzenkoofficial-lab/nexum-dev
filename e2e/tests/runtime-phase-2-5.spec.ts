@@ -493,6 +493,20 @@ test("responsive workspace, agents and Studio layouts stay within supported view
     expect(layout.bodyWidth, `Workspace body overflow at ${width}px`).toBeLessThanOrEqual(width);
     expect(layout.rootWidth, `Workspace root overflow at ${width}px`).toBeLessThanOrEqual(width);
 
+    if (width <= 390) {
+      const nav = page.locator(".kv-home-nav button");
+      await expect(nav).toHaveCount(5);
+      const navBounds = await nav.evaluateAll((items) => items.map((item) => {
+        const rect = item.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, width: rect.width };
+      }));
+      for (const item of navBounds) {
+        expect(item.width, `Workspace navigation item is collapsed at ${width}px`).toBeGreaterThan(0);
+        expect(item.left, `Workspace navigation item is outside the viewport at ${width}px`).toBeGreaterThanOrEqual(0);
+        expect(item.right, `Workspace navigation item is outside the viewport at ${width}px`).toBeLessThanOrEqual(width);
+      }
+    }
+
     if ([320, 390, 768, 1440].includes(width)) {
       await testInfo.attach(`workspace-${width}.png`, { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
     }
