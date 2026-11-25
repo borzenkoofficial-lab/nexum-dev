@@ -28,13 +28,16 @@ export function BuilderShell({
   onToolChange, onClose, onConnect, onShare, onOpenPreview, children,
 }: BuilderShellProps) {
   const building = Boolean(agentStage && !["completed", "error"].includes(agentStage));
+  const completed = agentStage === "completed";
   const status = agentStage === "error"
     ? "Требуется внимание"
     : building
       ? "Выполняется задача"
       : previewOnline
         ? "Предпросмотр доступен"
-        : "Ожидает сборки";
+        : completed
+          ? "Сборка завершена"
+          : "Ожидает сборки";
 
   return (
     <section className="nx-builder" aria-label={"КВАРД Studio — " + projectName}>
@@ -62,7 +65,7 @@ export function BuilderShell({
         </nav>
 
         <div className="nx-builder-header-actions">
-          <span className={"nx-builder-status " + (building ? "building" : agentStage === "error" ? "error" : previewOnline ? "live" : "")} role="status" aria-live="polite">
+          <span className={"nx-builder-status " + (building ? "building" : agentStage === "error" ? "error" : previewOnline ? "live" : completed ? "done" : "")} role="status" aria-live="polite">
             <i aria-hidden="true" />{status}
           </span>
           <button type="button" onClick={onConnect}>Интеграции</button>
