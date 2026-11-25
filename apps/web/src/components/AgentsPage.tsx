@@ -170,7 +170,7 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
     setAgentSaving(true);
     setAgentFormError("");
     try {
-      const payload = { name, description: agentDescription.trim(), systemPrompt, provider: agentProvider.trim() || null, model: agentModel.trim() || null, allowedTools: agentTools, approvalPolicy: agentApproval, status: "active" as const };
+      const payload = { name, description: agentDescription.trim(), systemPrompt, provider: agentProvider.trim() || null, model: agentModel.trim() || null, allowedTools: agentTools, approvalPolicy: agentApproval, ...(!editingAgentId ? { status: "active" as const } : {}) };
       const response = await fetch(editingAgentId ? `/api/agents/${encodeURIComponent(editingAgentId)}` : "/api/agents", {
         method: editingAgentId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
