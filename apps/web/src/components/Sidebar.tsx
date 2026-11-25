@@ -46,9 +46,9 @@ export function Sidebar({
         {sections.map((section) => (
           <button
             key={section.id}
-            className={view === section.id ? "nav-item active" : "nav-item"}
+            className={view === section.id || (view === "project" && section.id === "home") ? "nav-item active" : "nav-item"}
             type="button"
-            aria-current={view === section.id ? "page" : undefined}
+            aria-current={view === section.id || (view === "project" && section.id === "home") ? "page" : undefined}
             onClick={() => onViewChange(section.id)}
           >
             <b>{section.label}</b>
