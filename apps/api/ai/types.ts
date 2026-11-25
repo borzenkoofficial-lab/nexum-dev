@@ -129,3 +129,14 @@ export interface AIProviderStatus {
   latencyMs: number | null;
   error?: string;
 }
+
+
+export interface AIModelCatalogEntry {
+  provider: string;
+  configuredModel: string;
+  models: string[];
+  source: "provider_api" | "configured_fallback";
+  verified: boolean;
+  status: "available" | "empty" | "unavailable";
+  errorCode?: "catalog_not_supported" | "catalog_request_failed" | "catalog_empty";
+}
