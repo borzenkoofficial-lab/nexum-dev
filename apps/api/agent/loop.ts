@@ -591,7 +591,7 @@ export class AgentLoop {
         : needsInitialScaffold
           ? { tool: "scaffoldProject", input: task.trim() }
           : needsPostScaffoldListing
-            ? { tool: "listFiles", input: "." }
+            ? { tool: "listFiles", input: "./" }
             : needsPostScaffoldRead && postScaffoldEntryPath
               ? { tool: "readFile", input: postScaffoldEntryPath }
               : null;
