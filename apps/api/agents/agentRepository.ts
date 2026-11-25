@@ -28,11 +28,11 @@ export async function claimNextAgentRun(workerId:string,leaseMs=60000):Promise<C
     WITH exhausted AS (
       UPDATE agent_runs SET status='failed',finished_at=NOW(),lease_owner=NULL,lease_expires_at=NULL,
         error=jsonb_build_object('code','WORKER_LEASE_EXHAUSTED','message','Worker lease expired and the maximum delivery attempts were reached.')
-      WHERE status IN ('initializing','planning','running') AND lease_expires_at<=NOW() AND attempts>=max_attempts RETURNING id
+      WHERE status IN ('initializing','planning','running','waiting_approval') AND lease_expires_at<=NOW() AND attempts>=max_attempts RETURNING id
     ), candidate AS (
       SELECT id FROM agent_runs WHERE attempts<max_attempts AND (
         (status='queued' AND available_at<=NOW()) OR
-        (status IN ('initializing','planning','running') AND lease_expires_at<=NOW())
+        (status IN ('initializing','planning','running','waiting_approval') AND lease_expires_at<=NOW())
       ) ORDER BY available_at ASC,created_at ASC FOR UPDATE SKIP LOCKED LIMIT 1
     )
     UPDATE agent_runs AS run SET status='initializing',attempts=run.attempts+1,
