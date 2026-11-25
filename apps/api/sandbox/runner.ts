@@ -96,6 +96,21 @@ export async function releaseSandboxSession(taskId?: string): Promise<void> {
   }
 }
 
+export async function disposeAllSandboxSessions(): Promise<void> {
+  const pending = [...sessions.entries()];
+  sessions.clear();
+  await Promise.all(pending.map(async ([key, sessionPromise]) => {
+    try {
+      await (await sessionPromise).dispose();
+    } catch (error) {
+      console.error("[Nexum] Failed to dispose sandbox during shutdown", {
+        sessionKey: key,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }));
+}
+
 /** Test-only reset hook; not exposed through an HTTP route. */
 export async function resetSandboxRunnerForTests(): Promise<void> {
   const pending = [...sessions.values()];
