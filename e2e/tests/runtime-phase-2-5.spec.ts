@@ -495,7 +495,7 @@ test("responsive workspace, agents and Studio layouts stay within supported view
 
     if (width <= 390) {
       const nav = page.locator(".kv-home-nav button");
-      await expect(nav).toHaveCount(5);
+      await expect(nav).toHaveCount(6);
       const navBounds = await nav.evaluateAll((items) => items.map((item) => {
         const rect = item.getBoundingClientRect();
         return { left: rect.left, right: rect.right, width: rect.width };
