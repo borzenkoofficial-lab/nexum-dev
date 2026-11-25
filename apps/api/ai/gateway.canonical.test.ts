@@ -131,6 +131,8 @@ test("legacy string facade supports providers that implement only the canonical 
     id: "native-only",
     name: "Native-only provider",
     model: "native-model",
+    protocol: "test-canonical",
+    adapterVersion: "1.0.0",
     capabilities: {
       text: true,
       code: false,
