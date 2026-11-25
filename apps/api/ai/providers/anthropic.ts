@@ -35,8 +35,21 @@ interface AnthropicResponse {
   };
 }
 
+interface AnthropicModelInfo {
+  id?: string;
+  lifecycle?: "active" | "deprecated" | "retired";
+  max_input_tokens?: number | null;
+  max_tokens?: number | null;
+  capabilities?: {
+    image_input?: { supported?: boolean };
+    structured_outputs?: { supported?: boolean };
+    thinking?: { supported?: boolean };
+    tool_use?: { supported?: boolean };
+  } | null;
+}
+
 interface AnthropicModelsResponse {
-  data?: Array<{ id?: string }>;
+  data?: AnthropicModelInfo[];
   has_more?: boolean;
   last_id?: string | null;
 }
@@ -88,8 +101,8 @@ export class AnthropicProvider implements AIProvider {
   adapterVersion = "2.0.0";
   model: string;
   capabilities = {
-    text: true,
-    code: true,
+    text: "unknown",
+    code: "unknown",
     vision: "unknown",
     toolCalling: "unknown",
     streaming: false,
@@ -97,6 +110,7 @@ export class AnthropicProvider implements AIProvider {
     reasoning: "unknown",
     contextWindow: null,
   } as const;
+  private readonly modelInfo = new Map<string, AnthropicModelInfo>();
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly apiVersion: string;
@@ -118,16 +132,19 @@ export class AnthropicProvider implements AIProvider {
   }
 
   getCapabilities(model = this.model): AIModelCapabilities {
-    const isClaudeModel = /^claude-/i.test(model);
+    const info = this.modelInfo.get(model);
+    const active = info?.lifecycle === "active";
+    const capability = (value: { supported?: boolean } | undefined): boolean | "unknown" =>
+      value?.supported === true ? true : value?.supported === false ? false : "unknown";
     return {
-      text: isClaudeModel,
-      code: isClaudeModel,
-      vision: "unknown",
-      toolCalling: "unknown",
+      text: active ? true : "unknown",
+      code: active ? true : "unknown",
+      vision: capability(info?.capabilities?.image_input),
+      toolCalling: capability(info?.capabilities?.tool_use),
       streaming: false,
-      structuredOutput: "unknown",
-      reasoning: "unknown",
-      contextWindow: null,
+      structuredOutput: capability(info?.capabilities?.structured_outputs),
+      reasoning: capability(info?.capabilities?.thinking),
+      contextWindow: validTokenCount(info?.max_input_tokens) ? info.max_input_tokens : null,
     };
   }
 
@@ -315,14 +332,32 @@ export class AnthropicProvider implements AIProvider {
 
   async listModels(signal?: AbortSignal): Promise<string[]> {
     if (!this.runtimeApiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
-    const data = await this.request<AnthropicModelsResponse>("/models?limit=1000", {
-      method: "GET",
-      ...(signal ? { signal } : {}),
-    });
-    const ids = (data.data ?? [])
-      .map((item) => item.id)
-      .filter((id): id is string => typeof id === "string" && /^claude-/i.test(id));
-    return [...new Set(ids)];
+    const discovered = new Map<string, AnthropicModelInfo>();
+    let cursor: string | null = null;
+    const maxPages = 20;
+    for (let page = 0; page < maxPages; page += 1) {
+      const params = new URLSearchParams({ lifecycle: "active", limit: "1000" });
+      if (cursor) params.set("after_id", cursor);
+      const data = await this.request<AnthropicModelsResponse>(`/models?${params.toString()}`, {
+        method: "GET",
+        ...(signal ? { signal } : {}),
+      });
+      for (const item of data.data ?? []) {
+        if (typeof item.id === "string" && /^claude-/i.test(item.id) && item.lifecycle === "active") {
+          discovered.set(item.id, item);
+        }
+      }
+      if (!data.has_more) {
+        this.modelInfo.clear();
+        for (const [id, info] of discovered) this.modelInfo.set(id, info);
+        return [...discovered.keys()];
+      }
+      if (!data.last_id || data.last_id === cursor) {
+        throw new Error("Anthropic model catalog pagination returned an invalid cursor");
+      }
+      cursor = data.last_id;
+    }
+    throw new Error("Anthropic model catalog exceeded the safe pagination limit");
   }
 
   async getStatus(model = this.model, signal?: AbortSignal): Promise<AIProviderStatus> {
