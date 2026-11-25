@@ -321,8 +321,8 @@ test("sandbox runner rejects new work after shutdown begins", async () => {
   await disposeAllSandboxSessions();
   let createCalls = 0;
   setSandboxProviderForTests({ create: async () => { createCalls += 1; return fakeSession(); } });
-  await assert.rejects(
-    runInConfiguredSandbox(process.cwd(), { projectPath: process.cwd(), command: "npm run build" }),
+  assert.throws(
+    () => runInConfiguredSandbox(process.cwd(), { projectPath: process.cwd(), command: "npm run build" }),
     /shutting down/i,
   );
   assert.equal(createCalls, 0);
