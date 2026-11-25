@@ -451,3 +451,9 @@
 - Usage содержит cache-read и cache-creation token dimensions. Важно: migration `010_usage_billing.sql` пока не сохраняет эти измерения, provider request ID и usage source. Полноценная стоимость/settlement остаются блокером до расширения usage ledger и idempotent reconciliation.
 - Dedicated workflow `45712044538` passed на commit `04ef04e1283c`: API typecheck passed, 93/93 focused AI provider contract tests passed.
 - Full NEXUM CI для этого этапа ещё pending; live provider credentials, paid requests и production deploy не использовались.
+
+
+### AI Provider compatibility — implementation journal
+
+- 2026-11-26 — Anthropic native adapter authentication corrected to the official API key header (`x-api-key`); regression test now asserts `x-api-key` is present and `Authorization` is absent. Commits: `9e616028e947e118ea8e3b847a5527aa019e18d4`, `3dc6ea4a7a4398d29d5aedd82d13b8883156e1a9`. This is a source-level correction; live provider verification is not claimed because no provider credential/sandbox request was used.
+- CI limitation: Vercel check reported `build-rate-limit`; no successful Vercel build is claimed for these commits. GitHub Actions run association was not returned for the commit at the time of inspection.
