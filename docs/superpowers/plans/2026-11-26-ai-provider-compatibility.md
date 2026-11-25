@@ -141,3 +141,10 @@
 - Tightened usage normalization: token counts must be non-negative integers; absent/malformed/contradictory usage is unavailable; estimated stays estimated.
 - Extended credential redaction to typed NexumError userSafeMessage and technicalDetails.
 - Dedicated workflow `45705690934` passed on `53e0be5392fce43a3b623623ab63aa32022d9891`: API typecheck passed; 241/241 API tests passed.
+
+
+### Capability certainty verification — 2026-11-26
+
+- Added `AIModelCapabilityValue = boolean | "unknown"` so adapter authors can represent capabilities they cannot verify.
+- Gateway fails closed: only explicit `true` satisfies a requested capability. Model-selection requirements remain boolean-only.
+- Dedicated workflow `45706535742` passed on `d9d2c03b5de7a7800df5972e96d91ea185d5b4d3`: API typecheck passed; 242/242 API tests passed.
