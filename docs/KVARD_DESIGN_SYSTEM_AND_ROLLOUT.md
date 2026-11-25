@@ -1,6 +1,6 @@
 # КВАРД — единая пользовательская дизайн-система и план внедрения
 
-**Статус:** аудит и спецификация; код интерфейса не изменялся  
+**Статус:** аудит завершён; первый брендовый этап внедрён; UI Kit и browser visual QA ещё впереди  
 **Дата проверки:** 26 ноября 2026  
 **Проверенная ветка:** \`main\`  
 **Проверенный HEAD:** \`96ded2b09890bfea300febc947a95af6e8d398e1\`  
@@ -8,6 +8,17 @@
 **Область:** только пользовательский продукт
 
 Этот документ сводит результаты статического аудита, действующие UX-спецификации и утверждённые визуальные решения в один рабочий стандарт для последующей реализации. Он не означает, что все описанные состояния уже реализованы или проверены в браузере.
+
+## Implementation progress — 26 November 2026
+
+- [x] Added the shared `KvardMark` React SVG component using the existing favicon geometry and semantic brand tokens.
+- [x] Migrated Sidebar, Welcome, OSSystemChrome, BuilderShell, OSDesktop, BuilderChat and BuilderHome to the shared mark.
+- [x] Removed duplicate letter tiles and the CSS-generated Welcome mark.
+- [x] Added four focused brand tests and a dedicated CI step.
+- [x] CI verified the focused brand tests and Web build. A full green pipeline is not claimed: the latest run contains unrelated API-test and runtime E2E failures.
+- [ ] Browser visual QA, real screenshots, clear-space and light/dark responsive inspection remain open.
+- [ ] Next implementation phase: shared UI Kit primitives, starting with Button, Field and Status patterns.
+
 
 ---
 
