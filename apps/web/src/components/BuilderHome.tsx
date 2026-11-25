@@ -33,18 +33,14 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
     <section className="builder-home kv-home">
       <a className="kv-skip-link" href="#kv-home-content">Перейти к содержимому</a>
       <div className="kv-home-workspace">
-        <header className="kv-home-topbar">
-          <div className="kv-home-breadcrumb"><span>Рабочая среда</span><i>/</i><strong>Обзор</strong></div>
-        </header>
-
         <section className="kv-home-content" id="kv-home-content" aria-label="Обзор">
           <div className="kv-home-heading">
-            <div><p className="kv-home-eyebrow">КВАРД / WORKSPACE</p><h1>Рабочая среда</h1><p>Создавайте цифровые продукты и управляйте разработкой в одном месте.</p></div>
+            <div><h1>Рабочая среда</h1><p>Создавайте цифровые продукты и управляйте разработкой в одном месте.</p></div>
             <div className="kv-home-project-count"><strong>{projects.length}</strong><span>проектов</span></div>
           </div>
 
           <section className="kv-home-create-section" aria-labelledby="kv-home-create-title">
-            <div className="kv-home-section-title"><div><span>НОВАЯ ЗАДАЧА</span><h2 id="kv-home-create-title">Что будем создавать?</h2></div><small>Опишите результат — детали проработает агент</small></div>
+            <div className="kv-home-section-title"><h2 id="kv-home-create-title">Что будем создавать?</h2></div>
             <div className="builder-home-composer kv-home-composer">
               <textarea
                 aria-label="Опишите, что нужно создать"
@@ -60,17 +56,16 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
               />
               <div className="builder-home-composer-footer">
                 <span><kbd>Ctrl</kbd><kbd>Enter</kbd> для запуска</span>
-                <button type="button" onClick={createFromBrief} disabled={!brief.trim()}>Начать создание <span aria-hidden="true">↗</span></button>
+                <button type="button" onClick={createFromBrief} disabled={!brief.trim()}>Создать проект <span aria-hidden="true">↗</span></button>
               </div>
             </div>
             <div className="kv-home-starters" aria-label="Шаблоны задач">
-              <span>БЫСТРЫЙ СТАРТ</span>
               {starters.map((starter) => <button key={starter.label} type="button" onClick={() => setPrompt(starter.prompt)}>{starter.label}<span aria-hidden="true">↗</span></button>)}
             </div>
           </section>
 
           <section className="kv-home-recent" aria-labelledby="kv-home-recent-title">
-            <div className="kv-home-section-title"><div><span>ВАША РАБОТА</span><h2 id="kv-home-recent-title">Последние проекты</h2></div><small>{projects.length ? `Всего: ${projects.length}` : "Пока нет проектов"}</small></div>
+            <div className="kv-home-section-title"><h2 id="kv-home-recent-title">Последние проекты</h2></div>
             {recent.length ? (
               <div className="kv-home-project-list">
                 {recent.map((project) => (
@@ -84,8 +79,8 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
             ) : (
               <div className="kv-home-empty">
                 <span className="kv-home-empty-mark">К</span>
-                <div><strong>Ваше первое рабочее пространство начинается здесь</strong><p>Опишите задачу выше. КВАРД создаст проект и откроет среду разработки.</p></div>
-                <button type="button" onClick={() => document.querySelector<HTMLTextAreaElement>(".kv-home-composer textarea")?.focus()}>Описать проект</button>
+                <div><strong>Пока нет проектов</strong><p>Опишите задачу выше, чтобы создать первый проект.</p></div>
+                <button type="button" onClick={() => document.querySelector<HTMLTextAreaElement>(".kv-home-composer textarea")?.focus()}>К описанию</button>
               </div>
             )}
           </section>
