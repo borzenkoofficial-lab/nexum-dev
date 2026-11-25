@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import { query } from "../db.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const migration = await readFile(resolve(here, "migrations/001_auth.sql"), "utf8");
-await query(migration);
-console.log("[Nexum] Auth database migration applied.");
+for (const file of ["001_auth.sql", "002_agent_profiles.sql"]) {
+  const migration = await readFile(resolve(here, "migrations", file), "utf8");
+  await query(migration);
+  console.log(`[КВАРД] Database migration applied: ${file}`);
+}
