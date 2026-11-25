@@ -5,6 +5,8 @@ import { join, posix } from "node:path";
 import { test } from "node:test";
 import { Readable } from "node:stream";
 import { DaytonaSandboxProvider, collectWorkspaceFiles, type DaytonaClientLike } from "./daytonaSandbox.js";
+import { disposeAllSandboxSessions, releaseSandboxSession, resetSandboxRunnerForTests, runInConfiguredSandbox, setSandboxProviderForTests } from "./runner.js";
+import type { SandboxProvider, SandboxSession } from "./provider.js";
 
 test("workspace staging excludes secrets, dependencies, build output and symlinks", async () => {
   const root = await mkdtemp(join(tmpdir(), "nexum-daytona-stage-"));
@@ -244,4 +246,85 @@ test("abort signal stops the remote sandbox command", async () => {
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
+}
+
+function fakeSession(onDispose: () => Promise<void> | void = () => undefined): SandboxSession {
+  return {
+    run: async (request) => ({ success: true, exitCode: 0, stdout: request.command, stderr: "", durationMs: 1, command: request.command }),
+    getPreviewUrl: async () => "https://preview.example.test",
+    dispose: async () => { await onDispose(); },
+  };
+}
+
+test("shutdown waits for an in-flight one-shot sandbox create and its cleanup", async () => {
+  await resetSandboxRunnerForTests();
+  const createGate = deferred<SandboxSession>();
+  const disposeGate = deferred<void>();
+  let disposeCalls = 0;
+  const provider: SandboxProvider = { create: async () => createGate.promise };
+  setSandboxProviderForTests(provider);
+  const root = process.cwd();
+  const operation = runInConfiguredSandbox(root, { projectPath: root, command: "npm run build" });
+  let operationSettled = false;
+  void operation.then(() => { operationSettled = true; }, () => { operationSettled = true; });
+  const shutdown = disposeAllSandboxSessions();
+  let shutdownSettled = false;
+  void shutdown.then(() => { shutdownSettled = true; });
+  await Promise.resolve();
+  assert.equal(shutdownSettled, false, "shutdown must wait for sandbox creation already in progress");
+  createGate.resolve(fakeSession(async () => { disposeCalls += 1; await disposeGate.promise; }));
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(disposeCalls, 1);
+  assert.equal(operationSettled, false, "the one-shot caller must await cleanup");
+  assert.equal(shutdownSettled, false, "shutdown must await one-shot cleanup");
+  disposeGate.resolve();
+  await assert.rejects(operation, /shutting down/i);
+  await shutdown;
+  assert.equal(disposeCalls, 1);
+  await resetSandboxRunnerForTests();
+});
+
+test("shutdown waits for a task-session release already in progress", async () => {
+  await resetSandboxRunnerForTests();
+  const createGate = deferred<SandboxSession>();
+  let disposeCalls = 0;
+  const provider: SandboxProvider = { create: async () => createGate.promise };
+  setSandboxProviderForTests(provider);
+  const root = process.cwd();
+  const operation = runInConfiguredSandbox(root, { projectPath: root, command: "npm run build" }, undefined, { taskId: "shutdown-race-task" });
+  const release = releaseSandboxSession("shutdown-race-task");
+  let releaseSettled = false;
+  void release.then(() => { releaseSettled = true; });
+  const shutdown = disposeAllSandboxSessions();
+  let shutdownSettled = false;
+  void shutdown.then(() => { shutdownSettled = true; });
+  createGate.resolve(fakeSession(() => { disposeCalls += 1; }));
+  await assert.rejects(operation, /shutting down/i);
+  await Promise.all([release, shutdown]);
+  assert.equal(releaseSettled, true);
+  assert.equal(shutdownSettled, true);
+  assert.equal(disposeCalls, 1);
+  await resetSandboxRunnerForTests();
+});
+
+test("sandbox runner rejects new work after shutdown begins", async () => {
+  await resetSandboxRunnerForTests();
+  await disposeAllSandboxSessions();
+  let createCalls = 0;
+  setSandboxProviderForTests({ create: async () => { createCalls += 1; return fakeSession(); } });
+  await assert.rejects(
+    runInConfiguredSandbox(process.cwd(), { projectPath: process.cwd(), command: "npm run build" }),
+    /shutting down/i,
+  );
+  assert.equal(createCalls, 0);
+  await resetSandboxRunnerForTests();
 });
