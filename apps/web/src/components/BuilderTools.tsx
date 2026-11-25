@@ -184,7 +184,7 @@ export function BuilderTools(p: Props) {
     <section className="nx-tool nx-agent" aria-label="Ход выполнения AI-агента">
       <div className="nx-tool-head">
         <div><span>AI-АГЕНТ</span><strong>{live ? "Выполняет задачу" : p.stage === "completed" ? "Задача выполнена" : p.stage === "error" ? "Задача остановлена с ошибкой" : "Готов к работе"}</strong></div>
-        <span className={"nx-agent-state " + (live ? "live" : "")} role="status" aria-live="polite">{live ? "Работает" : p.stage === "error" ? "Ошибка" : p.stage === "completed" ? "Завершено" : "Ожидание"}</span>
+        <span className={"nx-agent-state " + (live ? "live" : p.stage === "error" ? "error" : p.stage === "completed" ? "done" : "")} role="status" aria-live="polite">{live ? "Работает" : p.stage === "error" ? "Ошибка" : p.stage === "completed" ? "Завершено" : "Ожидание"}</span>
       </div>
 
       <div className="nx-run">
