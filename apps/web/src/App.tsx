@@ -1257,7 +1257,7 @@ function App() {
                 activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity}
                 problems={problems} productPlan={productPlan}
                 onTabChange={(tab) => { setRightTab(tab); setProjectMode(tab); }}
-                onRefresh={() => setПредпросмотрKey((key) => key + 1)} onRepair={repairLastTask} onOpenChat={() => { setProjectMode("preview"); }}
+                onRefresh={() => setПредпросмотрKey((key) => key + 1)} onRepair={repairLastTask} onOpenAgent={() => { setProjectMode("agent"); }}
               />
             </div>
           )}
