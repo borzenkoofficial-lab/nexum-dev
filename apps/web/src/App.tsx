@@ -716,6 +716,8 @@ function App() {
               success?: boolean;
               job?: {
                 status?: "queued" | "running" | "completed" | "failed" | "cancelled";
+                projectId?: string;
+                pendingApproval?: AgentApprovalView;
                 stage?: string;
                 reply?: string | null;
                 steps?: Array<{ iteration: number; tool: string; success: boolean }>;
@@ -1323,6 +1325,14 @@ function App() {
           }}
           onOpenPreview={() => { window.open("/api/preview/" + activeПроектId + "/index.html", "_blank", "noopener,noreferrer"); setNotice("Предпросмотр открыт в новой вкладке"); }}
         >
+          {pendingApproval && pendingApprovalProjectId === activeПроектId && (
+            <AgentApprovalPanel
+              approval={pendingApproval}
+              loading={approvalActionLoading}
+              error={approvalActionError}
+              onDecision={(decision) => void decideAgentApproval(decision)}
+            />
+          )}
           {codeMode ? (
             <BuilderCode projectId={activeПроектId} projectName={activeПроект?.name ?? "КВАРД"} previewOnline={previewOnline}
               onRefresh={() => setПредпросмотрKey((key) => key + 1)} onClose={() => { setCodeMode(false); setProjectMode("files"); }} />
