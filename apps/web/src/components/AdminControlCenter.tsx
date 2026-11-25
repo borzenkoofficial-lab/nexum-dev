@@ -32,7 +32,8 @@ export function AdminControlCenter() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [organizations, setOrganizations] = useState<OrganizationRow[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
-  const [directorySearch, setDirectorySearch] = useState("");\n  const [suspensionReason, setSuspensionReason] = useState("");
+  const [directorySearch, setDirectorySearch] = useState("");
+  const [suspensionReason, setSuspensionReason] = useState("");
   const [selectedOrganization, setSelectedOrganization] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
