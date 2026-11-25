@@ -5,6 +5,8 @@ type Job = { id: string; status: string; createdAt: number; updatedAt: number; e
 type HistoryEntry = { timestamp?: string; type?: string; jobId?: string; projectId?: string; provider?: string; model?: string; status?: string; message?: string; tool?: string };
 type Diagnostics = { jobs?: Job[]; recent?: HistoryEntry[]; failureCount?: number; generatedAt?: string };
 type Profile = { id: string; name: string; description: string; prompt: string; kind: string; custom?: boolean };
+type AgentDefinition = { id: string; name: string; description: string; systemPrompt: string; provider: string | null; model: string | null; allowedTools: string[]; approvalPolicy: "always" | "writes" | "autonomous"; status: "active" | "paused"; createdAt: number; updatedAt: number };
+const availableAgentTools = [{ id: "listFiles", label: "Список файлов" }, { id: "readFile", label: "Чтение файлов" }, { id: "searchFiles", label: "Поиск по проекту" }, { id: "git", label: "Git" }, { id: "github", label: "GitHub" }, { id: "validateProject", label: "Проверка проекта" }, { id: "testProject", label: "Запуск тестов" }, { id: "writeFile", label: "Создание файлов" }, { id: "patchFile", label: "Изменение файлов" }, { id: "scaffoldProject", label: "Создание структуры" }, { id: "runCommand", label: "Команды" }, { id: "runSandbox", label: "Изолированная среда" }];
 const builtInProfiles: Profile[] = [
   { id: "builder", name: "Разработчик", description: "Проектирует и реализует функции в существующем проекте.", kind: "Разработка", prompt: "Работай как ведущий full-stack разработчик. Изучи структуру проекта и существующие соглашения, затем спланируй и реализуй задачу. Сохраняй совместимость API и текущего поведения. Добавь или обнови тесты, запусти проверки и сообщи точные результаты. Не заявляй о выполнении непроверенных действий." },
   { id: "auditor", name: "Технический аудитор", description: "Проверяет архитектуру, безопасность, качество кода и риски.", kind: "Анализ", prompt: "Проведи технический аудит проекта. Изучи архитектуру, зависимости, безопасность, обработку ошибок, производительность и тестовое покрытие. Сначала зафиксируй подтверждённые проблемы с файлами и строками, затем исправь критичные дефекты, если это безопасно. Запусти релевантные проверки и отдели найденные факты от предположений." },
@@ -43,6 +45,21 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
   const [profilePrompt, setProfilePrompt] = useState("");
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
+  const [agents, setAgents] = useState<AgentDefinition[]>([]);
+  const [agentsStorage, setAgentsStorage] = useState<"database" | "memory" | "unknown">("unknown");
+  const [agentsLoading, setAgentsLoading] = useState(true);
+  const [agentsError, setAgentsError] = useState("");
+  const [agentFormOpen, setAgentFormOpen] = useState(false);
+  const [editingAgentId, setEditingAgentId] = useState("");
+  const [agentName, setAgentName] = useState("");
+  const [agentDescription, setAgentDescription] = useState("");
+  const [agentPrompt, setAgentPrompt] = useState("");
+  const [agentProvider, setAgentProvider] = useState("");
+  const [agentModel, setAgentModel] = useState("");
+  const [agentTools, setAgentTools] = useState<string[]>([]);
+  const [agentApproval, setAgentApproval] = useState<AgentDefinition["approvalPolicy"]>("always");
+  const [agentFormError, setAgentFormError] = useState("");
+  const [agentSaving, setAgentSaving] = useState(false);
 
   useEffect(() => {
     if (!projects.some((item) => item.id === selectedProject && item.status === "active")) {
@@ -84,6 +101,24 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
 
   useEffect(() => { void loadProfiles(); }, [loadProfiles]);
 
+  const loadAgents = useCallback(async () => {
+    setAgentsLoading(true);
+    setAgentsError("");
+    try {
+      const response = await fetch("/api/agents");
+      const data = await response.json() as { agents?: AgentDefinition[]; storage?: "database" | "memory"; error?: string };
+      if (!response.ok) throw new Error(data.error || `Не удалось загрузить агентов: HTTP ${response.status}`);
+      setAgents(data.agents ?? []);
+      setAgentsStorage(data.storage ?? "unknown");
+    } catch (error) {
+      setAgentsError(error instanceof Error ? error.message : "Не удалось загрузить агентов");
+    } finally {
+      setAgentsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadAgents(); }, [loadAgents]);
+
   const jobs = diagnostics.jobs ?? [];
   const activeJobs = jobs.filter((job) => job.status === "queued" || job.status === "running");
   const recentEvents = useMemo(() => (diagnostics.recent ?? []).filter((event) => event.type === "job-started" || event.type === "job-completed" || event.type === "job-failed" || event.type === "agent-event").slice(-8).reverse(), [diagnostics.recent]);
@@ -112,6 +147,73 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
       setFormError(error instanceof Error ? error.message : "Не удалось сохранить профиль.");
     } finally {
       setProfileSaving(false);
+    }
+  }
+
+  function openAgentForm(agent?: AgentDefinition) {
+    setEditingAgentId(agent?.id ?? "");
+    setAgentName(agent?.name ?? "");
+    setAgentDescription(agent?.description ?? "");
+    setAgentPrompt(agent?.systemPrompt ?? "");
+    setAgentProvider(agent?.provider ?? "");
+    setAgentModel(agent?.model ?? "");
+    setAgentTools(agent?.allowedTools ?? []);
+    setAgentApproval(agent?.approvalPolicy ?? "always");
+    setAgentFormError("");
+    setAgentFormOpen(true);
+  }
+
+  async function saveAgent() {
+    const name = agentName.trim();
+    const systemPrompt = agentPrompt.trim();
+    if (!name || !systemPrompt) { setAgentFormError("Укажите название и системную инструкцию."); return; }
+    setAgentSaving(true);
+    setAgentFormError("");
+    try {
+      const payload = { name, description: agentDescription.trim(), systemPrompt, provider: agentProvider.trim() || null, model: agentModel.trim() || null, allowedTools: agentTools, approvalPolicy: agentApproval, status: "active" as const };
+      const response = await fetch(editingAgentId ? `/api/agents/${encodeURIComponent(editingAgentId)}` : "/api/agents", {
+        method: editingAgentId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json() as { agent?: AgentDefinition; storage?: "database" | "memory"; error?: string };
+      if (!response.ok || !data.agent) throw new Error(data.error || `Не удалось сохранить агента: HTTP ${response.status}`);
+      setAgents((items) => editingAgentId ? items.map((item) => item.id === data.agent!.id ? data.agent! : item) : [data.agent!, ...items]);
+      if (data.storage) setAgentsStorage(data.storage);
+      setAgentFormOpen(false);
+      setNotice(editingAgentId ? "Настройки агента обновлены." : "Агент сохранён.");
+    } catch (error) {
+      setAgentFormError(error instanceof Error ? error.message : "Не удалось сохранить агента.");
+    } finally {
+      setAgentSaving(false);
+    }
+  }
+
+  async function toggleAgent(agent: AgentDefinition) {
+    try {
+      const response = await fetch(`/api/agents/${encodeURIComponent(agent.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: agent.status === "active" ? "paused" : "active" }),
+      });
+      const data = await response.json() as { agent?: AgentDefinition; error?: string };
+      if (!response.ok || !data.agent) throw new Error(data.error || "Не удалось изменить статус агента.");
+      setAgents((items) => items.map((item) => item.id === agent.id ? data.agent! : item));
+    } catch (error) {
+      setAgentsError(error instanceof Error ? error.message : "Не удалось изменить статус агента.");
+    }
+  }
+
+  async function removeAgent(agent: AgentDefinition) {
+    if (!window.confirm(`Удалить агента «${agent.name}»?`)) return;
+    try {
+      const response = await fetch(`/api/agents/${encodeURIComponent(agent.id)}`, { method: "DELETE" });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(data.error || "Не удалось удалить агента.");
+      setAgents((items) => items.filter((item) => item.id !== agent.id));
+      setNotice("Агент удалён.");
+    } catch (error) {
+      setAgentsError(error instanceof Error ? error.message : "Не удалось удалить агента.");
     }
   }
 
@@ -166,6 +268,30 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
           </article>)}
         </div>
         {!projects.some((item) => item.status === "active") && <div className="kv-agents-empty-project"><span>Нет активного проекта</span><button type="button" onClick={() => onCreateProject("Создай новый проект. Я хочу использовать в нём профиль AI-агента и запускать задачи по собственным инструкциям.")}>Создать проект</button></div>}
+      </section>
+
+      <section className="kv-agents-profiles" aria-labelledby="kv-agent-definitions-title">
+        <div className="kv-agents-section-head"><div><span>AGENT CONTROL</span><h2 id="kv-agent-definitions-title">Мои AI-агенты</h2><p>Постоянные конфигурации с отдельными инструкциями и списком разрешённых инструментов.</p></div><button type="button" className="kv-agents-create" onClick={() => openAgentForm()}>＋ Создать агента</button></div>
+        <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Текущий этап.</strong> Конфигурации уже сохраняются на сервере. Расписания, триггеры и самостоятельный запуск ещё не подключены; политика подтверждений и список инструментов пока являются настройками, а не исполняемыми ограничениями Runtime.</p></div>
+        {agentsStorage === "memory" && <p className="kv-agents-storage-warning">База данных не подключена: агенты будут потеряны после перезапуска сервера.</p>}
+        {agentsStorage === "database" && <p className="kv-agents-storage-ok">Конфигурации агентов хранятся в базе данных аккаунта.</p>}
+        {agentsError && <div className="kv-agents-error" role="alert">{agentsError} <button type="button" onClick={() => void loadAgents()}>Повторить</button></div>}
+        {agentFormOpen && <form className="kv-agents-form" onSubmit={(event) => { event.preventDefault(); void saveAgent(); }}>
+          <div className="kv-agents-form-head"><div><strong>{editingAgentId ? "Настройки агента" : "Новый AI-агент"}</strong><small>Системная инструкция, модель и разрешённые инструменты</small></div><button type="button" aria-label="Закрыть форму" onClick={() => setAgentFormOpen(false)}>×</button></div>
+          <label>Название<input value={agentName} onChange={(event) => setAgentName(event.target.value)} maxLength={48} required placeholder="Например, Агент отдела продаж" /></label>
+          <label>Описание<input value={agentDescription} onChange={(event) => setAgentDescription(event.target.value)} maxLength={160} placeholder="Назначение агента" /></label>
+          <label>Системная инструкция<textarea value={agentPrompt} onChange={(event) => setAgentPrompt(event.target.value)} maxLength={5000} rows={5} required placeholder="Роль, задачи, правила и ограничения агента…" /></label>
+          <div className="kv-agents-launchbar"><label>Провайдер (необязательно)<input value={agentProvider} onChange={(event) => setAgentProvider(event.target.value)} maxLength={40} placeholder="Например, openai" /></label><label>Модель (необязательно)<input value={agentModel} onChange={(event) => setAgentModel(event.target.value)} maxLength={120} placeholder="Например, gpt-…" /></label></div>
+          <label>Политика подтверждения<select value={agentApproval} onChange={(event) => setAgentApproval(event.target.value as AgentDefinition["approvalPolicy"])}><option value="always">Подтверждать каждое действие</option><option value="writes">Подтверждать изменения</option><option value="autonomous">Автономный режим (пока не активен)</option></select></label>
+          <fieldset className="kv-agents-tool-picker"><legend>Разрешённые инструменты</legend><div>{availableAgentTools.map((tool) => <label key={tool.id}><input type="checkbox" checked={agentTools.includes(tool.id)} onChange={(event) => setAgentTools((items) => event.target.checked ? [...items, tool.id] : items.filter((item) => item !== tool.id))} />{tool.label}</label>)}</div></fieldset>
+          {agentFormError && <p className="kv-agents-form-error" role="alert">{agentFormError}</p>}
+          <div className="kv-agents-form-footer"><span>{agentTools.length}/32 инструментов</span><button type="submit" className="kv-agents-primary" disabled={agentSaving}>{agentSaving ? "Сохраняю…" : "Сохранить агента"}</button></div>
+        </form>}
+        {agentsLoading ? <p className="kv-agents-empty">Загружаю конфигурации агентов…</p> : agents.length ? <div className="kv-agents-profile-list">{agents.map((agent) => <article className="kv-agents-profile" key={agent.id}>
+          <div className="kv-agents-profile-mark" aria-hidden="true">A</div>
+          <div className="kv-agents-profile-copy"><div className="kv-agents-profile-meta"><span>{agent.provider || "Провайдер по умолчанию"}</span><b>{agent.status === "active" ? "АКТИВЕН" : "ПРИОСТАНОВЛЕН"}</b></div><h3>{agent.name}</h3><p>{agent.description || "Без описания"} · {agent.allowedTools.length} инструментов · {agent.approvalPolicy === "always" ? "подтверждение всех действий" : agent.approvalPolicy === "writes" ? "подтверждение изменений" : "автономная политика"}</p></div>
+          <div className="kv-agents-profile-actions"><button type="button" className="kv-agents-use" onClick={() => openAgentForm(agent)}>Настроить</button><button type="button" className="kv-agents-delete" onClick={() => void toggleAgent(agent)}>{agent.status === "active" ? "Пауза" : "Активировать"}</button><button type="button" className="kv-agents-delete" onClick={() => void removeAgent(agent)}>Удалить</button></div>
+        </article>)}</div> : <p className="kv-agents-empty">Пока нет созданных агентов. Создайте первого и сохраните его конфигурацию.</p>}
       </section>
 
       <section className="kv-agents-runtime" aria-labelledby="kv-agents-runtime-title">
