@@ -9,7 +9,7 @@ import { OpenAIProvider } from "../ai/providers/openai.js";
 import { AnthropicProvider } from "../ai/providers/anthropic.js";
 import { OrcaRouterProvider } from "../ai/providers/orcarouter.js";
 import {
-  claimNextAgentRun, getAgentVersionForRun, renewAgentRunLease, releaseAgentRunLease, updateRun, addRunEvent,
+  claimNextAgentRun, getAgentVersionForRun, getRun, renewAgentRunLease, releaseAgentRunLease, updateRun, addRunEvent,
 } from "./agentRepository.js";
 import { AgentRuntime } from "./agentRuntime.js";
 import { recordAgentRunUsage } from "../billing/quotaService.js";
@@ -72,9 +72,13 @@ async function processOne(): Promise<boolean> {
     await runtime.execute(
       agent as never, claimed.id, claimed.created_by, claimed.input, controller.signal, workerId,
     );
-    await recordAgentRunUsage(claimed.id).catch((error) => {
-      console.error("[NEXUM worker] usage recording failed", { runId: claimed.id, error });
-    });
+    const persistedRun = await getRun(claimed.organization_id, claimed.id);
+    const terminal = ["completed", "failed", "cancelled", "timed_out", "limit_reached"].includes(String(persistedRun?.status));
+    if (terminal && persistedRun?.lease_owner === workerId) {
+      await recordAgentRunUsage(claimed.id).catch((error) => {
+        console.error("[NEXUM worker] usage recording failed", { runId: claimed.id, error });
+      });
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected worker execution failure";
     await updateRun(claimed.id, "failed", { error: { code: "WORKER_EXECUTION_ERROR", message } }, workerId).catch(() => undefined);
