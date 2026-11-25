@@ -413,3 +413,71 @@ test("gateway refuses streaming if the selected model does not explicitly advert
   await assert.rejects(() => gateway.streamRequest(request({ stream: true })).next(), (error: any) => error?.code === "MODEL_ERROR");
   assert.equal(invoked, false);
 });
+
+test("generateWithMetadata forwards streamed text deltas and returns the aggregated response", async () => {
+  const received: AIRequest[] = [];
+  const deltas: string[] = [];
+  const provider: AIProvider = {
+    id: "stream-final",
+    name: "Streaming final provider",
+    model: "stream-final-model",
+    capabilities: {
+      text: true, code: true, vision: false, toolCalling: false,
+      streaming: true, structuredOutput: false, reasoning: false, contextWindow: 16000,
+    },
+    async generate() { return "non-stream fallback"; },
+    async *streamRequest(input) {
+      received.push(input);
+      yield { type: "message_start", provider: "stream-final", model: input.model };
+      yield { type: "text_delta", text: "Привет" };
+      yield { type: "text_delta", text: " мир" };
+      yield { type: "message_end", finishReason: "stop" };
+    },
+  };
+  const gateway = new AIGateway([provider], provider.id);
+  const result = await gateway.generateWithMetadata("Ответь кратко", {
+    onTextDelta: (delta) => deltas.push(delta),
+  });
+  assert.equal(result.response, "Привет мир");
+  assert.deepEqual(deltas, ["Привет", " мир"]);
+  assert.equal(received.length, 1);
+  assert.equal(received[0].stream, true);
+});
+
+test("generation callback receives a complete response when the model does not support streaming", async () => {
+  const provider = new NativeFixture();
+  const gateway = new AIGateway([provider], provider.id);
+  const deltas: string[] = [];
+  const result = await gateway.generateWithMetadata("Ответь кратко", {
+    onTextDelta: (delta) => deltas.push(delta),
+  });
+  assert.equal(result.response, "native answer");
+  assert.deepEqual(deltas, ["native answer"]);
+  assert.equal(provider.received.length, 1);
+});
+
+test("gateway does not retry another provider after visible streamed text has been emitted", async () => {
+  const fallback = new LegacyFixture();
+  const primary: AIProvider = {
+    id: "stream-fails-after-delta",
+    name: "Streaming provider that fails",
+    model: "stream-fail-model",
+    capabilities: {
+      text: true, code: false, vision: false, toolCalling: false,
+      streaming: true, structuredOutput: false, reasoning: false, contextWindow: 16000,
+    },
+    async generate() { return "unused"; },
+    async *streamRequest() {
+      yield { type: "text_delta", text: "Частичный ответ" };
+      throw new Error("503 service unavailable");
+    },
+  };
+  const gateway = new AIGateway([primary, fallback], primary.id, { fallbackProviderId: fallback.id });
+  const deltas: string[] = [];
+  await assert.rejects(
+    () => gateway.generateWithMetadata("Ответь", { onTextDelta: (delta) => deltas.push(delta) }),
+  );
+  assert.deepEqual(deltas, ["Частичный ответ"]);
+  assert.equal(fallback.calls, 0);
+});
+
