@@ -440,3 +440,14 @@
 - Дополнительная проверка: неполный usage от OpenAI сохраняется только как диагностические данные и получает `usageSource=unavailable`, если отсутствует хотя бы один из обязательных счётчиков input/output/total. Такой usage нельзя считать подтверждённым для биллинга.
 - Раздельный `OPENAI_RESPONSES_BASE_URL` теперь используется и для Responses API, и для model discovery; `OPENAI_BASE_URL` остаётся адресом legacy Chat Completions.
 - Full NEXUM CI после native OpenAI adapter: workflow `45710906208` выполняется; финальный E2E/build результат ещё не подтверждён.
+
+
+### AI Provider Contract — native Anthropic Messages adapter
+
+- Anthropic получил native canonical adapter на Messages API v2; legacy string facade продолжает работать через тот же Messages endpoint.
+- Используются актуальные заголовки `Authorization: Bearer` и `anthropic-version: 2026-10-21`; версия API конфигурируется через `ANTHROPIC_API_VERSION`.
+- Model discovery использует только lifecycle=active, cursor pagination и provider model metadata. Capability `image_input`, `structured_outputs`, `thinking` и context window читаются из официального каталога; отсутствующие значения остаются unknown.
+- Реализованы system/developer mapping, base64 images, tool_use/tool_result, function definitions/tool choice, JSON Schema output, stop sequences, usage и cancellation. URL images не скачиваются сервером; streaming и plain JSON без schema закрыты.
+- Usage содержит cache-read и cache-creation token dimensions. Важно: migration `010_usage_billing.sql` пока не сохраняет эти измерения, provider request ID и usage source. Полноценная стоимость/settlement остаются блокером до расширения usage ledger и idempotent reconciliation.
+- Dedicated workflow `45712044538` passed на commit `04ef04e1283c`: API typecheck passed, 93/93 focused AI provider contract tests passed.
+- Full NEXUM CI для этого этапа ещё pending; live provider credentials, paid requests и production deploy не использовались.
