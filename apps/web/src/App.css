@@ -88,3 +88,84 @@ input, textarea, select { max-width: 100%; border: 1px solid var(--nx-border); b
   .builder-home-nav { gap: 4px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+
+/* Active-screen structural coverage: home, system chrome, app windows and settings. */
+.builder-home-kicker, .eyebrow { color: var(--nx-muted); font-size: 11px; letter-spacing: .08em; }
+.builder-home-projects { margin-top: 48px; }
+.builder-home-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.builder-home-section-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.builder-home-section-head > span { color: var(--nx-muted); font-size: 12px; }
+.builder-home-project-preview { display: grid; flex: 0 0 44px; place-items: center; width: 44px; height: 44px; border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface-muted); font-weight: 650; }
+.builder-home-project-arrow { margin-left: auto; color: var(--nx-muted); font-size: 12px; }
+.builder-home-project:hover, .builder-home-prompts button:hover, .builder-home-nav button:hover,
+.builder-home-composer-footer button:hover, .builder-home-brand:hover { background: var(--nx-surface-muted); }
+.nx-system-divider { width: 1px; height: 24px; background: var(--nx-border); }
+.nx-system-app { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.nx-system-app-icon { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--nx-border); border-radius: 6px; }
+.nx-system-app > div { display: grid; gap: 2px; }
+.nx-system-status { display: flex; align-items: center; gap: 7px; }
+.nx-system-status i, .nx-app-window-state i { width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 50%; }
+.nx-system-calendar { box-shadow: 0 8px 28px rgb(0 0 0 / 8%); }
+.nx-calendar-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.nx-calendar-head > div { display: grid; gap: 4px; }
+.nx-calendar-head small, .nx-calendar-footer { color: var(--nx-muted); font-size: 11px; }
+.nx-calendar-head strong { font-size: 22px; }
+.nx-calendar-head button { border: 1px solid var(--nx-border); border-radius: 5px; background: var(--nx-surface); }
+.nx-calendar-grid .today { border-radius: 50%; background: var(--nx-text); color: white; }
+.nx-calendar-grid .muted { color: #aaa; }
+.nx-calendar-footer { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--nx-border); }
+.nx-app-window-icon { display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--nx-border); border-radius: 5px; }
+.nx-app-window-title > div { display: grid; gap: 2px; }
+.nx-app-window-title strong { font-size: 12px; }
+.nx-app-window-state { color: var(--nx-muted); font-size: 11px; }
+.nx-app-window-controls button { border-radius: 50%; }
+.nx-app-window-controls .close { background: #ddd; }
+.nx-app-window-controls .minimize { background: #eee; }
+.nx-app-window-controls .maximize { background: #f7f7f7; }
+.nx-system-window.is-maximized { position: fixed; inset: 12px; z-index: 30; min-height: 0; }
+.nx-system-window-layer.is-maximized { position: fixed; inset: 0; z-index: 29; padding: 12px; background: rgb(0 0 0 / 18%); }
+.settings-hero h1, .page-heading h1 { margin: 6px 0; font-size: clamp(24px, 3vw, 32px); font-weight: 600; }
+.settings-hero p, .page-heading p { max-width: 680px; margin: 0; color: var(--nx-muted); line-height: 1.55; }
+.settings-index a { color: inherit; text-decoration: none; font-size: 13px; }
+.settings-index a:hover { text-decoration: underline; }
+.settings-index > span { color: var(--nx-muted); font-size: 10px; letter-spacing: .08em; }
+.settings-section-head { align-items: center; }
+.settings-section-head > span { color: var(--nx-muted); font-size: 12px; }
+.settings-section-head h2 { margin: 0 0 4px; font-size: 17px; }
+.settings-section-head p { margin: 0; font-size: 12px; }
+.settings-option-copy { display: grid; gap: 3px; min-width: 0; }
+.settings-option-copy b { font-size: 12px; }
+.settings-option-copy span { font-size: 11px; }
+.nexum-toggle { position: relative; flex: 0 0 38px; width: 38px; height: 22px; border: 1px solid var(--nx-border); border-radius: 20px; background: var(--nx-surface-muted); }
+.nexum-toggle::after { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #888; content: ""; transition: transform .16s ease; }
+.nexum-toggle.on { background: #444; }
+.nexum-toggle.on::after { background: white; transform: translateX(16px); }
+.settings-hero-status, .settings-status-ok, .settings-status-muted { color: var(--nx-muted); font-size: 12px; }
+.settings-hero-status { display: flex; align-items: center; gap: 8px; }
+.settings-hero-status i { width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 50%; }
+.settings-shortcuts { grid-template-columns: 1fr auto; align-items: center; }
+.settings-shortcuts > div { display: grid; gap: 4px; }
+.settings-shortcuts kbd { padding: 5px 8px; border: 1px solid var(--nx-border); border-radius: 5px; background: var(--nx-surface-muted); }
+.anymodel-api-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.anymodel-api-head > div:first-child { display: grid; gap: 4px; }
+.anymodel-connection-sensor { display: flex; align-items: center; gap: 7px; color: var(--nx-muted); font-size: 11px; }
+.anymodel-connection-dot { width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 50%; }
+.settings-card-wide { grid-column: 1 / -1; }
+.connector-card, .diagnostics-card, .news-card { min-width: 0; }
+@media (max-width: 760px) {
+  .builder-home-main { padding-inline: 16px; }
+  .builder-home-header { flex-wrap: wrap; }
+  .builder-home-nav { flex-wrap: wrap; }
+  .nx-system-chrome { flex-wrap: wrap; }
+  .nx-system-left { min-width: 0; }
+  .nx-system-app { display: none; }
+  .nx-system-right { gap: 6px; }
+  .nx-system-clock span, .nx-system-status { display: none; }
+  .nx-app-window-state { display: none; }
+  .nx-system-window-layer { padding: 0; }
+  .nx-system-window { border-radius: 0; }
+  .nx-system-window.is-maximized, .nx-system-window-layer.is-maximized { inset: 0; padding: 0; }
+  .settings-page, .connectors-page, .diagnostics-page, .news-page { padding: 20px 14px 36px; }
+  .settings-hero, .page-heading { flex-direction: column; }
+}
