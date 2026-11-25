@@ -477,26 +477,51 @@ test("shutdown releases runtime resources and prevents active work", async ({ pa
   expect(status.activeResources).toBe(0);
 });
 
-test("mobile workspace home keeps layout within viewport and controls are touch-friendly", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Рабочая среда" })).toBeVisible({ timeout: 15_000 });
-  const layout = await page.evaluate(() => ({
-    viewportWidth: window.innerWidth,
-    documentWidth: document.documentElement.scrollWidth,
-    bodyWidth: document.body.scrollWidth,
-  }));
-  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
-  expect(layout.bodyWidth).toBeLessThanOrEqual(layout.viewportWidth);
+test("responsive workspace, agents and Studio layouts stay within supported viewports", async ({ page }, testInfo) => {
+  const widths = [320, 375, 390, 768, 1024, 1440];
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "Рабочая среда" })).toBeVisible({ timeout: 15_000 });
+    const layout = await page.evaluate(() => ({
+      viewportWidth: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      bodyWidth: document.body.scrollWidth,
+      rootWidth: document.getElementById("root")?.scrollWidth ?? 0,
+    }));
+    expect(layout.documentWidth, `Workspace document overflow at ${width}px: ${JSON.stringify(layout)}`).toBeLessThanOrEqual(width);
+    expect(layout.bodyWidth, `Workspace body overflow at ${width}px`).toBeLessThanOrEqual(width);
+    expect(layout.rootWidth, `Workspace root overflow at ${width}px`).toBeLessThanOrEqual(width);
 
-  const controls = await page.locator(".kv-home-nav button, .kv-home-top-actions button, .kv-home-composer-footer button").evaluateAll((items) =>
-    items.map((item) => {
-      const rect = item.getBoundingClientRect();
-      return { label: item.textContent?.trim(), width: rect.width, height: rect.height };
-    }),
-  );
-  expect(controls.length).toBeGreaterThan(0);
-  for (const control of controls) {
-    expect(control.height, `Touch target too small: ${control.label}`).toBeGreaterThanOrEqual(40);
+    if ([320, 390, 768, 1440].includes(width)) {
+      await testInfo.attach(`workspace-${width}.png`, { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
+    }
   }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const homeControls = await page.locator(".kv-home-nav button, .kv-home-top-actions button, .kv-home-composer-footer button").evaluateAll((items) =>
+    items.map((item) => ({ label: item.textContent?.trim(), height: item.getBoundingClientRect().height })),
+  );
+  expect(homeControls.length).toBeGreaterThan(0);
+  for (const control of homeControls) {
+    expect(control.height, `Workspace touch target too small: ${control.label}`).toBeGreaterThanOrEqual(40);
+  }
+
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/agents");
+    await expect(page.getByRole("heading", { name: "Агенты и профили запуска" })).toBeVisible({ timeout: 15_000 });
+    const layout = await page.evaluate(() => ({ viewportWidth: window.innerWidth, documentWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth }));
+    expect(layout.documentWidth, `Agents document overflow at ${width}px: ${JSON.stringify(layout)}`).toBeLessThanOrEqual(width);
+    expect(layout.bodyWidth, `Agents body overflow at ${width}px`).toBeLessThanOrEqual(width);
+    if (width === 390) await testInfo.attach("agents-390.png", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/projects/" + encodeURIComponent(runtimeWorkspaceId));
+  await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 10_000 });
+  const studioLayout = await page.evaluate(() => ({ viewportWidth: window.innerWidth, documentWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth }));
+  expect(studioLayout.documentWidth, `Studio document overflow: ${JSON.stringify(studioLayout)}`).toBeLessThanOrEqual(390);
+  expect(studioLayout.bodyWidth, `Studio body overflow: ${JSON.stringify(studioLayout)}`).toBeLessThanOrEqual(390);
+  await testInfo.attach("studio-390.png", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
 });
