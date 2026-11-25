@@ -69,3 +69,17 @@ test("normalizes content blocks for text-only consumers", () => {
   );
   assert.equal(normalized.content, "answer");
 });
+
+
+test("requires tool-calling capability for assistant tool-call history", () => {
+  const request = {
+    ...textRequest,
+    messages: [{
+      role: "assistant",
+      content: "I will call a tool",
+      toolCalls: [{ id: "call-1", name: "lookup", arguments: { query: "status" } }],
+    }],
+  } as unknown as AIRequest;
+  validateCanonicalRequest(request);
+  assert.deepEqual(getRequiredCapabilities(request), { text: true, toolCalling: true });
+});
