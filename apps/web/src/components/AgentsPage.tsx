@@ -254,7 +254,7 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
       {loadError && <div className="kv-agents-error" role="alert">{loadError} <button type="button" onClick={() => void load()}>Повторить</button></div>}
 
       <section className="kv-agents-profiles" aria-labelledby="kv-agents-profiles-title">
-        <div className="kv-agents-section-head"><div><span>БИБЛИОТЕКА</span><h2 id="kv-agents-profiles-title">Профили задач</h2><p>Готовые роли и ваши собственные инструкции для агента.</p></div><KvardButton variant="primary" size="md" className="kv-agents-create" type="button" onClick={() => { setFormOpen((value) => !value); setFormError(""); }}>＋ Создать профиль</KvardButton></div>
+        <div className="kv-agents-section-head"><div><span>БИБЛИОТЕКА</span><h2 id="kv-agents-profiles-title">Профили задач</h2><p>Готовые роли и ваши собственные инструкции для агента.</p></div><KvardButton variant="primary" size="md" type="button" onClick={() => { setFormOpen((value) => !value); setFormError(""); }}>＋ Создать профиль</KvardButton></div>
         {formOpen && <form className="kv-agents-form" onSubmit={(event) => { event.preventDefault(); void saveProfile(); }}>
           <div className="kv-agents-form-head"><div><strong>Новый профиль запуска</strong><small>Сохранение выполняется через сервер API. Режим хранения указан под библиотекой.</small></div><button type="button" aria-label="Закрыть форму" onClick={() => setFormOpen(false)}>×</button></div>
           <label>Название профиля<input value={profileName} onChange={(event) => setProfileName(event.target.value)} maxLength={48} placeholder="Например, Аналитик бизнес-процессов" required /></label>
@@ -282,7 +282,7 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
       </section>
 
       <section className="kv-agents-profiles" aria-labelledby="kv-agent-definitions-title">
-        <div className="kv-agents-section-head"><div><span>AGENT CONTROL</span><h2 id="kv-agent-definitions-title">Мои AI-агенты</h2><p>Постоянные конфигурации с отдельными инструкциями и списком разрешённых инструментов.</p></div><KvardButton variant="primary" size="md" className="kv-agents-create" type="button" onClick={() => openAgentForm()}>＋ Создать агента</KvardButton></div>
+        <div className="kv-agents-section-head"><div><span>AGENT CONTROL</span><h2 id="kv-agent-definitions-title">Мои AI-агенты</h2><p>Постоянные конфигурации с отдельными инструкциями и списком разрешённых инструментов.</p></div><KvardButton variant="primary" size="md" type="button" onClick={() => openAgentForm()}>＋ Создать агента</KvardButton></div>
         <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Безопасный запуск.</strong> Политика «каждое действие» запрашивает подтверждение перед любым инструментом. Политика «изменения и команды» автоматически разрешает чтение и просит подтверждение перед записью файлов или запуском команд. Автономный режим ограничен чтением. Решение действует один раз; запрос истекает через 10 минут. Расписания и триггеры пока не включены.</p></div>
         <div className="kv-agents-launchbar">
           <label htmlFor="kv-agent-task">Задача для выбранного агента</label>
