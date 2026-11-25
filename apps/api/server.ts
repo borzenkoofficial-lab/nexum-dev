@@ -1495,6 +1495,7 @@ app.delete("/api/agent/profiles/:id", async (req, res) => {
 });
 
 function parseAgentDefinitionInput(body: Record<string, unknown>, partial = false): AgentDefinitionInput | AgentDefinitionPatch | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
   const result: Record<string, unknown> = {};
   const fields = ["name", "description", "systemPrompt", "provider", "model", "allowedTools", "approvalPolicy", "status"] as const;
   for (const field of fields) {
