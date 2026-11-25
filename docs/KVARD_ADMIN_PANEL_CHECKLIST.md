@@ -365,3 +365,11 @@
 - Credential redaction применяется также к `userSafeMessage` и `technicalDetails` уже типизированных `NexumError`, а не только к обычным Error от provider.
 - Dedicated workflow `45705690934` завершился успешно на commit `53e0be5392fce43a3b623623ab63aa32022d9891`: API typecheck прошёл, 241/241 API tests прошли, 0 failures.
 - Это подтверждает contract foundation и test suite. Нативные реализации протоколов для реальных поставщиков, продуктовая миграция и sandbox checks остаются pending.
+
+
+### AI Provider Contract — explicit unknown capability state
+
+- `AIModelCapabilities` поддерживает значение `"unknown"` для capabilities, которые нельзя подтвердить по документации или API конкретной модели.
+- Gateway разрешает функцию только при строгом значении `true`; `false` и `unknown` fail-closed. Model selection requirements остаются boolean-only.
+- Добавлен тест: неизвестная vision capability отклоняется до вызова адаптера.
+- Dedicated workflow `45706535742` passed на commit `d9d2c03b5de7a7800df5972e96d91ea185d5b4d3`: API typecheck passed, 242/242 API tests passed.
