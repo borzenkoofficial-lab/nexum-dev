@@ -273,7 +273,7 @@ export class AnthropicProvider implements AIProvider {
       }
     }
 
-    const usage = data.usage ? {
+    const usage: AIResponse["usage"] = data.usage ? {
       ...(validTokenCount(data.usage.input_tokens) ? { inputTokens: data.usage.input_tokens } : {}),
       ...(validTokenCount(data.usage.output_tokens) ? { outputTokens: data.usage.output_tokens } : {}),
       ...(validTokenCount(data.usage.cache_read_input_tokens) ? { cachedInputTokens: data.usage.cache_read_input_tokens } : {}),
