@@ -218,14 +218,30 @@ test("native Messages adapter rejects system messages after conversation has sta
 
 test("model discovery and provider status verify the selected Claude model", async () => {
   const provider = createProvider(async (input) => {
-    if (String(input).includes("/models?limit=1000")) {
-      return response({ data: [{ id: "claude-sonnet-5" }, { id: "claude-opus-5" }] });
+    if (String(input).includes("/models?lifecycle=active&limit=1000")) {
+      return response({ data: [
+        {
+          id: "claude-sonnet-5",
+          lifecycle: "active",
+          max_input_tokens: 200000,
+          capabilities: {
+            image_input: { supported: true },
+            structured_outputs: { supported: true },
+            thinking: { supported: true },
+          },
+        },
+        { id: "claude-opus-5", lifecycle: "active", max_input_tokens: 200000, capabilities: {} },
+      ] });
     }
     return response({});
   });
   assert.deepEqual(await provider.listModels(), ["claude-sonnet-5", "claude-opus-5"]);
   assert.equal(provider.getCapabilities("claude-sonnet-5").text, true);
-  assert.equal(provider.getCapabilities("claude-sonnet-5").vision, "unknown");
+  assert.equal(provider.getCapabilities("claude-sonnet-5").vision, true);
+  assert.equal(provider.getCapabilities("claude-sonnet-5").structuredOutput, true);
+  assert.equal(provider.getCapabilities("claude-sonnet-5").reasoning, true);
+  assert.equal(provider.getCapabilities("claude-sonnet-5").contextWindow, 200000);
+  assert.equal(provider.getCapabilities("claude-sonnet-5").toolCalling, "unknown");
   assert.equal((await provider.getStatus("claude-sonnet-5")).available, true);
   assert.equal((await provider.getStatus("claude-haiku-5")).available, false);
 });
@@ -259,4 +275,33 @@ test("native Messages adapter propagates caller cancellation", async () => {
     messages: [{ role: "user", content: "Hello" }],
     signal: controller.signal,
   }));
+});
+
+
+test("model discovery follows Anthropic cursor pagination and excludes deprecated models", async () => {
+  const urls: string[] = [];
+  const provider = createProvider(async (input) => {
+    const url = String(input);
+    urls.push(url);
+    if (url.includes("after_id=")) {
+      return response({
+        data: [{ id: "claude-opus-5", lifecycle: "active", max_input_tokens: 200000, capabilities: {} }],
+        has_more: false,
+        last_id: "claude-opus-5",
+      });
+    }
+    return response({
+      data: [
+        { id: "claude-sonnet-5", lifecycle: "active", max_input_tokens: 200000, capabilities: {} },
+        { id: "claude-old", lifecycle: "deprecated", max_input_tokens: 100000, capabilities: {} },
+      ],
+      has_more: true,
+      last_id: "claude-sonnet-5",
+    });
+  });
+  assert.deepEqual(await provider.listModels(), ["claude-sonnet-5", "claude-opus-5"]);
+  assert.equal(urls.length, 2);
+  assert.match(urls[0], /lifecycle=active/);
+  assert.match(urls[1], /after_id=claude-sonnet-5/);
+  assert.equal(provider.getCapabilities("claude-old").text, "unknown");
 });
