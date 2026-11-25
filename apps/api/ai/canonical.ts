@@ -2,6 +2,7 @@ import { NexumError } from "../core/errors.js";
 import type {
   AIContentPart,
   AIModelCapabilities,
+  AIModelCapabilityKey,
   AIRequest,
   AIResponse,
   AIUsage,
@@ -138,7 +139,7 @@ export function validateCanonicalRequest(request: AIRequest): void {
   }
 }
 
-export function getRequiredCapabilities(request: AIRequest): Partial<AIModelCapabilities> {
+export function getRequiredCapabilities(request: AIRequest): Partial<Record<AIModelCapabilityKey, true>> {
   const hasImage = request.messages.some((message) =>
     Array.isArray(message.content) && message.content.some((part) => part.type === "image"),
   );
