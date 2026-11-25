@@ -925,6 +925,7 @@ function App() {
     { label: "Перезапустить предпросмотр", hint: "R", run: () => { if (!activeПроектId) return; setProjectMode("preview"); setПредпросмотрKey((key) => key + 1); setNotice("Предпросмотр перезапущен"); } },
     { label: "Ask ИИ", hint: "A", run: () => focusTask() },
     { label: "Сменить модель", hint: "M", run: () => document.querySelector<HTMLButtonElement>(".composer-model-button")?.click() },
+    { label: "AI-агенты", hint: "A", run: () => setView("agents") },
     { label: "Диагностика Agent", hint: "D", run: () => setView("diagnostics") },
     { label: "Настройки", hint: "", run: () => setView("settings") },
   ];
