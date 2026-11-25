@@ -8,7 +8,7 @@ interface OSSystemChromeProps {
   onSearch: () => void;
   onSettings: () => void;
   onNewProject?: () => void;
-  activeView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents";
+  activeView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents" | "business-agents";
 }
 
 const monthNames = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
