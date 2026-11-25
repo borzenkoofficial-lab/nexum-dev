@@ -24,10 +24,10 @@ export function BuilderShell({
   const status = agentStage === "error" ? "Error" : building ? "Building" : previewOnline ? "Live" : "Ready";
 
   return (
-    <section className="nx-builder" aria-label={"NEXUM Builder — " + projectName}>
+    <section className="nx-builder" aria-label={"КВАРД Studio — " + projectName}>
       <header className="nx-builder-header">
         <button className="nx-builder-project" type="button" onClick={onClose} aria-label="Back to projects">
-          <span className="nx-builder-logo">N</span>
+          <span className="nx-builder-logo">К</span>
           <span className="nx-builder-project-copy">
             <strong>{projectName}</strong>
             <small>Project</small>
@@ -37,7 +37,7 @@ export function BuilderShell({
         <nav className="nx-builder-nav" aria-label="Builder tools">
           {(["preview", "agent", "files", "code"] as Tool[]).map((tool) => (
             <button key={tool} type="button" className={activeTool === tool ? "active" : ""} onClick={() => onToolChange(tool)}>
-              {tool === "preview" ? "Preview" : tool === "agent" ? "Agent" : tool === "files" ? "Files" : "Code"}
+              {tool === "preview" ? "Предпросмотр" : tool === "agent" ? "AI-агент" : tool === "files" ? "Файлы" : "Код"}
             </button>
           ))}
         </nav>
@@ -46,9 +46,9 @@ export function BuilderShell({
           <span className={"nx-builder-status " + (building ? "building" : agentStage === "error" ? "error" : previewOnline ? "live" : "")}>
             <i />{status}
           </span>
-          <button type="button" onClick={onConnect}>Connect</button>
-          <button type="button" onClick={onShare}>Share</button>
-          <button className="nx-builder-open" type="button" onClick={onOpenPreview}>Open preview ↗</button>
+          <button type="button" onClick={onConnect}>Подключить</button>
+          <button type="button" onClick={onShare}>Поделиться</button>
+          <button className="nx-builder-open" type="button" onClick={onOpenPreview}>Открыть предпросмотр ↗</button>
         </div>
       </header>
       <div className="nx-builder-body">{children}</div>
