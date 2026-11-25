@@ -41,7 +41,7 @@ export class AdaptiveTokenBudget {
     this.tier = classifyTask(task);
     const requestedCap = options.legacyHardCap ?? Number.MAX_SAFE_INTEGER;
     this.hardCap = options.builderLifecycle
-      ? Math.min(requestedCap, 22_000)
+      ? Math.min(requestedCap, 30_000)
       : Math.min(requestedCap, LIMITS[this.tier].hardCap);
   }
 
