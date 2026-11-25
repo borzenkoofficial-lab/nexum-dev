@@ -80,3 +80,28 @@ test("cancelling after approval preserves the recorded approval decision", async
   assert.equal(cancelled?.pendingApproval?.status, "approved");
   assert.equal(cancelled?.events?.some((event) => event && typeof event === "object" && (event as { name?: unknown }).name === "agent.approval.cancelled"), false);
 });
+
+
+test("concurrent memory-store approval requests create only one pending request", async () => {
+  const jobId = "approval-store-concurrent-request";
+  await createChatJob(makeJob(jobId, "owner-e"));
+  const [first, second] = await Promise.all([
+    requestChatJobApproval(jobId, "owner-e", makeApproval("approval-concurrent-a")),
+    requestChatJobApproval(jobId, "owner-e", makeApproval("approval-concurrent-b")),
+  ]);
+  assert.equal([first, second].filter(Boolean).length, 1);
+  assert.equal((await getChatJob(jobId, "owner-e"))?.pendingApproval?.status, "pending");
+});
+
+test("concurrent memory-store decisions resolve a pending request only once", async () => {
+  const jobId = "approval-store-concurrent-decision";
+  await createChatJob(makeJob(jobId, "owner-f"));
+  await requestChatJobApproval(jobId, "owner-f", makeApproval("approval-concurrent-decision"));
+  const [approved, rejected] = await Promise.all([
+    resolveChatJobApproval(jobId, "owner-f", "approval-concurrent-decision", "approved", "owner-f"),
+    resolveChatJobApproval(jobId, "owner-f", "approval-concurrent-decision", "rejected", "owner-f"),
+  ]);
+  assert.equal([approved, rejected].filter(Boolean).length, 1);
+  const final = await getChatJob(jobId, "owner-f");
+  assert.ok(final?.pendingApproval?.status === "approved" || final?.pendingApproval?.status === "rejected");
+});
