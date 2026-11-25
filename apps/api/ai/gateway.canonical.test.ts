@@ -235,3 +235,20 @@ test("rejects streaming on the complete-response API even if a provider advertis
   );
   assert.equal(provider.received.length, 0);
 });
+
+
+test("requires native adapters to declare their wire protocol and adapter version", () => {
+  const provider = {
+    id: "missing-protocol",
+    name: "Missing protocol",
+    model: "model",
+    capabilities: {
+      text: true, code: false, vision: false, toolCalling: false,
+      streaming: false, structuredOutput: false, reasoning: false, contextWindow: 8192,
+    },
+    async generateRequest(): Promise<AIResponse> {
+      return { content: "answer", provider: "missing-protocol", model: "model" };
+    },
+  } as unknown as AIProvider;
+  assert.throws(() => new AIGateway([provider], provider.id), /protocol and adapter version/i);
+});
