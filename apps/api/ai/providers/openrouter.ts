@@ -211,12 +211,13 @@ export class OpenRouterProvider implements AIProvider {
         try { payload = JSON.parse(raw) as Record<string, any>; }
         catch { throw new Error("OpenRouter returned an invalid streaming event"); }
         if (payload.error) throw new Error("OpenRouter stream failed during generation");
+        const events: AIStreamEvent[] = [];
         if (!started) {
           started = true;
           if (typeof payload.id === "string") requestId = payload.id;
           if (typeof payload.model === "string") resolvedModel = payload.model;
+          events.push({ type: "message_start", provider: this.id, model: resolvedModel, ...(requestId ? { requestId } : {}) });
         }
-        const events: AIStreamEvent[] = [];
         const usage = payload.usage;
         const valid = (value: unknown): value is number =>
           typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
@@ -277,7 +278,6 @@ export class OpenRouterProvider implements AIProvider {
         return [];
       };
 
-      yield { type: "message_start", provider: this.id, model: resolvedModel, ...(requestId ? { requestId } : {}) };
       while (true) {
         const part = await reader.read();
         buffer += decoder.decode(part.value, { stream: !part.done });
