@@ -23,6 +23,7 @@ interface Props {
 const stages = [
   ["analyzing", "Анализ"],
   ["planning", "Планирование"],
+  ["awaiting_approval", "Ожидает подтверждения"],
   ["editing", "Разработка"],
   ["testing", "Проверка"],
   ["completed", "Готово"],
