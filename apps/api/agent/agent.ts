@@ -1014,7 +1014,7 @@ export class NexumAgent implements AgentRuntime {
     const successfullyRead = new Set(
       results
         .filter((item) => item.tool === "readFile" && item.result.success)
-        .map((item) => item.input.trim()),
+        .map((item) => item.input.trim().replace(/^\.\//, "")),
     );
     for (const candidate of candidates) {
       if (inspection.includes(candidate) && !successfullyRead.has(candidate)) return candidate;
