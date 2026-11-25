@@ -206,3 +206,12 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 - Неизвестная capability не трактуется ни как поддерживаемая, ни как отрицательно подтверждённая. При запросе функции Gateway требует строго `true`; `false` и `unknown` оба блокируют вызов.
 - `AIModelRequirement` в каталоге остаётся boolean-only, чтобы нельзя было выбирать модель по требованию "unknown".
 - Dedicated workflow `45706535742` passed on commit `d9d2c03b5de7a7800df5972e96d91ea185d5b4d3`: API typecheck passed; 242/242 API tests passed.
+
+
+### Native-only adapter support
+
+- `AIProvider.generate()` is now optional. A provider may implement only `generateRequest(canonicalRequest)`; Gateway validates that each registered provider implements at least one generation interface.
+- The legacy string facade (`generate()` / `generateWithMetadata()`) now converts old string calls into canonical requests when a native adapter exists. This allows Chat/Builder/Agent callers to keep working while provider adapters migrate one by one.
+- When both methods exist, the Gateway prefers `generateRequest()`. Existing legacy-only providers continue through the strict bridge.
+- Configured transient fallback also supports a native-only fallback provider. The original provider/model selection and fallback metadata remain intact.
+- Latest dedicated workflow `45707392285` passed on commit `4d947cc4096519c7e1fdf7fc6732e5a1067c3ad7`: API typecheck passed; 246/246 API tests passed.
