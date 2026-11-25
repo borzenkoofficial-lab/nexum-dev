@@ -28,6 +28,8 @@ import { AgentHistory } from "./agent/history.js";
 import { CheckpointManager } from "./agent/checkpoint.js";
 import { ProjectStateManager } from "./projects/projectState.js";
 import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueSession } from "./auth.js";
+import { requireAdminAccess } from "./adminAccess.js";
+import { adminRouter } from "./routes/admin.js";
 import { closeDatabase, pingDatabase } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
@@ -767,6 +769,9 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: "10mb" }));
+
+// Admin API is independently authenticated and default-deny; UI visibility is not an access control.
+app.use("/api/admin", authMiddleware, createRateLimitMiddleware("admin", isProduction ? 60 : 300, 60_000), requireAdminAccess, adminRouter);
 
 app.post("/api/diagnostics/events", authMiddleware, (req, res) => {
   const body = req.body ?? {};
