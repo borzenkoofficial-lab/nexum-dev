@@ -372,6 +372,8 @@ export class AnthropicProvider implements AIProvider {
       if (request.signal.aborted) abort();
       else request.signal.addEventListener("abort", abort, { once: true });
     }
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    let messageStopped = false;
     try {
       const response = await this.fetchImpl(`${this.baseUrl}/messages`, {
         method: "POST", headers: { Accept: "text/event-stream", "Content-Type": "application/json", "x-api-key": key, "anthropic-version": this.apiVersion },
@@ -379,7 +381,7 @@ export class AnthropicProvider implements AIProvider {
       });
       if (!response.ok) throw new Error(this.httpError(response.status));
       if (!response.body) throw new Error("Anthropic streaming response has no body");
-      const reader = response.body.getReader();
+      reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "", eventName = "", data = "";
       let inputTokens: number | undefined, outputTokens: number | undefined;
@@ -408,9 +410,9 @@ export class AnthropicProvider implements AIProvider {
           if (validTokenCount(p.usage?.output_tokens)) outputTokens = p.usage.output_tokens;
           if (typeof p.delta?.stop_reason === "string") return [{ type: "message_end", finishReason: p.delta.stop_reason, ...(typeof p.delta.stop_sequence === "string" ? { stopSequence: p.delta.stop_sequence } : {}) }];
         }
-        if (name === "message_stop") return [inputTokens !== undefined && outputTokens !== undefined
+        if (name === "message_stop") { messageStopped = true; return [inputTokens !== undefined && outputTokens !== undefined
           ? { type: "usage", usage: { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens }, source: "provider_reported" }
-          : { type: "usage", usage: {}, source: "unavailable" }];
+          : { type: "usage", usage: {}, source: "unavailable" }]; }
         if (name === "error") throw new Error("Anthropic stream returned an error event");
         return [];
       };
@@ -428,11 +430,16 @@ export class AnthropicProvider implements AIProvider {
       if (buffer.startsWith("event:")) eventName = buffer.slice(6).trim();
       else if (buffer.startsWith("data:")) data += (data ? "\\n" : "") + buffer.slice(5).trimStart();
       if (data) for (const event of emit(eventName, data)) yield event;
+      if (!messageStopped) throw new Error("Anthropic stream ended before message_stop");
     } catch (error) {
       if (request.signal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (controller.signal.aborted) throw new Error("Anthropic request timed out");
       throw error instanceof Error ? error : new Error("Anthropic streaming request failed");
     } finally {
+      if (reader) {
+        try { await reader.cancel(); } catch { /* stream may already be closed */ }
+        reader.releaseLock();
+      }
       clearTimeout(timeout); request.signal?.removeEventListener("abort", abort);
     }
   }
