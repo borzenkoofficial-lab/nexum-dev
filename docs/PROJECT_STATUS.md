@@ -264,3 +264,36 @@ Not yet complete:
 
 ### CI feedback
 - Initial runs found and fixed incorrect workforce imports, Express 5 route parameter types, JSX structure and the system-chrome view union. The latest complete build and existing E2E suite passed before the latest approval/quota UI increment; rerun CI for the latest HEAD.
+
+
+## Runtime 2.0 — durable queue foundation (2026-11-25)
+
+**Status: IN_PROGRESS — implementation branch `feat/agents-durable-runtime-queue`, stacked on NEXUM AGENTS PR #56.**
+
+Implemented in this increment:
+- PostgreSQL migration `009_agent_run_queue.sql`: attempts, bounded max attempts, availability time, lease owner/expiry, tenant-scoped idempotency key and partial indexes for ready/expired runs.
+- Atomic queue claiming uses `FOR UPDATE SKIP LOCKED`; workers receive expiring leases and can renew/release them.
+- Agent runs now preserve the exact immutable agent version selected at enqueue time.
+- Separate API and worker process boundary: API enqueues; `npm run worker --prefix apps/api` polls and executes durable business-agent runs.
+- Worker heartbeats the lease; loss of ownership aborts execution. Runtime status writes and events are fenced by lease owner to prevent a stale worker from overwriting a newer owner's state.
+- Cancellation is persisted in PostgreSQL and releases the lease; active worker observes lease loss on its next heartbeat.
+- Optional `Idempotency-Key` prevents duplicate enqueue requests within an organization.
+
+Important semantics and remaining gaps:
+- Delivery is **at-least-once** after worker lease expiry. A crash can restart a run from its beginning; the current tool catalog is limited, but future side-effecting tools must enforce per-operation idempotency or require approval. This is not checkpoint-level continuation.
+- Runs waiting for human approval are not yet automatically reclaimed after worker death; durable approval wake-up/resume is a separate next increment.
+- Deterministic runtime failures are terminal; automatic retry with exponential backoff and dead-letter administration are not yet implemented.
+- Scheduler/event trigger execution, multi-worker concurrency integration tests, crash/restart tests, and operational metrics remain outstanding.
+- The worker currently uses deployment-level provider environment configuration. Persistent encrypted per-user provider credentials (issue #63) must be completed before worker execution can use user-scoped keys.
+- No production worker service has been configured or deployed. API and worker must share the same PostgreSQL database and compatible environment.
+
+Checks in this increment:
+- Repository code was inspected through GitHub source and file APIs; no local checkout/terminal was available in this session.
+- TypeScript build, unit tests, PostgreSQL migration execution, multi-worker race tests, and crash recovery were **not run** here. Do not mark Runtime 2.0 DONE until CI and PostgreSQL integration tests prove the acceptance criteria.
+
+Next:
+1. Add PostgreSQL integration tests for concurrent claim, lease expiry/reclaim, exhausted attempts, cancellation race, idempotency and tenant isolation.
+2. Add retry/backoff + dead-letter handling for safe/retryable failures only.
+3. Persist approval wait state and wake/reclaim workers without issuing duplicate approval requests.
+4. Add worker deployment blueprint, health/queue metrics, and end-to-end crash recovery test.
+5. Then integrate user credential vault (issue #63) and complete storage PR stack (#65/#66).
