@@ -433,3 +433,9 @@ The route handler is isolated in `apps/api/ai/streamRoute.ts`. HTTP integration 
 
 The Builder continues to use its persistent `ChatJob` lifecycle. This endpoint is a transport primitive and is not yet wired into Builder or AgentLoop. Client-side chunk parsing, UI rendering, tool-event presentation, approval preservation and full end-to-end cancellation remain pending. Do not describe the user-facing Builder as streaming until that integration is complete.
 
+## 15. Browser-side SSE consumer
+
+The Web runtime exports `consumeAIStream` from `apps/web/src/runtime/AIStream.ts`. It incrementally decodes UTF-8 and named SSE frames across arbitrary network chunk boundaries; supports CRLF, comments, multi-line `data:` fields and a final frame without a trailing blank line; validates event names and payload shape; caps frame size at 2 MiB; and requires a terminal `message_end` or `error` event. It rejects malformed JSON, unknown/mismatched event types, oversized frames, truncated streams and events after the terminal event. Non-success HTTP responses surface only the status code rather than reflecting arbitrary response bodies.
+
+The parser has 10 deterministic tests in `apps/web/src/runtime/AIStream.test.ts`, runs through `test:ai-stream`, and is part of the full NEXUM CI. This is a tested transport utility, not yet a Builder integration. The Builder currently uses persistent ChatJobs and AgentLoop; it must not be switched to a direct raw-model call that bypasses planning, tool execution, approvals, cancellation or Completion Gate. The next integration stage must stream the actual AgentLoop's user-visible output/progress into its existing job lifecycle.
+
