@@ -380,3 +380,10 @@ The adapter now preserves Anthropic cache-read and cache-creation token dimensio
 - Dedicated workflow `45712044538` passed on commit `04ef04e1283c`: API typecheck passed; 93/93 focused AI provider contract tests passed, including Anthropic serialization, tool/image/JSON Schema mapping, lifecycle pagination, capability metadata, cache usage and cancellation.
 - No live Anthropic credentials, live provider requests, production secrets or paid calls were used.
 - Full NEXUM CI for the latest Anthropic implementation is pending; do not infer E2E success from the focused adapter suite.
+
+
+## 12. Adapter-specific authentication and verification
+
+Authentication is part of each provider adapter contract and must not be generalized into one universal header. For Anthropic Messages, the adapter sends the provider credential in `x-api-key` and the API version in `anthropic-version`; it must not send the key as a Bearer token. The regression test asserts both the required header and absence of `Authorization`.
+
+Provider acceptance remains staged: source-level contract tests do not equal a live provider smoke test. A provider is not marked operationally verified until an authorized sandbox request succeeds and returns a valid model identity and usage metadata.
