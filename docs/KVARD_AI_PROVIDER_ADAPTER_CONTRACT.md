@@ -48,12 +48,12 @@
 - `listModels()` или статический версионируемый каталог с указанием источника;
 - `getModelCapabilities(model)` для конкретной модели;
 - `validateCredentials()` без раскрытия секрета;
-- `generate(canonicalRequest)`;
+- `generateRequest(canonicalRequest)`;
 - `stream(canonicalRequest)`, только если streaming capability заявлена;
 - нормализацию usage, finish reason, tool calls и ошибок;
 - таймауты, отмену запроса, ограниченные retries и safe error mapping.
 
-Текущая реализация `AIProvider.generate(message: string): Promise<string>` слишком узкая для конечного стандарта: её можно временно сохранить как legacy compatibility path, но новые продуктовые функции должны переходить на канонический контракт.
+Текущий `AIProvider.generate(message: string): Promise<string>` сохранён как legacy compatibility path. Для нативной реализации добавлен optional `AIProvider.generateRequest(request: AIRequest): Promise<AIResponse>`; новые интеграции должны реализовывать его.
 
 ## 5. Модельный каталог и capabilities
 
@@ -144,3 +144,49 @@ CI должен запускать fake-server conformance suite для всех
 На момент подготовки документа текущий `AIProvider` поддерживает упрощённый текстовый вызов `generate(message)`, а `AIResponse` уже описывает часть расширенных полей, но не используется всеми adapters. Текущие provider capabilities в нескольких adapters жёстко заданы как false для vision/tools/streaming/structured output/reasoning. Поэтому нельзя считать эти возможности реализованными только на основании существования полей типов или названия модели.
 
 Переход к каноническому контракту должен быть поэтапным, с legacy bridge и тестами, чтобы не сломать существующие чаты и агентские сценарии.
+
+
+## 12. Реализованная основа в КВАРД (2026-11-26)
+
+### Уже в коде
+
+- Canonical request v1: роли system/developer/user/assistant/tool, text/image content parts (URL и base64), model ID, generation options, tool definitions/tool choice, response format, timeout, AbortSignal и request metadata.
+- Assistant tool-call history: canonical message может содержать toolCalls; tool-only assistant message с пустым текстом допускается и требует capability toolCalling.
+- Canonical response: content blocks, provider/model, tool calls, request ID, finish reason, usage categories, latency и usageSource.
+- Runtime validation: версия контракта, размеры и типы полей, HTTP(S)-only image URL, MIME/base64 validation, message/tool limits.
+- Model-level capabilities имеют приоритет над provider-level capabilities.
+- AIGateway.generateRequest() маршрутизирует в native generateRequest() или strict legacy bridge.
+- Legacy bridge сохраняет порядок и роли system/user/assistant; явно отклоняет images, developer/tool roles, assistant tool-call history, tools, streaming, JSON/structured output и неподдерживаемые generation options до вызова поставщика.
+- Отсутствующий usage отмечается unavailable; частичный usage сохраняется частичным, без подстановки нулей.
+- Gateway нормализует provider identity, сохраняет фактически возвращённую model ID и редактирует bearer/API-key-похожие credentials из provider error details.
+- Существующие string-based generate()/generateWithMetadata() и их fallback semantics сохранены.
+- Добавлен отдельный GitHub Actions workflow `.github/workflows/ai-provider-contract.yml`: API typecheck + полный API test suite без ожидания тяжёлого browser E2E.
+
+### Что пока НЕ реализовано
+
+- Существующие OpenAI, Anthropic, OpenRouter, OrcaRouter, AnyModel и Ollama adapters пока остаются legacy adapters. Новый native contract framework готов, но провайдер-специфичная сериализация и usage parsing для каждой интеграции ещё впереди.
+- Наличие image/tool/streaming/structured-output полей в canonical contract не означает, что все реальные модели поддерживают эти функции.
+- Не реализованы native audio/video, полноценный streaming protocol, structured JSON schema и tool execution mapping для каждого поставщика.
+- Product modules (chat, Builder, agent loops, Runtime, Workforce) ещё не мигрированы на canonical request API; текущие string calls работают через старый фасад.
+- Usage ledger, reservations/settlement, pricing versioning, plan entitlements и payment lifecycle остаются отдельными этапами.
+- Sandbox smoke tests с реальными provider accounts не выполнялись; реальные API keys, production secrets, billing и deployment не затрагивались.
+
+### Текущая матрица
+
+| Слой | Статус |
+|---|---|
+| Canonical types + runtime validation | Implemented |
+| Native adapter extension point | Implemented |
+| Strict text-only legacy bridge | Implemented |
+| Gateway routing + model capabilities | Implemented |
+| Usage source normalization | Implemented |
+| Provider error credential redaction | Implemented + covered by tests |
+| Reusable conformance fixture tests | Implemented |
+| Native adapters for actual providers | Pending |
+| Vision/tools/streaming/structured output per provider | Pending, capability-gated |
+| Audio/video | Future |
+| Product module migration | Pending |
+| Usage ledger + budget reservation | Pending |
+| Real provider sandbox checks | Pending before production enablement |
+
+CI evidence: dedicated provider-contract workflow `45705059762` passed (API typecheck and full API test suite) on commit `9f4e9992c017a94409834c8f238926cbe09fceab`. This verifies the contract foundation at that commit, not all future native provider features.
