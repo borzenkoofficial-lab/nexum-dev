@@ -177,6 +177,13 @@ export class AIGateway {
         technicalDetails: "AbortSignal was already aborted before provider invocation",
       });
     }
+    if (request.stream) {
+      throw new NexumError("MODEL_ERROR", "Потоковая генерация пока не поддерживается API полного ответа.", {
+        status: 400,
+        retryable: false,
+        technicalDetails: "Streaming requests require a dedicated stream API; generateRequest returns a completed response",
+      });
+    }
 
     const model = request.model || provider.model;
     const capabilities = this.getCapabilities(providerId, model);
