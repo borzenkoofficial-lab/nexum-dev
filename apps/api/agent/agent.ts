@@ -508,10 +508,10 @@ export class NexumAgent implements AgentRuntime {
       .join("\n");
     if (/создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|website|landing|web app|страниц/i.test(task) && inspectedListing) {
       const normalizeProjectPath = (value: string) => value
-        .replace(/\\\\/g, "/")
-        .replace(/^\\.\\/+/, "")
-        .replace(/\\/+/g, "/")
-        .replace(/\\/$/, "");
+        .trim()
+        .replaceAll("\\", "/")
+        .replace(/^\.\/+/, "")
+        .replace(/\/+$/, "");
       const unreadEntry = entryCandidates.find((candidate) =>
         inspectedListing.includes(candidate) &&
         !previousResults.some((item) =>
