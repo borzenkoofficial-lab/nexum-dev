@@ -199,10 +199,10 @@ export class AnthropicProvider implements AIProvider {
       }
 
       const content = typeof message.content === "string" ? message.content : mapContent(message.content);
-      const blocks: Array<Record<string, unknown>> = typeof content === "string"
-        ? (content ? [{ type: "text", text: content }] : [])
-        : content;
       if (message.toolCalls?.length) {
+        const blocks: Array<Record<string, unknown>> = typeof content === "string"
+          ? (content ? [{ type: "text", text: content }] : [])
+          : [...content];
         for (const call of message.toolCalls) {
           blocks.push({
             type: "tool_use",
@@ -211,8 +211,10 @@ export class AnthropicProvider implements AIProvider {
             input: call.arguments,
           });
         }
+        messages.push({ role: message.role, content: blocks });
+      } else if (typeof content === "string" ? content.length > 0 : content.length > 0) {
+        messages.push({ role: message.role, content });
       }
-      if (blocks.length) messages.push({ role: message.role, content: blocks });
     }
 
     const body: Record<string, unknown> = {
