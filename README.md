@@ -8,6 +8,7 @@
 
 - [Инструкции для всех ИИ-агентов — AGENTS.md](./AGENTS.md)
 - [Текущий статус, реализованное и оставшиеся задачи — docs/PROJECT_STATUS.md](./docs/PROJECT_STATUS.md)
+- [Глобальный план редизайна КВАРД и чек-лист всех экранов — docs/KVARD_GLOBAL_DESIGN_PLAN.md](./docs/KVARD_GLOBAL_DESIGN_PLAN.md)
 - [Полный технический аудит и оставшиеся риски — docs/AUDIT_REPORT_2026-10-11.md](./docs/AUDIT_REPORT_2026-10-11.md)
 - [Дополнительный журнал CI/P0 до исправления](./docs/AUDIT_2026-10-11.md)
 
