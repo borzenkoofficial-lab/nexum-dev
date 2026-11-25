@@ -128,7 +128,7 @@ test("Daytona sandbox outbound network is restricted to the npm registry", async
       }),
       deleteSession: async () => undefined,
     },
-    fs: { createFolder: async () => undefined, uploadFileStream: async () => undefined, listFiles: async () => [], downloadFile: async () => undefined },
+    fs: { createFolder: async () => undefined, uploadFileStream: async () => undefined, listFiles: async () => [], downloadFileStream: async () => Readable.from([]) },
     getWorkDir: async () => "/home/daytona",
     setTtl: async () => undefined,
     setLabels: async () => ({}),
