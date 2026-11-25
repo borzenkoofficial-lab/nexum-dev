@@ -1,0 +1,36 @@
+name: КВАРД AI Provider Contract
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "apps/api/ai/**"
+      - "apps/api/core/errors.ts"
+      - "apps/api/package.json"
+      - "apps/api/package-lock.json"
+      - ".github/workflows/ai-provider-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kvard-ai-provider-contract-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - name: Install API
+        run: npm ci --prefix apps/api
+      - name: Typecheck API
+        run: npm --prefix apps/api run typecheck
+      - name: Test API
+        run: npm --prefix apps/api run test
