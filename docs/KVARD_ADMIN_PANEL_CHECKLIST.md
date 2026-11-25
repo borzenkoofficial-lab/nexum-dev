@@ -427,3 +427,11 @@
 - Dedicated workflow `45710389512` passed на commit `5fbbd6b50784`: API typecheck passed, 79/79 focused AI provider contract tests passed.
 - Full NEXUM CI `45709660925` passed на commit `853e...` (build + E2E); это было до native OpenAI adapter. Full CI после последнего адаптера ожидает отдельного подтверждения.
 - Реальные provider credentials, платные запросы и production deploy не использовались.
+
+
+### AI Provider Contract — OpenAI usage integrity
+
+- OpenAI Responses usage parsing now validates non-negative safe integer token counts.
+- Partial/malformed usage remains explicitly `unavailable` for billing; present values are retained only as partial diagnostics. Missing counts are never invented as zero.
+- Dedicated workflow `45710906329` passed: API typecheck and full API test suite passed, including the partial-usage regression.
+- Remaining provider work: native Anthropic/OpenRouter/OrcaRouter/AnyModel/Ollama adapters; real-account sandbox checks; model-level capability verification; canonical streaming; usage ledger and settlement integration.
