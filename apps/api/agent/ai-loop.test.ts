@@ -20,6 +20,10 @@ class ScriptedProvider implements AIProvider {
   async generate(): Promise<string> {
     return this.responses[this.index++] ?? '{"done":true,"finalResponse":"Done"}';
   }
+
+  async listModels(): Promise<string[]> {
+    return [this.model];
+  }
 }
 
 async function createLoop(responses: string[]) {
