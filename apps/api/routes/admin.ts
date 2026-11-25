@@ -32,7 +32,7 @@ adminRouter.get("/overview", requireAdminPermission("dashboard.read"), async (_r
         (SELECT COUNT(*)::text FROM users WHERE created_at >= NOW() - INTERVAL '7 days') AS users_new_7d,
         (SELECT COUNT(*)::text FROM organizations) AS organizations_total,
         (SELECT COUNT(*)::text FROM project_workspaces) AS projects_total,
-        (SELECT COUNT(*)::text FROM agents WHERE status <> 'archived') AS agents_total,
+        (SELECT COUNT(*)::text FROM agents WHERE status = 'published') AS agents_total,
         (SELECT COUNT(*)::text FROM agent_runs WHERE created_at >= NOW() - INTERVAL '24 hours') AS runs_24h,
         (SELECT COUNT(*)::text FROM agent_runs WHERE status IN ('queued','initializing','planning','running','waiting_approval')) AS runs_running,
         (SELECT COUNT(*)::text FROM agent_runs WHERE status = 'completed' AND created_at >= NOW() - INTERVAL '24 hours') AS runs_completed_24h,
@@ -159,10 +159,22 @@ adminRouter.post("/users/:userId/suspend", requireAdminPermission("users.manage"
   if (targetUserId === actor.id) return res.status(409).json({ success: false, error: "You cannot suspend your own account." });
   try {
     const result = await withDatabaseTransaction(async (client) => {
-      const target = await client.query<{ id: string; status: string }>(
-        "SELECT id, status FROM users WHERE id = $1 FOR UPDATE", [targetUserId],
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('kvard_admin_super_admin_guard'))");
+      const target = await client.query<{ id: string; status: string; admin_role: AdminRole | null }>(
+        "SELECT u.id, u.status, ara.role AS admin_role FROM users u LEFT JOIN admin_role_assignments ara ON ara.user_id = u.id WHERE u.id = $1 FOR UPDATE OF u", [targetUserId],
       );
       if (!target.rows[0]) return null;
+      if (target.rows[0].admin_role && req.adminRole !== "super_admin") {
+        throw new Error("Only a Super Admin may suspend an administrative account.");
+      }
+      if (target.rows[0].admin_role === "super_admin") {
+        const activeOwners = await client.query<{ count: string }>(
+          "SELECT COUNT(*)::text AS count FROM admin_role_assignments ara JOIN users u ON u.id = ara.user_id WHERE ara.role = 'super_admin' AND u.status = 'active'",
+        );
+        if (Number(activeOwners.rows[0]?.count ?? 0) <= 1) {
+          throw new Error("Cannot suspend the last active Super Admin.");
+        }
+      }
       const updated = await client.query(
         "UPDATE users SET status = 'suspended', suspended_at = NOW(), suspended_by = $2, suspension_reason = $3 WHERE id = $1 RETURNING id, status, suspended_at, suspension_reason",
         [targetUserId, actor.id, reason],
@@ -179,7 +191,13 @@ adminRouter.post("/users/:userId/suspend", requireAdminPermission("users.manage"
     });
     if (!result) return res.status(404).json({ success: false, error: "User not found." });
     return res.json({ success: true, ...result });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "Only a Super Admin may suspend an administrative account.") {
+      return res.status(403).json({ success: false, error: error.message });
+    }
+    if (error instanceof Error && error.message === "Cannot suspend the last active Super Admin.") {
+      return res.status(409).json({ success: false, error: error.message });
+    }
     return res.status(503).json({ success: false, error: "Account suspension failed." });
   }
 });
@@ -191,10 +209,13 @@ adminRouter.post("/users/:userId/activate", requireAdminPermission("users.manage
   if (targetUserId === actor.id) return res.status(409).json({ success: false, error: "Self-reactivation is not allowed through the admin endpoint." });
   try {
     const result = await withDatabaseTransaction(async (client) => {
-      const target = await client.query<{ id: string; status: string }>(
-        "SELECT id, status FROM users WHERE id = $1 FOR UPDATE", [targetUserId],
+      const target = await client.query<{ id: string; status: string; admin_role: AdminRole | null }>(
+        "SELECT u.id, u.status, ara.role AS admin_role FROM users u LEFT JOIN admin_role_assignments ara ON ara.user_id = u.id WHERE u.id = $1 FOR UPDATE OF u", [targetUserId],
       );
       if (!target.rows[0]) return null;
+      if (target.rows[0].admin_role && req.adminRole !== "super_admin") {
+        throw new Error("Only a Super Admin may reactivate an administrative account.");
+      }
       const updated = await client.query(
         "UPDATE users SET status = 'active', suspended_at = NULL, suspended_by = NULL, suspension_reason = NULL WHERE id = $1 RETURNING id, status",
         [targetUserId],
@@ -207,7 +228,10 @@ adminRouter.post("/users/:userId/activate", requireAdminPermission("users.manage
     });
     if (!result) return res.status(404).json({ success: false, error: "User not found." });
     return res.json({ success: true, user: result, note: "The user must sign in again; previous sessions were revoked on suspension." });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "Only a Super Admin may reactivate an administrative account.") {
+      return res.status(403).json({ success: false, error: error.message });
+    }
     return res.status(503).json({ success: false, error: "Account reactivation failed." });
   }
 });
