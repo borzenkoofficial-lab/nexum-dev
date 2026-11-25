@@ -18,7 +18,6 @@ jobs:
     timeout-minutes: 50
     outputs:
       role: ${{ steps.role.outputs.role }}
-      prompt_file: ${{ steps.role.outputs.prompt_file }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v5
@@ -65,11 +64,12 @@ jobs:
       - name: Export reviewable patch
         shell: bash
         run: |
-          git diff --binary HEAD > hourly.patch
+          # Include newly-created files in the patch, but never include the report itself.
+          git add -N -- . ':!codex-report.txt'
+          git diff --binary HEAD -- . ':!codex-report.txt' > hourly.patch
           if [ ! -s hourly.patch ]; then
             echo "Codex made no changes in this run." > hourly.patch
           fi
-          # Refuse to publish diffs that appear to contain credentials.
           if grep -Eiq '(sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----)' hourly.patch; then
             echo "::error::Patch appears to contain a secret; artifact publishing blocked."
             exit 1
