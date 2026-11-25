@@ -244,11 +244,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 @media (max-width: 760px) {
   .app { flex-direction: column; }
-  .main { order: 1; min-height: calc(100dvh - 60px); }
+  .main { order: 1; min-height: 100dvh; padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
   .sidebar {
-    order: 2; position: sticky; top: auto; bottom: 0; z-index: 20;
-    flex: 0 0 auto; flex-direction: row; width: 100%; min-width: 0; height: auto;
-    padding: 6px; border-right: 0; border-top: 1px solid var(--kv-border);
+    position: fixed; top: auto; right: 0; bottom: 0; left: 0; z-index: 20;
+    display: flex; flex: 0 0 auto; flex-direction: row; width: 100%; min-width: 0; height: auto;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); border-right: 0; border-top: 1px solid var(--kv-border);
   }
   .sidebar .logo, .sidebar .new-project, .sidebar > .section-title, .sidebar .projects { display: none; }
   .sidebar-nav { display: flex; gap: 4px; width: 100%; overflow-x: auto; scrollbar-width: none; }
