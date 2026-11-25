@@ -214,10 +214,20 @@ test("supports a native-only provider as an automatic transient fallback", async
 
 
 test("rejects streaming on the complete-response API even if a provider advertises streaming", async () => {
-  class StreamingAdvertisedProvider extends NativeFixture {
-    capabilities = { ...super.capabilities, streaming: true };
-  }
-  const provider = new StreamingAdvertisedProvider();
+  const provider = {
+    id: "streaming-advertised",
+    name: "Streaming advertised",
+    model: "streaming-model",
+    capabilities: {
+      text: true, code: false, vision: false, toolCalling: false,
+      streaming: true, structuredOutput: false, reasoning: false, contextWindow: 16_000,
+    },
+    received: [] as AIRequest[],
+    async generateRequest(input: AIRequest): Promise<AIResponse> {
+      this.received.push(input);
+      return { content: "complete response", provider: "streaming-advertised", model: "streaming-model" };
+    },
+  } as unknown as AIProvider;
   const gateway = new AIGateway([provider], "native");
   await assert.rejects(
     () => gateway.generateRequest(request({ stream: true })),
