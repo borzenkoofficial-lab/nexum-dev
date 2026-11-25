@@ -242,7 +242,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .nx-builder-header { grid-template-columns: minmax(0,1fr) auto; }
   .nx-builder-nav { grid-column: 1 / -1; grid-row: 2; justify-self: center; }
 }
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .app { flex-direction: column; }
   .sidebar {
     position: sticky; top: 0; z-index: 20; order: 0;
