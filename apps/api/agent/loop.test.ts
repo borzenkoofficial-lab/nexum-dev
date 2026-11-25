@@ -838,3 +838,30 @@ test("Completion Gate rejects validation claims embedded in file-write output", 
   assert.equal(isSuccessfulValidationEvidence("runCommand", "npm run build", false), false);
   assert.equal(isSuccessfulValidationEvidence("runSandbox", JSON.stringify({ command: "npm run test" }), true), true);
 });
+
+test("keeps planner payloads private and emits only the final user-facing response", async () => {
+  let plannerCalls = 0;
+  let plannerReceivedTextCallback = false;
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["fake"],
+    plan: (_task, previousResults) => previousResults.length === 0
+      ? { tool: "fake", input: "inspect" }
+      : { tool: "", input: "", done: true, finalResponse: "Задача выполнена." },
+    planWithAI: async (_task, _previousResults, options) => {
+      plannerCalls += 1;
+      if (typeof (options as unknown as { onTextDelta?: unknown } | undefined)?.onTextDelta === "function") {
+        plannerReceivedTextCallback = true;
+      }
+      return plannerCalls === 1 ? null : { tool: "", input: "", done: true, finalResponse: "Задача выполнена." };
+    },
+    executeTool: async () => ({ success: true, output: "inspection complete" }),
+  };
+  const deltas: string[] = [];
+  const result = await new AgentLoop(runtime, gateway, 4).run("say hello", {
+    onTextDelta: (delta) => deltas.push(delta),
+  });
+  assert.equal(result.success, true);
+  assert.equal(plannerReceivedTextCallback, false);
+  assert.deepEqual(deltas, ["Задача выполнена."]);
+});
+
