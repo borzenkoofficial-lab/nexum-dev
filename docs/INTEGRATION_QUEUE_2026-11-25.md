@@ -94,3 +94,60 @@ GitHub branch search вернул 67 веток, включая `main`. Для �
 - CI по PR #56, #68 и #61 не запускался повторно в рамках этого аудита.
 - Production deployment и production database migrations не выполнялись.
 - Старые ветки не удалялись.
+
+
+## Выполненная интеграция непосредственно в main
+
+После аудита начат перенос универсальной платформы агентов. Все изменения ниже сделаны прямыми коммитами в `main`, без создания новых рабочих веток.
+
+### База данных и миграции
+
+- `apps/api/db.ts`: добавлен `withDatabaseTransaction` с BEGIN/COMMIT/ROLLBACK и гарантированным освобождением соединения.
+- `apps/api/db/migrate.ts`: заменён жёсткий список миграций на упорядоченный discovery по имени, таблицу `schema_migrations`, SHA-256 checksum, advisory lock и атомарное применение миграции.
+- Добавлены новые миграции с непрерывной нумерацией после существующей схемы main:
+  - `005_organizations.sql`
+  - `006_agents.sql`
+  - `007_workforces.sql`
+  - `008_knowledge_memory.sql`
+  - `009_approvals_integrations.sql`
+  - `010_usage_billing.sql`
+  - `011_agent_run_queue.sql`
+
+Исходные миграции PR были перенумерованы, чтобы не конфликтовать с уже существующими миграциями main `001-004`.
+
+### Backend modules
+
+Перенесены в main:
+- organizations service и membership/role middleware;
+- agent types, repository, config validation/service и runtime;
+- tool registry с проверкой включённого инструмента и обязательных permission scopes (deny by default);
+- knowledge source/chunking/search service;
+- approval service;
+- quota/usage service;
+- workforce graph validation, repository и runtime;
+- durable worker и queue integration test.
+
+Дополнительно исправлено восстановление worker lease: просроченные задачи в состоянии `waiting_approval` теперь также попадают в recovery path.
+
+### API
+
+Добавлены organization, business-agent, knowledge, workforce и approvals routers. Они подключены в `apps/api/server.ts` в отдельном namespace `/api/business-agents`, чтобы не конфликтовать с существующим coding-agent API `/api/agents`.
+
+### Build scripts
+
+- Добавлены команды `worker`, `test:agents`, `test:queue`.
+- Production worker script использует скомпилированный `dist/agents/worker.js`, так как Docker runtime удаляет devDependencies и не содержит `tsx`.
+
+### Проверка
+
+GitHub Actions workflow `NEXUM CI` запущен на main commit `55853ca503aa6b0f5d1730b394272e7bc27d6bdc` (run #2745). На момент обновления документа build и E2E jobs ещё выполнялись; итоговый pass/fail не подтверждён.
+
+### Что ещё не выполнено
+
+- Миграции не применялись к production PostgreSQL.
+- Отдельный background worker не запущен в production. Для его запуска нужен отдельный процесс/worker service с `NEXUM_DATABASE_URL` и AI provider secret; добавление платного worker-сервиса не выполнялось.
+- Не выполнен live test с реальной БД и реальным AI provider.
+- UI кабинета бизнес-агентов ещё не подключён к новым API.
+- Интеграции каналов/триггеров и фактические внешние side effects не включены; настройки каналов/триггеров пока остаются конфигурацией.
+- Billing сейчас представляет основу тарифов, лимитов и usage records, а не подключённый платёжный провайдер.
+- Не удалялись старые ветки и не выполнялся production deploy.
