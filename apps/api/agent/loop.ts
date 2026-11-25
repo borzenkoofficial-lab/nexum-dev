@@ -603,7 +603,7 @@ export class AgentLoop {
       // Re-plan from the latest observed project state before failing the whole task.
       // The deterministic planner receives the same history and remains subject to the
       // available-tool guard below; this is a bounded fallback, not an unrestricted retry.
-      if (plan && modelPlan && !availableTools.includes(plan.tool)) {
+      if (plan && modelPlan && !plan.done && !availableTools.includes(plan.tool)) {
         const stateAwareFallback = this.runtime.plan(task, previousResults);
         if (stateAwareFallback && availableTools.includes(stateAwareFallback.tool)) {
           emit({
