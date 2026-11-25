@@ -362,6 +362,29 @@ async function runChatJob(
   job.currentMessage = "Запускаю AI-агента и начинаю выполнение задачи.";
   job.stage = "analyzing";
 
+  let replyPersistTimer: ReturnType<typeof setTimeout> | undefined;
+  let replyPersistChain: Promise<void> = Promise.resolve();
+  const appendReplyDelta = (delta: string) => {
+    if (!delta || job.status !== "running") return;
+    job.reply = (job.reply ?? "") + delta;
+    job.updatedAt = Date.now();
+    if (replyPersistTimer) return;
+    replyPersistTimer = setTimeout(() => {
+      replyPersistTimer = undefined;
+      replyPersistChain = replyPersistChain.then(async () => {
+        if (job.status === "running") await persistChatJob(job);
+      }).catch((error) => {
+        console.error("[Nexum] streamed reply persistence failed", { jobId, error });
+      });
+    }, 350);
+  };
+  const flushReplyPersistence = async () => {
+    if (replyPersistTimer) clearTimeout(replyPersistTimer);
+    replyPersistTimer = undefined;
+    await replyPersistChain;
+    if (job.status === "running" && job.reply) await persistChatJob(job);
+  };
+
   try {
     throwIfAgentAborted(signal);
     const project = await getProjectManager(userId).getActiveProject(projectId);
@@ -585,7 +608,9 @@ ${attachment.content.slice(0, 80_000)}`);
       ...(signal ? { signal } : {}),
       ...(provider === undefined ? {} : { provider }),
       ...(model === undefined ? {} : { model }),
+      onTextDelta: appendReplyDelta,
     });
+    await flushReplyPersistence();
 
     if (signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
     const persistedAfterRun = await getChatJob(jobId, userId);
@@ -673,6 +698,9 @@ ${attachment.content.slice(0, 80_000)}`);
     serverRuntime.updateTask(runtimeTask.id, "COMPLETED", { progress: 1 });
 
   } catch (error) {
+    await flushReplyPersistence().catch((persistenceError) => {
+      console.error("[Nexum] streamed reply flush failed", { jobId, persistenceError });
+    });
     if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) {
       job.status = "cancelled";
       job.stage = "cancelled";
