@@ -15,6 +15,9 @@
   --kv-text-tertiary: #666A78;
   --kv-action: #7040D8;
   --kv-action-hover: #6032C5;
+  --kv-on-action: #FFFFFF;
+  --kv-brand-ink: #24213A;
+  --kv-on-brand: #FFFFFF;
   --kv-action-soft: #F1EBFF;
   --kv-focus: #8B5CF6;
   --kv-success: #16845B;
@@ -70,6 +73,9 @@
   --kv-text-tertiary: #A1A4B1;
   --kv-action: #A78BFA;
   --kv-action-hover: #B69CFF;
+  --kv-on-action: #191923;
+  --kv-brand-ink: #24213A;
+  --kv-on-brand: #FFFFFF;
   --kv-action-soft: #302448;
   --kv-focus: #B69CFF;
   --kv-success: #54C79A;
@@ -105,7 +111,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .logo { display: flex; align-items: center; gap: 9px; min-height: 42px; margin: 0 8px 24px; color: var(--kv-text); font-size: 19px; font-weight: 750; letter-spacing: -.055em; }
 .logo::before {
   content: "К"; display: grid; place-items: center; width: 32px; height: 32px;
-  border-radius: 9px; background: #24213A; color: #fff; font-size: 18px; font-weight: 700; letter-spacing: -.04em;
+  border-radius: 9px; background: var(--kv-brand-ink); color: var(--kv-on-brand); font-size: 18px; font-weight: 700; letter-spacing: -.04em;
 }
 .logo span { color: var(--kv-text-tertiary); font-size: 10px; font-weight: 600; letter-spacing: .12em; }
 .sidebar-nav { display: grid; gap: 4px; }
@@ -119,8 +125,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .sidebar .nav-item.active, .sidebar-setting.active { background: var(--kv-action-soft); color: var(--kv-action); }
 .sidebar .nav-item.active span { color: var(--kv-action); }
 .os-dock-apps { display: none; }
-.new-project { justify-content: center; margin: 18px 0 24px; min-height: 42px; border-color: var(--kv-action); background: var(--kv-action); color: #fff; font-weight: 650; }
-.new-project:hover { background: var(--kv-action-hover); border-color: var(--kv-action-hover); color: #fff; }
+.new-project { justify-content: center; margin: 18px 0 24px; min-height: 42px; border-color: var(--kv-action); background: var(--kv-action); color: var(--kv-on-action); font-weight: 650; }
+.new-project:hover { background: var(--kv-action-hover); border-color: var(--kv-action-hover); color: var(--kv-on-action); }
 .section-title { padding: 0 10px; margin: 0 0 9px; color: var(--kv-text-tertiary); font-size: 10px; font-weight: 700; letter-spacing: .1em; }
 .projects { display: grid; gap: 3px; }
 .project-row { display: flex; align-items: center; gap: 3px; min-width: 0; }
@@ -134,7 +140,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 .nx-system-chrome { min-height: 60px; padding: 0 24px; border-bottom: 1px solid var(--kv-border); }
 .nx-system-brand { display: inline-flex; align-items: center; gap: 9px; border: 0; background: transparent; color: var(--kv-text); font-size: 14px; font-weight: 750; letter-spacing: -.04em; }
-.nx-system-brand span, .nx-builder-logo { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 9px; background: #24213A; color: #fff; font-weight: 700; }
+.nx-system-brand span, .nx-builder-logo { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 9px; background: var(--kv-brand-ink); color: var(--kv-on-brand); font-weight: 700; }
 .nx-system-nav button, .nx-system-icon-button, .nx-system-clock, .nx-app-window-controls button {
   border: 1px solid transparent; border-radius: var(--kv-radius-control); background: transparent; color: var(--kv-text-secondary);
 }
@@ -151,7 +157,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .builder-home-composer-footer { min-height: 54px; padding: 8px 12px 8px 18px; background: var(--kv-surface-subtle); border-color: var(--kv-border); }
 .builder-home-composer-footer button, .home-primary, .nx-send, .nx-builder-open {
   min-height: 38px; padding: 8px 16px; border: 1px solid var(--kv-action); border-radius: var(--kv-radius-control);
-  background: var(--kv-action); color: #fff; font-weight: 650;
+  background: var(--kv-action); color: var(--kv-on-action); font-weight: 650;
 }
 .builder-home-composer-footer button:hover, .home-primary:hover, .nx-send:hover, .nx-builder-open:hover { background: var(--kv-action-hover); border-color: var(--kv-action-hover); }
 .settings-page, .connectors-page, .diagnostics-page, .news-page { color: var(--kv-text); }
@@ -185,7 +191,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .nx-builder-nav button.active { background: var(--kv-surface); color: var(--kv-action); box-shadow: 0 1px 3px rgba(20,20,35,.09); }
 .nx-builder-header-actions button { border-color: var(--kv-border); border-radius: var(--kv-radius-control); background: var(--kv-surface); color: var(--kv-text-secondary); }
 .nx-builder-header-actions button:hover { background: var(--kv-surface-subtle); color: var(--kv-text); }
-.nx-builder-header-actions .nx-builder-open { border-color: var(--kv-action); background: var(--kv-action); color: #fff; }
+.nx-builder-header-actions .nx-builder-open { border-color: var(--kv-action); background: var(--kv-action); color: var(--kv-on-action); }
 .nx-builder-body { gap: 12px; padding: 12px; background: var(--kv-canvas); }
 .nx-builder-grid { display: grid; grid-template-columns: minmax(320px, .95fr) minmax(420px, 1.05fr); gap: 12px; flex: 1; min-width: 0; min-height: 0; }
 .nx-chat, .nx-tool, .nx-code { overflow: hidden; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-panel); background: var(--kv-surface); box-shadow: var(--kv-shadow-panel); }
@@ -198,7 +204,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .nx-chat-head button:hover, .nx-tool-head button:hover, .nx-tool-actions button:hover { background: var(--kv-surface-subtle); color: var(--kv-text); }
 .nx-chat-empty h1 { color: var(--kv-text); letter-spacing: -.045em; }
 .nx-chat-empty p { color: var(--kv-text-secondary); }
-.nx-chat-mark { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto; border-radius: 14px; background: #24213A; color: white; font-size: 24px; font-weight: 700; }
+.nx-chat-mark { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto; border-radius: 14px; background: var(--kv-brand-ink); color: var(--kv-on-brand); font-size: 24px; font-weight: 700; }
 .nx-suggestions button { border-color: var(--kv-border); border-radius: 999px; background: var(--kv-surface); color: var(--kv-text-secondary); }
 .nx-suggestions button:hover { border-color: var(--kv-action); background: var(--kv-action-soft); color: var(--kv-action); }
 .nx-composer { border-color: var(--kv-border-strong); border-radius: var(--kv-radius-large); background: var(--kv-surface); box-shadow: var(--kv-shadow-panel); }
@@ -207,7 +213,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .nx-composer textarea::placeholder { color: var(--kv-text-tertiary); }
 .nx-composer-row { border-color: var(--kv-border); }
 .nx-composer button, .nx-tool button, .nx-code button { border-color: var(--kv-border); border-radius: var(--kv-radius-control); background: var(--kv-surface); color: var(--kv-text-secondary); }
-.nx-composer .nx-send { width: 38px; min-height: 38px; border-color: var(--kv-action); background: var(--kv-action); color: white; font-size: 18px; }
+.nx-composer .nx-send { width: 38px; min-height: 38px; border-color: var(--kv-action); background: var(--kv-action); color: var(--kv-on-action); font-size: 18px; }
 .nx-chat footer { border-color: var(--kv-border); color: var(--kv-text-tertiary); }
 .nx-messages article { border-color: var(--kv-border); border-radius: var(--kv-radius-panel); background: var(--kv-surface); color: var(--kv-text); }
 .nx-messages article.user { background: var(--kv-action-soft); border-color: transparent; }
@@ -262,12 +268,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .nexum-brand { color: var(--kv-text); letter-spacing: -.035em; }
 .nexum-brand em { color: var(--kv-text-tertiary); }
 .nexum-logo-mark, .nexum-boot-center .nexum-logo-mark {
-  border: 0; border-radius: 14px; background: #24213A; color: #fff;
+  border: 0; border-radius: 14px; background: var(--kv-brand-ink); color: var(--kv-on-brand);
 }
 .nexum-sequence-core { min-height: 120px; }
 .nexum-sequence-core::before {
   width: 84px; height: 84px; border: 0; border-radius: 20px;
-  background: #24213A; color: #fff; content: "К"; font-size: 34px;
+  background: var(--kv-brand-ink); color: var(--kv-on-brand); content: "К"; font-size: 34px;
 }
 .nexum-sequence-copy h1 { color: var(--kv-text); letter-spacing: -.05em; }
 .nexum-sequence-copy p, .nexum-auth-intro p { color: var(--kv-text-secondary); }
@@ -289,7 +295,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .nexum-auth-content input::placeholder { color: var(--kv-text-tertiary); }
 .nexum-enter {
   border: 1px solid var(--kv-action); border-radius: var(--kv-radius-control);
-  background: var(--kv-action); color: #fff; font-weight: 650;
+  background: var(--kv-action); color: var(--kv-on-action); font-weight: 650;
 }
 .nexum-enter:hover { background: var(--kv-action-hover); border-color: var(--kv-action-hover); }
 .nexum-auth-switch { color: var(--kv-text-secondary); }
@@ -322,7 +328,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 .kv-home-brand-mark, .kv-home-empty-mark {
   display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px;
-  border-radius: 10px; background: #24213A; color: #fff; font-size: 19px; font-weight: 700;
+  border-radius: 10px; background: var(--kv-brand-ink); color: var(--kv-on-brand); font-size: 19px; font-weight: 700;
 }
 .kv-home-brand-copy { display: grid; gap: 1px; }
 .kv-home-brand-copy strong { font-size: 17px; font-weight: 760; letter-spacing: -.045em; }
@@ -330,7 +336,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-home-create {
   display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 42px; margin-bottom: 30px;
   border: 1px solid var(--kv-action); border-radius: var(--kv-radius-control); background: var(--kv-action);
-  color: #fff; font-size: 13px; font-weight: 650;
+  color: var(--kv-on-action); font-size: 13px; font-weight: 650;
 }
 .kv-home-create:hover { border-color: var(--kv-action-hover); background: var(--kv-action-hover); }
 .kv-home-create span { font-size: 18px; line-height: 1; }
@@ -517,8 +523,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agents-section-head > div:first-child > span { color: var(--kv-action); font-size: 9px; font-weight: 750; letter-spacing: .13em; }
 .kv-agents-section-head h2 { margin: 4px 0 0; color: var(--kv-text); font-size: 19px; font-weight: 660; letter-spacing: -.03em; }
 .kv-agents-section-head p { margin: 4px 0 0; color: var(--kv-text-secondary); font-size: 11px; }
-.kv-agents-create { border-color: var(--kv-action); background: var(--kv-action); color: white; }
-.kv-agents-create:hover { border-color: var(--kv-action-hover); background: var(--kv-action-hover); color: white; }
+.kv-agents-create { border-color: var(--kv-action); background: var(--kv-action); color: var(--kv-on-action); }
+.kv-agents-create:hover { border-color: var(--kv-action-hover); background: var(--kv-action-hover); color: var(--kv-on-action); }
 .kv-agents-launchbar { display: grid; grid-template-columns: auto minmax(180px, 300px) 1fr; align-items: center; gap: 12px; margin-bottom: 12px; padding: 12px 14px; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-panel); background: var(--kv-surface); }
 .kv-agents-launchbar label { color: var(--kv-text-secondary); font-size: 11px; font-weight: 650; }
 .kv-agents-launchbar select { width: 100%; min-height: 38px; padding: 7px 10px; border: 1px solid var(--kv-border-strong); border-radius: var(--kv-radius-control); background: var(--kv-surface); color: var(--kv-text); font-size: 13px; }
@@ -534,7 +540,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agents-profile p { margin: 0; color: var(--kv-text-secondary); font-size: 11px; line-height: 1.45; }
 .kv-agents-profile-actions { display: flex; align-items: center; gap: 10px; }
 .kv-agents-use { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 7px 11px; border: 1px solid var(--kv-action); border-radius: var(--kv-radius-control); background: var(--kv-action-soft); color: var(--kv-action); font-size: 11px; font-weight: 650; white-space: nowrap; }
-.kv-agents-use:hover:not(:disabled) { background: var(--kv-action); color: #fff; }
+.kv-agents-use:hover:not(:disabled) { background: var(--kv-action); color: var(--kv-on-action); }
 .kv-agents-use:disabled { opacity: .4; cursor: not-allowed; }
 .kv-agents-delete { border: 0; background: transparent; color: var(--kv-text-tertiary); font-size: 10px; }
 .kv-agents-delete:hover { color: var(--kv-danger); }
@@ -549,7 +555,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agents-form textarea { min-height: 112px; resize: vertical; line-height: 1.5; }
 .kv-agents-form-error { margin: 0; color: var(--kv-danger); font-size: 11px; }
 .kv-agents-form-footer > span { color: var(--kv-text-tertiary); font-size: 10px; font-variant-numeric: tabular-nums; }
-.kv-agents-primary { min-height: 38px; padding: 8px 13px; border: 1px solid var(--kv-action); border-radius: var(--kv-radius-control); background: var(--kv-action); color: #fff; font-size: 11px; font-weight: 650; }
+.kv-agents-primary { min-height: 38px; padding: 8px 13px; border: 1px solid var(--kv-action); border-radius: var(--kv-radius-control); background: var(--kv-action); color: var(--kv-on-action); font-size: 11px; font-weight: 650; }
 .kv-agents-primary:hover { background: var(--kv-action-hover); }
 .kv-agents-empty-project { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 15px; border: 1px dashed var(--kv-border-strong); border-top: 0; border-radius: 0 0 var(--kv-radius-panel) var(--kv-radius-panel); color: var(--kv-text-secondary); font-size: 11px; }
 .kv-agents-empty-project button { padding: 7px 10px; border: 1px solid var(--kv-action); border-radius: 7px; background: var(--kv-action-soft); color: var(--kv-action); font-size: 11px; font-weight: 650; }
@@ -700,7 +706,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agent-approval-actions > div { display: flex; flex: 0 0 auto; gap: 8px; }
 .kv-agent-approval-actions button { min-height: 36px; padding: 7px 12px; border: 1px solid var(--kv-border-strong); border-radius: var(--kv-radius-control); background: var(--kv-surface); color: var(--kv-text); font-size: 11px; font-weight: 650; }
 .kv-agent-approval-actions button:disabled { opacity: .5; cursor: wait; }
-.kv-agent-approval-actions .kv-agent-approval-approve { border-color: var(--kv-action); background: var(--kv-action); color: #fff; }
+.kv-agent-approval-actions .kv-agent-approval-approve { border-color: var(--kv-action); background: var(--kv-action); color: var(--kv-on-action); }
 .kv-agent-approval-actions .kv-agent-approval-approve:hover:not(:disabled) { background: var(--kv-action-hover); }
 .kv-agent-approval-actions .kv-agent-approval-reject { color: var(--kv-danger); }
 @media (max-width: 720px) {
