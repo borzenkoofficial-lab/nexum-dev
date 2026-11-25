@@ -873,7 +873,7 @@ app.post("/api/auth/login", authLoginLimiter, async (req, res) => {
       issueAdminMfaChallenge(res, user.id, nonce);
       return res.json({ success: true, mfaRequired: true });
     }
-    issueSession(res, user);
+    await issueSession(res, user);
     return res.json({ success: true, user, ...(admin.rows.length > 0 ? { mfaEnrollmentRequired: true } : {}) });
   } catch (error) {
     return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Authentication service unavailable" });
