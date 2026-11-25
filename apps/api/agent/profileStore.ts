@@ -103,7 +103,9 @@ export async function createAgentProfile(userId: string, input: { name: string; 
     "INSERT INTO agent_profiles (id,user_id,name,description,prompt,kind,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$7) RETURNING id,user_id,name,description,prompt,kind,created_at,updated_at",
     [profile.id, userId, profile.name, profile.description, profile.prompt, profile.kind, now],
   );
-  return fromRow(result.rows[0]);
+  const row = result.rows[0];
+  if (!row) throw new Error("Не удалось сохранить профиль агента.");
+  return fromRow(row);
 }
 
 export async function deleteAgentProfile(userId: string, profileId: string): Promise<boolean> {
