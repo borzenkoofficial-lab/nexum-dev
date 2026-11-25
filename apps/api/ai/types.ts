@@ -113,6 +113,15 @@ export type AIProviderProtocol =
   | "custom"
   | (string & {});
 
+export type AIStreamEvent =
+  | { type: "message_start"; provider: string; model: string; requestId?: string; usage?: AIUsage }
+  | { type: "text_delta"; text: string }
+  | { type: "tool_call_start"; index: number; id: string; name: string }
+  | { type: "tool_call_delta"; index: number; argumentsDelta: string }
+  | { type: "usage"; usage: AIUsage; source: "provider_reported" | "unavailable" }
+  | { type: "message_end"; finishReason?: string; stopSequence?: string }
+  | { type: "error"; code: string; message: string };
+
 export interface AIProvider {
   id: string;
   name: string;
@@ -126,6 +135,7 @@ export interface AIProvider {
   capabilities: AIModelCapabilities;
   generate?(message: string, model?: string, options?: AIGenerateOptions): Promise<string>;
   generateRequest?(request: AIRequest): Promise<AIResponse>;
+  streamRequest?(request: AIRequest): AsyncIterable<AIStreamEvent>;
   listModels?(signal?: AbortSignal): Promise<string[]>;
   getStatus?(model?: string, signal?: AbortSignal): Promise<AIProviderStatus>;
   getCapabilities?(model?: string): AIModelCapabilities;
