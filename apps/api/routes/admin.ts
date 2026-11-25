@@ -76,10 +76,15 @@ adminRouter.put("/roles/:userId", requireAdminPermission("roles.manage"), async 
       );
       const row = updated.rows[0];
       if (!row) return null;
+      // Role changes invalidate all existing sessions so privilege changes take effect immediately.
+      const revokedSessions = await client.query(
+        "UPDATE auth_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL RETURNING id",
+        [targetUserId],
+      );
       await client.query(
         `INSERT INTO admin_audit_log (actor_user_id, action, target_type, target_id, request_id, metadata)
          VALUES ($1, 'admin.role.upsert', 'user', $2, $3, $4::jsonb)`,
-        [actor.id, targetUserId, req.header("x-request-id") ?? null, JSON.stringify({ role })],
+        [actor.id, targetUserId, req.header("x-request-id") ?? null, JSON.stringify({ role, revokedSessions: revokedSessions.rows.length })],
       );
       return row;
     });
@@ -122,10 +127,14 @@ adminRouter.delete("/roles/:userId", requireAdminPermission("roles.manage"), asy
         }
       }
       await client.query("DELETE FROM admin_role_assignments WHERE user_id = $1", [targetUserId]);
+      const revokedSessions = await client.query(
+        "UPDATE auth_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL RETURNING id",
+        [targetUserId],
+      );
       await client.query(
         `INSERT INTO admin_audit_log (actor_user_id, action, target_type, target_id, request_id, metadata)
          VALUES ($1, 'admin.role.revoke', 'user', $2, $3, $4::jsonb)`,
-        [actor.id, targetUserId, req.header("x-request-id") ?? null, JSON.stringify({ previousRole: assignment.role })],
+        [actor.id, targetUserId, req.header("x-request-id") ?? null, JSON.stringify({ previousRole: assignment.role, revokedSessions: revokedSessions.rows.length })],
       );
       return true;
     });
