@@ -261,3 +261,18 @@ test("provider status verifies the selected model, not merely a reachable models
   assert.equal(unsupported.available, false);
   assert.match(unsupported.error ?? "", /not a verified text generation model/i);
 });
+
+
+test("native Responses adapter rejects non-terminal and failed response states", async () => {
+  for (const payload of [
+    { id: "resp_pending", status: "in_progress", model: "gpt-6.2-sol", output: [] },
+    { id: "resp_failed", status: "failed", model: "gpt-6.2-sol", output: [], error: { message: "provider detail" } },
+  ]) {
+    const provider = createProvider(async () => response(payload));
+    await assert.rejects(() => provider.generateRequest({
+      version: 1,
+      model: "gpt-6.2-sol",
+      messages: [{ role: "user", content: "test" }],
+    }), /unsuccessful response/i);
+  }
+});
