@@ -14,7 +14,7 @@ test("requires OPENROUTER_API_KEY without exposing it", async () => {
   const result = await provider.getStatus();
 
   assert.equal(result.available, false);
-  assert.equal(result.error, "OPENROUTER_API_KEY is not configured. Add it to the deployment environment.");
+  assert.equal(result.error, "OPENROUTER_API_KEY is not configured. Add an API key in NEXUM Settings.");
   assert.equal(JSON.stringify(result).includes("sk-"), false);
 });
 
@@ -64,16 +64,17 @@ test("maps OpenRouter timeout without the key", async () => {
 });
 
 
-test("routes code and planning prompts to different free-model families", async () => {
+test("does not apply hidden keyword routing or hardcoded model lists", async () => {
+  const requestedModels: string[] = [];
   const provider = new OpenRouterProvider("https://openrouter.test", "openrouter/free", 1000, async (_input, init) => {
     const body = JSON.parse(String(init?.body)) as { model?: string };
+    requestedModels.push(body.model ?? "");
     return jsonResponse(200, { choices: [{ message: { content: body.model ?? "" } }] });
   });
   provider.setRuntimeApiKey("test-only-key");
-  const code = await provider.generate("fix this TypeScript React build error");
-  const planning = await provider.generate("plan the architecture for a multi-step autonomous agent");
-  assert.match(code, /north-mini-code|laguna-s-2\.1|laguna-xs-2\.1/);
-  assert.match(planning, /nemotron-3-ultra|nemotron-3\.5-lightning/);
+  await provider.generate("fix this TypeScript React build error");
+  await provider.generate("plan the architecture for a multi-step autonomous agent");
+  assert.deepEqual(requestedModels, ["openrouter/free", "openrouter/free"]);
 });
 
 
