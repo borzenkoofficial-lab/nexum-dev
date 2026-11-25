@@ -84,3 +84,21 @@ test("agent definitions reject empty names and system prompts", async () => {
   const created = await createAgentDefinition(userId, input("Секретарь"));
   await assert.rejects(() => updateAgentDefinition(userId, created.id, { systemPrompt: " " }), /Системная инструкция обязательна/);
 });
+
+test("autonomous agent definitions accept read-only tools and reject write or execute tools", async () => {
+  const userId = `agent-user-autonomous-${Date.now()}`;
+  const safe = await createAgentDefinition(userId, {
+    ...input("Только чтение"),
+    approvalPolicy: "autonomous",
+    allowedTools: ["listFiles", "readFile", "searchFiles", "git"],
+  });
+  assert.equal(safe.approvalPolicy, "autonomous");
+  await assert.rejects(
+    () => createAgentDefinition(userId, {
+      ...input("Опасный автономный"),
+      approvalPolicy: "autonomous",
+      allowedTools: ["writeFile"],
+    }),
+    /автономном режиме разрешены только инструменты чтения/i,
+  );
+});
