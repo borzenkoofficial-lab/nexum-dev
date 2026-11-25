@@ -185,10 +185,11 @@ export async function authMiddleware(request: Request, response: Response, next:
   try {
     const active = await query(
       `UPDATE auth_sessions SET last_seen_at = NOW()
-       WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL AND expires_at > NOW()
+       WHERE id = $1 AND user_id = $2 AND mfa_verified = $3
+         AND revoked_at IS NULL AND expires_at > NOW()
          AND last_seen_at > NOW() - INTERVAL '30 minutes'
        RETURNING id`,
-      [user.sessionId, user.id],
+      [user.sessionId, user.id, user.mfaVerified === true],
     );
     if (active.rows.length !== 1) {
       clearSessionCookie(response);
