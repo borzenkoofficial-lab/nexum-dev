@@ -116,10 +116,12 @@ export async function issueSession(response: Response, user: AuthUser): Promise<
   const ttl = user.mfaVerified ? 8 * 60 * 60 : TOKEN_TTL_SECONDS;
   const sessionId = randomUUID();
   const expiresAt = new Date((now + ttl) * 1000).toISOString();
-  await query(
-    "INSERT INTO auth_sessions (id, user_id, mfa_verified, expires_at) VALUES ($1, $2, $3, $4)",
-    [sessionId, user.id, user.mfaVerified === true, expiresAt],
-  );
+  if (AUTH_ENABLED) {
+    await query(
+      "INSERT INTO auth_sessions (id, user_id, mfa_verified, expires_at) VALUES ($1, $2, $3, $4)",
+      [sessionId, user.id, user.mfaVerified === true, expiresAt],
+    );
+  }
   const token = signToken({ sub: user.id, email: user.email, name: user.name, createdAt: user.createdAt, mfa: user.mfaVerified === true, sid: sessionId, iat: now, exp: now + ttl });
   setSessionCookie(response, token, ttl);
 }
