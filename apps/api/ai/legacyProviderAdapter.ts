@@ -25,6 +25,9 @@ export async function generateWithLegacyProvider(
   if (request.messages.some((message) => message.role === "developer" || message.role === "tool")) {
     unsupported("developer and tool message roles require a native canonical adapter");
   }
+  if (request.messages.some((message) => message.toolCalls?.length)) {
+    unsupported("assistant tool-call history requires a native canonical adapter");
+  }
   if (request.messages.some((message) => Array.isArray(message.content))) {
     unsupported("multimodal content requires a native canonical adapter");
   }
