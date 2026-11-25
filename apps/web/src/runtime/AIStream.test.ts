@@ -85,3 +85,22 @@ test("rejects oversized SSE frames", async () => {
     AIStreamProtocolError,
   );
 });
+
+test("rejects a stream that ends without message_end or error", async () => {
+  const frame = 'event: text_delta\\ndata: {"type":"text_delta","text":"partial"}\\n\\n';
+  await assert.rejects(
+    () => consumeAIStream(responseFromChunks([frame]), () => undefined),
+    /without a terminal event/,
+  );
+});
+
+test("rejects events after the terminal event", async () => {
+  const frames = [
+    'event: message_end\\ndata: {"type":"message_end"}\\n\\n',
+    'event: text_delta\\ndata: {"type":"text_delta","text":"late"}\\n\\n',
+  ].join("");
+  await assert.rejects(
+    () => consumeAIStream(responseFromChunks([frames]), () => undefined),
+    /after its terminal event/,
+  );
+});
