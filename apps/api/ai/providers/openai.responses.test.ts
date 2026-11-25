@@ -276,3 +276,26 @@ test("native Responses adapter rejects non-terminal and failed response states",
     }), /unsuccessful response/i);
   }
 });
+
+
+test("native model discovery uses the Responses base URL while the legacy facade keeps its own base URL", async () => {
+  const urls: string[] = [];
+  const provider = new OpenAIProvider(
+    "https://legacy-gateway.test/v1",
+    "gpt-6.2-sol",
+    1000,
+    async (input) => {
+      urls.push(String(input));
+      if (String(input).endsWith("/models")) return response({ data: [{ id: "gpt-6.2-sol" }] });
+      return response({ choices: [{ message: { content: "legacy" } }] });
+    },
+    "https://responses-gateway.test/v1",
+  );
+  provider.setRuntimeApiKey(key);
+  await provider.listModels();
+  await provider.generate("legacy request");
+  assert.deepEqual(urls, [
+    "https://responses-gateway.test/v1/models",
+    "https://legacy-gateway.test/v1/chat/completions",
+  ]);
+});
