@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createElement, type ReactElement } from "react";
+import { createElement } from "react";
 import { KvardButton } from "./KvardButton.ts";
 import { KvardField } from "./KvardField.ts";
 import { KvardStatusBadge } from "./KvardStatusBadge.ts";
