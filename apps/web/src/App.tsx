@@ -16,9 +16,9 @@ import { BuilderChat } from "./components/BuilderChat";
 import { BuilderTools } from "./components/BuilderTools";
 import { BuilderCode } from "./components/BuilderCode";
 import { BuilderHome } from "./components/BuilderHome";
+import { Sidebar } from "./components/Sidebar";
 import { NexumApplicationManager } from "./components/NexumApplicationManager";
 import { NexumOSEventCenter, type NexumOSEventItem } from "./components/NexumOSEventCenter";
-import { OSSystemChrome } from "./components/OSSystemChrome";
 import { OSAppWindow } from "./components/OSAppWindow";
 import type { AIProviderInfo, AIProviderStatus, AgentStage as АгентStage, Project as Проект } from "./components/types";
 import { diagnosticsEvent, getDiagnosticsSessionId, startDiagnostics } from "./diagnostics";
@@ -61,7 +61,7 @@ function App() {
   const [reply, setReply] = useState("");
   const [lastMessage, setLastMessage] = useState("");
   const [agentStage, setАгентStage] = useState<АгентStage>(null);
-  const [, setПроектsLoading] = useState(true);
+  const [projectsLoading, setПроектsLoading] = useState(true);
   const [projectActionLoading, setПроектActionLoading] = useState(false);
   const [apiError, setApiError] = useState("");
   const [projectCreationError, setProjectCreationError] = useState("");
@@ -1002,6 +1002,17 @@ function App() {
 
   return (
     <div className={"app app-" + view}>
+      <Sidebar
+        projects={projects}
+        activeProjectId={activeПроектId}
+        projectsLoading={projectsLoading}
+        projectActionLoading={projectActionLoading}
+        onNewProject={() => openNewProject()}
+        onSelectProject={(projectId) => openПроект(projectId, "agent")}
+        mobileOpen={false}
+        view={view}
+        onViewChange={(nextView) => navigate(nextView)}
+      />
       {view !== "home" && <NexumOSEventCenter events={osEvents} onDismiss={(id) => setOsEvents((items) => items.filter((item) => item.id !== id))} />}
       {view !== "project" && view !== "home" && <NexumApplicationManager
         projectName={activeПроект?.name}
@@ -1017,16 +1028,6 @@ function App() {
         onClose={() => { setProjectWindowMinimizedByProject((items) => ({ ...items, [activeПроектId]: false })); setRunningProjectIds((items) => items.filter((id) => id !== activeПроектId)); navigate("home"); }}
       />}
       <main className={`main nexum-os-runtime ${osBooted ? "os-booted" : "os-booting"}`}>
-        {view !== "home" && view !== "project" && <OSSystemChrome
-          appName={view === "connectors" ? "Интеграции" : view === "settings" ? "Настройки" : view === "news" ? "Журнал КВАРД" : view === "agents" ? "AI-агенты" : view === "business-agents" ? "Бизнес-агенты" : "Диагностика"}
-          appIcon={view === "connectors" ? "◇" : view === "settings" ? "⚙" : view === "news" ? "✦" : view === "agents" ? "◈" : view === "business-agents" ? "✦" : "⌁"}
-          status={aiStatus?.available ? "AI Core подключён" : "Система готова"}
-          activeView={view}
-          onHome={() => navigate("home")}
-          onSearch={() => setPaletteOpen(true)}
-          onSettings={() => navigate("settings")}
-          onNewProject={() => openNewProject()}
-        />}
         {view === "business-agents" ? (
           <OSAppWindow title="Бизнес-агенты" subtitle="AI-сотрудники, знания и автоматизация" icon="✦" status="Business AI" onClose={() => navigate("home")} onMinimize={() => navigate("home")}>
             <BusinessAgentsPage />
