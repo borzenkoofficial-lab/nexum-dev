@@ -13,7 +13,7 @@ type Approval = { id: string; action_summary?: string; status?: string; created_
 type KnowledgeSource = { id: string; name: string; source_type?: string; created_at?: string };
 type Workforce = { id: string; name: string; description?: string; graph?: unknown };
 type Run = { id: string; status: string; input?: unknown; output?: unknown; error?: unknown; created_at?: string; finished_at?: string };
-type Provider = { id: string; name?: string; models?: string[] };
+type Provider = { id: string; name?: string; model?: string; isDefault?: boolean };
 type Tab = "agents" | "knowledge" | "teams" | "approvals" | "usage";
 
 const ACTIVE_RUNS = new Set(["queued", "initializing", "planning", "running", "waiting_approval"]);
@@ -44,6 +44,7 @@ export function BusinessAgentsPage() {
   const [agents, setAgents] = useState<BusinessAgent[]>([]);
   const [tools, setTools] = useState<AgentTool[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [providerModels, setProviderModels] = useState<Record<string, string[]>>({});
   const [knowledge, setKnowledge] = useState<KnowledgeSource[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [workforces, setWorkforces] = useState<Workforce[]>([]);
@@ -85,7 +86,7 @@ export function BusinessAgentsPage() {
     setLoading(true);
     setError("");
     try {
-      const [agentData, toolData, knowledgeData, approvalData, workforceData, usageData, providerData] = await Promise.all([
+      const [agentData, toolData, knowledgeData, approvalData, workforceData, usageData, providerData, modelsData] = await Promise.all([
         request<{ agents?: BusinessAgent[] }>("/api/business-agents/agents", id),
         request<{ tools?: AgentTool[] }>("/api/business-agents/tools", id),
         request<{ sources?: KnowledgeSource[] }>("/api/knowledge", id),
@@ -93,6 +94,7 @@ export function BusinessAgentsPage() {
         request<{ workforces?: Workforce[] }>("/api/workforces", id),
         request<Record<string, unknown>>("/api/organizations/current/usage", id),
         request<{ providers?: Provider[] }>("/api/ai/providers"),
+        request<{ models?: Record<string, string[]> }>("/api/ai/models"),
       ]);
       const nextAgents = agentData.agents ?? [];
       setAgents(nextAgents);
@@ -102,11 +104,12 @@ export function BusinessAgentsPage() {
       setWorkforces(workforceData.workforces ?? []);
       setUsage(usageData);
       setProviders(providerData.providers ?? []);
+      setProviderModels(modelsData.models ?? {});
       setSelectedAgentId(current => nextAgents.some(agent => agent.id === current) ? current : nextAgents[0]?.id ?? "");
       if ((providerData.providers ?? []).length && !providerData.providers?.some(provider => provider.id === agentProvider)) {
         const first = providerData.providers![0];
         setAgentProvider(first.id);
-        setAgentModel(first.models?.[0] ?? first.id + "/default");
+        setAgentModel(modelsData.models?.[first.id]?.[0] ?? first.model ?? "");
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось загрузить рабочее пространство.");
@@ -155,7 +158,7 @@ export function BusinessAgentsPage() {
   function resetCreateForm() {
     setAgentName(""); setAgentDescription(""); setAgentInstructions(defaultAgentPrompt);
     setAgentProvider(providers[0]?.id ?? "openrouter");
-    setAgentModel(providers[0]?.models?.[0] ?? "openrouter/free");
+    setAgentModel(providerModels[providers[0]?.id ?? ""]?.[0] ?? providers[0]?.model ?? "");
     setSelectedTools(tools.filter(tool => tool.riskLevel === "low").map(tool => tool.id));
   }
 
@@ -333,7 +336,7 @@ export function BusinessAgentsPage() {
 
       {tab === "usage" && <div className="kv-business-section-card"><div className="kv-business-section-head"><div><h2>Использование и лимиты</h2><p>Квоты текущего тарифного плана организации.</p></div></div><pre className="kv-business-usage">{usage?JSON.stringify(usage,null,2):"Данные использования пока недоступны."}</pre></div>}
 
-      {showCreate && <div className="kv-business-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setShowCreate(false);}}><form className="kv-business-modal" onSubmit={createAgent}><div className="kv-business-modal-head"><div><span className="kv-business-eyebrow">НОВЫЙ БИЗНЕС-АГЕНТ</span><h2>Создать AI-сотрудника</h2></div><button type="button" onClick={()=>setShowCreate(false)} aria-label="Закрыть">×</button></div><label>Название<input value={agentName} onChange={event=>setAgentName(event.target.value)} maxLength={120} placeholder="Например, Менеджер первичных заявок" required /></label><label>Функция и описание<input value={agentDescription} onChange={event=>setAgentDescription(event.target.value)} maxLength={2000} placeholder="Обрабатывает обращения и готовит ответы клиентам" /></label><div className="kv-business-two-cols"><label>AI-провайдер<select value={agentProvider} onChange={event=>{setAgentProvider(event.target.value);const provider=providers.find(item=>item.id===event.target.value);setAgentModel(provider?.models?.[0]??event.target.value+"/default");}}>{providers.map(provider=><option key={provider.id} value={provider.id}>{provider.name??provider.id}</option>)}</select></label><label>Модель<input value={agentModel} onChange={event=>setAgentModel(event.target.value)} required /></label></div><label>Инструкции агента<textarea value={agentInstructions} onChange={event=>setAgentInstructions(event.target.value)} rows={6} required /></label><fieldset><legend>Разрешённые инструменты</legend><div className="kv-business-tool-grid">{tools.map(tool=><label key={tool.id} className="kv-business-check"><input type="checkbox" checked={selectedTools.includes(tool.id)} onChange={event=>setSelectedTools(ids=>event.target.checked?[...ids,tool.id]:ids.filter(id=>id!==tool.id))}/><span><b>{tool.name}</b><small>{tool.description}</small></span></label>)}</div></fieldset><div className="kv-business-modal-foot"><small>Внешние действия запрещены по умолчанию. Согласования остаются обязательным барьером.</small><button type="submit" className="kv-business-primary" disabled={saving||!agentName.trim()||!agentInstructions.trim()}>{saving?"Создание…":"Создать черновик"}</button></div></form></div>}
+      {showCreate && <div className="kv-business-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setShowCreate(false);}}><form className="kv-business-modal" onSubmit={createAgent}><div className="kv-business-modal-head"><div><span className="kv-business-eyebrow">НОВЫЙ БИЗНЕС-АГЕНТ</span><h2>Создать AI-сотрудника</h2></div><button type="button" onClick={()=>setShowCreate(false)} aria-label="Закрыть">×</button></div><label>Название<input value={agentName} onChange={event=>setAgentName(event.target.value)} maxLength={120} placeholder="Например, Менеджер первичных заявок" required /></label><label>Функция и описание<input value={agentDescription} onChange={event=>setAgentDescription(event.target.value)} maxLength={2000} placeholder="Обрабатывает обращения и готовит ответы клиентам" /></label><div className="kv-business-two-cols"><label>AI-провайдер<select value={agentProvider} onChange={event=>{setAgentProvider(event.target.value);const provider=providers.find(item=>item.id===event.target.value);setAgentModel(providerModels[event.target.value]?.[0] ?? provider?.model ?? "");}}>{providers.map(provider=><option key={provider.id} value={provider.id}>{provider.name??provider.id}</option>)}</select></label><label>Модель<input value={agentModel} onChange={event=>setAgentModel(event.target.value)} required /></label></div><label>Инструкции агента<textarea value={agentInstructions} onChange={event=>setAgentInstructions(event.target.value)} rows={6} required /></label><fieldset><legend>Разрешённые инструменты</legend><div className="kv-business-tool-grid">{tools.map(tool=><label key={tool.id} className="kv-business-check"><input type="checkbox" checked={selectedTools.includes(tool.id)} onChange={event=>setSelectedTools(ids=>event.target.checked?[...ids,tool.id]:ids.filter(id=>id!==tool.id))}/><span><b>{tool.name}</b><small>{tool.description}</small></span></label>)}</div></fieldset><div className="kv-business-modal-foot"><small>Внешние действия запрещены по умолчанию. Согласования остаются обязательным барьером.</small><button type="submit" className="kv-business-primary" disabled={saving||!agentName.trim()||!agentInstructions.trim()}>{saving?"Создание…":"Создать черновик"}</button></div></form></div>}
     </section>
   );
 }
