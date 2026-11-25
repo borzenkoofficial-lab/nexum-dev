@@ -575,7 +575,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agents-status { justify-self: start; padding: 3px 7px; border-radius: 5px; background: var(--kv-surface-subtle); color: var(--kv-text-secondary); font-size: 9px; font-weight: 650; }
 .kv-agents-status.running, .kv-agents-status.queued { background: var(--kv-info-soft); color: var(--kv-info); }
 .kv-agents-status.completed { background: var(--kv-success-soft); color: var(--kv-success); }
-.kv-agents-status.failed, .kv-agents-status.cancelled { background: var(--kv-danger-soft); color: var(--kv-danger); }
+.kv-agents-status.failed { background: var(--kv-danger-soft); color: var(--kv-danger); }
+.kv-agents-status.cancelled { background: var(--kv-surface-subtle); color: var(--kv-text-secondary); }
 .kv-agents-empty { margin: 0; padding: 24px 15px; color: var(--kv-text-tertiary); font-size: 11px; line-height: 1.5; }
 .kv-agents-events-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 14px; border-bottom: 1px solid var(--kv-border); }
 .kv-agents-events-head strong { color: var(--kv-text); font-size: 11px; }
@@ -624,13 +625,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agents-tool-picker {
   margin: 0;
   padding: 14px;
-  border: 1px solid var(--kv-border, #dedee5);
-  border-radius: 12px;
+  border: 1px solid var(--kv-border);
+  border-radius: var(--kv-radius-panel);
   min-width: 0;
 }
 .kv-agents-tool-picker legend {
   padding: 0 6px;
-  color: var(--kv-text-secondary, #666);
+  color: var(--kv-text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -645,15 +646,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   gap: 8px;
   font-size: 13px;
 }
-.kv-agents-tool-picker input { accent-color: var(--kv-accent, #7664d8); }
+.kv-agents-tool-picker input { accent-color: var(--kv-action); }
 .kv-agents-form select {
   width: 100%;
   min-height: 40px;
   padding: 8px 10px;
   border: 1px solid var(--kv-border, #dedee5);
-  border-radius: 8px;
-  background: var(--kv-surface, #fff);
-  color: var(--kv-text, #17171b);
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-surface);
+  color: var(--kv-text);
   font: inherit;
 }
 
