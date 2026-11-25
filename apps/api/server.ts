@@ -870,7 +870,6 @@ app.post("/api/auth/login", authLoginLimiter, async (req, res) => {
          WHERE user_id = $1 AND enabled = TRUE`,
         [user.id, nonce],
       );
-      if (!challengeState) return res.status(503).json({ success: false, error: "MFA challenge could not be created." });
       issueAdminMfaChallenge(res, user.id, nonce);
       return res.json({ success: true, mfaRequired: true });
     }
