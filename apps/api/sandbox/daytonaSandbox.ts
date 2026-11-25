@@ -1,7 +1,7 @@
 import { Daytona } from "@daytona/sdk";
 import { createWriteStream } from "node:fs";
 import { lstat, mkdir, readdir, realpath, stat } from "node:fs/promises";
-import type { Readable } from "node:stream";
+import { Transform, type Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep, posix } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -369,12 +369,8 @@ class DaytonaSandboxSession implements SandboxSession {
 
         fileCount += 1;
         if (fileCount > MAX_WORKSPACE_FILES) throw new Error("Remote workspace exceeds the file synchronization limit");
-        if (typeof entry.size === "number") {
-          if (entry.size > MAX_FILE_BYTES) {
-            throw new Error(`Remote workspace file exceeds the ${MAX_FILE_BYTES} byte synchronization limit: ${relativePath}`);
-          }
-          totalBytes += entry.size;
-          if (totalBytes > MAX_WORKSPACE_BYTES) throw new Error("Remote workspace exceeds the synchronization byte limit");
+        if (typeof entry.size === "number" && entry.size > MAX_FILE_BYTES) {
+          throw new Error(`Remote workspace file exceeds the ${MAX_FILE_BYTES} byte synchronization limit: ${relativePath}`);
         }
 
         const localPath = resolve(root, ...relativePath.split("/"));
@@ -389,8 +385,25 @@ class DaytonaSandboxSession implements SandboxSession {
           // A new generated file is expected.
         }
         const stream = await this.sandbox.fs.downloadFileStream(remoteFilePath, { signal, timeout: 120 });
-        if (signal) await pipeline(stream, createWriteStream(localPath), { signal });
-        else await pipeline(stream, createWriteStream(localPath));
+        let fileBytes = 0;
+        const byteLimit = new Transform({
+          transform(chunk: Buffer | string, _encoding, callback) {
+            const chunkBytes = Buffer.isBuffer(chunk) ? chunk.byteLength : Buffer.byteLength(chunk);
+            fileBytes += chunkBytes;
+            totalBytes += chunkBytes;
+            if (fileBytes > MAX_FILE_BYTES) {
+              callback(new Error(`Remote workspace file exceeds the ${MAX_FILE_BYTES} byte synchronization limit: ${relativePath}`));
+              return;
+            }
+            if (totalBytes > MAX_WORKSPACE_BYTES) {
+              callback(new Error("Remote workspace exceeds the synchronization byte limit"));
+              return;
+            }
+            callback(null, chunk);
+          },
+        });
+        if (signal) await pipeline(stream, byteLimit, createWriteStream(localPath), { signal });
+        else await pipeline(stream, byteLimit, createWriteStream(localPath));
       }
     };
 
