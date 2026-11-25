@@ -215,8 +215,9 @@ export async function requestChatJobApproval(
   approval: ChatJobApproval,
 ): Promise<ChatJob | null> {
   if (approval.status !== "pending") throw new Error("A new chat job approval must be pending.");
-  const current = await getChatJob(id, userId);
-  if (!current || current.status !== "running" || current.pendingApproval?.status === "pending") return null;
+  const useDatabase = databaseAvailable();
+  const current = useDatabase ? await getChatJob(id, userId) : memoryJobs.get(id) ?? null;
+  if (!current || current.userId !== userId || current.status !== "running" || current.pendingApproval?.status === "pending") return null;
   const now = Date.now();
   const event = {
     id: now,
@@ -235,7 +236,7 @@ export async function requestChatJobApproval(
     events: [...(current.events ?? []), event].slice(-100),
     updatedAt: now,
   };
-  if (!databaseAvailable()) {
+  if (!useDatabase) {
     memoryJobs.set(id, cloneJob(next));
     return cloneJob(next);
   }
@@ -259,9 +260,10 @@ export async function resolveChatJobApproval(
   decision: "approved" | "rejected" | "expired",
   resolvedBy: string,
 ): Promise<ChatJob | null> {
-  const current = await getChatJob(id, userId);
+  const useDatabase = databaseAvailable();
+  const current = useDatabase ? await getChatJob(id, userId) : memoryJobs.get(id) ?? null;
   const pending = current?.pendingApproval;
-  if (!current || current.status !== "running" || !pending || pending.id !== approvalId || pending.status !== "pending") return null;
+  if (!current || current.userId !== userId || current.status !== "running" || !pending || pending.id !== approvalId || pending.status !== "pending") return null;
   const now = Date.now();
   const message = decision === "approved"
     ? `Действие ${pending.toolName} подтверждено.`
@@ -285,7 +287,7 @@ export async function resolveChatJobApproval(
     events: [...(current.events ?? []), event].slice(-100),
     updatedAt: now,
   };
-  if (!databaseAvailable()) {
+  if (!useDatabase) {
     memoryJobs.set(id, cloneJob(next));
     return cloneJob(next);
   }
