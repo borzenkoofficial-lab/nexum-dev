@@ -9,7 +9,7 @@ type Session = { id: string; user_id: string; email: string; mfa_verified: boole
 type Event = { id: string; actor_user_id: string | null; action: string; target_type: string; target_id: string; created_at: string };
 type UserRow = { id: string; email: string; name: string; created_at: string; status: "active" | "suspended"; suspended_at: string | null; suspension_reason: string | null; admin_role: Role | null; organizations_count: number; projects_count: number };
 type OrganizationRow = { id: string; name: string; slug: string; created_at: string; members_count: number; agents_count: number; workforces_count: number; owner_email: string | null };
-type MemberRow = { id: string; email: string; name: string; role: string; joined_at: string };
+type MemberRow = { id: string; email: string; name: string; role: string; joined_at: string };\ntype DashboardMetrics = { users: { total: number; active: number; suspended: number; new7d: number }; organizations: number; projects: number; agents: number; runs: { last24h: number; active: number; completed24h: number; failed24h: number }; ai: { cost30d: string; tokens30d: number } };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...init, credentials: "include", headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) } });
@@ -24,7 +24,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 const date = (value: string) => new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 
 export function AdminControlCenter() {
-  const [identity, setIdentity] = useState<Identity | null>(null);
+  const [identity, setIdentity] = useState<Identity | null>(null);\n  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [section, setSection] = useState<Section>("overview");
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -53,7 +53,7 @@ export function AdminControlCenter() {
       if (section === "roles" && me.permissions.includes("roles.manage")) setAssignments((await request<{ assignments: Assignment[] }>("/api/admin/roles")).assignments);
       if (section === "sessions" && me.permissions.includes("sessions.manage")) setSessions((await request<{ sessions: Session[] }>("/api/admin/sessions")).sessions);
       if (section === "audit" && me.permissions.includes("audit.read")) setEvents((await request<{ events: Event[] }>("/api/admin/audit")).events);
-      if (section === "overview") await request("/api/admin/overview");
+      if (section === "overview") setMetrics((await request<{ metrics: DashboardMetrics }>("/api/admin/overview")).metrics);
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка загрузки"); }
     finally { setLoading(false); }
   }, [section, directorySearch]);
@@ -103,7 +103,7 @@ export function AdminControlCenter() {
       {error && <div className="kvard-admin-error" role="alert">{error}</div>}
       {section === "overview" && <section>
         <div className="kvard-admin-hero"><small>ADMIN CONTROL CENTER</small><h2>Контроль платформы<br/>в одном пространстве.</h2><p>Доступы, безопасность и системные события КВАРД.</p></div>
-        <div className="kvard-admin-stats"><article><small>ВАША РОЛЬ</small><strong>{identity?.role.replace("_", " ")}</strong><span>Определена сервером</span></article><article><small>РАЗРЕШЕНИЯ</small><strong>{identity?.permissions.length ?? 0}</strong><span>Активные permissions</span></article><article><small>ЗАЩИТА</small><strong>MFA</strong><span>Проверяется сервером</span></article></div>
+        <div className="kvard-admin-stats"><article><small>ПОЛЬЗОВАТЕЛИ</small><strong>{metrics?.users.total ?? "—"}</strong><span>{metrics?.users.active ?? "—"} активных · +{metrics?.users.new7d ?? "—"} за 7 дней</span></article><article><small>ОРГАНИЗАЦИИ / ПРОЕКТЫ</small><strong>{metrics ? metrics.organizations + " / " + metrics.projects : "—"}</strong><span>{metrics?.agents ?? "—"} активных агентов</span></article><article><small>ЗАПУСКИ АГЕНТОВ · 24 Ч</small><strong>{metrics?.runs.last24h ?? "—"}</strong><span>{metrics?.runs.active ?? "—"} сейчас в работе · {metrics?.runs.failed24h ?? "—"} с ошибкой</span></article></div><div className="kvard-admin-stats"><article><small>AI TOKENS · 30 ДНЕЙ</small><strong>{metrics?.ai.tokens30d.toLocaleString("ru-RU") ?? "—"}</strong><span>По журналу usage_records</span></article><article><small>AI COST · 30 ДНЕЙ</small><strong>{metrics ? Number(metrics.ai.cost30d).toFixed(2) : "—"}</strong><span>В учётной валюте источника usage</span></article><article><small>АККАУНТЫ С ОГРАНИЧЕНИЕМ</small><strong>{metrics?.users.suspended ?? "—"}</strong><span>Статус из PostgreSQL</span></article></div>
         <div className="kvard-admin-panel"><small>ИСТОЧНИКИ ДАННЫХ</small><h3>Только реальные показатели</h3><p>Неподключённые метрики не заменяются демонстрационными значениями. Состояние обзора получено из защищённого API.</p></div>
       </section>}
 
