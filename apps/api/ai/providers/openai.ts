@@ -22,6 +22,8 @@ interface OpenAIModelsResponse {
 export class OpenAIProvider implements AIProvider {
   id = "openai";
   name = "OpenAI";
+  protocol = "openai-chat-completions" as const;
+  adapterVersion = "1.0.0";
   model: string;
   capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: false, reasoning: false, contextWindow: null } as const;
   private readonly baseUrl: string;
