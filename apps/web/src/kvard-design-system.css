@@ -402,8 +402,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-home-breadcrumb i { color: var(--kv-border-strong); font-style: normal; }
 .kv-home-breadcrumb strong { color: var(--kv-text); font-weight: 600; }
 .kv-home-top-actions { display: flex; align-items: center; gap: 16px; }
-.kv-home-system-state { display: inline-flex; align-items: center; gap: 7px; color: var(--kv-text-secondary); font-size: 11px; }
-.kv-home-system-state i { width: 7px; height: 7px; border-radius: 50%; background: var(--kv-success); }
+.kv-home-top-context { color: var(--kv-text-tertiary); font-size: 11px; }
 .kv-home-top-actions button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-control); background: var(--kv-surface); color: var(--kv-text-secondary); }
 .kv-home-top-actions button:hover { background: var(--kv-surface-subtle); color: var(--kv-text); }
 .kv-home-content { width: min(1320px, 100%); flex: 1; margin: 0 auto; padding: 42px clamp(22px, 4vw, 58px) 56px; }
@@ -472,8 +471,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .kv-home-nav button { flex: 0 0 auto; min-height: 34px; padding: 6px 9px; font-size: 11px; white-space: nowrap; }
   .kv-home-nav button > span { width: auto; font-size: 14px; }
   .kv-home-topbar { min-height: 46px; padding-inline: 16px; }
-  .kv-home-system-state { font-size: 0; }
-  .kv-home-system-state i { width: 8px; height: 8px; }
+  .kv-home-top-context { font-size: 10px; }
   .kv-home-top-actions { gap: 8px; }
   .kv-home-top-actions button { width: 31px; height: 31px; }
   .kv-home-content { padding: 28px 16px 42px; }
