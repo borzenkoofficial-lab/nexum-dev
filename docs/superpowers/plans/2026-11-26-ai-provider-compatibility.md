@@ -83,7 +83,7 @@
 
 **Interfaces:**
 - Produces `AIGateway.generateRequest(request: AIRequest, options?: { provider?: string; fallback?: boolean }): Promise<AIResponse>`.
-- Select provider by explicit options.provider, otherwise gateway default; reject unknown provider.
+- Select provider by explicit options.provider, otherwise gateway default; reject unknown provider. The canonical gateway options currently expose provider selection only; no new fallback option is introduced.
 - Validate canonical request and model-level capabilities before provider invocation.
 - Prefer provider.generateRequest(request) when available; otherwise use strict legacy bridge.
 - Native adapter response is normalized with actual provider id/model; do not overwrite provider-reported model with requested model if adapter reports a different actual model.
@@ -107,7 +107,7 @@
 
 **Interfaces:**
 - Add reusable test harness that runs the same canonical contract checks against a provider fixture implementing native generateRequest.
-- Required assertions: provider/model identity, request cancellation, partial/missing usage semantics, capability rejection, safe error surface, deterministic content mapping. The dedicated workflow runs API typecheck and all API tests independently of browser E2E.
+- Required assertions: provider/model identity, request cancellation, partial/missing usage semantics, integer token validation, assistant tool-call history, capability rejection, safe error surface (including typed NexumError userSafeMessage), deterministic content mapping. The dedicated workflow runs API typecheck and all API tests independently of browser E2E.
 - Keep network-free tests deterministic. Real provider sandbox checks remain a separate pre-production gate and are not simulated by CI.
 
 - [x] **Step 1: Write failing conformance tests** for native fixture and negative capability cases.
@@ -133,3 +133,11 @@
 - Dedicated workflow `45705059762` passed on commit `9f4e9992c017a94409834c8f238926cbe09fceab`: API typecheck passed; 238/238 API tests passed (0 failed).
 - Main CI workflow `45704112563`: build job passed all API/Web/Docker steps. Runtime E2E job had 40 passed, 1 failed, 3 skipped. The single failure is the existing Runtime cancellation ownership assertion in `e2e/tests/runtime-phase-2-5.spec.ts:129` (`runtimeData.resources` expected 0, received 1); it remains a separate Runtime issue.
 - Production deployment, production migration, real provider credentials, paid provider calls and top-ups were not performed.
+
+
+### Follow-up review verification — 2026-11-26
+
+- Added canonical assistant tool-call history and strict legacy rejection.
+- Tightened usage normalization: token counts must be non-negative integers; absent/malformed/contradictory usage is unavailable; estimated stays estimated.
+- Extended credential redaction to typed NexumError userSafeMessage and technicalDetails.
+- Dedicated workflow `45705690934` passed on `53e0be5392fce43a3b623623ab63aa32022d9891`: API typecheck passed; 241/241 API tests passed.
