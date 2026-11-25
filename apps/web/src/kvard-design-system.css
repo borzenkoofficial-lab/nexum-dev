@@ -603,3 +603,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 @media (prefers-reduced-motion: reduce) {
   .kv-agents-page *, .kv-agents-page *::before, .kv-agents-page *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+.kv-agents-storage-warning, .kv-agents-storage-ok { margin: 8px 0 10px; font-size: 10px; }
+.kv-agents-storage-warning { color: var(--kv-warning); }
+.kv-agents-storage-ok { color: var(--kv-success); }
+.kv-agents-primary:disabled { opacity: .55; cursor: wait; }
