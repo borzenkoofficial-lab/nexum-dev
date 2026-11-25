@@ -175,6 +175,7 @@ export async function updateAgentDefinition(userId: string, agentId: string, pat
     const index = existing.findIndex((agent) => agent.id === agentId);
     if (index < 0) return null;
     const current = existing[index];
+    if (!current) return null;
     const next: AgentDefinition = { ...current, ...patch, allowedTools: patch.allowedTools ? [...patch.allowedTools] : [...current.allowedTools], updatedAt: Date.now() };
     if (existing.some((agent, itemIndex) => itemIndex !== index && agent.name.toLowerCase() === next.name.toLowerCase())) {
       throw new Error("Агент с таким названием уже существует.");
