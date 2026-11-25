@@ -254,7 +254,7 @@
 | Дата | Пункт/этап | Commit / PR | Проверки и результат | Статус |
 |---|---|---|---|---|
 | 2026-11-25 | Создан master checklist; аудит текущего auth | pending | Найдено: JWT session auth и authMiddleware; отдельный RBAC/admin allowlist пока не подтверждены | IN_PROGRESS |
-| 2026-11-25 | MFA login challenge + verified session | `2a251e3`–`a19cc10` (TOTP/recovery, AES-GCM, migrations 013–015, enrollment and challenge APIs, AuthGate) | Admin login now uses a short-lived HttpOnly challenge cookie, one-time DB nonce, replay-safe TOTP counter, atomic recovery-code consumption, five-failure lockout, and 8-hour verified session. Enrollment and challenge routes are rate-limited. Production admin API remains closed; full API/E2E verification, session revocation/idle timeout, and production configuration remain pending. | IN_PROGRESS |
+| 2026-11-25 | MFA login challenge + verified session | `2a251e3`–`a19cc10` (TOTP/recovery, AES-GCM, migrations 013–015, enrollment and challenge APIs, AuthGate) | Admin login now uses a short-lived HttpOnly challenge cookie, one-time DB nonce, replay-safe TOTP counter, atomic recovery-code consumption, five-failure lockout, and 8-hour verified session. Enrollment and challenge routes are rate-limited. Admin API rejects sessions without the signed MFA claim; production admin API remains closed. Full API/E2E verification, session revocation/idle timeout, and production configuration remain pending. | IN_PROGRESS |
 
 ## Первичная проверка текущего репозитория
 
