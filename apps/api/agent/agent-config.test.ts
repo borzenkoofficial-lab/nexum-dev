@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AIGateway } from "../ai/gateway.js";
-import { NexumAgent } from "./agent.js";
+import { NexumAgent, formatConfiguredAgentInstructions } from "./agent.js";
 
 test("configured agents expose only allowlisted tools and reject direct calls outside the allowlist", async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), "kvard-agent-policy-"));
@@ -24,4 +24,11 @@ test("configured agents expose only allowlisted tools and reject direct calls ou
   } finally {
     await rm(projectRoot, { recursive: true, force: true });
   }
+});
+
+test("configured instructions are clearly lower priority than platform safety", () => {
+  const block = formatConfiguredAgentInstructions("Работай как аналитик.");
+  assert.match(block, /lower priority than platform safety/);
+  assert.match(block, /Работай как аналитик/);
+  assert.equal(formatConfiguredAgentInstructions("   "), "");
 });
