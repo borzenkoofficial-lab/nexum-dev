@@ -231,7 +231,7 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 
 | Provider ID | Текущий HTTP-протокол в адаптере | Текущий путь генерации | Модели | Ограничения текущего адаптера |
 |---|---|---|---|---|
-| `openai` | OpenAI Chat Completions | `/chat/completions` | `/models` | Legacy text bridge; нет canonical native adapter |
+| `openai` | OpenAI Responses API (native); Chat Completions (legacy facade) | `/responses`; legacy `/chat/completions` | `/models` | Native canonical adapter v2; model-level advanced capabilities remain unknown until verified |
 | `anthropic` | Anthropic Messages | `/messages` | `/models` | Legacy text bridge; нет canonical native adapter |
 | `openrouter` | OpenAI-compatible Chat Completions | `/chat/completions` | `/models` | Legacy text bridge; нет canonical native adapter |
 | `orcarouter` | OpenAI-compatible Chat Completions (как реализовано в текущем клиенте) | `/chat/completions` | `/models` | Legacy text bridge; совместимость ограничена фактически проверенными полями |
@@ -252,7 +252,7 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 
 Если новый поставщик реализует только OpenAI-compatible endpoint, он всё равно получает отдельный adapter/configuration и собственный conformance suite. Нельзя считать его совместимым со всеми возможностями OpenAI автоматически.
 
-**Текущий статус:** внутренний canonical contract, validation, strict legacy bridge, provider conformance tests и CI gate реализованы. Все шесть перечисленных интеграций пока используют legacy text bridge. Реальные provider-specific canonical adapters, usage parsing, multimodal/tools/streaming и sandbox проверки подключаются по отдельным этапам; эти функции не объявляются готовыми заранее.
+**Текущий статус:** внутренний canonical contract, validation, strict legacy bridge, provider conformance tests и CI gate реализованы. OpenAI подключён через native Responses adapter; его старый string facade сохраняет Chat Completions для обратной совместимости. Остальные пять перечисленных поставщиков пока используют legacy text bridge. Реальные sandbox проверки с аккаунтами провайдеров не выполнялись; streaming и дополнительные capability включаются только после отдельной реализации и проверки.
 
 
 ## 14. Проверяемость каталога моделей
@@ -269,10 +269,10 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 
 ## 14. Protocol metadata and verified model discovery
 
-- `AIProviderProtocol` identifies the actual upstream wire protocol (OpenAI Chat Completions, OpenAI-compatible Chat Completions, Anthropic Messages, Ollama Chat, Mock, or a custom protocol). The type remains extensible for future providers.
+- `AIProviderProtocol` identifies the actual upstream wire protocol (OpenAI Responses, OpenAI Chat Completions, OpenAI-compatible Chat Completions, Anthropic Messages, Ollama Chat, Mock, or a custom protocol). The type remains extensible for future providers.
 - Each native adapter must declare both `protocol` and `adapterVersion`; Gateway rejects a native adapter that omits either. Provider IDs must be unique.
 - Existing adapters now declare protocol metadata:
-  - OpenAI: `openai-chat-completions`
+  - OpenAI native: `openai-responses`; legacy string facade: `legacyProtocol=openai-chat-completions`
   - Anthropic: `anthropic-messages`
   - OpenRouter / OrcaRouter / AnyModel: `openai-compatible-chat-completions`
   - Ollama: `ollama-chat`
@@ -288,3 +288,36 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 - Updating/rotating any provider API key invalidates the cache immediately; stale in-flight results cannot overwrite a newer cache revision.
 - Legacy `getModels()` reads from the same catalog cache, keeping model discovery consistent across callers.
 - Dedicated workflow `45710089229` passed on commit `63115817de617dd4803cf5f100f4a0aa8962fab9`: API typecheck passed; 67/67 focused AI provider contract tests passed.
+
+
+## 15. Native OpenAI Responses adapter
+
+OpenAI is the first production provider adapter migrated to the canonical contract.
+
+### Protocol selection
+
+- Canonical requests use `POST /responses` and the official Responses API.
+- Existing `generate(message)` product callers continue to use `POST /chat/completions` as a compatibility facade; this is explicitly exposed as `legacyProtocol`, not confused with the native protocol.
+- The Responses base URL can be configured independently with `OPENAI_RESPONSES_BASE_URL`; `OPENAI_BASE_URL` continues to control the legacy Chat Completions path and model discovery.
+- The official API reference identifies Responses as the endpoint for text/image input, text/JSON output and function tools. The OpenAI migration guide says to use Responses for new integrations; Assistants API sunset is documented for August 26, 2026.
+  - https://developers.openai.com/api/reference/resources/responses/methods/create
+  - https://platform.openai.com/docs/api-reference/models/list
+  - https://platform.openai.com/playground/assistants
+
+### Canonical mapping implemented
+
+- System/developer/user/assistant messages map to Responses input messages while preserving order.
+- Image URL and base64 content map to `input_image`; base64 is sent as a data URL.
+- Assistant tool-call history maps to `function_call`; tool results map to `function_call_output`.
+- Canonical function definitions and tool choice map to Responses function tools.
+- JSON and JSON Schema response formats map to `text.format`.
+- `maxTokens`, `temperature`, `topP`, timeout, AbortSignal and request idempotency key are forwarded.
+- Response output text, function calls, actual model ID, response ID, finish status and usage (input/output/total/cached/reasoning tokens) are normalized.
+- Malformed tool arguments and unsupported stop sequences fail explicitly; streaming remains rejected by the complete-response Gateway API.
+- Model discovery now returns provider-reported IDs only; it no longer appends hard-coded defaults and calls those IDs verified.
+- Text/code capabilities are enabled only for recognized text-generation model families. Embedding/image/audio/unknown model families remain unverified. Vision, tool calling, structured output and reasoning remain `unknown` until a model-level capability source is confirmed.
+
+### Verification and remaining gates
+
+- Dedicated workflow `45710381436` passed on commit `8e6672d9164d`: API typecheck passed; 79/79 focused AI provider contract tests passed. This includes fake-HTTP tests for Responses request/response mapping, image payloads, function calls, JSON Schema, usage, idempotency, cancellation and model discovery. No real provider credentials or paid requests were used.
+- Still pending: real-account sandbox smoke test; model-level capabilities for vision/tools/structured output/reasoning; dedicated streaming event contract; native adapters for Anthropic, OpenRouter, OrcaRouter, AnyModel and Ollama; billing ledger integration and cost reconciliation.
