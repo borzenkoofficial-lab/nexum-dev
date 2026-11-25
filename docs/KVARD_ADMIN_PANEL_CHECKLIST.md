@@ -4,7 +4,7 @@
 
 **Принцип готовности:** пункт получает `DONE` только после реализации в коде, проверки серверной авторизации, тестов и фиксации доказательства (commit/PR/CI). Наличие макета или UI без работающего backend не считается выполнением.
 
-**Текущий статус:** `IN_PROGRESS` — RBAC foundation и MFA enrollment/login challenge реализованы в коде; CI выявил один дефект проверки каноничности AES-GCM ciphertext, исправление добавлено. Полная проверка API/Web/E2E пока не подтверждена; production admin API остаётся закрытым.
+**Текущий статус:** `IN_PROGRESS` — RBAC/MFA, защищённый `/admin`, базовые реестры пользователей и организаций, account suspension и live dashboard metrics реализованы в коде. API tests, Web typecheck/build/lint проходят в CI на текущем этапе; Docker smoke и Runtime E2E ещё не подтверждены. Production admin API остаётся закрытым.
 
 ## Правила ведения чек-листа
 
@@ -23,14 +23,14 @@
 
 **Модель доступа: закрытая административная консоль, default-deny.**
 
-- [ ] SEC-01. Админ-раздел доступен только после обычной аутентификации пользователя. — PARTIAL: API использует authMiddleware; frontend route ещё не создан.
-- [ ] SEC-02. Доступ к `/admin` и каждому административному API проверяется сервером; скрытие пункта меню не является защитой. — PARTIAL: `/api/admin/*` защищён сервером; frontend `/admin` и server-side route gate ещё не реализованы.
+- [ ] SEC-01. Админ-раздел доступен только после обычной аутентификации пользователя. — PARTIAL: frontend `/admin` обёрнут в существующий AuthGate; API использует authMiddleware. Полный QA всех маршрутов ожидается.
+- [ ] SEC-02. Доступ к `/admin` и каждому административному API проверяется сервером; скрытие пункта меню не является защитой. — PARTIAL: `/admin` подключён через AuthGate, `/api/admin/*` закрыт серверным auth/RBAC; production gate намеренно возвращает 503 до security sign-off.
 - [ ] SEC-03. Использовать отдельные административные роли и permission-based RBAC. — IN_PROGRESS: роли и permission map добавлены в `apps/api/adminAccess.ts`.
 - [ ] SEC-04. Новые аккаунты по умолчанию не имеют административных прав. — PARTIAL: автоматическое назначение отсутствует; bootstrap требует явный UUID allowlist.
 - [ ] SEC-05. Самостоятельная регистрация/самоназначение администратором невозможны. — PARTIAL: публичного API назначения роли нет; требуется тестирование прямых запросов.
 - [ ] SEC-06. Первый Super Admin назначается только через контролируемый bootstrap allowlist `KVARD_SUPER_ADMIN_USER_IDS`; используются UUID существующих аккаунтов, так как текущая регистрация не подтверждает владение email. Значение хранится только в backend env.
 - [ ] SEC-07. После bootstrap выдача и отзыв административных ролей выполняются только действующим Super Admin с обязательной записью в audit log. — PARTIAL: API role changes require `roles.manage` (Super Admin only); self-change blocked; audit event written. Last Super Admin downgrade/revoke guarded by advisory transaction lock and count check (commit `5c7a5cd`), CI pending.
-- [ ] SEC-08. Если allowlist/роль/БД недоступны, доступ закрывается (fail closed), а не открывается. — PARTIAL: middleware возвращает 503 при ошибке БД и 403 без назначения.
+- [ ] SEC-08. Если allowlist/роль/БД недоступны, доступ закрывается (fail closed), а не открывается. — PARTIAL: admin auth fail-closed; миграция `018_user_account_status.sql` вводит active/suspended, login фильтрует suspended accounts, authMiddleware не обновляет сессию для suspended account.
 - [ ] SEC-09. Проверить, что обычный пользователь, даже зная URL и API endpoints, получает 403.
 - [ ] SEC-10. Проверить, что пользователь не может повысить собственную роль через изменение запроса, профиля, организации или JWT payload.
 - [ ] SEC-11. Административные сессии имеют отдельную политику: короткий idle timeout, повторное подтверждение для критических действий, отзыв сессий. — IN_PROGRESS: добавлена серверная таблица `auth_sessions` (migration `016`), 30-минутный idle timeout на каждом авторизованном запросе, проверка отзыва/срока в БД, отзыв текущей сессии при logout, Super Admin-only API просмотра активных сессий и отзыва конкретной сессии с audit event. При изменении/снятии административной роли все сессии пользователя отзываются в той же транзакции; событие аудита содержит число отозванных сессий. Повторное подтверждение MFA для критических операций и отдельные тесты сессий ещё нужны.
@@ -76,11 +76,11 @@
 
 ## 2. Главная панель — Dashboard
 
-- [ ] DASH-01. Сводное состояние платформы из реальных источников.
-- [ ] DASH-02. Пользователи: всего, активные, новые.
-- [ ] DASH-03. Организации и проекты.
-- [ ] DASH-04. Запущенные, завершённые и ошибочные задачи агентов.
-- [ ] DASH-05. Использование AI-моделей, токенов и стоимость.
+- [ ] DASH-01. Сводное состояние платформы из реальных источников. — PARTIAL: `/api/admin/overview` подключён к PostgreSQL users, organizations, projects, agents, agent_runs и usage_records.
+- [ ] DASH-02. Пользователи: всего, активные, новые. — PARTIAL: total/active/suspended/new 7d из таблицы users.
+- [ ] DASH-03. Организации и проекты. — PARTIAL: реальные counts из organizations/project_workspaces.
+- [ ] DASH-04. Запущенные, завершённые и ошибочные задачи агентов. — PARTIAL: running/completed/failed counters из agent_runs.
+- [ ] DASH-05. Использование AI-моделей, токенов и стоимость. — PARTIAL: tokens и estimated_cost за 30 дней из usage_records; валюта отображается в единицах источника.
 - [ ] DASH-06. Состояние Runtime, Sandbox, API и БД.
 - [ ] DASH-07. Ошибки и системные предупреждения с периодом.
 - [ ] DASH-08. Доходы и расходы, если финансовые данные подключены.
@@ -90,11 +90,11 @@
 
 ## 3. Пользователи
 
-- [ ] USER-01. Список пользователей с поиском и фильтрами.
-- [ ] USER-02. Профиль, дата регистрации и статус.
+- [ ] USER-01. Список пользователей с поиском и фильтрами. — PARTIAL: реестр с поиском по имени/email/UUID, серверным limit/offset и счётчиками организаций/проектов.
+- [ ] USER-02. Профиль, дата регистрации и статус. — PARTIAL: реестр показывает имя, email, UUID, дату, active/suspended и причину блокировки; отдельная детальная карточка и активность не реализованы.
 - [ ] USER-03. Организации, проекты и история активности.
 - [ ] USER-04. Просмотр подписки и квот.
-- [ ] USER-05. Блокировка/разблокировка с причиной и аудитом.
+- [ ] USER-05. Блокировка/разблокировка с причиной и аудитом. — PARTIAL: migration `018`, suspend/reactivate endpoints требуют `users.manage` + fresh MFA; suspend отзывает все сессии, authMiddleware и login запрещают suspended аккаунт, события пишутся в audit log. Endpoint-level abuse tests pending.
 - [ ] USER-06. Отзыв активных сессий.
 - [ ] USER-07. Управление административными назначениями — только Super Admin.
 - [ ] USER-08. Обращения поддержки и безопасный контекст диагностики.
@@ -102,8 +102,8 @@
 
 ## 4. Организации и рабочие пространства
 
-- [ ] ORG-01. Реестр организаций.
-- [ ] ORG-02. Состав участников и роли.
+- [ ] ORG-01. Реестр организаций. — PARTIAL: реестр с поиском, владельцем и агрегатами участников/агентов/workforces.
+- [ ] ORG-02. Состав участников и роли. — PARTIAL: отдельный endpoint и UI для списка участников и ролей.
 - [ ] ORG-03. Владелец и администраторы организации.
 - [ ] ORG-04. Проекты, квоты и использование ресурсов.
 - [ ] ORG-05. Тарифы и биллинг.
@@ -259,6 +259,7 @@
 | 2026-11-25 | SEC-11 session controls | `f85d409`–`4f1e156` (migration 016, auth session registry, middleware, logout revocation, admin session endpoints) | Added DB-backed sessions, 30-minute idle timeout, server-side revocation validation, logout revocation, and Super Admin-only list/revoke endpoints with audit logging. CI after these commits pending; no production migration applied. | IN_PROGRESS |
 
 | 2026-11-25 | SEC-11 privilege-change invalidation | `0d2e807` | Administrative role promotion/demotion/revocation now revokes all target user sessions inside the same transaction; audit metadata records the revoked-session count. CI pending. | IN_PROGRESS |
+| 2026-11-25 | Users, organizations, dashboard | `b78c5c2`–`4c0126a` (migration 018, suspended account enforcement, audited suspend/reactivate endpoints, live PostgreSQL dashboard metrics, directory UI) | API tests, Web typecheck/build/lint pass in workflow `45697446895`; Docker smoke and Runtime E2E still running. No production migration/deploy. | IN_PROGRESS |
 
 ## Первичная проверка текущего репозитория
 
