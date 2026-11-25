@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getAuthUser } from "../auth.js";
 import { withDatabaseTransaction, query } from "../db.js";
-import { requireAdminPermission, type AdminRole } from "../adminAccess.js";
+import { requireAdminPermission, requireRecentMfa, type AdminRole } from "../adminAccess.js";
 
 export const adminRouter = Router();
 
@@ -38,7 +38,7 @@ adminRouter.get("/roles", requireAdminPermission("roles.manage"), async (_req, r
   }
 });
 
-adminRouter.put("/roles/:userId", requireAdminPermission("roles.manage"), async (req, res) => {
+adminRouter.put("/roles/:userId", requireAdminPermission("roles.manage"), requireRecentMfa, async (req, res) => {
   const targetUserId = typeof req.params.userId === "string" ? req.params.userId : "";
   const role = (req.body as { role?: unknown } | undefined)?.role;
   if (!UUID_PATTERN.test(targetUserId) || typeof role !== "string" || !ADMIN_ROLES.includes(role as AdminRole)) {
@@ -98,7 +98,7 @@ adminRouter.put("/roles/:userId", requireAdminPermission("roles.manage"), async 
   }
 });
 
-adminRouter.delete("/roles/:userId", requireAdminPermission("roles.manage"), async (req, res) => {
+adminRouter.delete("/roles/:userId", requireAdminPermission("roles.manage"), requireRecentMfa, async (req, res) => {
   const targetUserId = typeof req.params.userId === "string" ? req.params.userId : "";
   if (!UUID_PATTERN.test(targetUserId)) {
     return res.status(400).json({ success: false, error: "A valid user UUID is required." });
@@ -166,7 +166,7 @@ adminRouter.get("/sessions", requireAdminPermission("sessions.manage"), async (r
   }
 });
 
-adminRouter.delete("/sessions/:sessionId", requireAdminPermission("sessions.manage"), async (req, res) => {
+adminRouter.delete("/sessions/:sessionId", requireAdminPermission("sessions.manage"), requireRecentMfa, async (req, res) => {
   const sessionId = typeof req.params.sessionId === "string" ? req.params.sessionId : "";
   if (!UUID_PATTERN.test(sessionId)) return res.status(400).json({ success: false, error: "A valid session UUID is required." });
   const actor = getAuthUser(req);
