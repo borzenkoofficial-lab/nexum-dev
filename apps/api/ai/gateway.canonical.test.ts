@@ -252,3 +252,65 @@ test("requires native adapters to declare their wire protocol and adapter versio
   } as unknown as AIProvider;
   assert.throws(() => new AIGateway([provider], provider.id), /protocol and adapter version/i);
 });
+
+
+test("model catalog distinguishes verified provider models from configured fallback", async () => {
+  const available: AIProvider = {
+    id: "catalog-live",
+    name: "Catalog live",
+    model: "configured-model",
+    capabilities: {
+      text: true, code: false, vision: false, toolCalling: false,
+      streaming: false, structuredOutput: false, reasoning: false, contextWindow: 16_000,
+    },
+    async generate() { return "ok"; },
+    async listModels() { return ["model-a", "model-a", "", "model-b"]; },
+  };
+  const unavailable: AIProvider = {
+    id: "catalog-down",
+    name: "Catalog down",
+    model: "fallback-model",
+    capabilities: available.capabilities,
+    async generate() { return "ok"; },
+    async listModels() { throw new Error("provider secret must not escape"); },
+  };
+  const gateway = new AIGateway([available, unavailable], available.id);
+  const catalog = await gateway.getModelCatalog();
+
+  assert.deepEqual(catalog.providers[0], {
+    provider: "catalog-live",
+    configuredModel: "configured-model",
+    models: ["model-a", "model-b"],
+    source: "provider_api",
+    verified: true,
+    status: "available",
+  });
+  assert.deepEqual(catalog.providers[1], {
+    provider: "catalog-down",
+    configuredModel: "fallback-model",
+    models: ["fallback-model"],
+    source: "configured_fallback",
+    verified: false,
+    status: "unavailable",
+    errorCode: "catalog_request_failed",
+  });
+  assert.doesNotMatch(JSON.stringify(catalog), /secret/);
+});
+
+test("model catalog marks an empty provider response unverified", async () => {
+  const provider: AIProvider = {
+    id: "catalog-empty",
+    name: "Catalog empty",
+    model: "configured-model",
+    capabilities: {
+      text: true, code: false, vision: false, toolCalling: false,
+      streaming: false, structuredOutput: false, reasoning: false, contextWindow: 16_000,
+    },
+    async generate() { return "ok"; },
+    async listModels() { return []; },
+  };
+  const catalog = await new AIGateway([provider], provider.id).getModelCatalog();
+  assert.equal(catalog.providers[0].verified, false);
+  assert.equal(catalog.providers[0].status, "empty");
+  assert.deepEqual(catalog.providers[0].models, ["configured-model"]);
+});
