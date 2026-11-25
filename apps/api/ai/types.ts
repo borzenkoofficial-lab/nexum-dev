@@ -106,7 +106,8 @@ export type AIProviderProtocol =
   | "anthropic-messages"
   | "ollama-chat"
   | "mock"
-  | "custom";
+  | "custom"
+  | (string & {});
 
 export interface AIProvider {
   id: string;
@@ -115,10 +116,6 @@ export interface AIProvider {
   /** Exact upstream protocol implemented by this adapter, not a compatibility guess. */
   protocol?: AIProviderProtocol;
   /** Adapter implementation version, independent of upstream model/API version. */
-  adapterVersion?: string;
-  /** External wire protocol implemented by this adapter, e.g. anthropic-messages. */
-  protocol?: string;
-  /** Adapter implementation version, independent of the provider's model version. */
   adapterVersion?: string;
   capabilities: AIModelCapabilities;
   generate?(message: string, model?: string, options?: AIGenerateOptions): Promise<string>;
