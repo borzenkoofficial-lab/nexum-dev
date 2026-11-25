@@ -17,14 +17,48 @@ adminRouter.get("/me", (req, res) => {
   });
 });
 
-adminRouter.get("/overview", requireAdminPermission("dashboard.read"), (_req, res) => {
-  return res.json({
-    success: true,
-    status: "partial",
-    generatedAt: new Date().toISOString(),
-    metrics: {},
-    notice: "Dashboard metrics are not connected yet; no demo values are returned.",
-  });
+adminRouter.get("/overview", requireAdminPermission("dashboard.read"), async (_req, res) => {
+  try {
+    const result = await query<{
+      users_total: string; users_active: string; users_suspended: string; users_new_7d: string;
+      organizations_total: string; projects_total: string; agents_total: string;
+      runs_24h: string; runs_running: string; runs_completed_24h: string; runs_failed_24h: string;
+      ai_cost_30d: string; ai_tokens_30d: string;
+    }>(
+      `SELECT
+        (SELECT COUNT(*)::text FROM users) AS users_total,
+        (SELECT COUNT(*)::text FROM users WHERE status = 'active') AS users_active,
+        (SELECT COUNT(*)::text FROM users WHERE status = 'suspended') AS users_suspended,
+        (SELECT COUNT(*)::text FROM users WHERE created_at >= NOW() - INTERVAL '7 days') AS users_new_7d,
+        (SELECT COUNT(*)::text FROM organizations) AS organizations_total,
+        (SELECT COUNT(*)::text FROM project_workspaces) AS projects_total,
+        (SELECT COUNT(*)::text FROM agents WHERE status <> 'archived') AS agents_total,
+        (SELECT COUNT(*)::text FROM agent_runs WHERE created_at >= NOW() - INTERVAL '24 hours') AS runs_24h,
+        (SELECT COUNT(*)::text FROM agent_runs WHERE status IN ('queued','initializing','planning','running','waiting_approval')) AS runs_running,
+        (SELECT COUNT(*)::text FROM agent_runs WHERE status = 'completed' AND created_at >= NOW() - INTERVAL '24 hours') AS runs_completed_24h,
+        (SELECT COUNT(*)::text FROM agent_runs WHERE status IN ('failed','timed_out','limit_reached') AND created_at >= NOW() - INTERVAL '24 hours') AS runs_failed_24h,
+        (SELECT COALESCE(SUM(estimated_cost), 0)::text FROM usage_records WHERE created_at >= NOW() - INTERVAL '30 days') AS ai_cost_30d,
+        (SELECT COALESCE(SUM(input_tokens + output_tokens), 0)::text FROM usage_records WHERE created_at >= NOW() - INTERVAL '30 days') AS ai_tokens_30d`,
+    );
+    const row = result.rows[0];
+    if (!row) throw new Error("Dashboard query returned no result.");
+    const numeric = (value: string) => Number(value);
+    return res.json({
+      success: true,
+      status: "live",
+      generatedAt: new Date().toISOString(),
+      metrics: {
+        users: { total: numeric(row.users_total), active: numeric(row.users_active), suspended: numeric(row.users_suspended), new7d: numeric(row.users_new_7d) },
+        organizations: numeric(row.organizations_total),
+        projects: numeric(row.projects_total),
+        agents: numeric(row.agents_total),
+        runs: { last24h: numeric(row.runs_24h), active: numeric(row.runs_running), completed24h: numeric(row.runs_completed_24h), failed24h: numeric(row.runs_failed_24h) },
+        ai: { cost30d: row.ai_cost_30d, tokens30d: numeric(row.ai_tokens_30d) },
+      },
+    });
+  } catch {
+    return res.status(503).json({ success: false, error: "Live dashboard metrics are unavailable." });
+  }
 });
 
 
