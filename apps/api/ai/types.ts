@@ -106,7 +106,7 @@ export interface AIProvider {
   name: string;
   model: string;
   capabilities: AIModelCapabilities;
-  generate(message: string, model?: string, options?: AIGenerateOptions): Promise<string>;
+  generate?(message: string, model?: string, options?: AIGenerateOptions): Promise<string>;
   generateRequest?(request: AIRequest): Promise<AIResponse>;
   listModels?(signal?: AbortSignal): Promise<string[]>;
   getStatus?(model?: string, signal?: AbortSignal): Promise<AIProviderStatus>;
