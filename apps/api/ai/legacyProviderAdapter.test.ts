@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { generateWithLegacyProvider } from "./legacyProviderAdapter.js";
-import type { AIProvider, AIRequest } from "./types.js";
+import type { AIGenerateOptions, AIProvider, AIRequest } from "./types.js";
 
 class LegacyStub implements AIProvider {
   id = "legacy";
@@ -12,7 +12,7 @@ class LegacyStub implements AIProvider {
     streaming: false, structuredOutput: false, reasoning: false, contextWindow: 8192,
   };
   calls: Array<{ message: string; model?: string; options?: unknown }> = [];
-  async generate(message: string, model?: string, options?: unknown): Promise<string> {
+  async generate(message: string, model?: string, options?: AIGenerateOptions): Promise<string> {
     this.calls.push({ message, model, options });
     return "legacy answer";
   }
