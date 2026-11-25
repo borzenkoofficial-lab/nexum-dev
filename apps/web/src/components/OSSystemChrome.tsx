@@ -13,7 +13,7 @@ interface OSSystemChromeProps {
 
 const monthNames = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 
-export function OSSystemChrome({ appName, appIcon = "N", status = "Система готова", onHome, onSearch, onSettings, onNewProject, activeView }: OSSystemChromeProps) {
+export function OSSystemChrome({ appName, appIcon = "К", status = "Система готова", onHome, onSearch, onSettings, onNewProject, activeView }: OSSystemChromeProps) {
   const [now, setNow] = useState(() => new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
 
