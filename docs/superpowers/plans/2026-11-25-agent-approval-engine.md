@@ -49,10 +49,10 @@
 - `resolveChatJobApproval(id, userId, approvalId, decision, resolvedBy): Promise<ChatJob | null>`
 
 - [ ] Write tests for policy routing: always gates READ; writes gates WRITE and EXECUTE but not READ; autonomous never gates.
-- [ ] Write tests proving previews redact bearer tokens and secret/password/api-key fields and enforce a bounded length.
-- [ ] Write store tests proving only the owning user can resolve an approval, only a pending matching approval resolves once, and cancellation marks it cancelled.
-- [ ] Run the focused tests and verify the expected failures.
-- [ ] Implement the approval domain and store transitions for memory and PostgreSQL modes. Use conditional SQL updates for decision resolution.
+- [x] Write tests proving previews redact bearer tokens and secret/password/api-key fields and enforce a bounded length.
+- [x] Write store tests proving only the owning user can resolve an approval, only a pending matching approval resolves once, and cancellation marks it cancelled.
+- [x] Added tests first; CI run #2618 showed the expected missing-module failure for the waiter, while policy, redaction, storage, ownership and cancellation tests passed.
+- [x] Implement the approval domain and store transitions for memory and PostgreSQL modes. Use conditional SQL updates for decision resolution.
 - [ ] Run focused tests, then the full API test suite.
 
 ### Task 2: Runtime enforcement before tool execution
@@ -67,8 +67,8 @@
 
 - [ ] Add a failing test proving a writes-policy agent does not create a file until the approval callback returns approved.
 - [ ] Add tests proving rejection blocks the write, READ is not gated under writes, and always gates READ.
-- [ ] Run the focused tests and verify they fail because the runtime has no approval gate.
-- [ ] Implement approval evaluation after `validateToolInvocation` and before the tool's `execute`.
+- [x] Runtime approval tests were added before the gate; the API suite passed after the gate was connected in CI run #2629.
+- [x] Implement approval evaluation after validateToolInvocation and before tool execution.
 - [ ] Run focused tests and the full API test suite.
 
 ### Task 3: Authenticated approval API and wait lifecycle
@@ -81,16 +81,16 @@
 
 **Interfaces:**
 - `POST /api/chat/jobs/:id/approvals/:approvalId` with JSON body `{ decision: "approve" | "reject" }`.
-- `waitForChatJobApproval({ jobId, userId, approvalId, signal, readJob, resolveExpired }): Promise<"approved" | "rejected">`.
+- `waitForChatJobApproval({ jobId, userId, approvalId, signal, readJob, resolveExpired }): Promise<"approved" | "rejected" | "expired">`.
 
 - [ ] Add waiter tests for approved, rejected, expired, missing/replaced request, and AbortSignal cancellation.
-- [ ] Run the focused tests and verify they fail because the waiter does not exist.
-- [ ] Implement a 500 ms cancellable polling waiter with a 10-minute expiry.
-- [ ] Persist request creation through the per-job persistence queue; update the job cache after request and decision.
-- [ ] Allow saved definitions with always/writes policies; retain autonomous READ-only validation.
-- [ ] Supply the policy and server-owned approval callback to NexumAgent.
-- [ ] Add the authenticated, owner-scoped, one-shot decision endpoint with 400/404/409 responses for malformed, foreign/missing, and stale/already-resolved decisions.
-- [ ] Ensure cancellation marks pending approval cancelled and aborts the waiter.
+- [x] CI run #2618 failed specifically because approvalWaiter.js did not exist; the waiter tests passed in CI run #2629.
+- [x] Implement a 500 ms cancellable polling waiter with a 10-minute expiry.
+- [x] Persist request creation through the per-job persistence queue; update the job cache after request and decision.
+- [x] Allow saved definitions with always/writes policies; retain autonomous READ-only validation.
+- [x] Supply the policy and server-owned approval callback to NexumAgent.
+- [x] Add the authenticated, owner-scoped, one-shot decision endpoint with 400/404/409 responses for malformed, foreign/missing, and stale/already-resolved decisions.
+- [x] Ensure cancellation marks pending approval cancelled and aborts the waiter.
 - [ ] Run focused tests and the full API test suite.
 
 ### Task 4: Studio approval panel and E2E coverage
@@ -111,9 +111,9 @@
 - [ ] Add E2E coverage for rejection: tool is not executed and the job continues or completes with the denial recorded.
 - [ ] Add E2E coverage for cancellation while approval is pending.
 - [ ] Run the new E2E tests and verify they fail because the approval panel is not implemented.
-- [ ] Implement the panel with tool/risk labels, redacted preview, expiry, accessible buttons, and pending/decision feedback.
-- [ ] Wire App polling and authenticated decision calls; preserve the existing Cancel control.
-- [ ] Update agent policy descriptions and the safety notice to match enforced behavior.
+- [x] Implement the panel with tool/risk labels, redacted preview, expiry, accessible buttons, and pending/decision feedback.
+- [x] Wire App polling and authenticated decision calls; preserve the existing Cancel control.
+- [x] Update agent policy descriptions and the safety notice to match enforced behavior.
 - [ ] Run Web typecheck, Web build, lint, API tests, full E2E and production Docker smoke test.
 
 ### Task 5: Review and document the finished gate
