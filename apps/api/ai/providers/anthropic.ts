@@ -332,6 +332,9 @@ export class AnthropicProvider implements AIProvider {
 
   async *streamRequest(request: AIRequest): AsyncGenerator<import("../types.js").AIStreamEvent> {
     validateCanonicalRequest({ ...request, stream: true });
+    if (request.responseFormat === "json") {
+      throw new Error("Anthropic Messages adapter: JSON Schema is required for structured output");
+    }
     const model = this.validateModel(request.model);
     const system: Array<{ type: "text"; text: string }> = [];
     const messages: Array<Record<string, unknown>> = [];
