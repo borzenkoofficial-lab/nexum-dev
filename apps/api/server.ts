@@ -1795,6 +1795,24 @@ app.get("/api/chat/jobs/:id", async (req, res) => {
   return res.json({ success: true, job });
 });
 
+// Deployment diagnostics: identify the exact application release served by this container.
+const KVARD_RELEASE_ID = "kvard-2026-11-25-cachefix-1";
+app.get("/api/build-info", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({ product: "КВАРД", release: KVARD_RELEASE_ID, nodeEnv: process.env.NODE_ENV ?? "undefined" });
+});
+
+// HTML must always be revalidated; hashed Vite assets can remain cacheable.
+app.use((req, res, next) => {
+  if (req.path === "/" || req.path.endsWith(".html")) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("X-Kvard-Release", KVARD_RELEASE_ID);
+  }
+  next();
+});
+
 app.use(express.static(webDist));
 
 app.use((req, res, next) => {
