@@ -41,6 +41,7 @@ type AgentDefinitionRow = {
   updated_at: string | number;
 };
 
+const SUPPORTED_AGENT_PROVIDERS = new Set(["ollama", "openrouter", "anymodel", "openai", "anthropic", "orcarouter"]);
 const memoryDefinitions = new Map<string, AgentDefinition[]>();
 let initialized: Promise<void> | null = null;
 
@@ -56,6 +57,9 @@ function validateAllowedTools(toolNames: string[]): void {
 }
 
 function validateInput(input: AgentDefinitionInput | AgentDefinitionPatch): void {
+  if (input.provider !== undefined && input.provider !== null && !SUPPORTED_AGENT_PROVIDERS.has(input.provider)) {
+    throw new Error("Неподдерживаемый провайдер AI.");
+  }
   if (input.allowedTools !== undefined) validateAllowedTools(input.allowedTools);
   if (input.approvalPolicy !== undefined && !["always", "writes", "autonomous"].includes(input.approvalPolicy)) {
     throw new Error("Недопустимая политика подтверждения действий.");
