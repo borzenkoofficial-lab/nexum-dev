@@ -35,6 +35,16 @@ test("renders the canonical KVARD mark geometry at the requested size", () => {
   assert.equal(glyph.props.strokeLinejoin, "round");
 });
 
+test("uses a 32px default size and supports the 16px app-icon scale", () => {
+  const defaultProps = propsOf(KvardMark({}));
+  const compactProps = propsOf(KvardMark({ size: 16 }));
+
+  assert.equal(defaultProps.width, 32);
+  assert.equal(defaultProps.height, 32);
+  assert.equal(compactProps.width, 16);
+  assert.equal(compactProps.height, 16);
+});
+
 test("hides decorative marks from assistive technology", () => {
   const props = propsOf(KvardMark({}));
   assert.equal(props["aria-hidden"], true);
