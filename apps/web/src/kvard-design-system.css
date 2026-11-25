@@ -651,7 +651,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   width: 100%;
   min-height: 40px;
   padding: 8px 10px;
-  border: 1px solid var(--kv-border, #dedee5);
+  border: 1px solid var(--kv-border);
   border-radius: var(--kv-radius-control);
   background: var(--kv-surface);
   color: var(--kv-text);
