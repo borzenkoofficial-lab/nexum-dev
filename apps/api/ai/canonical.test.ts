@@ -83,3 +83,35 @@ test("requires tool-calling capability for assistant tool-call history", () => {
   validateCanonicalRequest(request);
   assert.deepEqual(getRequiredCapabilities(request), { text: true, toolCalling: true });
 });
+
+
+test("marks missing or malformed usage unavailable even when provider metadata is inconsistent", () => {
+  const missing = normalizeAIResponse({
+    content: "answer",
+    provider: "provider-a",
+    model: "model-a",
+    usageSource: "provider_reported",
+  }, "provider-a", "model-a");
+  assert.equal(missing.usage, undefined);
+  assert.equal(missing.usageSource, "unavailable");
+
+  const fractional = normalizeAIResponse({
+    content: "answer",
+    provider: "provider-a",
+    model: "model-a",
+    usage: { inputTokens: 1.5 },
+  }, "provider-a", "model-a");
+  assert.equal(fractional.usage, undefined);
+  assert.equal(fractional.usageSource, "unavailable");
+});
+
+test("preserves estimated usage as estimated", () => {
+  const normalized = normalizeAIResponse({
+    content: "answer",
+    provider: "provider-a",
+    model: "model-a",
+    usage: { inputTokens: 10, outputTokens: 5 },
+    usageSource: "estimated",
+  }, "provider-a", "model-a");
+  assert.equal(normalized.usageSource, "estimated");
+});
