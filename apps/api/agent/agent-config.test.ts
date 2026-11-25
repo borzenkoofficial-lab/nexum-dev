@@ -119,3 +119,29 @@ test("writes policy does not gate READ tools, while always policy does", async (
     await rm(projectRoot, { recursive: true, force: true });
   }
 });
+
+
+test("autonomous policy blocks a non-READ tool even if it is accidentally allowlisted", async () => {
+  const projectRoot = await mkdtemp(join(tmpdir(), "kvard-agent-autonomous-guard-"));
+  let approvalCalls = 0;
+  try {
+    const agent = new NexumAgent(
+      {} as AIGateway,
+      projectRoot,
+      undefined,
+      {},
+      {
+        allowedTools: ["writeFile"],
+        approvalPolicy: "autonomous",
+        requestApproval: async () => { approvalCalls += 1; return "approved"; },
+      },
+    );
+    const result = await agent.executeTool("writeFile", JSON.stringify({ path: "must-not-exist.txt", content: "blocked" }));
+    assert.equal(result.success, false);
+    assert.equal(result.error?.code, "AUTONOMOUS_READ_ONLY");
+    assert.equal(approvalCalls, 0);
+    await assert.rejects(() => readFile(join(projectRoot, "must-not-exist.txt"), "utf8"));
+  } finally {
+    await rm(projectRoot, { recursive: true, force: true });
+  }
+});
