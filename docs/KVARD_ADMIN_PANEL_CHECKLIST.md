@@ -464,3 +464,5 @@
 - 2026-11-26 — Added canonical `AIStreamEvent` types and optional provider `streamRequest` contract; Gateway now exposes guarded async streaming and rejects providers/models without confirmed streaming capability before invocation. Commits: `525130e`, `ce0daf3`.
 - 2026-11-26 — Implemented Anthropic Messages SSE adapter: text deltas, tool-call start and JSON argument deltas, finish reason, request identity, cancellation/timeout, and provider-reported usage. Model streaming capability is advertised only for active catalog entries. Added deterministic SSE contract test. Commits: `1c645c0`, `5efa30a`.
 - Verification caveat: CI has not yet been confirmed for this stage; no live provider request was performed. Do not mark the provider production-ready until CI and credential-backed sandbox smoke tests pass.
+
+- 2026-11-26 — Added Gateway tests confirming canonical event forwarding and fail-closed behavior when streaming capability is unknown; verifies unsupported streams are rejected before adapter invocation. Commit: `8d56ac2d06927fa64937be38a6534d8dc21d3e68`. CI still pending; Vercel previously reported build-rate-limit.
