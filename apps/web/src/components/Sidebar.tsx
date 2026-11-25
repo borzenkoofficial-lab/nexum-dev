@@ -1,6 +1,6 @@
 import type { Project } from "./types";
 
-type SidebarView = "home" | "project" | "connectors" | "settings" | "news" | "diagnostics";
+type SidebarView = "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents" | "business-agents";
 
 interface SidebarProps {
   projects: Project[];
@@ -9,88 +9,72 @@ interface SidebarProps {
   projectActionLoading: boolean;
   onNewProject: () => void;
   onSelectProject: (id: string) => void;
-  onDeleteProject: (id: string) => void;
   mobileOpen: boolean;
   view: SidebarView;
   onViewChange: (view: SidebarView) => void;
 }
 
+const sections: Array<{ id: Exclude<SidebarView, "project">; label: string }> = [
+  { id: "home", label: "Обзор" },
+  { id: "agents", label: "AI-агенты" },
+  { id: "business-agents", label: "Бизнес-агенты" },
+  { id: "connectors", label: "Интеграции" },
+  { id: "diagnostics", label: "Диагностика" },
+  { id: "news", label: "Журнал" },
+  { id: "settings", label: "Настройки" },
+];
+
 export function Sidebar({
   projects, activeProjectId, projectsLoading, projectActionLoading, onNewProject,
-  onSelectProject, onDeleteProject, mobileOpen, view, onViewChange,
+  onSelectProject, mobileOpen, view, onViewChange,
 }: SidebarProps) {
   const activeProjects = projects.filter((project) => project.status === "active");
-  const firstProject = activeProjects[0];
-
-  const openFirstProject = () => {
-    if (firstProject) onSelectProject(firstProject.id);
-    else onNewProject();
-  };
 
   return (
-    <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
-      <div className="logo" aria-label="КВАРД">КВАРД</div>
-
-      <nav className="sidebar-nav os-primary-nav" aria-label="КВАРД">
-        <button className={view === "home" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("home")} title="Рабочий стол">
-          <span aria-hidden="true">⌂</span><b>Рабочий стол</b>
-        </button>
-        <button className={view === "news" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("news")} title="Журнал КВАРД">
-          <span aria-hidden="true">✦</span><b>Журнал</b>
-        </button>
-        <button className={view === "connectors" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("connectors")} title="Интеграции">
-          <span aria-hidden="true">◇</span><b>Интеграции</b>
-        </button>
-        <button className={view === "diagnostics" ? "nav-item active" : "nav-item"} type="button" onClick={() => onViewChange("diagnostics")} title="Диагностика">
-          <span aria-hidden="true">⌁</span><b>Диагностика</b>
-        </button>
-      </nav>
-
-      <div className="os-dock-apps" aria-label="Приложения КВАРД">
-        <div className="os-dock-caption">ПРИЛОЖЕНИЯ</div>
-        <button type="button" className="os-dock-app" onClick={openFirstProject} title="Проекты">
-          <span className="os-dock-icon projects">К</span><b>Проекты</b>
-        </button>
-        <button type="button" className="os-dock-app" onClick={openFirstProject} title="AI Agent">
-          <span className="os-dock-icon agent">✦</span><b>AI-агент</b>
-        </button>
-        <button type="button" className="os-dock-app" onClick={openFirstProject} title="Code">
-          <span className="os-dock-icon code">{"{}"}</span><b>Код</b>
-        </button>
-        <button type="button" className="os-dock-app" onClick={openFirstProject} title="Preview">
-          <span className="os-dock-icon preview">◫</span><b>Предпросмотр</b>
-        </button>
-        <button type="button" className="os-dock-app" onClick={() => onViewChange("connectors")} title="Connectors">
-          <span className="os-dock-icon connectors">◇</span><b>Интеграции</b>
-        </button>
-        <button type="button" className="os-dock-app" onClick={() => onViewChange("diagnostics")} title="Diagnostics">
-          <span className="os-dock-icon diagnostics">⌁</span><b>Диагностика</b>
-        </button>
+    <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`} aria-label="Боковая панель КВАРД">
+      <div className="logo" aria-label="КВАРД">
+        <span className="logo-mark" aria-hidden="true">К</span>
+        <strong>КВАРД</strong>
       </div>
 
-      <button className="new-project" type="button" aria-label="Создать новый проект" onClick={onNewProject}>
+      <button className="new-project" type="button" onClick={onNewProject}>
         <span aria-hidden="true">＋</span><b>Новый проект</b>
       </button>
 
-      <div className="section-title">ПРОЕКТЫ</div>
+      <div className="section-title">РАБОЧАЯ СРЕДА</div>
+      <nav className="sidebar-nav" aria-label="Основная навигация">
+        {sections.map((section) => (
+          <button
+            key={section.id}
+            className={view === section.id ? "nav-item active" : "nav-item"}
+            type="button"
+            aria-current={view === section.id ? "page" : undefined}
+            onClick={() => onViewChange(section.id)}
+          >
+            <b>{section.label}</b>
+          </button>
+        ))}
+      </nav>
+
+      <div className="section-title projects-heading">ПРОЕКТЫ <span>{activeProjects.length}</span></div>
       <div className="projects" aria-label="Проекты">
         {projectsLoading ? <div className="project-placeholder" role="status">Загрузка проектов…</div> :
           activeProjects.length === 0 ? <div className="project-placeholder">Проектов пока нет</div> :
           activeProjects.map((project) => (
             <div className={`project-row ${project.id === activeProjectId ? "active" : ""}`} key={project.id}>
-              <button className="project" type="button" aria-current={project.id === activeProjectId ? "page" : undefined}
-                aria-label={`Выбрать проект ${project.name}`} disabled={projectActionLoading} onClick={() => onSelectProject(project.id)}>
-                <span className="project-mark" aria-hidden="true">{project.name.slice(0, 1)}</span><span>{project.name}</span>
+              <button
+                className="project"
+                type="button"
+                aria-current={project.id === activeProjectId && view === "project" ? "page" : undefined}
+                aria-label={`Открыть проект ${project.name}`}
+                disabled={projectActionLoading}
+                onClick={() => onSelectProject(project.id)}
+              >
+                <span className="project-mark" aria-hidden="true">{project.name.slice(0, 1).toUpperCase()}</span>
+                <span>{project.name}</span>
               </button>
-              {project.id !== "nexum" && <button className="project-delete" type="button" aria-label={`Удалить проект ${project.name}`} title="Удалить проект" disabled={projectActionLoading} onClick={() => onDeleteProject(project.id)}>×</button>}
             </div>
           ))}
-      </div>
-
-      <div className="sidebar-bottom">
-        <button className={view === "settings" ? "sidebar-setting active" : "sidebar-setting"} type="button" aria-label="Открыть настройки" onClick={() => onViewChange("settings")}>
-          <span>⚙</span><b>Настройки</b>
-        </button>
       </div>
     </aside>
   );
