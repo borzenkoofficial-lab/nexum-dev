@@ -98,6 +98,9 @@ test("Daytona provider provisions private registry-restricted sandbox, executes 
     const prefixedBuild = await session.run({ projectPath: ".", command: "npm --prefix apps/web run build", timeoutMs: 10_000 });
     assert.equal(prefixedBuild.success, true, "safe project-relative npm --prefix commands remain supported");
     assert.ok(calls.includes("execute:npm --prefix apps/web run build"));
+    const escapedPrefix = await session.run({ projectPath: ".", command: "npm --prefix ../outside run build", timeoutMs: 10_000 });
+    assert.equal(escapedPrefix.success, false, "npm --prefix must not escape the staged project root");
+    assert.match(escapedPrefix.error ?? "", /inside the project workspace/i);
     assert.equal(await readFile(join(root, "dist", "index.html"), "utf8"), "<h1>built</h1>");
     assert.equal(await session.getPreviewUrl(4173, 120), "https://preview.example.test/signed");
     const firstDispose = session.dispose();
