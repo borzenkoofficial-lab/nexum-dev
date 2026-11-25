@@ -27,7 +27,7 @@ import { PatchFileTool } from "./tools/patchFile.js";
 import { TestProjectTool } from "./tools/testProject.js";
 import { buildAgentContext, formatAgentContext } from "./context.js";
 import type { ServerRuntime } from "../runtime/runtime.js";
-import { assertCompleteToolPolicy, getToolSecurityPolicy, validateToolInvocation, type ToolRisk } from "./toolPolicy.js";
+import { assertCompleteToolPolicy, validateToolInvocation, type ToolRisk, type ToolSecurityPolicy } from "./toolPolicy.js";
 import type { AgentApprovalPolicy } from "./agentDefinitionStore.js";
 import { shouldRequireToolApproval } from "./approval.js";
 import { AgentLoop } from "./loop.js";
@@ -572,7 +572,7 @@ export class NexumAgent implements AgentRuntime {
       };
     }
     if (signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
-    let toolPolicy;
+    let toolPolicy: ToolSecurityPolicy;
     try {
       toolPolicy = validateToolInvocation(tool, input);
     } catch (error) {
