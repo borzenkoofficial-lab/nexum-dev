@@ -139,18 +139,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .nx-system-status { color: var(--kv-text-secondary); }
 .nx-system-status i { background: var(--kv-success); }
 .nx-system-calendar, .command-palette, .connector-modal { background: var(--kv-surface); border: 1px solid var(--kv-border); border-radius: var(--kv-radius-large); box-shadow: var(--kv-shadow-popover); color: var(--kv-text); }
-.builder-home { min-height: 100dvh; }
-.builder-home-header, .builder-home-footer { min-height: 64px; padding: 12px 28px; background: var(--kv-surface); border-color: var(--kv-border); }
-.builder-home-brand { display: inline-flex; align-items: center; gap: 10px; border: 0; background: transparent; color: var(--kv-text); font-size: 17px; font-weight: 750; letter-spacing: -.04em; }
-.builder-home-brand::before { content: "К"; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: #24213A; color: white; font-size: 17px; }
-.builder-home-nav { gap: 5px; }
-.builder-home-nav button { border: 0; border-radius: var(--kv-radius-control); background: transparent; color: var(--kv-text-secondary); }
-.builder-home-nav button:hover { background: var(--kv-surface-subtle); color: var(--kv-text); }
-.builder-home-main { width: min(1120px, 100%); padding: clamp(36px, 6vw, 76px) 28px 64px; }
-.builder-home-hero { width: min(760px, 100%); margin-bottom: 56px; }
-.builder-home-kicker, .eyebrow { color: var(--kv-action); font-size: 11px; font-weight: 700; letter-spacing: .12em; }
-.builder-home-hero h1 { margin: 12px 0 14px; color: var(--kv-text); font-size: clamp(34px, 5vw, 48px); line-height: 1.08; letter-spacing: -.055em; font-weight: 650; }
-.builder-home-subtitle { max-width: 620px; color: var(--kv-text-secondary); font-size: 15px; line-height: 1.65; }
+.eyebrow { color: var(--kv-action); font-size: 11px; font-weight: 700; letter-spacing: .12em; }
 .builder-home-composer { overflow: hidden; margin-top: 30px; border: 1px solid var(--kv-border-strong); border-radius: var(--kv-radius-large); background: var(--kv-surface); box-shadow: var(--kv-shadow-panel); }
 .builder-home-composer:focus-within { border-color: var(--kv-action); box-shadow: 0 0 0 3px var(--kv-action-soft), var(--kv-shadow-panel); }
 .builder-home-composer textarea { min-height: 132px; padding: 18px 20px; color: var(--kv-text); font-size: 15px; }
@@ -161,18 +150,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   background: var(--kv-action); color: #fff; font-weight: 650;
 }
 .builder-home-composer-footer button:hover, .home-primary:hover, .nx-send:hover, .nx-builder-open:hover { background: var(--kv-action-hover); border-color: var(--kv-action-hover); }
-.builder-home-prompts { gap: 8px; margin-top: 14px; }
-.builder-home-prompts button { border: 1px solid var(--kv-border); border-radius: 999px; background: var(--kv-surface); color: var(--kv-text-secondary); padding: 8px 13px; }
-.builder-home-prompts button:hover { border-color: var(--kv-border-strong); background: var(--kv-surface-hover); color: var(--kv-text); }
-.builder-home-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.builder-home-section-head h2 { margin: 0; color: var(--kv-text); font-size: 17px; font-weight: 650; letter-spacing: -.02em; }
-.builder-home-project-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
-.builder-home-project { min-height: 76px; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-panel); background: var(--kv-surface); box-shadow: 0 1px 2px rgba(20,20,35,.025); }
-.builder-home-project:hover { border-color: var(--kv-border-strong); box-shadow: var(--kv-shadow-panel); transform: translateY(-1px); }
-.builder-home-project-preview { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--kv-action-soft); color: var(--kv-action); }
-.builder-home-project-meta strong { color: var(--kv-text); font-size: 13px; }
-.builder-home-project-meta small { color: var(--kv-text-tertiary); }
-.builder-home-footer { color: var(--kv-text-tertiary); font-size: 12px; }
 .settings-page, .connectors-page, .diagnostics-page, .news-page { color: var(--kv-text); }
 .settings-hero h1, .page-heading h1 { color: var(--kv-text); letter-spacing: -.04em; }
 .settings-index, .settings-card, .connector-card, .diagnostics-card, .news-card {
@@ -253,11 +230,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 @media (max-width: 760px) {
   .sidebar { width: 100%; min-width: 0; }
-  .builder-home-header { padding-inline: 16px; }
-  .builder-home-nav button { padding-inline: 8px; font-size: 12px; }
-  .builder-home-main { padding: 36px 18px 48px; }
-  .builder-home-hero { margin-bottom: 40px; }
-  .builder-home-footer { padding-inline: 18px; }
   .nx-builder-header { display: flex; flex-wrap: wrap; min-height: auto; gap: 8px; padding: 8px 12px; }
   .nx-builder-project { max-width: calc(100% - 8px); }
   .nx-builder-nav { order: 3; width: 100%; justify-content: center; }
