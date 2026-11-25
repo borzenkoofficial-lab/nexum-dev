@@ -1,4 +1,4 @@
-# КВАРД — журнал консолидации основной ветки
+# КВАРД — аудит консолидации основной ветки
 
 Дата проверки: 2026-11-25  
 Репозиторий: `borzenkoofficial-lab/nexum-dev`  
@@ -23,55 +23,74 @@
 | [#66](https://github.com/borzenkoofficial-lab/nexum-dev/pull/66) | Object Storage Port и локальный адаптер | Merged |
 | [#67](https://github.com/borzenkoofficial-lab/nexum-dev/pull/67) | Почасовой workflow автономной разработки | Merged |
 
-Merge commit PR #67: `eca1aac1fcb4ef1c3f71363ef79a1c75bfc8c3da`.
+## Результаты сравнения веток с main
 
-## Крупные незавершённые интеграции
+GitHub branch search вернул 67 веток, включая `main`. Для выборки архитектурных, UI/design и стабилизационных веток выполнено GitHub compare `main...branch`.
 
-### NEXUM AGENTS — PR #56
+### Универсальные агенты и Durable Runtime
 
-Ссылка: https://github.com/borzenkoofficial-lab/nexum-dev/pull/56
+| Ветка | Уникальные коммиты впереди main | Отставание | Изменённые файлы |
+|---|---:|---:|---:|
+| `feat/nexum-agents-foundation` | 10 | 240 | 38 |
+| `feat/nexum-agents-review` | 23 | 240 | 42 |
+| `feat/agents-durable-runtime-queue` | 40 | 240 | 46 |
 
-- Содержит основу универсальных бизнес-агентов, организации/тенancy, версии агентов, инструменты, knowledge и workforce.
-- PR открыт и помечен Draft.
-- GitHub API на момент проверки возвращает `mergeable=false`.
-- В обсуждении есть ошибка Vercel с лимитом бесплатных deployment в сутки. Это не следует путать с результатом GitHub Actions CI.
-- В описании PR указано, что последние изменения требуют повторного CI.
-- Следующий шаг: сверить схему миграций и runtime-контракты с текущим `main`, отдельно подтвердить CI. Не включать внешние side effects до реализации scope-level authorization.
+Вывод: эти ветки содержат значимые уникальные изменения — API агентов, organizations/tenancy, knowledge, workforce, approvals, quota, миграции, worker и queue. Они не присутствуют в main целиком. Ветки сильно отстали от main, а изменения перекрываются между собой. Нужен перенос по слоям и согласование миграций, а не слияние всей ветки.
 
-### Durable Agent Runtime — PR #68
+### Daytona
 
-Ссылка: https://github.com/borzenkoofficial-lab/nexum-dev/pull/68
+| Ветка | Уникальные коммиты впереди main | Отставание | Изменённые файлы |
+|---|---:|---:|---:|
+| `feat/daytona-runtime-main-integration` | 22 | 8 | 16 |
+| `feat/daytona-sandbox-runtime` | 110 | 240 | 23 |
 
-- Содержит PostgreSQL-backed lease queue, отдельный worker entrypoint, cancellation и fencing по lease owner.
-- PR открыт; GitHub API возвращает `mergeable=false`.
-- PR описывает зависимость от NEXUM AGENTS foundation (#56).
-- Описание PR сообщает о прохождении API/Web checks, Docker smoke, PostgreSQL migrations и queue integration tests; browser E2E в описании ещё выполнялся.
-- Следующий шаг: сначала привести foundation и queue к одной миграционной последовательности на актуальном `main`, затем повторить полный CI. Не переносить миграции поверх текущей схемы вслепую.
+Ветка `feat/daytona-runtime-main-integration` ближе к текущему main и содержит адаптер, provider, runner, тесты, docs и render config. Она всё ещё diverged. Предпочтительнее аудитировать именно её как источник изменений, сверяя с PR #61 и не дублируя реализацию.
 
-### Daytona Sandbox — PR #61
+### Дизайн и UI
 
-Ссылка: https://github.com/borzenkoofficial-lab/nexum-dev/pull/61
+| Ветка | Уникальные коммиты впереди main | Отставание | Изменённые файлы |
+|---|---:|---:|---:|
+| `design/clean-foundation` | 0 | 205 | 0 |
+| `design/kvard-premium-system` | 0 | 11 | 0 |
+| `design/professional-workspace` | 0 | 285 | 0 |
+| `ui/full-rebuild` | 0 | 278 | 0 |
+| `ui/full-ui-reset` | 0 | 269 | 0 |
+| `ui/rebuild-builder-workspace` | 0 | 282 | 0 |
+| `ui/global-product-redesign` | 11 | 260 | 6 |
 
-- Содержит интеграцию Daytona с текущим Coding Agent и очистку sandbox lifecycle.
-- PR открыт; GitHub API возвращает `mergeable=false`.
-- Описание PR сообщает о прохождении CI run #2678.
-- Live smoke test заблокирован отсутствием серверного `DAYTONA_API_KEY`.
-- Следующий шаг: сверить sandbox interfaces и Docker/local development compatibility на текущем `main`; провести live smoke test только после настройки секрета владельцем.
+Шесть уникальных файлов в `ui/global-product-redesign`: `App.css`, `builder.css`, `BuilderHome.tsx`, `NewsPage.tsx`, `nexum-os.css`, `nexum-welcome.css`. Это отдельная порция UI изменений, которую нужно визуально и функционально проверить перед переносом. Остальные перечисленные дизайн/UI ветки не содержат уникальных коммитов относительно main по Git compare; они позади main.
 
-## Состояние веток
+### Builder и стабилизация
 
-GitHub branch search вернул 67 веток, включая `main`. Это инвентаризация имён, а не доказательство, что каждая ветка содержит уникальную или нужную работу.
+| Ветка | Уникальные коммиты впереди main | Отставание | Изменённые файлы |
+|---|---:|---:|---:|
+| `fix/agent-build-validation-evidence` | 8 | 243 | 6 |
+| `fix/builder-scaffold-first` | 40 | 240 | 8 |
+| `feat/runtime-phase-2-5` | 9 | 630 | 9 |
+| `feat/ai-loop-production-overhaul` | 5 | 403 | 3 |
+| `feature/project-workspace-v2` | 4 | 1391 | 2 |
+| `feat/admin-control-center` | 9 | 826 | 8 |
 
-До удаления веток требуется:
-1. Составить список всех открытых PR и связанных веток.
-2. Для каждой ветки сравнить её с `main`: ahead/behind, уникальные commits и изменённые файлы.
-3. Выделить уникальные изменения, не присутствующие в `main`.
-4. Перенести необходимые изменения непосредственно в `main` с тестами.
-5. Только после проверки отсутствия уникальных данных удалить устаревшие ветки.
+Эти ветки содержат уникальные исправления и тесты. Требуется сравнить их отдельные diff и текущие реализации main, особенно agent lifecycle, scaffold, validation evidence, task state, completion gate, admin RBAC и workspace UX.
 
-## Ограничения текущей проверки
+### Ветка P0 hardening
 
-- Эта запись фиксирует состояние GitHub API и описания PR на указанную дату.
-- CI по PR #56, #68 и #61 в этой проверке не запускался повторно.
-- Наличие кода в PR не означает его наличие в `main`.
+`fix/p0-production-hardening`: 160 уникальных коммитов впереди main, 253 позади, compare показывает лимит в 300 файлов. В diff есть удаления большого количества `apps/api/node_modules` и изменения множества production-файлов. Это нельзя переносить целиком: сначала отфильтровать артефакты зависимостей, затем выделить конкретные исправления с тестами.
+
+## Приоритеты дальнейшего переноса в main
+
+1. **Agents foundation:** API contracts, tenant isolation, repositories/services, migrations, tests, frontend workspace.
+2. **Durable runtime:** lease queue, worker lifecycle, cancellation, retry/recovery, fencing, integration tests.
+3. **Daytona:** provider/runner, sandbox cleanup, environment contract, local fallback, tests.
+4. **Builder/AI loop:** уникальные исправления task state, completion gate, scaffold-first, build validation evidence.
+5. **Design/UI:** просмотреть уникальный diff `ui/global-product-redesign`, извлечь полезные компоненты и стили, сверить с текущей дизайн-системой и требованиями premium.
+6. **Admin/security:** RBAC, organization scoping, secret boundaries, audit log, usage/quota.
+7. **Branch cleanup:** только после проверки всех 67 веток, связанных PR и уникальных изменений.
+
+## Ограничения
+
+- Полный diff всех 67 веток ещё не просмотрен; выполнено сравнение 18 наиболее релевантных веток и инвентаризация полного списка имён.
+- Git compare показывает различия в истории/файлах, но сам по себе не доказывает, что конкретная логика отсутствует в main: она могла быть реализована иначе.
+- CI по PR #56, #68 и #61 не запускался повторно в рамках этого аудита.
 - Production deployment и production database migrations не выполнялись.
+- Старые ветки не удалялись.
