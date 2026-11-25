@@ -47,7 +47,7 @@ export class MockProvider implements AIProvider {
     // Builder E2E state is tracked per active project instead of being inferred from
     // compacted tool history. The latter is intentionally lossy and must never be the
     // source of truth for an acceptance workflow.
-    const userTask = [...message.matchAll(/User (?:task|request):\\s*([^\\n]*)/gi)]
+    const userTask = [...message.matchAll(/User (?:task|request):\s*([^\n]*)/gi)]
       .at(-1)?.[1]?.trim() ?? "";
     const isBuilderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm/i.test(userTask) || /автосервис|автомобил|диагностик.*авто|ремонт.*авто/i.test(message);
 
