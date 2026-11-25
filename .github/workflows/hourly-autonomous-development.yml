@@ -70,7 +70,7 @@ jobs:
             echo "Codex made no changes in this run." > hourly.patch
           fi
           # Refuse to publish diffs that appear to contain credentials.
-          if grep -Eiq '(OPENAI_API_KEY|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----)' hourly.patch; then
+          if grep -Eiq '(sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----)' hourly.patch; then
             echo "::error::Patch appears to contain a secret; artifact publishing blocked."
             exit 1
           fi
