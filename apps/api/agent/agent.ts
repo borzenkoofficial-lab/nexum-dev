@@ -27,15 +27,27 @@ import { PatchFileTool } from "./tools/patchFile.js";
 import { TestProjectTool } from "./tools/testProject.js";
 import { buildAgentContext, formatAgentContext } from "./context.js";
 import type { ServerRuntime } from "../runtime/runtime.js";
-import { assertCompleteToolPolicy, validateToolInvocation } from "./toolPolicy.js";
+import { assertCompleteToolPolicy, getToolSecurityPolicy, validateToolInvocation, type ToolRisk } from "./toolPolicy.js";
+import type { AgentApprovalPolicy } from "./agentDefinitionStore.js";
+import { shouldRequireToolApproval } from "./approval.js";
 import { AgentLoop } from "./loop.js";
 import { agentFailureInjection } from "./failureInjection.js";
 
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
+export interface AgentToolApprovalRequest {
+  toolName: string;
+  risk: ToolRisk;
+  input: string;
+}
+
+export type AgentToolApprovalDecision = "approved" | "rejected" | "expired";
+
 export interface NexumAgentConfiguration {
   systemPrompt?: string;
   allowedTools?: string[];
+  approvalPolicy?: AgentApprovalPolicy;
+  requestApproval?: (request: AgentToolApprovalRequest, signal?: AbortSignal) => Promise<AgentToolApprovalDecision>;
 }
 
 export function formatConfiguredAgentInstructions(systemPrompt?: string): string {
@@ -560,8 +572,9 @@ export class NexumAgent implements AgentRuntime {
       };
     }
     if (signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
+    let toolPolicy;
     try {
-      validateToolInvocation(tool, input);
+      toolPolicy = validateToolInvocation(tool, input);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Invalid tool invocation";
       const pathPolicy = /project directory|path|traversal|absolute/i.test(message);
@@ -580,6 +593,56 @@ export class NexumAgent implements AgentRuntime {
         metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId },
       };
     }
+    const approvalPolicy = this.configuration.approvalPolicy;
+    if (approvalPolicy && shouldRequireToolApproval(approvalPolicy, toolPolicy.risk)) {
+      if (!this.configuration.requestApproval) {
+        return {
+          success: false,
+          output: "Для этого действия не настроен механизм подтверждения. Инструмент не запускался.",
+          toolCallId: crypto.randomUUID(),
+          toolName: tool.name,
+          error: { code: "APPROVAL_UNAVAILABLE", message: "Approval handler is missing; action was blocked.", retryable: false, repairable: false, fatal: true },
+          metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId },
+        };
+      }
+      let decision: AgentToolApprovalDecision;
+      try {
+        decision = await this.configuration.requestApproval({ toolName: tool.name, risk: toolPolicy.risk, input }, signal);
+      } catch (error) {
+        if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) {
+          throw new DOMException("Agent task cancelled", "AbortError");
+        }
+        const message = error instanceof Error ? error.message : "Approval request failed";
+        return {
+          success: false,
+          output: "Не удалось получить подтверждение. Инструмент не запускался.",
+          toolCallId: crypto.randomUUID(),
+          toolName: tool.name,
+          error: { code: "APPROVAL_UNAVAILABLE", message, retryable: true, repairable: false, fatal: true },
+          metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId },
+        };
+      }
+      if (decision !== "approved") {
+        const expired = decision === "expired";
+        return {
+          success: false,
+          output: expired
+            ? "Время ожидания подтверждения истекло. Инструмент не запускался."
+            : "Пользователь отклонил действие. Инструмент не запускался.",
+          toolCallId: crypto.randomUUID(),
+          toolName: tool.name,
+          error: {
+            code: expired ? "APPROVAL_EXPIRED" : "APPROVAL_REJECTED",
+            message: expired ? "Tool approval expired before execution." : "Tool execution was rejected by the user.",
+            retryable: false,
+            repairable: false,
+            fatal: false,
+          },
+          metadata: { projectId: this.runtimeContext.projectId, taskId: this.runtimeContext.taskId },
+        };
+      }
+    }
+    if (signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
     if (agentFailureInjection.consumeFailure("TOOL_CHECKPOINT", this.runtimeContext.projectId)) {
       await agentFailureInjection.waitForCheckpoint("TOOL_CHECKPOINT", this.runtimeContext.projectId, signal);
     }
