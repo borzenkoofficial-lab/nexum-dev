@@ -190,3 +190,11 @@ CI должен запускать fake-server conformance suite для всех
 | Real provider sandbox checks | Pending before production enablement |
 
 CI evidence: dedicated provider-contract workflow `45705059762` passed (API typecheck and full API test suite) on commit `9f4e9992c017a94409834c8f238926cbe09fceab`. This verifies the contract foundation at that commit, not all future native provider features.
+
+
+### Additional hardening after first verification
+
+- Canonical assistant messages can contain tool-call history, including tool-call-only messages with no text content. This requires `toolCalling` capability; legacy providers reject it before invocation.
+- Token counts must be non-negative integers. Missing, malformed, or contradictory usage metadata is normalized to `unavailable`; no zero values are invented. Explicit estimated usage remains `estimated`.
+- Credential redaction applies to both technical details and user-safe messages from already-classified `NexumError` instances, not only raw provider exceptions.
+- Latest dedicated workflow `45705690934` passed on commit `53e0be5392fce43a3b623623ab63aa32022d9891`: API typecheck passed and 241/241 API tests passed.
