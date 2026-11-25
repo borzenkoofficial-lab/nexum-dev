@@ -12,7 +12,7 @@
     "test:runtime": "tsx --test runtime/runtime.test.ts",
     "build": "tsc",
     "worker": "node dist/agents/worker.js",
-    "test:agents": "tsx --test agents/agentService.test.ts agents/tools/toolRegistry.test.ts organizations/organization.test.ts agents/workforce/graphValidator.test.ts agents/memory/knowledgeService.test.ts approvals/approvalService.test.ts agents/agentQueue.integration.test.ts",
+    "test:agents": "tsx --test agents/agentService.test.ts agents/tools/toolRegistry.test.ts organizations/organization.test.ts agents/workforce/graphValidator.test.ts agents/memory/knowledgeService.test.ts approvals/approvalService.test.ts agent/builderBootstrap.test.ts agent/tokenBudget.test.ts",
     "test:queue": "tsx --test agents/agentQueue.integration.test.ts"
   },
   "keywords": [],
