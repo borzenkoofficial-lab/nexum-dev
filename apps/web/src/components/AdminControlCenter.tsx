@@ -2,11 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import "./AdminControlCenter.css";
 
 type Role = "super_admin" | "admin" | "support" | "finance" | "developer" | "auditor";
-type Section = "overview" | "roles" | "sessions" | "audit";
+type Section = "overview" | "users" | "organizations" | "roles" | "sessions" | "audit";
 type Identity = { role: Role; permissions: string[]; user: { id: string } };
 type Assignment = { user_id: string; role: Role; updated_at: string };
 type Session = { id: string; user_id: string; email: string; mfa_verified: boolean; last_seen_at: string; expires_at: string };
 type Event = { id: string; actor_user_id: string | null; action: string; target_type: string; target_id: string; created_at: string };
+type UserRow = { id: string; email: string; name: string; created_at: string; admin_role: Role | null; organizations_count: number; projects_count: number };
+type OrganizationRow = { id: string; name: string; slug: string; created_at: string; members_count: number; agents_count: number; workforces_count: number; owner_email: string | null };
+type MemberRow = { id: string; email: string; name: string; role: string; joined_at: string };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...init, credentials: "include", headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) } });
@@ -26,6 +29,11 @@ export function AdminControlCenter() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationRow[]>([]);
+  const [members, setMembers] = useState<MemberRow[]>([]);
+  const [directorySearch, setDirectorySearch] = useState("");
+  const [selectedOrganization, setSelectedOrganization] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [uuid, setUuid] = useState("");
@@ -39,13 +47,15 @@ export function AdminControlCenter() {
     try {
       const me = await request<Identity>("/api/admin/me");
       setIdentity(me);
+      if (section === "users" && me.permissions.includes("users.read")) setUsers((await request<{ users: UserRow[] }>("/api/admin/users?limit=50&search=" + encodeURIComponent(directorySearch))).users);
+      if (section === "organizations" && me.permissions.includes("organizations.read")) setOrganizations((await request<{ organizations: OrganizationRow[] }>("/api/admin/organizations?limit=50&search=" + encodeURIComponent(directorySearch))).organizations);
       if (section === "roles" && me.permissions.includes("roles.manage")) setAssignments((await request<{ assignments: Assignment[] }>("/api/admin/roles")).assignments);
       if (section === "sessions" && me.permissions.includes("sessions.manage")) setSessions((await request<{ sessions: Session[] }>("/api/admin/sessions")).sessions);
       if (section === "audit" && me.permissions.includes("audit.read")) setEvents((await request<{ events: Event[] }>("/api/admin/audit")).events);
       if (section === "overview") await request("/api/admin/overview");
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка загрузки"); }
     finally { setLoading(false); }
-  }, [section]);
+  }, [section, directorySearch]);
   useEffect(() => { void refresh(); }, [refresh]);
 
   const can = (permission: string) => Boolean(identity?.permissions.includes(permission));
@@ -71,6 +81,8 @@ export function AdminControlCenter() {
   if (loading) return <div className="kvard-admin-loading">Загружаем административный контур…</div>;
   const items: Array<{ id: Section; title: string }> = [
     { id: "overview", title: "Обзор" },
+    { id: "users", title: "Пользователи" },
+    { id: "organizations", title: "Организации" },
     { id: "roles", title: "Доступы" },
     { id: "sessions", title: "Сессии" },
     { id: "audit", title: "Аудит" },
@@ -80,7 +92,7 @@ export function AdminControlCenter() {
       <a className="kvard-admin-brand" href="/"><b>К</b><span>КВАРД<small>CONTROL CENTER</small></span></a>
       <label>УПРАВЛЕНИЕ</label>
       <nav>{items.map(item => {
-        const allowed = item.id === "overview" || (item.id === "roles" && can("roles.manage")) || (item.id === "sessions" && can("sessions.manage")) || (item.id === "audit" && can("audit.read"));
+        const allowed = item.id === "overview" || (item.id === "users" && can("users.read")) || (item.id === "organizations" && can("organizations.read")) || (item.id === "roles" && can("roles.manage")) || (item.id === "sessions" && can("sessions.manage")) || (item.id === "audit" && can("audit.read"));
         return allowed ? <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}>{item.title}</button> : null;
       })}</nav>
       <footer><span>● Защищённая сессия</span><a href="/">Вернуться в КВАРД ↗</a></footer>
@@ -92,6 +104,20 @@ export function AdminControlCenter() {
         <div className="kvard-admin-hero"><small>ADMIN CONTROL CENTER</small><h2>Контроль платформы<br/>в одном пространстве.</h2><p>Доступы, безопасность и системные события КВАРД.</p></div>
         <div className="kvard-admin-stats"><article><small>ВАША РОЛЬ</small><strong>{identity?.role.replace("_", " ")}</strong><span>Определена сервером</span></article><article><small>РАЗРЕШЕНИЯ</small><strong>{identity?.permissions.length ?? 0}</strong><span>Активные permissions</span></article><article><small>ЗАЩИТА</small><strong>MFA</strong><span>Проверяется сервером</span></article></div>
         <div className="kvard-admin-panel"><small>ИСТОЧНИКИ ДАННЫХ</small><h3>Только реальные показатели</h3><p>Неподключённые метрики не заменяются демонстрационными значениями. Состояние обзора получено из защищённого API.</p></div>
+      </section>}
+
+      {section === "users" && can("users.read") && <section>
+        <div className="kvard-admin-panel"><small>USER DIRECTORY</small><h3>Пользователи платформы</h3><div className="kvard-admin-form"><input value={directorySearch} onChange={event => setDirectorySearch(event.target.value)} placeholder="Поиск по имени, email или UUID"/><button onClick={() => void refresh()}>Найти</button></div>
+          <div className="kvard-admin-table"><table><thead><tr><th>Пользователь</th><th>Регистрация</th><th>Организации</th><th>Проекты</th><th>Админ-доступ</th></tr></thead><tbody>{users.map(x => <tr key={x.id}><td><strong>{x.name}</strong><small>{x.email}</small><small>{x.id}</small></td><td>{date(x.created_at)}</td><td>{x.organizations_count}</td><td>{x.projects_count}</td><td>{x.admin_role ?? "Нет"}</td></tr>)}</tbody></table></div>
+          {!users.length && <p>Пользователи не найдены.</p>}
+        </div>
+      </section>}
+      {section === "organizations" && can("organizations.read") && <section>
+        <div className="kvard-admin-panel"><small>ORGANIZATION DIRECTORY</small><h3>Организации и рабочие пространства</h3><div className="kvard-admin-form"><input value={directorySearch} onChange={event => setDirectorySearch(event.target.value)} placeholder="Поиск по названию, slug или UUID"/><button onClick={() => void refresh()}>Найти</button></div>
+          <div className="kvard-admin-table"><table><thead><tr><th>Организация</th><th>Владелец</th><th>Участники</th><th>Агенты</th><th>Workforces</th><th/></tr></thead><tbody>{organizations.map(x => <tr key={x.id}><td><strong>{x.name}</strong><small>{x.slug}</small><small>{x.id}</small></td><td>{x.owner_email ?? "Не указан"}</td><td>{x.members_count}</td><td>{x.agents_count}</td><td>{x.workforces_count}</td><td><button onClick={async () => { try { const data = await request<{ members: MemberRow[] }>("/api/admin/organizations/" + x.id + "/members"); setMembers(data.members); setSelectedOrganization(x.name); } catch (err) { setError(err instanceof Error ? err.message : "Не удалось загрузить участников"); } }}>Участники</button></td></tr>)}</tbody></table></div>
+          {!organizations.length && <p>Организации не найдены.</p>}
+        </div>
+        {selectedOrganization && <div className="kvard-admin-panel"><div className="kvard-admin-panel-title"><h3>Участники: {selectedOrganization}</h3><button onClick={() => setSelectedOrganization(null)}>Закрыть</button></div><div className="kvard-admin-table"><table><thead><tr><th>Участник</th><th>Роль</th><th>Добавлен</th></tr></thead><tbody>{members.map(x => <tr key={x.id}><td>{x.name}<small>{x.email}</small></td><td>{x.role}</td><td>{date(x.joined_at)}</td></tr>)}</tbody></table></div></div>}
       </section>}
       {section === "roles" && can("roles.manage") && <section>
         <div className="kvard-admin-panel"><small>RBAC</small><h3>Назначить роль</h3><form className="kvard-admin-form" onSubmit={event => { event.preventDefault(); void mutate(async () => { await request("/api/admin/roles/" + encodeURIComponent(uuid.trim()), { method: "PUT", body: JSON.stringify({ role }) }); setUuid(""); }); }}><input value={uuid} onChange={event => setUuid(event.target.value)} placeholder="UUID пользователя" required/><select value={role} onChange={event => setRole(event.target.value as Role)}>{(["admin","support","finance","developer","auditor","super_admin"] as Role[]).map(x => <option key={x}>{x}</option>)}</select><button>Назначить</button></form></div>
