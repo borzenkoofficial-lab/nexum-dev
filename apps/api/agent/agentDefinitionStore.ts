@@ -57,6 +57,9 @@ function validateAllowedTools(toolNames: string[]): void {
 }
 
 function validateInput(input: AgentDefinitionInput | AgentDefinitionPatch): void {
+  if (input.name !== undefined && (!input.name.trim() || input.name.length > 48)) throw new Error("Название агента обязательно и должно содержать не более 48 символов.");
+  if (input.description !== undefined && input.description.length > 160) throw new Error("Описание агента должно содержать не более 160 символов.");
+  if (input.systemPrompt !== undefined && (!input.systemPrompt.trim() || input.systemPrompt.length > 5000)) throw new Error("Системная инструкция обязательна и должна содержать не более 5 000 символов.");
   if (input.provider !== undefined && input.provider !== null && !SUPPORTED_AGENT_PROVIDERS.has(input.provider)) {
     throw new Error("Неподдерживаемый провайдер AI.");
   }
