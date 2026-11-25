@@ -19,6 +19,7 @@ export interface GatewayGenerateOptions {
   maxTokens?: number;
   temperature?: number;
   signal?: AbortSignal;
+  onTextDelta?: (delta: string) => void;
 }
 
 export interface GatewayProviderInfo {
@@ -290,22 +291,67 @@ export class AIGateway {
     model: string | undefined,
     options: AIGenerateOptions = {},
   ): Promise<{ response: string; model: string }> {
+    const selectedModel = model ?? provider.model;
+    if (options.onTextDelta && provider.streamRequest && this.getCapabilities(provider.id, selectedModel).streaming === true) {
+      const request: AIRequest = {
+        version: 1,
+        model: selectedModel,
+        messages: [{ role: "user", content: message }],
+        stream: true,
+        ...(options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens }),
+        ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
+        ...(options.signal === undefined ? {} : { signal: options.signal }),
+      };
+      let response = "";
+      let terminal = false;
+      for await (const event of this.streamRequest(request, { provider: provider.id })) {
+        if (terminal) {
+          throw new NexumError("PROVIDER_ERROR", "Провайдер отправил события после завершения потока.", {
+            retryable: false,
+            technicalDetails: `Provider ${provider.id} emitted an event after message_end`,
+          });
+        }
+        if (event.type === "text_delta") {
+          response += event.text;
+          if (event.text) options.onTextDelta(event.text);
+        } else if (event.type === "message_end") {
+          terminal = true;
+        } else if (event.type === "error") {
+          throw new NexumError("PROVIDER_ERROR", event.message, {
+            retryable: true,
+            technicalDetails: event.message,
+          });
+        } else if (event.type === "tool_call_start" || event.type === "tool_call_delta") {
+          throw new NexumError("MODEL_ERROR", "Финальный текстовый ответ неожиданно содержит вызов инструмента.", {
+            retryable: false,
+            technicalDetails: `Provider ${provider.id} emitted tool-call events for a text-only generation`,
+          });
+        }
+      }
+      if (!terminal) {
+        throw new NexumError("PROVIDER_ERROR", "Поток провайдера завершился без финального события.", {
+          retryable: true,
+          technicalDetails: `Provider ${provider.id} stream ended without message_end`,
+        });
+      }
+      return { response, model: selectedModel };
+    }
     if (provider.generateRequest) {
       const response = await this.generateRequest({
         version: 1,
-        model: model ?? provider.model,
+        model: selectedModel,
         messages: [{ role: "user", content: message }],
         ...(options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens }),
         ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
         ...(options.signal === undefined ? {} : { signal: options.signal }),
       }, { provider: provider.id });
+      options.onTextDelta?.(response.content);
       return { response: response.content, model: response.model };
     }
     if (provider.generate) {
-      return {
-        response: await provider.generate(message, model, options),
-        model: model ?? provider.model,
-      };
+      const response = await provider.generate(message, model, options);
+      options.onTextDelta?.(response);
+      return { response, model: selectedModel };
     }
     throw new NexumError("CONFIG_ERROR", "AI-провайдер не реализует поддерживаемый интерфейс генерации.", {
       retryable: false,
@@ -327,6 +373,15 @@ export class AIGateway {
       message,
     ].join("\n");
 
+    let emittedText = false;
+    const onTextDelta = normalizedOptions.onTextDelta
+      ? (delta: string) => {
+          if (!delta) return;
+          emittedText = true;
+          normalizedOptions.onTextDelta?.(delta);
+        }
+      : undefined;
+
     try {
       if (agentFailureInjection.consumeFailure("NETWORK_FAILURE")) throw new Error("Injected network failure");
       if (agentFailureInjection.consumeFailure("MODEL_FAILURE")) throw new Error("Injected model failure");
@@ -334,6 +389,7 @@ export class AIGateway {
         ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
         ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
         ...(normalizedOptions.signal ? { signal: normalizedOptions.signal } : {}),
+        ...(onTextDelta ? { onTextDelta } : {}),
       });
       return {
         response: generated.response,
@@ -343,6 +399,7 @@ export class AIGateway {
       };
     } catch (error) {
       const normalizedError = classifyAIError(error);
+      if (emittedText) throw normalizedError;
       const fallbackId = this.fallbackProviderId;
       const reason = normalizedError.technicalDetails ?? normalizedError.message;
       const explicitSelection =
@@ -376,6 +433,7 @@ export class AIGateway {
           ...(normalizedOptions.maxTokens === undefined ? {} : { maxTokens: normalizedOptions.maxTokens }),
           ...(normalizedOptions.temperature === undefined ? {} : { temperature: normalizedOptions.temperature }),
           ...(normalizedOptions.signal ? { signal: normalizedOptions.signal } : {}),
+          ...(onTextDelta ? { onTextDelta } : {}),
         });
         return {
           response: generated.response,
