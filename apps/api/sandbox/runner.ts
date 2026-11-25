@@ -24,6 +24,11 @@ class DockerSandboxProvider implements SandboxProvider {
 
 let configuredProvider: SandboxProvider | undefined;
 const sessions = new Map<string, Promise<SandboxSession>>();
+let shuttingDown = false;
+
+function assertRunnerAvailable(): void {
+  if (shuttingDown) throw new Error("Sandbox runner is shutting down");
+}
 
 function getProvider(runtime?: ServerRuntime, context: RuntimeContext = {}): SandboxProvider {
   if (configuredProvider) return configuredProvider;
@@ -50,6 +55,7 @@ export async function runInConfiguredSandbox(
   context: RuntimeContext = {},
   signal?: AbortSignal,
 ): Promise<SandboxResult> {
+  assertRunnerAvailable();
   const provider = getProvider(runtime, context);
   const key = getSessionKey(context);
   let session: SandboxSession;
@@ -65,9 +71,19 @@ export async function runInConfiguredSandbox(
       });
     }
     session = await pending;
+    if (shuttingDown) {
+      // disposeAllSandboxSessions owns the session after taking its snapshot.
+      throw new Error("Sandbox runner is shutting down");
+    }
   } else {
     session = await provider.create({ projectPath: projectRoot, ...context }, signal);
     disposeAfter = true;
+    if (shuttingDown) {
+      await session.dispose().catch((error) => {
+        console.error("[Nexum] Failed to dispose sandbox created during shutdown", error);
+      });
+      throw new Error("Sandbox runner is shutting down");
+    }
   }
 
   try {
@@ -97,6 +113,7 @@ export async function releaseSandboxSession(taskId?: string): Promise<void> {
 }
 
 export async function disposeAllSandboxSessions(): Promise<void> {
+  shuttingDown = true;
   const pending = [...sessions.entries()];
   sessions.clear();
   await Promise.all(pending.map(async ([key, sessionPromise]) => {
@@ -113,6 +130,7 @@ export async function disposeAllSandboxSessions(): Promise<void> {
 
 /** Test-only reset hook; not exposed through an HTTP route. */
 export async function resetSandboxRunnerForTests(): Promise<void> {
+  shuttingDown = false;
   const pending = [...sessions.values()];
   sessions.clear();
   configuredProvider = undefined;
