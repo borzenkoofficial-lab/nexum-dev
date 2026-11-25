@@ -89,7 +89,7 @@ The home screen uses a persistent left navigation rail on desktop and a compact 
 ## AI agents workspace — first functional slice
 - The workspace has a dedicated /agents route and a persistent entry in the workspace navigation and command palette.
 - Built-in launch profiles cover development, technical audit, QA and DevOps tasks. These are reusable instruction presets, not independent autonomous agents.
-- Users can create and delete custom launch profiles. They are stored in browser local storage under kvard:agent-profiles:v1; they are not synchronized to an account or server.
+- Users can create and delete custom launch profiles. Profiles are stored per account through authenticated /api/agent/profiles endpoints and PostgreSQL when configured; the in-memory development fallback is explicitly identified in the UI.
 - Selecting a profile and project opens that project's Studio with the profile instruction prefilled. The user reviews and starts the task through the existing chat flow; no task starts merely by selecting a profile.
 - Runtime status and recent events are read from the existing authenticated /api/agent/diagnostics endpoint. The UI does not invent job counts or connection states.
-- Persistent server-side agent definitions, schedules, independent tool policies, team orchestration and autonomous triggers remain future backend capabilities. The interface states this limitation explicitly.
+- Persistent autonomous agent definitions, schedules, independent tool policies, team orchestration and autonomous triggers remain future backend capabilities. Launch profiles are reusable task instructions, not autonomous processes. The interface states this limitation explicitly.
