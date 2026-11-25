@@ -21,7 +21,13 @@ export async function generateWithLegacyProvider(
 ): Promise<AIResponse> {
   validateCanonicalRequest(request);
 
-  if (!provider.capabilities.text) unsupported("text generation is not declared");
+  if (typeof provider.generate !== "function") {
+    throw new NexumError("CONFIG_ERROR", "Переходный адаптер недоступен для этого AI-провайдера.", {
+      retryable: false,
+      technicalDetails: `Provider ${provider.id} does not implement legacy generate()`,
+    });
+  }
+  if (provider.capabilities.text !== true) unsupported("text generation is not explicitly declared");
   if (request.messages.some((message) => message.role === "developer" || message.role === "tool")) {
     unsupported("developer and tool message roles require a native canonical adapter");
   }
