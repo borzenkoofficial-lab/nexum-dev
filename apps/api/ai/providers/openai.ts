@@ -259,7 +259,12 @@ export class OpenAIProvider implements AIProvider {
   }
 
   async listModels(signal?: AbortSignal): Promise<string[]> {
-    const data = await this.request<OpenAIModelsResponse>("/models", { method: "GET", ...(signal ? { signal } : {}) });
+    const data = await this.request<OpenAIModelsResponse>(
+      "/models",
+      { method: "GET", ...(signal ? { signal } : {}) },
+      this.timeoutMs,
+      this.responsesBaseUrl,
+    );
     const remote = (data.data ?? [])
       .map((item) => item.id)
       .filter((id): id is string => typeof id === "string" && id.trim().length > 0 && id.length <= 200)
