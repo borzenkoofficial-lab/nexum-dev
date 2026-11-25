@@ -11,6 +11,7 @@ import { AnthropicProvider } from "./ai/providers/anthropic.js";
 import { OrcaRouterProvider } from "./ai/providers/orcarouter.js";
 import { MockProvider } from "./ai/providers/mock.js";
 import { NexumAgent } from "./agent/agent.js";
+import { getToolSecurityPolicy } from "./agent/toolPolicy.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
 import type { ProductPlan } from "./agent/types.js";
 import { ProjectManager, ProjectManagerError } from "./projects/projectManager.js";
@@ -35,7 +36,7 @@ import { agentFailureInjection, type AgentFailure } from "./agent/failureInjecti
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
 import { agentProfilesUseDatabase, createAgentProfile, deleteAgentProfile, listAgentProfiles } from "./agent/profileStore.js";
-import { agentDefinitionsUseDatabase, createAgentDefinition, deleteAgentDefinition, listAgentDefinitions, updateAgentDefinition, type AgentDefinitionInput, type AgentDefinitionPatch } from "./agent/agentDefinitionStore.js";
+import { agentDefinitionsUseDatabase, createAgentDefinition, deleteAgentDefinition, listAgentDefinitions, updateAgentDefinition, type AgentDefinition, type AgentDefinitionInput, type AgentDefinitionPatch } from "./agent/agentDefinitionStore.js";
 
 
 const requestIds = new WeakMap<object, string>();
@@ -308,7 +309,12 @@ async function runChatJob(
   requestId?: string,
   parentSignal?: AbortSignal,
   runtimeTaskId?: string,
+  agentDefinition?: AgentDefinition,
 ) {
+  if (agentDefinition) {
+    provider = agentDefinition.provider ?? provider;
+    model = agentDefinition.model ?? model;
+  }
   const runtimeTask = runtimeTaskId ? serverRuntime.tasks.get(runtimeTaskId) : undefined;
   if (!runtimeTask) throw new Error("Canonical Runtime Task is unavailable for Agent Job");
   const cancellationBridge = createAgentCancellationBridge(jobId, userId, parentSignal);
@@ -419,7 +425,13 @@ ${attachment.content.slice(0, 80_000)}`);
     throwIfAgentAborted(signal);
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
     const userGateway = getAIGatewayForUser(userId);
-    const agent = new NexumAgent(userGateway, project.path, serverRuntime, { projectId: project.id, taskId: runtimeTask.id });
+    const agent = new NexumAgent(
+      userGateway,
+      project.path,
+      serverRuntime,
+      { projectId: project.id, taskId: runtimeTask.id },
+      agentDefinition ? { systemPrompt: agentDefinition.systemPrompt, allowedTools: agentDefinition.allowedTools } : {},
+    );
     const agentLoop = new AgentLoop(
       agent,
       userGateway,
@@ -1316,13 +1328,14 @@ app.get("/api/projects/:id/preview/status", async (req, res) => {
 });
 
 app.post("/api/chat", async (req, res) => {
-  const { message, projectId, provider, model, attachments, conversation } = req.body as {
+  const { message, projectId, provider, model, attachments, conversation, agentDefinitionId } = req.body as {
     message?: unknown;
     projectId?: unknown;
     provider?: unknown;
     model?: unknown;
     attachments?: unknown;
     conversation?: unknown;
+    agentDefinitionId?: unknown;
   };
 
   if (typeof message !== "string" || !message.trim()) {
@@ -1336,6 +1349,25 @@ app.post("/api/chat", async (req, res) => {
   }
   if (model !== undefined && typeof model !== "string") {
     return res.status(400).json({ error: "model must be a string" });
+  }
+  if (agentDefinitionId !== undefined && typeof agentDefinitionId !== "string") {
+    return res.status(400).json({ error: "agentDefinitionId must be a string" });
+  }
+  let selectedAgentDefinition: AgentDefinition | undefined;
+  if (typeof agentDefinitionId === "string") {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(agentDefinitionId)) {
+      return res.status(404).json({ success: false, error: "Агент не найден." });
+    }
+    const ownedAgents = await listAgentDefinitions(getAuthUser(req).id);
+    selectedAgentDefinition = ownedAgents.find((item) => item.id === agentDefinitionId);
+    if (!selectedAgentDefinition) return res.status(404).json({ success: false, error: "Агент не найден." });
+    if (selectedAgentDefinition.status !== "active") return res.status(409).json({ success: false, error: "Агент приостановлен. Активируйте его перед запуском." });
+    if (selectedAgentDefinition.approvalPolicy !== "autonomous") {
+      return res.status(409).json({ success: false, error: "Для этого агента требуется механизм подтверждений действий. Пока доступны только автономные агенты с правами чтения." });
+    }
+    if (selectedAgentDefinition.allowedTools.length === 0 || selectedAgentDefinition.allowedTools.some((name) => getToolSecurityPolicy(name).risk !== "READ")) {
+      return res.status(409).json({ success: false, error: "Автономный запуск разрешён только с непустым списком инструментов чтения." });
+    }
   }
   if (attachments !== undefined && (!Array.isArray(attachments) || attachments.length > 5)) {
     return res.status(400).json({ error: "attachments must be an array of up to 5 files" });
@@ -1406,13 +1438,14 @@ app.post("/api/chat", async (req, res) => {
       message.trim(),
       projectId,
       getAuthUser(req).id,
-      provider,
-      model,
+      selectedAgentDefinition?.provider ?? provider,
+      selectedAgentDefinition?.model ?? model,
       normalizedAttachments,
       normalizedConversation,
       getRequestId(req),
       controller.signal,
       runtimeTask.id,
+      selectedAgentDefinition,
     );
 
     return res.status(202).json({
