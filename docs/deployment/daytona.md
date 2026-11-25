@@ -22,7 +22,7 @@ The initial provider profile is intentionally bounded:
 - Fresh task sandboxes automatically run `npm install --ignore-scripts` before the first build/test command when a root `package.json` exists; explicit later installs are also supported
 - `.env*`, `.git`, `node_modules`, local caches and stale build outputs are excluded when staging files into Daytona; fresh `dist/` and `build/` artifacts are synced back for the authenticated NEXUM Preview
 - Per-file transfer limit: 20 MiB; total workspace transfer limit: 200 MiB; maximum 1,000 files
-- Preview URLs are signed and short-lived (30–600 seconds)
+- The Daytona adapter can request signed preview URLs (30–600 seconds), but the current NEXUM Builder Preview is served by the authenticated API from the synchronized project workspace; the signed Daytona URL is not yet wired into the user-facing Preview flow.
 
 These are starting limits, not a claim that every project will fit. Larger builds should be handled by an explicit resource-profile change with tests.
 
