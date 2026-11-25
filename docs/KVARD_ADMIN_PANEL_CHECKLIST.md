@@ -471,3 +471,5 @@
 
 
 - 2026-11-26 — Implemented native OpenAI Responses SSE streaming in `apps/api/ai/providers/openai.ts`: text deltas, function-call start/argument deltas, response identity, terminal status, usage dimensions, timeout/cancellation, SSE chunk framing and truncated-stream rejection. Recognized OpenAI text-generation models advertise streaming; unknown families remain unsupported. Added deterministic adapter tests for event mapping, arbitrary chunk boundaries, usage and truncation. Commits: `9167fb2509577049595a0c041f8b27259132dfe6`, `626f2fe6e34fdb803bdbaedbc896cfc3dd342d82`. OpenAI provider live smoke test not performed; no credentials or paid requests used. CI status must be checked before calling this stage verified.
+
+- 2026-11-26 — Streaming audit found that Anthropic SSE could end without a terminal `message_stop` and could leave the reader uncancelled on early exit. Added a strict terminal-event guard, reader cancellation/release, and a deterministic truncated-stream regression test. Commits: `9dc176b2948c9f7edc31ea827a71cace45bd58fd`, `7d70e20caa8f741392914d89467bce4f98c011b3`. CI remains unverified.
