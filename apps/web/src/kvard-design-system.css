@@ -449,8 +449,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .kv-home-brand-copy strong { font-size: 15px; }
   .kv-home-brand-copy small { font-size: 8px; }
   .kv-home-create, .kv-home-nav-label, .kv-home-project-head, .kv-home-project-nav, .kv-home-sidebar-bottom { display: none; }
-  .kv-home-nav { display: flex; gap: 4px; overflow-x: auto; margin-top: 12px; padding-bottom: 1px; }
-  .kv-home-nav button { flex: 0 0 auto; min-height: 44px; padding: 8px 11px; font-size: 11px; white-space: nowrap; }
+  .kv-home-nav { display: flex; flex-wrap: wrap; gap: 4px; overflow: visible; margin-top: 12px; padding-bottom: 1px; }
+  .kv-home-nav button { flex: 0 0 auto; width: auto; min-height: 44px; padding: 8px 11px; font-size: 11px; white-space: nowrap; }
   .kv-home-nav button > span { width: auto; font-size: 14px; }
   .kv-home-topbar { min-height: 52px; padding-inline: 16px; }
   .kv-home-top-context { font-size: 10px; }
