@@ -38,6 +38,10 @@
   --kv-space-5: 20px;
   --kv-space-6: 24px;
   --kv-space-8: 32px;
+  --kv-font-caption: 11px;
+  --kv-font-label: 12px;
+  --kv-font-body: 14px;
+  --kv-font-section: 20px;
   --nx-bg: var(--kv-canvas);
   --nx-surface: var(--kv-surface);
   --nx-surface-muted: var(--kv-surface-subtle);
@@ -82,9 +86,9 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { min-width: 320px; min-height: 100%; }
 html { background: var(--kv-canvas); }
-body { margin: 0; background: var(--kv-canvas); color: var(--kv-text); font-size: 14px; line-height: 1.5; }
+body { margin: 0; background: var(--kv-canvas); color: var(--kv-text); font-size: var(--kv-font-body); line-height: 1.5; }
 body, button, input, textarea, select { font-family: Inter, "SF Pro Display", "Segoe UI", system-ui, -apple-system, sans-serif; }
-button, input, textarea, select { color: inherit; }
+button, input, textarea, select { color: inherit; font-size: inherit; }
 button { transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visible {
   outline: 2px solid var(--kv-focus); outline-offset: 2px;
@@ -709,14 +713,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 
 
 /* Finish pass — readable hierarchy, consistent controls, and real mobile ergonomics. */
-:root {
-  --kv-font-caption: 11px;
-  --kv-font-label: 12px;
-  --kv-font-body: 14px;
-  --kv-font-section: 20px;
-}
-body { font-size: var(--kv-font-body); }
-button, input, textarea, select { font-size: inherit; }
 .kv-home-eyebrow, .kv-home-nav-label, .kv-home-project-head,
 .kv-home-starters > span, .kv-agents-section-head > div:first-child > span {
   font-size: 10px;
