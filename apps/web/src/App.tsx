@@ -1,5 +1,6 @@
 import "./App.css";
 import "./builder.css";
+import "./kvard-design-system.css";
 import { NexumWelcome } from "./components/NexumWelcome";
 import { useEffect, useRef, useState } from "react";
 import { CommandPalette } from "./components/CommandPalette";
@@ -38,7 +39,14 @@ function ConnectorModal({ name, onClose }: { name: string; onClose: () => void }
 }
 
 function App() {
-  useEffect(() => { startDiagnostics(); diagnosticsEvent({ type: "app-mounted", level: "info", message: "NEXUM application mounted" }); }, []);
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    try { return localStorage.getItem("kvard:theme") === "dark" ? "dark" : "light"; } catch { return "light"; }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("kvard:theme", theme); } catch {}
+  }, [theme]);
+  useEffect(() => { startDiagnostics(); diagnosticsEvent({ type: "app-mounted", level: "info", message: "КВАРД application mounted" }); }, []);
   const [projects, setПроектs] = useState<Проект[]>([]);
   const [activeПроектId, setActiveПроектId] = useState(() => {
     const segments = window.location.pathname.split("/").filter(Boolean);
@@ -1002,6 +1010,15 @@ function App() {
                   <div className="settings-section-head">
                     <span>01</span>
                     <div><h2>Интерфейс</h2><p>Масштаб, плотность и движение интерфейса.</p></div>
+                  </div>
+                  <div className="settings-card settings-card-wide kvard-theme-card">
+                    <strong>Цветовая тема</strong>
+                    <span>{theme === "light" ? "Светлая тема" : "Тёмная тема"}</span>
+                    <small>Выберите оформление рабочего пространства. Настройка сохраняется на этом устройстве.</small>
+                    <div className="settings-option-row kvard-theme-options" role="group" aria-label="Цветовая тема">
+                      <button type="button" className={theme === "light" ? "selected" : ""} aria-pressed={theme === "light"} onClick={() => setTheme("light")}>Светлая</button>
+                      <button type="button" className={theme === "dark" ? "selected" : ""} aria-pressed={theme === "dark"} onClick={() => setTheme("dark")}>Тёмная</button>
+                    </div>
                   </div>
                   <div className="settings-card settings-card-wide">
                     <strong>Масштаб интерфейса</strong>
