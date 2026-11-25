@@ -210,6 +210,7 @@ function abortError(): Error {
 
 class DaytonaSandboxSession implements SandboxSession {
   private disposed = false;
+  private disposePromise?: Promise<void>;
 
   constructor(
     private readonly sandbox: DaytonaSandboxLike,
@@ -306,10 +307,16 @@ class DaytonaSandboxSession implements SandboxSession {
   }
 
   async dispose(): Promise<void> {
-    if (this.disposed) return;
-    this.disposed = true;
-    await this.sandbox.process.deleteSession(this.sessionId).catch(() => undefined);
-    await this.sandbox.delete(60, true);
+    if (!this.disposePromise) {
+      this.disposed = true;
+      // Concurrent job-finally and API-shutdown cleanup must await the same
+      // remote deletion instead of allowing a second caller to return early.
+      this.disposePromise = (async () => {
+        await this.sandbox.process.deleteSession(this.sessionId).catch(() => undefined);
+        await this.sandbox.delete(60, true);
+      })();
+    }
+    await this.disposePromise;
   }
 
   private async executeCommandWithAbort(command: string, timeoutSeconds: number, signal?: AbortSignal) {
