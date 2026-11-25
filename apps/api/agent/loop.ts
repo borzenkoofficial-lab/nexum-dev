@@ -1572,20 +1572,32 @@ export class AgentLoop {
     results: AgentToolResult[],
     options?: GatewayGenerateOptions,
   ): Promise<string> {
+    let emittedText = false;
+    const responseOptions = options?.onTextDelta
+      ? {
+          ...options,
+          onTextDelta: (delta: string) => {
+            if (delta) emittedText = true;
+            responseOptions.onTextDelta?.(delta);
+          },
+        }
+      : options;
     if (results.length === 0) {
       try {
         if (!options) return "NEXUM завершил выполнение без дополнительного AI-ответа: лимит токенов задачи исчерпан.";
         if (options.maxTokens !== undefined && options.maxTokens <= 0) {
           const response = "NEXUM завершил выполнение без дополнительного AI-ответа: лимит токенов задачи исчерпан.";
-          options.onTextDelta?.(response);
+          responseOptions.onTextDelta?.(response);
           return response;
         }
-        return await this.gateway.generate(task, options);
+        return await this.gateway.generate(task, responseOptions);
       } catch (error) {
         if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
+        if (emittedText) throw error;
+        if (emittedText) throw error;
         const detail = error instanceof Error ? error.message : "AI response generation failed";
         const response = `NEXUM завершил выполнение, но финальный ответ AI недоступен: ${detail}. Проверьте Preview и AI Activity.`;
-        options?.onTextDelta?.(response);
+        responseOptions?.onTextDelta?.(response);
         return response;
       }
     }
@@ -1607,7 +1619,7 @@ export class AgentLoop {
         .filter(Boolean)
         .slice(-6);
       const response = `Проверка завершена. Проект изменён и прошёл финальный validation gate. Файлов изменено: ${writes}.${changedFiles.length ? ` Изменения: ${changedFiles.join(", ")}.` : ""} Production-сборка: ${builds > 0 ? "проверена" : "не запускалась"}. Откройте Preview и AI Activity.`;
-      options?.onTextDelta?.(response);
+      responseOptions?.onTextDelta?.(response);
       return response;
     }
 
@@ -1621,15 +1633,15 @@ export class AgentLoop {
       if (!options) return "Задача выполнена. Дополнительный финальный AI-ответ отключён: лимит токенов задачи исчерпан.";
       if (options.maxTokens !== undefined && options.maxTokens <= 0) {
         const response = "Задача выполнена. Дополнительный финальный AI-ответ отключён: лимит токенов задачи исчерпан.";
-        options.onTextDelta?.(response);
+        responseOptions.onTextDelta?.(response);
         return response;
       }
-      return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, options);
+      return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, responseOptions);
     } catch (error) {
         if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
       const detail = error instanceof Error ? error.message : "AI response generation failed";
       const response = `Задача выполнена, но финальный ответ AI недоступен: ${detail}. Откройте Preview и вкладку AI Activity для проверки результата.`;
-      options?.onTextDelta?.(response);
+      responseOptions?.onTextDelta?.(response);
       return response;
     }
   }
