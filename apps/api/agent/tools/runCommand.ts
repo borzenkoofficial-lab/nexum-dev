@@ -29,7 +29,7 @@ const BLOCKED_ARGUMENTS = new Set([
 
 export class RunCommandTool implements Tool {
   name = "runCommand";
-  description = "Runs an allowlisted project command without a shell";
+  description = "Runs an allowlisted project command in an isolated sandbox";
 
   constructor(
     private readonly projectRoot: string,
