@@ -275,3 +275,15 @@ NEXUM.DEV — браузерная платформа для создания и
 - Playwright E2E: **40 passed, 3 skipped**. В том числе навигация по всем семи разделам и наличие общей навигации внутри Studio.
 - Статус редизайна: **SHELL FOUNDATION VERIFIED / PAGE-BY-PAGE POLISH IN PROGRESS**.
 - Следующий шаг: продолжить упрощение главной страницы и провести отдельный визуальный аудит AI Agents, Business Agents, Integrations, Diagnostics, Journal и Settings. Детальная проверка light/dark и accessibility ещё не завершена.
+
+
+## КВАРД — Admin Control Center security foundation (2026-11-25)
+
+- В `apps/api/db/migrations/012_admin_rbac.sql` добавлены таблицы назначений административных ролей и append-only audit log.
+- В `apps/api/adminAccess.ts` добавлены default-deny RBAC middleware, роли Super Admin/Admin/Support/Finance/Developer/Auditor и permission map.
+- Первый Super Admin задаётся только через серверный `KVARD_SUPER_ADMIN_USER_IDS` (UUID существующего аккаунта). Email allowlist не используется: текущая регистрация не подтверждает владение email.
+- API `/api/admin/*` смонтирован с обычной аутентификацией, rate limit и RBAC. Добавлены `/me` и временный `/overview` без фиктивных метрик.
+- Production-доступ намеренно закрыт кодом до появления MFA. Не добавлять bootstrap UUID в production до реализации MFA и её проверки.
+- Добавлены unit tests для UUID bootstrap и permission boundaries; они включены в API test script. CI ещё должен подтвердить typecheck/tests/build.
+- Миграция добавлена в репозиторий, но к production БД не применялась. UI `/admin`, MFA, полный audit writer, управление ролями, CSRF/session hardening и API integration tests остаются незавершёнными.
+- Главный чек-лист: `docs/KVARD_ADMIN_PANEL_CHECKLIST.md`.
