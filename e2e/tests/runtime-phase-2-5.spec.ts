@@ -100,12 +100,12 @@ test("real Agent user cancellation aborts the Agent task and releases Runtime ow
   await setAgentFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, runtimeWorkspaceId);
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
-  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+  await page.getByRole("button", { name: "Отправить задачу AI-агенту КВАРД" }).click();
 
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   expect(jobId).toBeTruthy();
-  const cancel = page.getByRole("button", { name: "Отменить задачу Agent" });
+  const cancel = page.getByRole("button", { name: "Отменить выполнение задачи" });
   await expect(cancel).toBeVisible({ timeout: 5_000 });
   await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
   await cancel.click();
@@ -368,7 +368,7 @@ test("real browser main thread pressure recovery degrades and recovers", async (
 test("Agent Job creation produces exactly one canonical Runtime Task", async ({ page }) => {
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Покажи статус Git");
-  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+  await page.getByRole("button", { name: "Отправить задачу AI-агенту КВАРД" }).click();
 
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
@@ -392,7 +392,7 @@ test("real Agent user cancellation aborts the Agent task and leaves terminal sta
   await setAgentFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, runtimeWorkspaceId);
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру текущего проекта и ничего не изменяй.");
-  await page.getByRole("button", { name: "Отправить задачу агенту NEXUM" }).click();
+  await page.getByRole("button", { name: "Отправить задачу AI-агенту КВАРД" }).click();
   await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__));
   const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
   expect(jobId).toBeTruthy();
