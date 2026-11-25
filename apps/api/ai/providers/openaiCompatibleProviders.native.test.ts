@@ -67,7 +67,7 @@ for (const [name, create] of [
     assert.equal(result.usage?.totalTokens, 50);
     assert.equal(requestBody?.model, "model-a");
     assert.equal(requestBody?.max_tokens, 200);
-    assert.equal(urls[0], urls[0].replace("/chat/completions", "/models"));
+    assert.equal(urls[0].endsWith("/models"), true);
     assert.equal(urls[1].endsWith("/chat/completions"), true);
     assert.equal((await provider.getStatus("model-a")).available, true);
     assert.equal((await provider.getStatus("missing-model")).available, false);
