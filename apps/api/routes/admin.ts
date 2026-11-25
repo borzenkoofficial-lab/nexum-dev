@@ -503,7 +503,8 @@ adminRouter.put("/ai/providers/:providerId/credential", requireAdminPermission("
     await savePlatformProviderCredential(providerId, apiKey, getAuthUser(req).id, req.header("x-request-id") ?? null);
     return res.json({ success: true, providerId, configured: true, verified: false });
   } catch (error) {
-    return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "AI credential could not be stored." });
+    console.error("[КВАРД] AI provider credential storage failed.", { providerId, reason: error instanceof Error ? error.message : "unknown" });
+    return res.status(503).json({ success: false, error: "AI credential could not be stored. Check server encryption configuration and database availability." });
   }
 });
 

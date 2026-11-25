@@ -230,7 +230,7 @@ const aiGateway = new AIGateway(
 );
 
 bindPlatformAIGateway(aiGateway);
-void loadPlatformProviderCredentials();
+void loadPlatformProviderCredentials().catch(() => undefined);
 
 const userAIGateways = new Map<string, AIGateway>();
 
