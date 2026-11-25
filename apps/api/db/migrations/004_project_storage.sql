@@ -56,5 +56,7 @@ CREATE TABLE IF NOT EXISTS project_workspace_commits (
 CREATE TABLE IF NOT EXISTS user_project_settings (
   user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   active_project_id TEXT NOT NULL,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  FOREIGN KEY (user_id, active_project_id)
+    REFERENCES project_workspaces(user_id, project_id) ON DELETE CASCADE
 );
