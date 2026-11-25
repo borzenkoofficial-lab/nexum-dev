@@ -21,20 +21,20 @@ export function BuilderShell({
   onToolChange, onClose, onConnect, onShare, onOpenPreview, children,
 }: BuilderShellProps) {
   const building = Boolean(agentStage && !["completed", "error"].includes(agentStage));
-  const status = agentStage === "error" ? "Error" : building ? "Building" : previewOnline ? "Live" : "Ready";
+  const status = agentStage === "error" ? "Ошибка" : building ? "Выполняется" : previewOnline ? "Опубликовано" : "Готов";
 
   return (
     <section className="nx-builder" aria-label={"КВАРД Studio — " + projectName}>
       <header className="nx-builder-header">
-        <button className="nx-builder-project" type="button" onClick={onClose} aria-label="Back to projects">
+        <button className="nx-builder-project" type="button" onClick={onClose} aria-label="Вернуться к проектам">
           <span className="nx-builder-logo">К</span>
           <span className="nx-builder-project-copy">
             <strong>{projectName}</strong>
-            <small>Project</small>
+            <small>Проект</small>
           </span>
         </button>
 
-        <nav className="nx-builder-nav" aria-label="Builder tools">
+        <nav className="nx-builder-nav" aria-label="Инструменты Studio">
           {(["preview", "agent", "files", "code"] as Tool[]).map((tool) => (
             <button key={tool} type="button" className={activeTool === tool ? "active" : ""} onClick={() => onToolChange(tool)}>
               {tool === "preview" ? "Предпросмотр" : tool === "agent" ? "AI-агент" : tool === "files" ? "Файлы" : "Код"}
