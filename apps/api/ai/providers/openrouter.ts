@@ -260,6 +260,7 @@ export class OpenRouterProvider implements AIProvider {
             toolStates.set(index, state);
           }
         }
+        if (choice?.finish_reason === "error") throw new Error("OpenRouter stream failed during generation");
         if (typeof choice?.finish_reason === "string") finishReason = choice.finish_reason;
         return events;
       };
