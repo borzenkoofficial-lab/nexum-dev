@@ -43,6 +43,7 @@ test("durable Agent queue enforces exclusive leases, recovery, idempotency and c
     const idempotentA = await createAgentRun(organizationId, userId, agentId, versionId, { task: "dedupe" }, "same-request");
     const idempotentB = await createAgentRun(organizationId, userId, agentId, versionId, { task: "dedupe" }, "same-request");
     assert.equal(idempotentA, idempotentB, "same tenant idempotency key must return the original run");
+    assert.equal(await cancelAgentRun(organizationId, idempotentA), true);
 
     const exhaustedId = await createAgentRun(organizationId, userId, agentId, versionId, { task: "exhaustion" });
     await query("UPDATE agent_runs SET max_attempts=1 WHERE id=$1", [exhaustedId]);
