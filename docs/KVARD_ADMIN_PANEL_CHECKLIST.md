@@ -310,3 +310,17 @@
 | Дата | Пункты | Изменение | Проверки / статус |
 |---|---|---|---|
 | 2026-11-25 | AI-01–AI-10, BILL-01, BILL-04–05 | Проведён аудит существующих AI gateway/provider adapters, subscription tables и usage records; зафиксирована целевая архитектура ключей, модели, entitlement, ledger, платежей и provider top-up. | Commit `eb4d276`; документ спецификации добавлен. Реализация backend/UI ещё не начата. IN_PROGRESS |
+
+
+### Provider registry — первый backend этап
+
+- Добавлена миграция `019_ai_provider_credentials.sql` для серверных зашифрованных ключей провайдеров.
+- Добавлен `apps/api/ai/providerRegistry.ts`: загрузка сохранённых ключей из PostgreSQL, AES-256-GCM, сохранение/ротация и запись аудита, маскированный список статусов, проверка доступности провайдера.
+- AI Gateway получил универсальную установку и проверку runtime credentials.
+- Административные endpoints: `GET /api/admin/ai/providers`, `PUT /api/admin/ai/providers/:providerId/credential`, `POST /api/admin/ai/providers/:providerId/verify`.
+- RBAC: `ai.read` доступен Super Admin/Admin/Developer/Auditor; `ai.manage` — только Super Admin. Изменение ключей и проверка требуют свежий MFA step-up.
+- В Admin Control Center добавлен раздел «AI и модели» с конфигурационным статусом, сохранением нового ключа и проверкой. Сам ключ не возвращается API.
+- Добавлена переменная окружения `AI_PROVIDER_ENCRYPTION_KEY` (отдельный секрет минимум 32 символа). Её реальное значение не создавалось и не публиковалось.
+- Поддерживаются постоянные платформенные ключи для OpenAI, Anthropic, OpenRouter, OrcaRouter и AnyModel. Ollama не требует API key и пока остаётся отдельной локальной конфигурацией.
+- Важно: migration 019 не применялась к production; Admin API в production остаётся закрытым. Перед запуском необходимо задать encryption key в серверном secret store и выполнить контролируемое применение миграции.
+- CI для commit `6983425` запущен (workflow `45700399162`), результат ещё не получен. Не считать реализацию проверенной до завершения API tests/typecheck/Web build/E2E.
