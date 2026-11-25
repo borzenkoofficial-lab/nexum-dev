@@ -11,6 +11,8 @@ import { AnthropicProvider } from "./ai/providers/anthropic.js";
 import { OrcaRouterProvider } from "./ai/providers/orcarouter.js";
 import { MockProvider } from "./ai/providers/mock.js";
 import { NexumAgent } from "./agent/agent.js";
+import { createApprovalPreview } from "./agent/approval.js";
+import { waitForChatJobApproval } from "./agent/approvalWaiter.js";
 import { getToolSecurityPolicy } from "./agent/toolPolicy.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
 import type { ProductPlan } from "./agent/types.js";
@@ -248,6 +250,7 @@ function getAIGatewayForUser(userId: string): AIGateway {
 
 const chatJobControllers = new Map<string, AbortController>();
 const CHAT_JOB_TTL_MS = 30 * 60 * 1000;
+const AGENT_APPROVAL_TIMEOUT_MS = 10 * 60 * 1000;
 
 async function persistChatJob(job: ChatJob): Promise<void> {
   await enqueueChatJobPersistence(job.id, async () => {
@@ -430,7 +433,49 @@ ${attachment.content.slice(0, 80_000)}`);
       project.path,
       serverRuntime,
       { projectId: project.id, taskId: runtimeTask.id },
-      agentDefinition ? { systemPrompt: agentDefinition.systemPrompt, allowedTools: agentDefinition.allowedTools } : {},
+      agentDefinition ? {
+        systemPrompt: agentDefinition.systemPrompt,
+        allowedTools: agentDefinition.allowedTools,
+        approvalPolicy: agentDefinition.approvalPolicy,
+        requestApproval: async ({ toolName, risk, input }, approvalSignal) => {
+          const createdAt = Date.now();
+          const approvalId = randomUUID();
+          const approval: ChatJobApproval = {
+            id: approvalId,
+            toolName,
+            risk,
+            inputPreview: createApprovalPreview(input),
+            status: "pending",
+            createdAt,
+            expiresAt: createdAt + AGENT_APPROVAL_TIMEOUT_MS,
+            resumeStage: job.stage ?? "analyzing",
+          };
+          let persistedRequest: ChatJob | null = null;
+          await enqueueChatJobPersistence(jobId, async () => {
+            persistedRequest = await requestChatJobApproval(jobId, userId, approval);
+            if (persistedRequest) chatJobCache.set(jobId, persistedRequest);
+          });
+          if (!persistedRequest) throw new Error("Не удалось создать запрос подтверждения для текущего задания.");
+          Object.assign(job, persistedRequest);
+
+          const decision = await waitForChatJobApproval({
+            jobId,
+            userId,
+            approvalId,
+            signal: approvalSignal ?? signal,
+            readJob: getChatJob,
+            resolveExpired: async (currentJobId, ownerId, currentApprovalId) => {
+              const expired = await resolveChatJobApproval(currentJobId, ownerId, currentApprovalId, "expired", "system");
+              if (expired) chatJobCache.set(currentJobId, expired);
+              return expired;
+            },
+          });
+          const latest = await getChatJob(jobId, userId);
+          if (!latest || latest.status !== "running") throw new DOMException("Agent task cancelled while waiting for approval.", "AbortError");
+          Object.assign(job, latest);
+          return decision;
+        },
+      } : {},
     );
     const agentLoop = new AgentLoop(
       agent,
@@ -1362,11 +1407,11 @@ app.post("/api/chat", async (req, res) => {
     selectedAgentDefinition = ownedAgents.find((item) => item.id === agentDefinitionId);
     if (!selectedAgentDefinition) return res.status(404).json({ success: false, error: "Агент не найден." });
     if (selectedAgentDefinition.status !== "active") return res.status(409).json({ success: false, error: "Агент приостановлен. Активируйте его перед запуском." });
-    if (selectedAgentDefinition.approvalPolicy !== "autonomous") {
-      return res.status(409).json({ success: false, error: "Для этого агента требуется механизм подтверждений действий. Пока доступны только автономные агенты с правами чтения." });
+    if (selectedAgentDefinition.allowedTools.length === 0) {
+      return res.status(409).json({ success: false, error: "Добавьте агенту хотя бы один разрешённый инструмент." });
     }
-    if (selectedAgentDefinition.allowedTools.length === 0 || selectedAgentDefinition.allowedTools.some((name) => getToolSecurityPolicy(name).risk !== "READ")) {
-      return res.status(409).json({ success: false, error: "Автономный запуск разрешён только с непустым списком инструментов чтения." });
+    if (selectedAgentDefinition.approvalPolicy === "autonomous" && selectedAgentDefinition.allowedTools.some((name) => getToolSecurityPolicy(name).risk !== "READ")) {
+      return res.status(409).json({ success: false, error: "Автономный запуск разрешён только с инструментами чтения." });
     }
   }
   if (attachments !== undefined && (!Array.isArray(attachments) || attachments.length > 5)) {
@@ -1480,6 +1525,43 @@ app.post("/api/chat/jobs/:id/cancel", async (req, res) => {
   if (runtimeTaskId) serverRuntime.cancelTask(runtimeTaskId);
   chatJobControllers.get(job.id)?.abort();
   return res.json({ success: true, cancelled: true, job: cancelled });
+});
+
+app.post("/api/chat/jobs/:id/approvals/:approvalId", async (req, res) => {
+  const userId = getAuthUser(req).id;
+  const decision = req.body?.decision;
+  if (decision !== "approve" && decision !== "reject") {
+    return res.status(400).json({ success: false, error: "decision must be approve or reject" });
+  }
+  const jobId = typeof req.params.id === "string" ? req.params.id : "";
+  const approvalId = typeof req.params.approvalId === "string" ? req.params.approvalId : "";
+  if (!jobId || !approvalId || approvalId.length > 80) {
+    return res.status(400).json({ success: false, error: "Invalid approval identifier." });
+  }
+  const job = await loadChatJob(jobId, userId, getChatJob);
+  if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired." });
+  if (job.status !== "running" || !job.pendingApproval || job.pendingApproval.id !== approvalId || job.pendingApproval.status !== "pending") {
+    return res.status(409).json({ success: false, error: "Approval request is no longer pending." });
+  }
+  await waitForChatJobPersistence(jobId);
+  if (Date.now() >= job.pendingApproval.expiresAt) {
+    const expired = await resolveChatJobApproval(jobId, userId, approvalId, "expired", "system");
+    if (expired) chatJobCache.set(jobId, expired);
+    return res.status(409).json({ success: false, error: "Approval request expired.", job: expired });
+  }
+  const resolved = await resolveChatJobApproval(
+    jobId,
+    userId,
+    approvalId,
+    decision === "approve" ? "approved" : "rejected",
+    userId,
+  );
+  if (!resolved) {
+    const current = await loadChatJob(jobId, userId, getChatJob);
+    return res.status(409).json({ success: false, error: "Approval request was already resolved or cancelled.", job: current });
+  }
+  chatJobCache.set(jobId, resolved);
+  return res.json({ success: true, job: resolved });
 });
 
 app.get("/api/agent/profiles", async (req, res) => {
