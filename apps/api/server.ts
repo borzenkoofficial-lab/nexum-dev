@@ -1516,7 +1516,7 @@ function parseAgentDefinitionInput(body: Record<string, unknown>, partial = fals
     } else {
       if (typeof value !== "string") return null;
       const max = field === "name" ? 48 : field === "description" ? 160 : 5000;
-      if (value.trim().length > max || (!partial && !value.trim() && field !== "description")) return null;
+      if (value.trim().length > max || (!value.trim() && field !== "description")) return null;
       result[field] = value.trim();
     }
   }
@@ -1564,6 +1564,7 @@ app.post("/api/agents", aiWriteLimiter, async (req, res) => {
 });
 
 app.patch("/api/agents/:id", aiWriteLimiter, async (req, res) => {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(req.params.id)) return res.status(404).json({ success: false, error: "Агент не найден." });
   const parsed = parseAgentDefinitionInput(req.body as Record<string, unknown>, true);
   if (!parsed) return res.status(400).json({ success: false, error: "Нет допустимых полей для обновления агента." });
   try {
@@ -1584,6 +1585,7 @@ app.patch("/api/agents/:id", aiWriteLimiter, async (req, res) => {
 });
 
 app.delete("/api/agents/:id", async (req, res) => {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(req.params.id)) return res.status(404).json({ success: false, error: "Агент не найден." });
   try {
     const deleted = await deleteAgentDefinition(getAuthUser(req).id, req.params.id);
     if (!deleted) return res.status(404).json({ success: false, error: "Агент не найден." });
