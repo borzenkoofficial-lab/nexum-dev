@@ -61,8 +61,16 @@ export class AIGateway {
     if (providers.length === 0) {
       throw new Error("AI Gateway requires at least one provider");
     }
+    if (new Set(providers.map((provider) => provider.id)).size !== providers.length) {
+      throw new Error("AI provider identifiers must be unique");
+    }
     if (providers.some((provider) => typeof provider.generate !== "function" && typeof provider.generateRequest !== "function")) {
       throw new Error("Every AI provider must implement a native or legacy generation method");
+    }
+    if (providers.some((provider) => typeof provider.generateRequest === "function" &&
+      (!provider.protocol?.trim() || provider.protocol.length > 128 ||
+        !provider.adapterVersion?.trim() || provider.adapterVersion.length > 64))) {
+      throw new Error("Every native AI provider adapter must declare a protocol and adapter version");
     }
 
     if (!defaultProviderId || !providers.some((provider) => provider.id === defaultProviderId)) {
