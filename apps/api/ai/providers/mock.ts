@@ -53,12 +53,11 @@ export class MockProvider implements AIProvider {
 
     if (/You are the NEXUM\.DEV autonomous project builder|previous response was not valid nexum tool-plan json/i.test(message)) {
       if (isBuilderTask) {
-        const projectId = [...message.matchAll(/(?:ID проекта|projectId)\\s*[:=]\\s*([A-Za-z0-9_-]+)/gi)]
+        const projectId = [...message.matchAll(/(?:ID проекта|projectId)\s*[:=]\s*([A-Za-z0-9_-]+)/gi)]
           .at(-1)?.[1];
         const projectKey = projectId ?? userTask;
         const current = builderStages.get(projectKey) ?? "read";
         console.log("[NEXUM E2E] Builder mock stage", { projectKey, userTask, projectId, current });
-        const current = builderStages.get(projectKey) ?? "read";
 
         switch (current) {
           case "read":
