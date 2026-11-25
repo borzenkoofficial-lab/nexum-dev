@@ -139,6 +139,50 @@ adminRouter.delete("/roles/:userId", requireAdminPermission("roles.manage"), asy
   }
 });
 
+adminRouter.get("/sessions", requireAdminPermission("sessions.manage"), async (req, res) => {
+  const parsedLimit = Number(req.query.limit ?? 100);
+  const limit = Number.isFinite(parsedLimit) ? Math.min(250, Math.max(1, Math.floor(parsedLimit))) : 100;
+  try {
+    const result = await query(
+      `SELECT s.id, s.user_id, u.email, s.mfa_verified, s.created_at, s.last_seen_at, s.expires_at
+       FROM auth_sessions s JOIN users u ON u.id = s.user_id
+       WHERE s.revoked_at IS NULL AND s.expires_at > NOW()
+         AND s.last_seen_at > NOW() - INTERVAL '30 minutes'
+       ORDER BY s.last_seen_at DESC LIMIT $1`,
+      [limit],
+    );
+    return res.json({ success: true, sessions: result.rows });
+  } catch {
+    return res.status(503).json({ success: false, error: "Session registry unavailable." });
+  }
+});
+
+adminRouter.delete("/sessions/:sessionId", requireAdminPermission("sessions.manage"), async (req, res) => {
+  const sessionId = typeof req.params.sessionId === "string" ? req.params.sessionId : "";
+  if (!UUID_PATTERN.test(sessionId)) return res.status(400).json({ success: false, error: "A valid session UUID is required." });
+  const actor = getAuthUser(req);
+  try {
+    const revoked = await withDatabaseTransaction(async (client) => {
+      const result = await client.query<{ user_id: string }>(
+        "UPDATE auth_sessions SET revoked_at = NOW() WHERE id = $1 AND revoked_at IS NULL RETURNING user_id",
+        [sessionId],
+      );
+      const row = result.rows[0];
+      if (!row) return false;
+      await client.query(
+        `INSERT INTO admin_audit_log (actor_user_id, action, target_type, target_id, request_id, metadata)
+         VALUES ($1, 'admin.session.revoke', 'auth_session', $2, $3, $4::jsonb)`,
+        [actor.id, sessionId, req.header("x-request-id") ?? null, JSON.stringify({ targetUserId: row.user_id })],
+      );
+      return true;
+    });
+    if (!revoked) return res.status(404).json({ success: false, error: "Active session not found." });
+    return res.json({ success: true, revoked: true });
+  } catch {
+    return res.status(503).json({ success: false, error: "Session revocation failed." });
+  }
+});
+
 adminRouter.get("/audit", requireAdminPermission("audit.read"), async (req, res) => {
   const parsedLimit = Number(req.query.limit ?? 50);
   const limit = Number.isFinite(parsedLimit) ? Math.min(100, Math.max(1, Math.floor(parsedLimit))) : 50;
