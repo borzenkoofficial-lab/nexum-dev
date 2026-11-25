@@ -29,7 +29,7 @@
 - [ ] SEC-04. Новые аккаунты по умолчанию не имеют административных прав. — PARTIAL: автоматическое назначение отсутствует; bootstrap требует явный UUID allowlist.
 - [ ] SEC-05. Самостоятельная регистрация/самоназначение администратором невозможны. — PARTIAL: публичного API назначения роли нет; требуется тестирование прямых запросов.
 - [ ] SEC-06. Первый Super Admin назначается только через контролируемый bootstrap allowlist `KVARD_SUPER_ADMIN_USER_IDS`; используются UUID существующих аккаунтов, так как текущая регистрация не подтверждает владение email. Значение хранится только в backend env.
-- [ ] SEC-07. После bootstrap выдача и отзыв административных ролей выполняются только действующим Super Admin с обязательной записью в audit log.
+- [ ] SEC-07. После bootstrap выдача и отзыв административных ролей выполняются только действующим Super Admin с обязательной записью в audit log. — PARTIAL: API role changes require `roles.manage` (Super Admin only); self-change blocked; audit event written. Last Super Admin downgrade/revoke guarded by advisory transaction lock and count check (commit `5c7a5cd`), CI pending.
 - [ ] SEC-08. Если allowlist/роль/БД недоступны, доступ закрывается (fail closed), а не открывается. — PARTIAL: middleware возвращает 503 при ошибке БД и 403 без назначения.
 - [ ] SEC-09. Проверить, что обычный пользователь, даже зная URL и API endpoints, получает 403.
 - [ ] SEC-10. Проверить, что пользователь не может повысить собственную роль через изменение запроса, профиля, организации или JWT payload.
