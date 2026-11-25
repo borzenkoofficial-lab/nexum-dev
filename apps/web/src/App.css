@@ -128,9 +128,6 @@ input, textarea, select { max-width: 100%; border: 1px solid var(--nx-border); b
 .settings-card-wide { grid-column: 1 / -1; }
 .connector-card, .diagnostics-card, .news-card { min-width: 0; }
 @media (max-width: 760px) {
-  .builder-home-main { padding-inline: 16px; }
-  .builder-home-header { flex-wrap: wrap; }
-  .builder-home-nav { flex-wrap: wrap; }
   .nx-system-chrome { flex-wrap: wrap; }
   .nx-system-left { min-width: 0; }
   .nx-system-app { display: none; }
