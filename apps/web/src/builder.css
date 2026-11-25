@@ -114,3 +114,37 @@
   .nx-tool { overflow: visible; }
   .nx-tool-head { position: static; }
 }
+
+
+/* Final refinements for the actual component markup. */
+.nx-run { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.nx-run > span { color: var(--nx-muted); font-size: 10px; }
+.nx-progress { display: flex; align-items: center; gap: 4px; height: 6px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.nx-progress > i { flex: 1; height: 5px; border-radius: 2px; background: var(--nx-surface-muted); }
+.nx-progress > i.done { background: #777; }
+.nx-progress > i.active { background: #222; }
+.nx-agent-list > div { justify-content: flex-start; align-items: center; }
+.nx-agent-list > div b { color: var(--nx-muted); font-size: 10px; }
+.nx-agent-list > div.active span { font-weight: 650; }
+.nx-agent-list > div.done span { color: var(--nx-muted); }
+.nx-problems p, .nx-plan p, .nx-events p { margin: 0; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.nx-problems button { justify-self: start; }
+.nx-plan > strong { font-size: 13px; }
+.nx-plan > span { color: var(--nx-muted); font-size: 10px; }
+.nx-events > span { color: var(--nx-muted); font-size: 11px; }
+.nx-attachments > span { display: flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 8px; border: 1px solid var(--nx-border); border-radius: 5px; font-size: 10px; overflow-wrap: anywhere; }
+.nx-attachments > span button { padding: 1px 5px; }
+.nx-preview.tablet { width: min(760px, calc(100% - 24px)); align-self: center; }
+.nx-preview.mobile { width: min(390px, calc(100% - 24px)); align-self: center; }
+.nx-preview.desktop { width: calc(100% - 24px); }
+.nx-preview.tablet iframe, .nx-preview.mobile iframe { min-height: 420px; }
+.nx-browser { align-items: center; gap: 8px; color: var(--nx-muted); }
+.nx-browser small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-browser b { margin-left: auto; font-size: 9px; font-weight: 600; }
+.nx-model-pop strong { padding: 5px 7px; color: var(--nx-muted); font-size: 10px; }
+.nx-model-pop button.selected { background: var(--nx-surface-muted); }
+.nx-model-pop hr { width: 100%; border: 0; border-top: 1px solid var(--nx-border); }
+.nx-files aside small, .nx-code-body aside small { color: var(--nx-muted); font-size: 9px; }
+.nx-code > header > div:last-child { display: flex; align-items: center; gap: 8px; }
+.nx-code > header > div:last-child > span { color: var(--nx-muted); font-size: 10px; }
+.nx-code-file span { color: var(--nx-muted); font-size: 10px; }
