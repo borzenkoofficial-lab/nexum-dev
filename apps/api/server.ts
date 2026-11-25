@@ -1566,11 +1566,12 @@ app.post("/api/agents", aiWriteLimiter, async (req, res) => {
 });
 
 app.patch("/api/agents/:id", aiWriteLimiter, async (req, res) => {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(req.params.id)) return res.status(404).json({ success: false, error: "Агент не найден." });
+  const agentId = typeof req.params.id === "string" ? req.params.id : "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(agentId)) return res.status(404).json({ success: false, error: "Агент не найден." });
   const parsed = parseAgentDefinitionInput(req.body as Record<string, unknown>, true);
   if (!parsed) return res.status(400).json({ success: false, error: "Нет допустимых полей для обновления агента." });
   try {
-    const agent = await updateAgentDefinition(getAuthUser(req).id, req.params.id, parsed as AgentDefinitionPatch);
+    const agent = await updateAgentDefinition(getAuthUser(req).id, agentId, parsed as AgentDefinitionPatch);
     if (!agent) return res.status(404).json({ success: false, error: "Агент не найден." });
     const { userId: _userId, ...safeAgent } = agent;
     return res.json({ success: true, agent: safeAgent });
@@ -1587,9 +1588,10 @@ app.patch("/api/agents/:id", aiWriteLimiter, async (req, res) => {
 });
 
 app.delete("/api/agents/:id", async (req, res) => {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(req.params.id)) return res.status(404).json({ success: false, error: "Агент не найден." });
+  const agentId = typeof req.params.id === "string" ? req.params.id : "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(agentId)) return res.status(404).json({ success: false, error: "Агент не найден." });
   try {
-    const deleted = await deleteAgentDefinition(getAuthUser(req).id, req.params.id);
+    const deleted = await deleteAgentDefinition(getAuthUser(req).id, agentId);
     if (!deleted) return res.status(404).json({ success: false, error: "Агент не найден." });
     return res.json({ success: true });
   } catch (error) {
