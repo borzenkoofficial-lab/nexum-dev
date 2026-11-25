@@ -240,7 +240,7 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
         <button className="kv-agents-refresh" type="button" onClick={() => void load()} disabled={loading}>{loading ? "Обновление…" : "Обновить состояние"}</button>
       </header>
 
-      <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Как это работает сейчас.</strong> Профили запускают задачи в существующем AI Runtime. Отдельные конфигурации агентов теперь можно создавать и хранить в аккаунте; расписания, триггеры и фактическое применение разрешений инструментов ещё не подключены.</p></div>
+      <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Как это работает сейчас.</strong> Профили запускают задачи в существующем AI Runtime как инструкции. Сохранённые AI-агенты применяют список разрешённых инструментов и выбранную политику подтверждений. Расписания, триггеры и фоновое выполнение пока не включены.</p></div>
       {notice && <p className="kv-agents-feedback" role="status">{notice}</p>}
       {loadError && <div className="kv-agents-error" role="alert">{loadError} <button type="button" onClick={() => void load()}>Повторить</button></div>}
 
@@ -278,7 +278,7 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
         <div className="kv-agents-launchbar">
           <label htmlFor="kv-agent-task">Задача для выбранного агента</label>
           <textarea id="kv-agent-task" rows={3} value={agentTask} onChange={(event) => setAgentTask(event.target.value)} maxLength={5000} placeholder="Опишите, что агент должен изучить в выбранном проекте…" />
-          <span>Сначала выберите проект выше. Запуск откроет задачу в Studio; перед отправкой её можно проверить.</span>
+          <span>Сначала выберите проект. Задача откроется в Studio; перед отправкой её можно проверить. Запросы на разрешение действий появятся там же.</span>
         </div>
         {agentsStorage === "memory" && <p className="kv-agents-storage-warning">База данных не подключена: агенты будут потеряны после перезапуска сервера.</p>}
         {agentsStorage === "database" && <p className="kv-agents-storage-ok">Конфигурации агентов хранятся в базе данных аккаунта.</p>}
