@@ -23,19 +23,19 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
   return (
     <section className="builder-home">
       <header className="builder-home-header">
-        <button className="builder-home-brand" type="button" onClick={() => onOpenView("home")} aria-label="NEXUM home">NEXUM</button>
+        <button className="builder-home-brand" type="button" onClick={() => onOpenView("home")} aria-label="Главная КВАРД">КВАРД</button>
         <nav className="builder-home-nav" aria-label="Main navigation">
-          <button type="button" onClick={() => onOpenView("news")}>Journal</button>
-          <button type="button" onClick={() => onOpenView("connectors")}>Connectors</button>
-          <button type="button" onClick={() => onOpenView("settings")}>Settings</button>
+          <button type="button" onClick={() => onOpenView("news")}>Журнал</button>
+          <button type="button" onClick={() => onOpenView("connectors")}>Интеграции</button>
+          <button type="button" onClick={() => onOpenView("settings")}>Настройки</button>
         </nav>
       </header>
 
       <main className="builder-home-main">
         <div className="builder-home-hero">
-          <p className="builder-home-kicker">NEXUM.DEV</p>
+          <p className="builder-home-kicker">КВАРД</p>
           <h1>Что создадим?</h1>
-          <p className="builder-home-subtitle">Опишите идею. NEXUM спланирует продукт, создаст код и покажет результат в реальном времени.</p>
+          <p className="builder-home-subtitle">Опишите идею. КВАРД спланирует продукт, создаст код и покажет результат в реальном времени.</p>
 
           <div className="builder-home-composer">
             <textarea
@@ -88,8 +88,8 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
       </main>
 
       <footer className="builder-home-footer">
-        <span>Build with NEXUM</span>
-        <span>AI-powered development</span>
+        <span>Создано в КВАРД</span>
+        <span>Разработка с AI</span>
       </footer>
     </section>
   );
