@@ -190,7 +190,7 @@ export class OpenRouterProvider implements AIProvider {
     } catch (error) {
       if (callerSignal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (controller.signal.aborted) throw new Error("OpenRouter request timed out");
-      if (error instanceof Error && error.message.startsWith("OpenRouter")) throw error;
+      if (error instanceof Error && error.message.toLowerCase().startsWith(this.id)) throw error;
       throw new Error("OpenRouter streaming request failed");
     } finally {
       clearTimeout(timeout);
