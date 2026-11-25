@@ -913,7 +913,9 @@ app.get("/api/ai/providers", authMiddleware, (req, res) => {
 });
 
 app.get("/api/ai/models", authMiddleware, async (req, res) => {
-  return res.json({ success: true, models: await getAIGatewayForUser(getAuthUser(req).id).getModels() });
+  const gateway = getAIGatewayForUser(getAuthUser(req).id);
+  const [models, catalog] = await Promise.all([gateway.getModels(), gateway.getModelCatalog()]);
+  return res.json({ success: true, models, catalog });
 });
 
 const agentFailureControlEnabled = process.env.NODE_ENV !== "production" && agentFailureInjection.active;
