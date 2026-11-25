@@ -92,7 +92,7 @@ The home screen uses a persistent left navigation rail on desktop and a compact 
 - Users can create and delete custom launch profiles. Profiles are stored per account through authenticated /api/agent/profiles endpoints and PostgreSQL when configured; the in-memory development fallback is explicitly identified in the UI.
 - Selecting a profile and project opens that project's Studio with the profile instruction prefilled. The user reviews and starts the task through the existing chat flow; no task starts merely by selecting a profile.
 - Runtime status and recent events are read from the existing authenticated /api/agent/diagnostics endpoint. The UI does not invent job counts or connection states.
-- Persistent autonomous agent definitions, schedules, independent tool policies, team orchestration and autonomous triggers remain future backend capabilities. Launch profiles are reusable task instructions, not autonomous processes. The interface states this limitation explicitly.
+- Persistent agent definitions and per-tool policy enforcement are implemented as a separate capability described below. Schedules, event triggers, unattended background execution and multi-agent orchestration remain future work. Launch profiles are reusable task instructions, not autonomous processes. The interface states this limitation explicitly.
 
 
 ## AI Agent workspace
@@ -101,4 +101,4 @@ The Agents workspace includes two distinct concepts:
 - Reusable prompt profiles for quickly opening a task in Studio.
 - Persistent account-owned agent definitions with a system prompt, optional model selection, tool allowlist metadata, approval policy metadata, and active/paused status.
 
-The persistent configuration editor communicates that schedules, event triggers, autonomous execution, and runtime enforcement of the saved tool/approval policy are not yet available. See `docs/AGENT_DEFINITIONS.md`.
+The persistent configuration editor supports account-owned agent definitions, a server-enforced tool allowlist, and per-tool approval policies: `always` pauses before every tool, `writes` gates write/execute/destructive tools, and `autonomous` is restricted to read-only tools. Approvals are one-shot, owner-scoped, and expire after 10 minutes. Schedules, event triggers, unattended background execution, and multi-agent orchestration are not yet available. See `docs/AGENT_DEFINITIONS.md`.
