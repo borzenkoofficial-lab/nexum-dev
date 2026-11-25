@@ -175,9 +175,9 @@ export function BusinessAgentsPage() {
         approvalPolicy: { external_side_effects: "required" },
       };
       const data = await request<{ agent: BusinessAgent }>("/api/business-agents/agents", organizationId, { method: "POST", body: JSON.stringify(config) });
-      setAgents(items => [data.agent, ...items]);
       setSelectedAgentId(data.agent.id);
       setShowCreate(false);
+      await loadWorkspace(organizationId);
       setNotice("Агент создан как черновик. Проверьте конфигурацию и опубликуйте его перед запуском.");
     } catch (e) { setError(e instanceof Error ? e.message : "Не удалось создать агента."); }
     finally { setSaving(false); }
