@@ -211,7 +211,7 @@ export class NexumAgent implements AgentRuntime {
       'runSandbox: input is JSON object {"projectPath":".","command":"npm run build"}; projectPath is always forced to the active project',
       "git: input is one of status, diff, diff-stat, log, branch",
       "github: input is a read-only operation string",
-    ].join("\n");
+    ].filter((entry) => this.getAvailableTools().includes(entry.slice(0, entry.indexOf(":")))).join("\n");
 
     const formatObservedResult = (item: AgentToolResult): string => {
       const output = item.result.output.slice(0, 500);
