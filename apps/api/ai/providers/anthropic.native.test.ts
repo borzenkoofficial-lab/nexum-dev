@@ -61,7 +61,8 @@ test("native Messages adapter serializes system and conversation turns and norma
 
   assert.equal(capturedUrl, "https://api.anthropic.test/v1/messages");
   const headers = capturedInit?.headers as Record<string, string>;
-  assert.equal(headers.Authorization, `Bearer ${key}`);
+  assert.equal(headers["x-api-key"], key);
+  assert.equal(headers.Authorization, undefined);
   assert.equal(headers["anthropic-version"], "2026-10-21");
   assert.equal(body.model, "claude-sonnet-5");
   assert.deepEqual(body.system, [
