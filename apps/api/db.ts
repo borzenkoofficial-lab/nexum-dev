@@ -1,4 +1,4 @@
-import { Pool, type QueryResultRow } from "pg";
+import { Pool, type PoolClient, type QueryResultRow } from "pg";
 
 let pool: Pool | null = null;
 
@@ -30,6 +30,27 @@ function getPool(): Pool {
 export async function query<T extends QueryResultRow = QueryResultRow>(text: string, values: unknown[] = []): Promise<{ rows: T[] }> {
   const result = await getPool().query<T>(text, values);
   return { rows: result.rows };
+}
+
+
+/** Run related database changes on one connection with atomic commit/rollback semantics. */
+export async function withDatabaseTransaction<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    const result = await work(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("[Nexum] PostgreSQL rollback failed", rollbackError);
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function pingDatabase(): Promise<{ ok: boolean; error?: string }> {
