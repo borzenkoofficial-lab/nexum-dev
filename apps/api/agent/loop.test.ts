@@ -195,6 +195,10 @@ class PrematureDoneProvider implements AIProvider {
   model = "premature-done";
   capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: true, reasoning: false, contextWindow: 32768 };
 
+  async listModels(): Promise<string[]> {
+    return [this.model];
+  }
+
   async generate(): Promise<string> {
     return JSON.stringify({ done: true, finalResponse: "Задача завершена." });
   }
