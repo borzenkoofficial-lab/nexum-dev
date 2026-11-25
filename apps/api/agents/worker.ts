@@ -43,14 +43,12 @@ const gateway = new AIGateway([
 ], providerId);
 const runtime = new AgentRuntime(gateway);
 let stopping = false;
-let activeController: AbortController | undefined;
 
 async function processOne(): Promise<boolean> {
   const claimed = await claimNextAgentRun(workerId, leaseMs);
   if (!claimed) return false;
 
   const controller = new AbortController();
-  activeController = controller;
   let heartbeatBusy = false;
   const heartbeat = setInterval(() => {
     if (heartbeatBusy || controller.signal.aborted) return;
@@ -88,7 +86,6 @@ async function processOne(): Promise<boolean> {
     await releaseAgentRunLease(claimed.id, workerId).catch((error) => {
       console.error("[NEXUM worker] lease release failed", { runId: claimed.id, error });
     });
-    if (activeController === controller) activeController = undefined;
   }
   return true;
 }
@@ -96,8 +93,7 @@ async function processOne(): Promise<boolean> {
 async function shutdown(signal: string): Promise<void> {
   if (stopping) return;
   stopping = true;
-  console.log(`[NEXUM worker] ${signal} received; stopping after current run cancellation.`);
-  activeController?.abort(new DOMException("Worker is shutting down", "AbortError"));
+  console.log(`[NEXUM worker] ${signal} received; no new runs will be claimed after the current run.`);
 }
 
 process.once("SIGTERM", () => { void shutdown("SIGTERM"); });
