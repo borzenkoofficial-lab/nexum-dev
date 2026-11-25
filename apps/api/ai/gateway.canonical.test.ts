@@ -347,6 +347,6 @@ test("gateway rejects native adapters without an explicit protocol and semantic 
   } as unknown as AIProvider;
   assert.throws(
     () => new AIGateway([provider], provider.id),
-    /protocol and semantic adapterVersion/i,
+    /protocol and adapter version/i,
   );
 });
