@@ -15,6 +15,8 @@ interface ModelsResponse {
 export class AnyModelProvider implements AIProvider {
   id = "anymodel";
   name = "AnyModel";
+  protocol = "openai-chat-completions" as const;
+  adapterVersion = "1.0.0";
   model: string;
   capabilities = {
     text: true,
