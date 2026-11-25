@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import "./nexum-welcome.css";
+import "../kvard-design-system.css";
 
 type AuthMode = "register" | "login";
 type IntroPhase = "wake" | "logo" | "boot" | "hello" | "auth";
@@ -9,7 +10,7 @@ type BootPhase = "idle" | "creating" | "booting" | "ready";
 interface NexumWelcomeProps { onComplete: () => void; }
 
 const bootSteps = [
-  ["ЯДРО NEXUM", "ГОТОВО"],
+  ["ЯДРО КВАРД", "ГОТОВО"],
   ["AI CORE", "ГОТОВ"],
   ["АГЕНТ", "ГОТОВ"],
   ["РАБОЧЕЕ ПРОСТРАНСТВО", "ПОДКЛЮЧЕНО"],
@@ -18,11 +19,11 @@ const bootSteps = [
 ] as const;
 
 const scenes: Record<IntroPhase, { eyebrow: string; title: string; description: string }> = {
-  wake: { eyebrow: "ЗАПУСК", title: "Включение.", description: "NEXUM OS запускается." },
-  logo: { eyebrow: "NEXUM OS", title: "NEXUM", description: "Операционная среда для работы с интеллектом." },
+  wake: { eyebrow: "ЗАПУСК", title: "Включение.", description: "КВАРД WORKSPACE запускается." },
+  logo: { eyebrow: "КВАРД WORKSPACE", title: "КВАРД", description: "Операционная среда для работы с интеллектом." },
   boot: { eyebrow: "ЗАГРУЗКА СИСТЕМЫ", title: "Запуск системы.", description: "Проверяем компоненты и подготавливаем рабочее пространство." },
-  hello: { eyebrow: "NEXUM OS", title: "Добро пожаловать.", description: "Система готова. Осталось создать ваш первый профиль." },
-  auth: { eyebrow: "ПЕРВИЧНАЯ НАСТРОЙКА", title: "Добро пожаловать.", description: "Создайте учётную запись — рабочее пространство будет создано внутри NEXUM OS." },
+  hello: { eyebrow: "КВАРД WORKSPACE", title: "Добро пожаловать.", description: "Система готова. Осталось создать ваш первый профиль." },
+  auth: { eyebrow: "ПЕРВИЧНАЯ НАСТРОЙКА", title: "Добро пожаловать.", description: "Создайте учётную запись — рабочее пространство будет создано внутри КВАРД WORKSPACE." },
 };
 
 export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
@@ -95,14 +96,14 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
       const data = await response.json().catch(() => ({})) as { success?: boolean; error?: string | { message?: string } };
       if (!response.ok || !data.success) {
         const message = typeof data.error === "string" ? data.error : data.error?.message;
-        throw new Error(message || "Не удалось создать учётную запись NEXUM.");
+        throw new Error(message || "Не удалось создать учётную запись КВАРД.");
       }
       try { localStorage.setItem("nexum:onboarding-complete", "1"); } catch {}
       setPhase("booting");
       setBootProgress(0);
     } catch (err) {
       setPhase("idle");
-      setError(err instanceof Error ? err.message : "Не удалось подключиться к NEXUM.");
+      setError(err instanceof Error ? err.message : "Не удалось подключиться к КВАРД.");
     }
   }
 
@@ -111,8 +112,8 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
     return (
       <main className={"nexum-welcome nexum-post-auth-boot " + (ready ? "is-ready" : "")}>
         <div className="nexum-boot-center">
-          <div className="nexum-logo-mark" aria-label="NEXUM OS"><span>N</span></div>
-          <div className="nexum-boot-word">NEXUM <span>OS</span></div>
+          <div className="nexum-logo-mark" aria-label="КВАРД WORKSPACE"><span>К</span></div>
+          <div className="nexum-boot-word">КВАРД <span>WORKSPACE</span></div>
           <p>{ready ? "Рабочий стол готов." : "Запуск рабочего пространства…"}</p>
           <div className="nexum-boot-progress"><i style={{ width: `${bootProgress}%` }} /></div>
           <div className="nexum-boot-status">{ready ? "СИСТЕМА ГОТОВА" : bootProgress < 32 ? "ЗАПУСК ЯДРА" : bootProgress < 62 ? "ЗАГРУЗКА ПРОСТРАНСТВА" : bootProgress < 90 ? "ПОДГОТОВКА РАБОЧЕГО СТОЛА" : "ПОЧТИ ГОТОВО"}</div>
@@ -125,7 +126,7 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
   return (
     <main className={"nexum-welcome " + sceneClass}>
       <header className="nexum-welcome-nav">
-        <div className="nexum-brand"><span className="nexum-logo-mark small"><span>N</span></span><b>NEXUM</b><em>OS</em></div>
+        <div className="nexum-brand"><span className="nexum-logo-mark small"><span>К</span></span><b>КВАРД</b><em>WORKSPACE</em></div>
         <div className="nexum-os-session"><span className="nx-live-dot" /> ЗАПУСК СИСТЕМЫ <b>1.0</b></div>
       </header>
 
@@ -142,24 +143,24 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
         </div>
       </section>
 
-      <section className="nexum-auth-window" aria-label={mode === "register" ? "Регистрация NEXUM" : "Вход в NEXUM"}>
-        <div className="nexum-window-chrome"><div className="nexum-window-dots"><i /><i /><i /></div><span>NEXUM OS · НАСТРОЙКА</span><div className="nexum-window-status"><span className="nx-live-dot" /> ЗАЩИЩЕНО</div></div>
+      <section className="nexum-auth-window" aria-label={mode === "register" ? "Регистрация КВАРД" : "Вход в КВАРД"}>
+        <div className="nexum-window-chrome"><div className="nexum-window-dots"><i /><i /><i /></div><span>КВАРД WORKSPACE · НАСТРОЙКА</span><div className="nexum-window-status"><span className="nx-live-dot" /> ЗАЩИЩЕНО</div></div>
         <div className="nexum-auth-content">
-          <div className="nexum-auth-intro"><span className="nexum-card-kicker">{mode === "register" ? "ПЕРВЫЙ ЗАПУСК" : "СЕАНС NEXUM"}</span><h2>{mode === "register" ? "Создайте профиль NEXUM" : "Войдите в NEXUM"}</h2><p>{mode === "register" ? "Это первая учётная запись системы. После регистрации будет создано ваше рабочее пространство." : "Войдите, чтобы продолжить работу в NEXUM OS."}</p></div>
+          <div className="nexum-auth-intro"><span className="nexum-card-kicker">{mode === "register" ? "ПЕРВЫЙ ЗАПУСК" : "СЕАНС КВАРД"}</span><h2>{mode === "register" ? "Создайте профиль КВАРД" : "Войдите в КВАРД"}</h2><p>{mode === "register" ? "Это первая учётная запись системы. После регистрации будет создано ваше рабочее пространство." : "Войдите, чтобы продолжить работу в КВАРД WORKSPACE."}</p></div>
           <form onSubmit={submit}>
             {mode === "register" && <label><span>Имя</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя" autoComplete="name" required maxLength={80} /></label>}
             <label><span>Электронная почта</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" required={mode === "register"} /></label>
             <label><span>Пароль</span><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "login" ? "Можно пропустить в демо-режиме" : "Не менее 8 символов"} autoComplete={mode === "register" ? "new-password" : "current-password"} minLength={mode === "register" ? 8 : undefined} maxLength={128} required={mode === "register"} /></label>
             {mode === "login" && <div className="nexum-auth-note">Демо-режим — можно войти без учётных данных.</div>}
             {error && <div className="nexum-auth-error" role="alert">{error}</div>}
-            <button className={"nexum-enter" + (phase === "creating" ? " is-loading" : "")} type="submit" disabled={phase === "creating"}><span>{phase === "creating" ? "Создаём системный профиль…" : mode === "register" ? "Продолжить" : "Войти в NEXUM"}</span><b>{phase === "creating" ? "…" : "→"}</b></button>
+            <button className={"nexum-enter" + (phase === "creating" ? " is-loading" : "")} type="submit" disabled={phase === "creating"}><span>{phase === "creating" ? "Создаём системный профиль…" : mode === "register" ? "Продолжить" : "Войти в КВАРД"}</span><b>{phase === "creating" ? "…" : "→"}</b></button>
           </form>
-          <div className="nexum-auth-switch"><span>{mode === "register" ? "Уже есть аккаунт?" : "Впервые в NEXUM?"}</span><button type="button" onClick={() => { setMode(mode === "register" ? "login" : "register"); setError(""); }}>{mode === "register" ? "Войти" : "Создать профиль"}</button></div>
+          <div className="nexum-auth-switch"><span>{mode === "register" ? "Уже есть аккаунт?" : "Впервые в КВАРД?"}</span><button type="button" onClick={() => { setMode(mode === "register" ? "login" : "register"); setError(""); }}>{mode === "register" ? "Войти" : "Создать профиль"}</button></div>
         </div>
       </section>
 
       <button type="button" className="nexum-skip-intro" onClick={() => setIntro("auth")} aria-label="Пропустить запуск">Пропустить <kbd>Esc</kbd></button>
-      <footer className="nexum-welcome-footer"><span>NEXUM OS · ЗАПУСК СИСТЕМЫ</span><span>© NEXUM</span></footer>
+      <footer className="nexum-welcome-footer"><span>КВАРД WORKSPACE · ЗАПУСК СИСТЕМЫ</span><span>© КВАРД</span></footer>
     </main>
   );
 }

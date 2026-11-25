@@ -17,12 +17,12 @@ interface OSDesktopProps {
 
 const apps = [
   { id: "projects", label: "Проекты", icon: "grid", tone: "light" },
-  { id: "agent", label: "AI Agent", icon: "spark", tone: "dark" },
-  { id: "code", label: "Code", icon: "code", tone: "code" },
-  { id: "preview", label: "Preview", icon: "preview", tone: "preview" },
-  { id: "connectors", label: "Connectors", icon: "link", tone: "light" },
-  { id: "diagnostics", label: "Diagnostics", icon: "pulse", tone: "light" },
-  { id: "settings", label: "Settings", icon: "gear", tone: "light" },
+  { id: "agent", label: "AI-агент", icon: "spark", tone: "dark" },
+  { id: "code", label: "Код", icon: "code", tone: "code" },
+  { id: "preview", label: "Предпросмотр", icon: "preview", tone: "preview" },
+  { id: "connectors", label: "Интеграции", icon: "link", tone: "light" },
+  { id: "diagnostics", label: "Диагностика", icon: "pulse", tone: "light" },
+  { id: "settings", label: "Настройки", icon: "gear", tone: "light" },
 ];
 
 const monthNames = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
@@ -114,9 +114,9 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
   };
 
   return (
-    <section className="nexum-os-desktop" aria-label="NEXUM Workspace" onMouseMove={handlePointerMove} onContextMenu={handleDesktopContextMenu} onClick={() => desktopMenu && setDesktopMenu(null)}>
+    <section className="nexum-os-desktop" aria-label="КВАРД Workspace" onMouseMove={handlePointerMove} onContextMenu={handleDesktopContextMenu} onClick={() => desktopMenu && setDesktopMenu(null)}>
       <div className="os-menubar">
-        <div className="os-brand"><span>N</span><strong>NEXUM</strong></div>
+        <div className="os-brand"><span>К</span><strong>КВАРД</strong></div>
         <div className="os-menu-center"><span>Workspace</span><span>Window</span><span>Help</span></div>
         <div className="os-system">
           <span>{active.length} projects</span><i /><span>Workspace ready</span>
@@ -124,8 +124,8 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
             <b>{time}</b><small>{capitalDate}</small>
           </button>
           <button type="button" className="os-control-center" onClick={() => setControlCenterOpen((v) => !v)} aria-expanded={controlCenterOpen}>•••</button>
-          <button type="button" className="os-search-button" onClick={() => setLauncherOpen(true)} aria-label="Open NEXUM Search">⌕</button>
-          {onLaunchWelcome && <button type="button" className="os-welcome-button" onClick={(event) => { event.stopPropagation(); onLaunchWelcome(); }} aria-label="Открыть приветствие NEXUM" title="Открыть приветствие NEXUM"><span>✦</span><small>Hello</small></button>}
+          <button type="button" className="os-search-button" onClick={() => setLauncherOpen(true)} aria-label="Поиск по КВАРД">⌕</button>
+          {onLaunchWelcome && <button type="button" className="os-welcome-button" onClick={(event) => { event.stopPropagation(); onLaunchWelcome(); }} aria-label="Открыть приветствие КВАРД" title="Открыть приветствие КВАРД"><span>✦</span><small>Hello</small></button>}
           {onToggleOS && <button type="button" className={"os-power-button" + (osEnabled ? " on" : "")} onClick={(event) => { event.stopPropagation(); onToggleOS(); }} aria-label={osEnabled ? "Выключить workspace shell" : "Включить workspace shell"} title={osEnabled ? "Выключить workspace shell" : "Включить workspace shell"}><span>⏻</span></button>}
         </div>
         {controlCenterOpen && (
@@ -166,7 +166,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
       )}
 
       {launcherOpen && (
-        <div className="os-launcher-layer" role="dialog" aria-label="NEXUM Workspace Search" onClick={() => setLauncherOpen(false)}>
+        <div className="os-launcher-layer" role="dialog" aria-label="КВАРД Workspace Search" onClick={() => setLauncherOpen(false)}>
           <div className="os-launcher" onClick={(event) => event.stopPropagation()}>
             <div className="os-launcher-search">
               <span>⌕</span>
@@ -196,7 +196,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
 
       <div className="os-desktop-content">
         <div className="os-desktop-topline">
-          <div className="os-desktop-location"><span className="os-location-dot" /> NEXUM Workspace</div>
+          <div className="os-desktop-location"><span className="os-location-dot" /> КВАРД Workspace</div>
           <div className="os-desktop-status"><span>{active.length} projects</span><span className="status-live"><i /> Workspace ready</span></div>
         </div>
 
@@ -215,7 +215,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
 
         <aside className="os-desktop-widgets" aria-label="Desktop widgets">
           <div className="os-widget os-clock-card">
-            <span className="widget-kicker">NEXUM TIME</span>
+            <span className="widget-kicker">КВАРД TIME</span>
             <strong>{time}<sup>{seconds}</sup></strong>
             <span>{capitalDate}</span>
             <i className="os-clock-orbit" aria-hidden="true" />
@@ -232,7 +232,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
             <button key={project.id} className="os-project-card" style={{"--stack-i": index} as CSSProperties} type="button" onClick={() => onOpenProject(project.id)}>
               <span className="os-project-window"><i /><i /><i /></span><span className="os-project-mark">{project.name.slice(0, 1)}</span><span className="os-project-info"><strong>{project.name}</strong><small>{project.type ?? "Project"}</small></span><span className="os-project-arrow">›</span>
             </button>
-          ))}</div> : <button className="os-empty-project" type="button" onClick={onNewProject}><span>＋</span><b>Create your first project</b><small>NEXUM will create a dedicated workspace.</small></button>}
+          ))}</div> : <button className="os-empty-project" type="button" onClick={onNewProject}><span>＋</span><b>Create your first project</b><small>КВАРД создаст отдельное рабочее пространство.</small></button>}
         </div>
 
         {runningProjectIds.length > 0 && (
@@ -248,7 +248,7 @@ export function OSDesktop({ projects, onNewProject, onOpenProject, onOpenView, r
         )}
       </div>
 
-      <div className="os-dock" aria-label="NEXUM workspace actions">
+      <div className="os-dock" aria-label="Действия КВАРД">
         <button type="button" className="os-dock-item" onClick={() => launch("projects")} title="Projects"><span className="os-app-glyph light"><AppIcon name="grid" /></span></button>
         <button type="button" className="os-dock-item" onClick={() => launch("agent")} title="AI Agent"><span className="os-app-glyph dark"><AppIcon name="spark" /></span></button>
         <span className="os-dock-separator" />

@@ -1,3 +1,1 @@
-html { min-width: 320px; min-height: 100%; background: #f5f5f5; }
-body { min-width: 320px; min-height: 100vh; margin: 0; }
-#root { min-height: 100vh; }
+/* Global reset, typography and theme tokens are owned by kvard-design-system.css. */

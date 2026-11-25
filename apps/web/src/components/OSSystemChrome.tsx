@@ -8,12 +8,12 @@ interface OSSystemChromeProps {
   onSearch: () => void;
   onSettings: () => void;
   onNewProject?: () => void;
-  activeView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics";
+  activeView: "home" | "project" | "connectors" | "settings" | "news" | "diagnostics" | "agents";
 }
 
 const monthNames = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 
-export function OSSystemChrome({ appName, appIcon = "N", status = "Система готова", onHome, onSearch, onSettings, onNewProject, activeView }: OSSystemChromeProps) {
+export function OSSystemChrome({ appName, appIcon = "К", status = "Система готова", onHome, onSearch, onSettings, onNewProject, activeView }: OSSystemChromeProps) {
   const [now, setNow] = useState(() => new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -27,10 +27,10 @@ export function OSSystemChrome({ appName, appIcon = "N", status = "Систем�
 
   return (
     <>
-      <header className="nx-system-chrome" aria-label="NEXUM workspace navigation">
+      <header className="nx-system-chrome" aria-label="Навигация КВАРД">
         <div className="nx-system-left">
-          <button type="button" className="nx-system-brand" onClick={onHome} aria-label="Открыть NEXUM Workspace">
-            <span>N</span><strong>NEXUM</strong>
+          <button type="button" className="nx-system-brand" onClick={onHome} aria-label="Открыть КВАРД">
+            <span>К</span><strong>КВАРД</strong>
           </button>
           <span className="nx-system-divider" />
           <div className="nx-system-app">
@@ -70,7 +70,7 @@ export function OSSystemChrome({ appName, appIcon = "N", status = "Систем�
         </div>
       )}
 
-      <nav className="nx-mobile-system-nav" aria-label="NEXUM workspace navigation">
+      <nav className="nx-mobile-system-nav" aria-label="Навигация КВАРД">
         <button type="button" className={activeView === "home" ? "active" : ""} onClick={onHome}><span>⌂</span><b>Домой</b></button>
         <button type="button" onClick={onNewProject}><span>＋</span><b>Проект</b></button>
         <button type="button" onClick={onSearch}><span>⌕</span><b>Поиск</b></button>
