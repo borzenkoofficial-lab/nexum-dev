@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:runtime": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/runtime/runtime.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:brand": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/components/KvardMark.test.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

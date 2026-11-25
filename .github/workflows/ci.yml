@@ -36,6 +36,8 @@ jobs:
         run: npm --prefix apps/api run test
       - name: Test Web Runtime
         run: npm --prefix apps/web run test:runtime
+      - name: Test Web Brand Components
+        run: npm --prefix apps/web run test:brand
       - name: Typecheck Web
         run: npm --prefix apps/web run typecheck
       - name: Build API
