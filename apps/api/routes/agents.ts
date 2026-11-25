@@ -5,7 +5,7 @@ import {requireOrganization,requireOrganizationRole} from "../organizations/orga
 import {getAgent,getAgentVersion,listAgents,createAgentRun,getRun,getRunEvents,cancelAgentRun,setAgentStatus} from "../agents/agentRepository.js";
 import {createAgentForOrganization,updateAgentForOrganization,generateInventDraft} from "../agents/agentService.js";
 import {agentToolRegistry} from "../agents/tools/toolRegistry.js";
-import {getOrganizationQuota,recordAgentRunUsage} from "../billing/quotaService.js";
+import {getOrganizationQuota} from "../billing/quotaService.js";
 export function createAgentsRouter(gateway:AIGateway){const router=Router();router.use(["/agents", "/tools", "/runs"], requireOrganization);
 router.get("/tools",(_req,res)=>res.json({success:true,tools:agentToolRegistry.list()}));
 router.get("/agents",async(req,res,next)=>{try{return res.json({success:true,agents:await listAgents(req.organization!.id)});}catch(e){return next(e);}});
