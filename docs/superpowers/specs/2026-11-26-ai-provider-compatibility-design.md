@@ -105,3 +105,12 @@
 ## Реализация foundation
 
 Реализованы canonical types/validation, strict legacy bridge, `AIGateway.generateRequest()`, model capability checks, response/usage normalization, tool-call history validation, error credential redaction и reusable conformance tests. Реальные provider-specific native adapters и миграция продуктовых call sites остаются следующей фазой.
+
+
+## Native-only adapters and gradual product migration
+
+- `AIProvider.generate()` is optional; a new adapter may implement only `generateRequest()`.
+- Gateway registration requires at least one generation method.
+- Existing string-based product calls are transparently converted to canonical requests when the selected adapter supports `generateRequest()`. If both methods exist, the native canonical method is preferred.
+- This provides a migration bridge: product modules can move to canonical requests independently, while native provider adapters can be introduced one at a time.
+- Automatic transient fallback can target a native-only adapter through the same canonical route.
