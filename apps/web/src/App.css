@@ -30,12 +30,12 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface); padding: 7px 10px;
 }
 .nx-system-nav { display: flex; gap: 6px; }
-.nx-system-window-layer { display: flex; flex: 1; min-width: 0; padding: 20px; }
-.nx-system-window { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: var(--nx-window-min-height, 60vh); border: 1px solid var(--nx-border); border-radius: var(--nx-radius); background: var(--nx-surface); }
+.nx-system-window-layer { display: flex; flex: 1; min-width: 0; padding: 0; }
+.nx-system-window { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; border: 0; border-radius: 0; background: transparent; }
 .nx-app-titlebar { flex: 0 0 auto; border-bottom: 1px solid var(--nx-border); }
 .nx-app-window-controls { gap: 6px; }
 .nx-app-window-controls button { width: 12px; height: 12px; min-width: 12px; padding: 0; border-radius: 50%; }
-.nx-app-window-content { flex: 1; min-width: 0; overflow: auto; }
+.nx-app-window-content { flex: 1; min-width: 0; overflow: visible; }
 .nx-system-calendar { position: absolute; z-index: 20; top: 58px; right: 16px; width: 280px; padding: 16px; border: 1px solid var(--nx-border); border-radius: var(--nx-radius); background: var(--nx-surface); }
 .nx-calendar-week, .nx-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px; text-align: center; }
 .nx-calendar-grid span, .nx-calendar-week span { padding: 5px 0; }
@@ -60,7 +60,7 @@ input, textarea, select { max-width: 100%; border: 1px solid var(--nx-border); b
 @media (max-width: 760px) {
   .nx-system-nav, .nx-system-status { display: none; }
   .nx-mobile-system-nav { position: sticky; bottom: 0; display: flex; justify-content: space-around; gap: 6px; padding: 8px; border-top: 1px solid var(--nx-border); background: var(--nx-surface); }
-  .nx-system-window-layer { padding: 8px; }
+  .nx-system-window-layer { padding: 0; }
   .settings-layout { grid-template-columns: 1fr; }
   .settings-index { display: flex; flex-wrap: wrap; }
 }
