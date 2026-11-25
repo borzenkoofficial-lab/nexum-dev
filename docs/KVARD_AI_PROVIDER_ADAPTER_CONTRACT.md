@@ -321,3 +321,18 @@ OpenAI is the first production provider adapter migrated to the canonical contra
 
 - Dedicated workflow `45710381436` passed on commit `8e6672d9164d`: API typecheck passed; 79/79 focused AI provider contract tests passed. This includes fake-HTTP tests for Responses request/response mapping, image payloads, function calls, JSON Schema, usage, idempotency, cancellation and model discovery. No real provider credentials or paid requests were used.
 - Still pending: real-account sandbox smoke test; model-level capabilities for vision/tools/structured output/reasoning; dedicated streaming event contract; native adapters for Anthropic, OpenRouter, OrcaRouter, AnyModel and Ollama; billing ledger integration and cost reconciliation.
+
+
+## 15. Authority of provider model discovery
+
+A provider's `listModels()` implementation is the source of truth for catalog verification. It must return only model IDs actually returned by the authenticated upstream API. It must not merge static defaults or configured model IDs into a successful provider response, and it must propagate discovery failures instead of returning a plausible-looking fallback list.
+
+- OpenAI: returns only model IDs returned by `GET /models`.
+- Anthropic: requires a configured credential and returns only IDs returned by `GET /models`; it no longer advertises built-in defaults when credentials are absent or discovery fails.
+- OrcaRouter: returns only IDs from its `/models` response; it no longer converts API failures into a list containing the configured/default model.
+- AnyModel: returns only IDs from its `/models` response; the configured model remains a separate fallback diagnostic, not a provider-confirmed catalog item.
+- OpenRouter and Ollama already return the IDs received from their upstream model-list endpoints.
+
+The gateway may still expose the configured model as an explicitly unverified fallback for diagnostics and backwards-compatible display. `AIModelRegistry.select()` must never select such a fallback for real inference or plan entitlement assignment.
+
+Dedicated workflow `45710389512` passed on commit `5fbbd6b50784eeabf136175019d1e196fdac44db`: API typecheck passed and 79/79 API tests passed, including provider catalog discovery conformance tests.
