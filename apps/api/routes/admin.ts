@@ -39,7 +39,7 @@ adminRouter.get("/roles", requireAdminPermission("roles.manage"), async (_req, r
 });
 
 adminRouter.put("/roles/:userId", requireAdminPermission("roles.manage"), async (req, res) => {
-  const targetUserId = req.params.userId;
+  const targetUserId = typeof req.params.userId === "string" ? req.params.userId : "";
   const role = (req.body as { role?: unknown } | undefined)?.role;
   if (!UUID_PATTERN.test(targetUserId) || typeof role !== "string" || !ADMIN_ROLES.includes(role as AdminRole)) {
     return res.status(400).json({ success: false, error: "A valid user UUID and administrative role are required." });
@@ -77,7 +77,7 @@ adminRouter.put("/roles/:userId", requireAdminPermission("roles.manage"), async 
 });
 
 adminRouter.delete("/roles/:userId", requireAdminPermission("roles.manage"), async (req, res) => {
-  const targetUserId = req.params.userId;
+  const targetUserId = typeof req.params.userId === "string" ? req.params.userId : "";
   if (!UUID_PATTERN.test(targetUserId)) {
     return res.status(400).json({ success: false, error: "A valid user UUID is required." });
   }
