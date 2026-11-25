@@ -395,7 +395,7 @@ The canonical streaming API is an async event stream. Event types are `message_s
 
 The gateway rejects streaming before provider invocation unless the adapter implements `streamRequest` and the selected model explicitly reports streaming support. A completed-response API must not silently buffer a streaming request.
 
-Anthropic Messages now implements SSE streaming with text deltas, tool-call start/JSON argument deltas, finish reason, request identity, and reported usage. Its adapter test uses a deterministic in-memory SSE response; this is a contract test, not a live Anthropic connectivity test.
+Anthropic Messages now implements SSE streaming with text deltas, tool-call start/JSON argument deltas, finish reason, request identity, and reported usage. Its adapter tests use deterministic in-memory SSE responses and reject streams that close before `message_stop`; the reader is cancelled on early consumer exit. These are contract tests, not a live Anthropic connectivity test.
 
 
 ### OpenAI Responses streaming adapter
