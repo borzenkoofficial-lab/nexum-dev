@@ -47,6 +47,7 @@ import { createAgentsRouter } from "./routes/agents.js";
 import { createWorkforcesRouter } from "./routes/workforces.js";
 import { knowledgeRouter } from "./routes/knowledge.js";
 import { approvalsRouter } from "./routes/approvals.js";
+import { adminMfaRouter } from "./routes/adminMfa.js";
 
 
 const requestIds = new WeakMap<object, string>();
@@ -832,6 +833,8 @@ app.get("/api/health", async (_req, res) => {
   });
 });
 
+
+app.use("/api/auth/admin-mfa", authMiddleware, createRateLimitMiddleware("admin-mfa", isProduction ? 10 : 100, 60_000), adminMfaRouter);
 
 app.post("/api/auth/register", authRegisterLimiter, async (req, res) => {
   try {
