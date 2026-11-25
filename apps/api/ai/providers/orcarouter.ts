@@ -1,10 +1,12 @@
-import type { AIModelCapabilities, AIProvider, AIProviderStatus, AIRequest, AIResponse, AIGenerateOptions } from "../types.js";
+import type { AIModelCapabilities, AIProvider, AIProviderStatus, AIRequest, AIResponse, AIGenerateOptions, AIStreamEvent } from "../types.js";
+import { validateCanonicalRequest } from "../canonical.js";
 import {
   getOpenAICompatibleModelCapabilities,
   normalizeOpenAICompatibleResponse,
   serializeOpenAICompatibleRequest,
   type OpenAICompatibleChatResponse,
   type OpenAICompatibleModelMetadata,
+  streamOpenAICompatibleChat,
 } from "../openaiCompatibleAdapter.js";
 
 const DEFAULT_BASE_URL = "https://api.orcarouter.ai/v1";
@@ -58,7 +60,8 @@ export class OrcaRouterProvider implements AIProvider {
 
   getCapabilities(model = this.model): AIModelCapabilities {
     const info = this.modelInfo.get(model);
-    return getOpenAICompatibleModelCapabilities(info, Boolean(info));
+    const capabilities = getOpenAICompatibleModelCapabilities(info, Boolean(info));
+    return { ...capabilities, streaming: Boolean(info) };
   }
 
   async generate(message: string, model = this.model, options: AIGenerateOptions = {}): Promise<string> {
@@ -90,7 +93,48 @@ export class OrcaRouterProvider implements AIProvider {
     return normalizeOpenAICompatibleResponse(data, this.id, request.model, Date.now() - startedAt);
   }
 
-  async listModels(signal?: AbortSignal): Promise<string[]> {
+  async *streamRequest(request: AIRequest): AsyncGenerator<AIStreamEvent> {
+    validateCanonicalRequest(request);
+    if (!this.modelInfo.has(request.model)) {
+      throw new Error("OrcaRouter streaming requires a model verified through the provider catalog");
+    }
+    const body = serializeOpenAICompatibleRequest({ ...request, stream: false });
+    body.stream = true;
+    body.stream_options = { include_usage: true };
+    const apiKey = this.runtimeApiKey;
+    if (!apiKey) throw new Error("ORCAROUTER_API_KEY is not configured");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), request.timeoutMs ?? this.timeoutMs);
+    const callerSignal = request.signal;
+    const abortFromCaller = () => controller.abort(callerSignal?.reason);
+    if (callerSignal) {
+      if (callerSignal.aborted) abortFromCaller();
+      else callerSignal.addEventListener("abort", abortFromCaller, { once: true });
+    }
+    try {
+      const response = await this.fetchImpl(this.baseUrl + "/chat/completions", {
+        method: "POST",
+        headers: {
+          Accept: "text/event-stream",
+          Authorization: "Bearer " + apiKey,
+          "Content-Type": "application/json",
+          "X-OrcaRouter-Include-Cost": "true",
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(this.httpError(response.status));
+      for await (const event of streamOpenAICompatibleChat(response, this.id, request.model)) yield event;
+    } catch (error) {
+      if (callerSignal?.aborted) throw new DOMException("Aborted", "AbortError");
+      if (controller.signal.aborted) throw new Error("OrcaRouter request timed out");
+      if (error instanceof Error && error.message.startsWith("OrcaRouter")) throw error;
+      throw new Error("OrcaRouter streaming request failed");
+    } finally {
+      clearTimeout(timeout);
+      callerSignal?.removeEventListener("abort", abortFromCaller);
+    }
+  }  async listModels(signal?: AbortSignal): Promise<string[]> {
     const data = await this.request<ModelsResponse>("/models", { method: "GET", ...(signal ? { signal } : {}) });
     const discovered = new Map<string, OpenAICompatibleModelMetadata>();
     for (const item of data.data ?? []) {
