@@ -17,7 +17,7 @@ test("OpenAI catalog contains only model IDs returned by the authenticated provi
 });
 
 test("Anthropic catalog contains only model IDs returned by the authenticated provider API", async () => {
-  const provider = new AnthropicProvider("https://anthropic.test/v1", "claude-configured", 1000, async () => response([{ id: "claude-remote-only" }]));
+  const provider = new AnthropicProvider("https://anthropic.test/v1", "claude-configured", 1000, async () => response([{ id: "claude-remote-only", lifecycle: "active", capabilities: {} }]));
   provider.setRuntimeApiKey(key);
   assert.deepEqual(await provider.listModels(), ["claude-remote-only"]);
 });
