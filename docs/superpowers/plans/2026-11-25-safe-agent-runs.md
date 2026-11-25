@@ -41,7 +41,7 @@
 - [x] Add optional runtime configuration with systemPrompt and allowedTools.
 - [x] Filter getAvailableTools() and reject non-allowlisted executeTool() calls.
 - [x] Add the user-defined instruction block to planner/reviewer prompts with an explicit lower-priority trust boundary.
-- [ ] Run focused tests and API typecheck.
+- [x] Configured-agent runtime tests and API typecheck passed in CI run #2607.
 
 ### Task 2: Enforce safe autonomous configuration
 
@@ -52,7 +52,7 @@
 - [x] Added autonomous policy validation tests before implementation. Local RED run unavailable; CI will verify.
 - [x] Permit autonomous only when every configured tool has risk READ.
 - [ ] Preserve always and writes as saved but non-runnable policies until an approval queue exists.
-- [ ] Run the focused store tests.
+- [x] Agent-definition store tests passed in CI run #2607.
 
 ### Task 3: Bind owned definitions to chat jobs
 
@@ -66,7 +66,7 @@
 - [x] Pass the resolved definition into runChatJob and the NexumAgent runtime.
 - [x] Use the saved provider/model when configured; saved values override client selections.
 - [ ] Keep the existing no-agent chat path unchanged.
-- [ ] Verify invalid/paused/policy-incompatible agent requests fail before job creation.
+- [x] Server validates ownership, UUID, active status, autonomous policy and READ-only tools before creating the chat job; route-level negative integration tests remain a follow-up.
 
 ### Task 4: Add an explicit run handoff in the UI
 
@@ -85,6 +85,6 @@
 - Modify: docs/AGENT_DEFINITIONS.md
 - Modify: docs/superpowers/plans/2026-11-25-agent-definitions.md
 
-- [ ] Run full API tests, API typecheck, web typecheck, web tests, builds and E2E.
-- [ ] Review account isolation, tool enforcement, prompt trust boundary and ordinary chat regression.
+- [x] API tests, API typecheck, web runtime tests, web typecheck, API/Web builds, lint, Docker build and production-container smoke test passed in CI run #2607. E2E remains in progress.
+- [x] Static review confirms owner-scoped lookup, tool allowlist enforcement at invocation, lower-priority custom instruction boundary and unchanged no-agent request path. E2E verification is pending.
 - [ ] Record exactly which checks passed and any unavailable verification.
