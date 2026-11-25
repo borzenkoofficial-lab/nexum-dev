@@ -265,3 +265,18 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 В fallback сохраняется настроенная модель, чтобы старые экраны не ломались, но клиент теперь может отличить её от подтверждённого каталога. Ошибки discovery не раскрывают provider response, URL, credentials или внутренние детали. Отмена запроса не маскируется как обычный fallback.
 
 Важно: наличие model ID в каталоге не подтверждает доступность модели конкретному аккаунту на платном вызове и не подтверждает все capabilities. Реальный health/credential check и sandbox smoke test остаются отдельными проверками.
+
+
+## 14. Protocol metadata and verified model discovery
+
+- `AIProviderProtocol` identifies the actual upstream wire protocol (OpenAI Chat Completions, OpenAI-compatible Chat Completions, Anthropic Messages, Ollama Chat, Mock, or a custom protocol). The type remains extensible for future providers.
+- Each native adapter must declare both `protocol` and `adapterVersion`; Gateway rejects a native adapter that omits either. Provider IDs must be unique.
+- Existing adapters now declare protocol metadata:
+  - OpenAI: `openai-chat-completions`
+  - Anthropic: `anthropic-messages`
+  - OpenRouter / OrcaRouter / AnyModel: `openai-compatible-chat-completions`
+  - Ollama: `ollama-chat`
+  - Mock: `mock`
+- `AIGateway.getModelCatalog()` distinguishes provider-verified model lists from configured fallback model IDs. Empty or failed catalog requests are explicitly unverified and carry an error category.
+- `AIModelRegistry.list()` exposes verified state/source/status for display. `AIModelRegistry.select()` only selects a model that the provider API actually listed; configured fallback IDs cannot be silently selected for real inference.
+- Dedicated workflow `45709473332` passed on commit `7746b9b8263fed0eef503d1c4fe73e2ffaf70211`: API typecheck passed; 66/66 focused AI provider contract tests passed.
