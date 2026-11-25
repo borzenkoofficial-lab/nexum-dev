@@ -59,9 +59,24 @@ test("cancelling a job cancels its pending approval", async () => {
   assert.equal(cancelled?.status, "cancelled");
   assert.equal(cancelled?.pendingApproval?.status, "cancelled");
   assert.ok(cancelled?.pendingApproval?.resolvedAt);
+  assert.ok(cancelled?.events?.some((event) => event && typeof event === "object" && (event as { name?: unknown }).name === "agent.approval.cancelled"));
 });
 
 test.after(() => {
   if (previousDatabaseUrl === undefined) delete process.env.NEXUM_DATABASE_URL;
   else process.env.NEXUM_DATABASE_URL = previousDatabaseUrl;
+});
+
+
+test("cancelling after approval preserves the recorded approval decision", async () => {
+  const jobId = "approval-store-approved-then-cancelled";
+  await createChatJob(makeJob(jobId, "owner-d"));
+  await requestChatJobApproval(jobId, "owner-d", makeApproval("approval-approved-before-cancel"));
+  const approved = await resolveChatJobApproval(jobId, "owner-d", "approval-approved-before-cancel", "approved", "owner-d");
+  assert.equal(approved?.pendingApproval?.status, "approved");
+
+  const cancelled = await cancelChatJob(jobId, "owner-d");
+  assert.equal(cancelled?.status, "cancelled");
+  assert.equal(cancelled?.pendingApproval?.status, "approved");
+  assert.equal(cancelled?.events?.some((event) => event && typeof event === "object" && (event as { name?: unknown }).name === "agent.approval.cancelled"), false);
 });
