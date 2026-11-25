@@ -34,7 +34,7 @@ import { serverRuntime } from "./runtime/runtime.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
-import { releaseSandboxSession } from "./sandbox/runner.js";
+import { disposeAllSandboxSessions, releaseSandboxSession } from "./sandbox/runner.js";
 
 
 const requestIds = new WeakMap<object, string>();
@@ -705,6 +705,7 @@ async function shutdownServer(signal: "SIGTERM" | "SIGINT"): Promise<void> {
     // process alive while Playwright or a production supervisor waits for exit.
     for (const controller of chatJobControllers.values()) controller.abort();
     chatJobControllers.clear();
+    await disposeAllSandboxSessions();
     serverRuntime.shutdown();
 
     await new Promise<void>((resolve) => {
