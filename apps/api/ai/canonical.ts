@@ -158,7 +158,7 @@ export function getRequiredCapabilities(request: AIRequest): Partial<Record<AIMo
 function validUsage(usage: AIUsage | undefined): AIUsage | undefined {
   if (!usage || !isRecord(usage)) return undefined;
   const normalized: AIUsage = {};
-  for (const key of ["inputTokens", "outputTokens", "totalTokens", "cachedInputTokens", "reasoningTokens"] as const) {
+  for (const key of ["inputTokens", "outputTokens", "totalTokens", "cachedInputTokens", "cacheCreationInputTokens", "reasoningTokens"] as const) {
     const value = usage[key];
     if (value !== undefined) {
       if (typeof value !== "number" || !Number.isInteger(value) || value < 0) return undefined;
