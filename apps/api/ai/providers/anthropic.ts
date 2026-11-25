@@ -284,13 +284,16 @@ export class AnthropicProvider implements AIProvider {
       validTokenCount(data.usage?.output_tokens) &&
       validTokenCount(data.usage?.cache_read_input_tokens) &&
       validTokenCount(data.usage?.cache_creation_input_tokens);
-    if (usage && completeUsage) {
-      usage.totalTokens =
-        (data.usage?.input_tokens ?? 0) +
-        (data.usage?.output_tokens ?? 0) +
-        (data.usage?.cache_read_input_tokens ?? 0) +
-        (data.usage?.cache_creation_input_tokens ?? 0);
-    }
+    const usageWithTotal = usage && completeUsage
+      ? {
+          ...usage,
+          totalTokens:
+            (data.usage?.input_tokens ?? 0) +
+            (data.usage?.output_tokens ?? 0) +
+            (data.usage?.cache_read_input_tokens ?? 0) +
+            (data.usage?.cache_creation_input_tokens ?? 0),
+        }
+      : usage;
 
     const content = textParts.join("\n");
     return {
@@ -299,7 +302,7 @@ export class AnthropicProvider implements AIProvider {
       provider: this.id,
       model: typeof data.model === "string" && data.model.trim() ? data.model : request.model,
       ...(typeof data.id === "string" ? { requestId: data.id } : {}),
-      ...(usage && Object.keys(usage).length ? { usage } : {}),
+      ...(usageWithTotal && Object.keys(usageWithTotal).length ? { usage: usageWithTotal } : {}),
       usageSource: completeUsage ? "provider_reported" as const : "unavailable" as const,
       ...(toolCalls.length ? { toolCalls } : {}),
       ...(typeof data.stop_reason === "string" ? { finishReason: data.stop_reason } : {}),
