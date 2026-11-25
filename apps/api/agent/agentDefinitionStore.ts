@@ -56,6 +56,14 @@ function validateAllowedTools(toolNames: string[]): void {
   for (const name of toolNames) getToolSecurityPolicy(name);
 }
 
+function validateExecutionPolicy(approvalPolicy: AgentApprovalPolicy, allowedTools: string[]): void {
+  if (approvalPolicy === "autonomous") {
+    if (allowedTools.length === 0) throw new Error("Для автономного режима выберите хотя бы один инструмент чтения.");
+    const unsafeTool = allowedTools.find((name) => getToolSecurityPolicy(name).risk !== "READ");
+    if (unsafeTool) throw new Error("В автономном режиме разрешены только инструменты чтения.");
+  }
+}
+
 function validateInput(input: AgentDefinitionInput | AgentDefinitionPatch): void {
   if (input.name !== undefined && (!input.name.trim() || input.name.length > 48)) throw new Error("Название агента обязательно и должно содержать не более 48 символов.");
   if (input.description !== undefined && input.description.length > 160) throw new Error("Описание агента должно содержать не более 160 символов.");
@@ -149,6 +157,7 @@ export async function createAgentDefinition(userId: string, input: AgentDefiniti
   };
   if (!agent.name.trim()) throw new Error("Название агента обязательно.");
   if (!agent.systemPrompt.trim()) throw new Error("Системная инструкция обязательна.");
+  validateExecutionPolicy(agent.approvalPolicy, agent.allowedTools);
   if (!agentDefinitionsUseDatabase()) {
     const existing = memoryDefinitions.get(userId) ?? [];
     if (existing.some((item) => item.name.toLowerCase() === agent.name.toLowerCase())) {
@@ -177,6 +186,7 @@ export async function updateAgentDefinition(userId: string, agentId: string, pat
     const current = existing[index];
     if (!current) return null;
     const next: AgentDefinition = { ...current, ...patch, allowedTools: patch.allowedTools ? [...patch.allowedTools] : [...current.allowedTools], updatedAt: Date.now() };
+    validateExecutionPolicy(next.approvalPolicy, next.allowedTools);
     if (existing.some((agent, itemIndex) => itemIndex !== index && agent.name.toLowerCase() === next.name.toLowerCase())) {
       throw new Error("Агент с таким названием уже существует.");
     }
@@ -192,6 +202,7 @@ export async function updateAgentDefinition(userId: string, agentId: string, pat
   const current = currentResult.rows[0];
   if (!current) return null;
   const merged = { ...fromRow(current), ...patch, allowedTools: patch.allowedTools ?? current.allowed_tools, updatedAt: Date.now() };
+  validateExecutionPolicy(merged.approvalPolicy, merged.allowedTools);
   const result = await query<AgentDefinitionRow>(
     "UPDATE agent_definitions SET name=$3,description=$4,system_prompt=$5,provider=$6,model=$7,allowed_tools=$8,approval_policy=$9,status=$10,updated_at=$11 WHERE id=$1 AND user_id=$2 RETURNING id,user_id,name,description,system_prompt,provider,model,allowed_tools,approval_policy,status,created_at,updated_at",
     [agentId, userId, merged.name, merged.description, merged.systemPrompt, merged.provider, merged.model, merged.allowedTools, merged.approvalPolicy, merged.status, merged.updatedAt],
