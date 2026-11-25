@@ -246,3 +246,18 @@ test("native Responses adapter rejects malformed provider response and propagate
     signal: controller.signal,
   }));
 });
+
+
+test("provider status verifies the selected model, not merely a reachable models endpoint", async () => {
+  const provider = createProvider(async () => response({
+    data: [
+      { id: "gpt-6.2-sol" },
+      { id: "text-embedding-3-small" },
+    ],
+  }));
+  const supported = await provider.getStatus("gpt-6.2-sol");
+  const unsupported = await provider.getStatus("text-embedding-3-small");
+  assert.equal(supported.available, true);
+  assert.equal(unsupported.available, false);
+  assert.match(unsupported.error ?? "", /not a verified text generation model/i);
+});
