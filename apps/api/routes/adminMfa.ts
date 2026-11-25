@@ -91,7 +91,7 @@ adminMfaRouter.post("/challenge/verify", async (req, res) => {
     });
     if (!outcome.ok) return res.status(outcome.status).json({ success: false, error: outcome.error });
     clearAdminMfaChallenge(res);
-    issueSession(res, outcome.user);
+    await issueSession(res, outcome.user);
     return res.json({ success: true, mfaVerified: true, user: { id: outcome.user.id, email: outcome.user.email, name: outcome.user.name, createdAt: outcome.user.createdAt } });
   } catch (error) {
     return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "MFA verification unavailable." });
