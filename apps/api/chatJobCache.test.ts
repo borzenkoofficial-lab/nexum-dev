@@ -89,3 +89,18 @@ test("missing terminal persistence result cannot overwrite a running cache entry
   assert.equal(loaded, running);
   assert.equal(loaded?.status, "running");
 });
+
+
+test("forced refresh observes a job decision written by another API instance", async () => {
+  const cachedRunning = job("running");
+  chatJobCache.set(cachedRunning.id, cachedRunning);
+  const persistedApproved = { ...job("running"), pendingApproval: { id: "approval-1", toolName: "writeFile", risk: "WRITE" as const, inputPreview: "{}", status: "approved" as const, createdAt: 1, expiresAt: 2, resolvedAt: 3 } };
+  const loaded = await loadChatJob(
+    cachedRunning.id,
+    cachedRunning.userId,
+    async () => persistedApproved,
+    true,
+  );
+  assert.equal(loaded?.pendingApproval?.status, "approved");
+  assert.equal(chatJobCache.get(cachedRunning.id)?.pendingApproval?.status, "approved");
+});
