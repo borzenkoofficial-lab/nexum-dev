@@ -11,7 +11,7 @@
     "db:migrate": "tsx db/migrate.ts",
     "test:runtime": "tsx --test runtime/runtime.test.ts",
     "build": "tsc",
-    "worker": "tsx agents/worker.ts",
+    "worker": "node dist/agents/worker.js",
     "test:agents": "tsx --test agents/agentService.test.ts agents/tools/toolRegistry.test.ts organizations/organization.test.ts agents/workforce/graphValidator.test.ts agents/memory/knowledgeService.test.ts approvals/approvalService.test.ts",
     "test:queue": "tsx --test agents/agentQueue.integration.test.ts"
   },
