@@ -57,7 +57,8 @@ export class OrcaRouterProvider implements AIProvider {
   }
 
   getCapabilities(model = this.model): AIModelCapabilities {
-    return getOpenAICompatibleModelCapabilities(this.modelInfo.get(model), true);
+    const info = this.modelInfo.get(model);
+    return getOpenAICompatibleModelCapabilities(info, Boolean(info));
   }
 
   async generate(message: string, model = this.model, options: AIGenerateOptions = {}): Promise<string> {
