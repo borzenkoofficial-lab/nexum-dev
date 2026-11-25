@@ -119,3 +119,60 @@ test("OpenAI Responses adapter marks partial provider usage as unavailable witho
   assert.deepEqual(response.usage, { inputTokens: 11 });
   assert.equal(response.usageSource, "unavailable");
 });
+
+
+test("OpenAI Responses native stream maps text, tool calls, and final usage", async () => {
+  let requestUrl = "";
+  let requestBody: Record<string, unknown> | undefined;
+  const frames = [
+    'event: response.created\ndata: {"response":{"id":"resp-stream-1","model":"gpt-test","status":"in_progress"}}\n\n',
+    'event: response.output_text.delta\ndata: {"output_index":0,"delta":"Hello"}\n\n',
+    'event: response.output_item.added\ndata: {"output_index":1,"item":{"type":"function_call","call_id":"call-1","name":"lookup"}}\n\n',
+    'event: response.function_call_arguments.delta\ndata: {"output_index":1,"delta":"{\\"q\\":\\"x\\"}"}\n\n',
+    'event: response.completed\ndata: {"response":{"id":"resp-stream-1","model":"gpt-test-served","status":"completed","usage":{"input_tokens":12,"output_tokens":5,"total_tokens":17,"input_tokens_details":{"cached_tokens":2},"output_tokens_details":{"reasoning_tokens":1}}}}\n\n',
+  ];
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const bytes = new TextEncoder().encode(frames.join(""));
+      // Deliberately split SSE frames across arbitrary byte boundaries.
+      controller.enqueue(bytes.slice(0, 37));
+      controller.enqueue(bytes.slice(37, 119));
+      controller.enqueue(bytes.slice(119));
+      controller.close();
+    },
+  });
+  const provider = new OpenAIProvider("https://openai.test/v1", "gpt-test", 1000, async (input, init) => {
+    requestUrl = String(input);
+    requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    return new Response(stream, { status: 200, headers: { "content-type": "text/event-stream" } });
+  });
+  provider.setRuntimeApiKey("test-openai-canonical-key-1234567890");
+  assert.equal(provider.getCapabilities("gpt-test").streaming, true);
+  const events = [];
+  for await (const event of provider.streamRequest({ version: 1, model: "gpt-test", stream: true, messages: [{ role: "user", content: "Hello" }] })) events.push(event);
+  assert.equal(requestUrl, "https://openai.test/v1/responses");
+  assert.equal(requestBody?.stream, true);
+  assert.deepEqual(events, [
+    { type: "message_start", provider: "openai", model: "gpt-test", requestId: "resp-stream-1" },
+    { type: "text_delta", text: "Hello" },
+    { type: "tool_call_start", index: 1, id: "call-1", name: "lookup" },
+    { type: "tool_call_delta", index: 1, argumentsDelta: '{"q":"x"}' },
+    { type: "usage", usage: { inputTokens: 12, outputTokens: 5, totalTokens: 17, cachedInputTokens: 2, reasoningTokens: 1 }, source: "provider_reported" },
+    { type: "message_end", finishReason: "completed" },
+  ]);
+});
+
+test("OpenAI Responses stream rejects a truncated stream without a terminal event", async () => {
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('event: response.created\ndata: {"response":{"id":"resp-truncated","model":"gpt-test"}}\n\n'));
+      controller.close();
+    },
+  });
+  const provider = new OpenAIProvider("https://openai.test/v1", "gpt-test", 1000, async () =>
+    new Response(stream, { status: 200, headers: { "content-type": "text/event-stream" } }));
+  provider.setRuntimeApiKey("test-openai-canonical-key-1234567890");
+  await assert.rejects(async () => {
+    for await (const _event of provider.streamRequest({ version: 1, model: "gpt-test", stream: true, messages: [{ role: "user", content: "Hello" }] })) { /* consume */ }
+  }, /terminal response event/);
+});
