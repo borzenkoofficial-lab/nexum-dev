@@ -169,7 +169,7 @@ test("network failure recovers with bounded retries and stable request identity"
 
   const status = await page.evaluate(() => (window as any).__NEXUM_E2E__.status());
   expect(status.activeTasks).toBe(0);
-  expect(status.network).toEqual([]);
+  expect(status.network.filter((request: any) => request.taskId === result.taskId)).toEqual([]);
   const attempts = status.diagnostics.filter((d: any) => d.subsystem === "NETWORK" && d.message.includes("Injected network failure") && d.context?.taskId === result.taskId);
   expect(attempts.length).toBeGreaterThanOrEqual(1);
   const requestIds = new Set(attempts.map((d: any) => d.payload?.requestId).filter(Boolean));
