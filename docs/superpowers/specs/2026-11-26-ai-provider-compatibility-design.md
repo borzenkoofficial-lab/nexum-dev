@@ -93,3 +93,15 @@
 7. AbortSignal передаётся адаптеру.
 8. Conformance suite проверяет минимальный контракт, ошибки и отсутствие секретов в публичной ошибке.
 9. API typecheck, unit tests и CI проверены; никаких production действий.
+
+
+## Дополнительные решения после conformance review
+
+- Assistant message может содержать `toolCalls`, даже если текстовый content пустой. Tool-call history — часть canonical conversation, а не только отдельный список доступных tools.
+- Usage принимается только как неотрицательные целые token counts. Если usage отсутствует, malformed или противоречит `usageSource`, нормализованный источник становится `unavailable`. Estimated usage остаётся явно estimated.
+- Redaction покрывает оба поля `NexumError`: `technicalDetails` и `userSafeMessage`. Нельзя полагаться на то, что уже классифицированная ошибка безопасна.
+- Dedicated provider-contract workflow выполняет API typecheck и полный API test suite отдельно от browser E2E.
+
+## Реализация foundation
+
+Реализованы canonical types/validation, strict legacy bridge, `AIGateway.generateRequest()`, model capability checks, response/usage normalization, tool-call history validation, error credential redaction и reusable conformance tests. Реальные provider-specific native adapters и миграция продуктовых call sites остаются следующей фазой.
