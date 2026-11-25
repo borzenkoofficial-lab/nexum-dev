@@ -1578,7 +1578,7 @@ export class AgentLoop {
           ...options,
           onTextDelta: (delta: string) => {
             if (delta) emittedText = true;
-            responseOptions.onTextDelta?.(delta);
+            options.onTextDelta?.(delta);
           },
         }
       : options;
@@ -1593,7 +1593,6 @@ export class AgentLoop {
         return await this.gateway.generate(task, responseOptions);
       } catch (error) {
         if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
-        if (emittedText) throw error;
         if (emittedText) throw error;
         const detail = error instanceof Error ? error.message : "AI response generation failed";
         const response = `NEXUM завершил выполнение, но финальный ответ AI недоступен: ${detail}. Проверьте Preview и AI Activity.`;
@@ -1639,6 +1638,7 @@ export class AgentLoop {
       return await this.gateway.generate(`Задача выполнена: ${task}\nРезультаты инструментов:\n${summary}`, responseOptions);
     } catch (error) {
         if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
+        if (emittedText) throw error;
       const detail = error instanceof Error ? error.message : "AI response generation failed";
       const response = `Задача выполнена, но финальный ответ AI недоступен: ${detail}. Откройте Preview и вкладку AI Activity для проверки результата.`;
       responseOptions?.onTextDelta?.(response);
