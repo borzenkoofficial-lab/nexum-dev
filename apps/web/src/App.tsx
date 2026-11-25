@@ -55,6 +55,7 @@ function App() {
   });
   const [message, setMessage] = useState("");
   const [pendingAgentDefinitionId, setPendingAgentDefinitionId] = useState<string | null>(null);
+  const [pendingAgentProjectId, setPendingAgentProjectId] = useState<string | null>(null);
   const [reply, setReply] = useState("");
   const [lastMessage, setLastMessage] = useState("");
   const [agentStage, setАгентStage] = useState<АгентStage>(null);
@@ -584,7 +585,7 @@ function App() {
 
   async function sendMessage(task = message, projectIdOverride?: string) {
     const targetПроектId = projectIdOverride ?? activeПроектId;
-    const agentDefinitionIdForRequest = pendingAgentDefinitionId;
+    const agentDefinitionIdForRequest = pendingAgentProjectId === (projectIdOverride ?? activeПроектId) ? pendingAgentDefinitionId : null;
     if (!task.trim() || !targetПроектId) return;
     setLastMessage(task);
     setProjectTaskMeta((items) => ({ ...items, [targetПроектId]: { task: task.trim(), timestamp: Date.now(), status: "queued" } }));
@@ -636,7 +637,10 @@ function App() {
       };
       if (!data.jobId) throw new Error(data.error || "API чата не вернул идентификатор задачи");
 
-      if (agentDefinitionIdForRequest && pendingAgentDefinitionId === agentDefinitionIdForRequest) setPendingAgentDefinitionId(null);
+      if (agentDefinitionIdForRequest && pendingAgentDefinitionId === agentDefinitionIdForRequest) {
+        setPendingAgentDefinitionId(null);
+        setPendingAgentProjectId(null);
+      }
       setAuthoritativeChatJobId(data.jobId);
       if (import.meta.env.VITE_E2E === "true") {
         const testWindow = window as unknown as { __NEXUM_E2E_LAST_JOB_ID__?: string; __NEXUM_E2E_RUNTIME_TASK_ID__?: string };
@@ -971,6 +975,7 @@ function App() {
               projects={projects}
               onUseProfile={(projectId, prompt) => {
                 setPendingAgentDefinitionId(null);
+                setPendingAgentProjectId(null);
                 openПроект(projectId, "agent");
                 setProjectMode("agent");
                 setMessage(prompt);
@@ -978,6 +983,7 @@ function App() {
               }}
               onUseAgent={(projectId, agentId, task) => {
                 setPendingAgentDefinitionId(agentId);
+                setPendingAgentProjectId(projectId);
                 openПроект(projectId, "agent");
                 setProjectMode("agent");
                 setMessage(task);
