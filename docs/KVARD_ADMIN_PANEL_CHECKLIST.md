@@ -466,3 +466,5 @@
 - Verification caveat: CI has not yet been confirmed for this stage; no live provider request was performed. Do not mark the provider production-ready until CI and credential-backed sandbox smoke tests pass.
 
 - 2026-11-26 — Added Gateway tests confirming canonical event forwarding and fail-closed behavior when streaming capability is unknown; verifies unsupported streams are rejected before adapter invocation. Commit: `8d56ac2d06927fa64937be38a6534d8dc21d3e68`. CI still pending; Vercel previously reported build-rate-limit.
+
+- 2026-11-26 — Hardened Anthropic SSE parsing to flush a final frame even when the stream closes without a trailing blank line. Commit: `24564cfe92b824570d7eb5e6a1e7b6161b23fd7b`.
