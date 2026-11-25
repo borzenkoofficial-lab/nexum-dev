@@ -65,3 +65,14 @@ Interactive components define default, hover, focus-visible, active, disabled an
 3. Studio work surface.
 4. Agent builder and runtime views.
 5. Responsive, accessibility and regression verification.
+
+
+## Workspace home implementation
+The home screen uses a persistent left navigation rail on desktop and a compact horizontal navigation on narrow screens.
+- Primary action: create a project from a natural-language brief.
+- Quick-start prompts are inserted into the same composer; they do not create projects until the user submits.
+- Recent projects are rendered from the existing project collection and open the existing Studio/agent flow.
+- Empty state directs the user to the task composer rather than showing fabricated activity.
+- Sidebar project shortcuts are limited to active projects and use the existing project-open callback.
+- Keyboard shortcut hint is shown for Ctrl/⌘ + Enter; the primary action remains available as a button.
+- A skip link provides direct keyboard access to the main workspace content.
