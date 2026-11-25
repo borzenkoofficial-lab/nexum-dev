@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import "./nexum-welcome.css";
+import "../kvard-design-system.css";
 
 type AuthMode = "register" | "login";
 type IntroPhase = "wake" | "logo" | "boot" | "hello" | "auth";
@@ -112,7 +113,7 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
       <main className={"nexum-welcome nexum-post-auth-boot " + (ready ? "is-ready" : "")}>
         <div className="nexum-boot-center">
           <div className="nexum-logo-mark" aria-label="КВАРД WORKSPACE"><span>К</span></div>
-          <div className="nexum-boot-word">КВАРД <span>OS</span></div>
+          <div className="nexum-boot-word">КВАРД <span>WORKSPACE</span></div>
           <p>{ready ? "Рабочий стол готов." : "Запуск рабочего пространства…"}</p>
           <div className="nexum-boot-progress"><i style={{ width: `${bootProgress}%` }} /></div>
           <div className="nexum-boot-status">{ready ? "СИСТЕМА ГОТОВА" : bootProgress < 32 ? "ЗАПУСК ЯДРА" : bootProgress < 62 ? "ЗАГРУЗКА ПРОСТРАНСТВА" : bootProgress < 90 ? "ПОДГОТОВКА РАБОЧЕГО СТОЛА" : "ПОЧТИ ГОТОВО"}</div>
@@ -125,7 +126,7 @@ export function NexumWelcome({ onComplete }: NexumWelcomeProps) {
   return (
     <main className={"nexum-welcome " + sceneClass}>
       <header className="nexum-welcome-nav">
-        <div className="nexum-brand"><span className="nexum-logo-mark small"><span>К</span></span><b>КВАРД</b><em>OS</em></div>
+        <div className="nexum-brand"><span className="nexum-logo-mark small"><span>К</span></span><b>КВАРД</b><em>WORKSPACE</em></div>
         <div className="nexum-os-session"><span className="nx-live-dot" /> ЗАПУСК СИСТЕМЫ <b>1.0</b></div>
       </header>
 
