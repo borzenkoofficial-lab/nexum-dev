@@ -398,3 +398,11 @@
 - `AIGateway.getModelCatalog()` отличает реально полученные модели от fallback model ID из конфигурации; пустой/недоступный каталог явно помечается unverified.
 - `AIModelRegistry.list()` возвращает verified/source/status, а `select()` допускает только модель, реально присутствующую в проверенном каталоге провайдера.
 - Dedicated workflow `45709473332` passed на commit `7746b9b8263fed0eef503d1c4fe73e2ffaf70211`: API typecheck passed, 66/66 focused AI provider contract tests passed.
+
+
+### AI Provider Contract — catalog cache
+
+- Каталог моделей кэшируется на 60 секунд; одновременные запросы используют один in-flight refresh.
+- Изменение/ротация provider credentials немедленно инвалидирует каталог; результат старого запроса не может перезаписать новую ревизию cache.
+- `getModels()` использует тот же каталог, чтобы не было разных списков моделей у разных компонентов.
+- Dedicated workflow `45710089229` passed на commit `63115817de617dd4803cf5f100f4a0aa8962fab9`: API typecheck passed, 67/67 focused AI provider contract tests passed.
