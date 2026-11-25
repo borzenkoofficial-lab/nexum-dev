@@ -245,7 +245,7 @@ export async function createUser(email: string, name: string, password: string):
 export async function authenticateUser(email: string, password: string): Promise<AuthUser | null> {
   const normalizedEmail = validateEmail(email);
   const result = await query<{ id: string; email: string; name: string; password_hash: string; created_at: string }>(
-    "SELECT id, email, name, password_hash, created_at FROM users WHERE email = $1 LIMIT 1",
+    "SELECT id, email, name, password_hash, created_at FROM users WHERE email = $1 AND status = 'active' LIMIT 1",
     [normalizedEmail],
   );
   const row = result.rows[0];
