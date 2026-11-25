@@ -9,7 +9,8 @@ type Session = { id: string; user_id: string; email: string; mfa_verified: boole
 type Event = { id: string; actor_user_id: string | null; action: string; target_type: string; target_id: string; created_at: string };
 type UserRow = { id: string; email: string; name: string; created_at: string; status: "active" | "suspended"; suspended_at: string | null; suspension_reason: string | null; admin_role: Role | null; organizations_count: number; projects_count: number };
 type OrganizationRow = { id: string; name: string; slug: string; created_at: string; members_count: number; agents_count: number; workforces_count: number; owner_email: string | null };
-type MemberRow = { id: string; email: string; name: string; role: string; joined_at: string };\ntype DashboardMetrics = { users: { total: number; active: number; suspended: number; new7d: number }; organizations: number; projects: number; agents: number; runs: { last24h: number; active: number; completed24h: number; failed24h: number }; ai: { cost30d: string; tokens30d: number } };
+type MemberRow = { id: string; email: string; name: string; role: string; joined_at: string };
+type DashboardMetrics = { users: { total: number; active: number; suspended: number; new7d: number }; organizations: number; projects: number; agents: number; runs: { last24h: number; active: number; completed24h: number; failed24h: number }; ai: { cost30d: string; tokens30d: number } };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...init, credentials: "include", headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) } });
@@ -24,7 +25,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 const date = (value: string) => new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 
 export function AdminControlCenter() {
-  const [identity, setIdentity] = useState<Identity | null>(null);\n  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [identity, setIdentity] = useState<Identity | null>(null);
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [section, setSection] = useState<Section>("overview");
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
