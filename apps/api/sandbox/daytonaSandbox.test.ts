@@ -19,6 +19,7 @@ test("workspace staging excludes secrets, dependencies, build output and symlink
     await mkdir(join(root, ".docker"), { recursive: true });
     await writeFile(join(root, "src", "main.ts"), "export {};");
     await writeFile(join(root, ".env"), "SECRET=do-not-copy");
+    await writeFile(join(root, ".ENV.production"), "SECRET=also-do-not-copy");
     await writeFile(join(root, "private.pem"), "PRIVATE KEY");
     await writeFile(join(root, "credentials.json"), "{}");
     await writeFile(join(root, ".docker", "config.json"), "{}");
