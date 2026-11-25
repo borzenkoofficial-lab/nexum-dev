@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { AIGateway } from "./gateway.js";
-import type { AIProvider, AIRequest, AIResponse } from "./types.js";
+import type { AIModelCapabilities, AIProvider, AIRequest, AIResponse } from "./types.js";
 
 class LegacyFixture implements AIProvider {
   id = "legacy";
@@ -96,8 +96,20 @@ test("gateway rejects unsupported capabilities before making a provider call", a
 
 
 test("treats unknown model capabilities as unsupported rather than assuming support", async () => {
+  const unknownCapabilities: AIModelCapabilities = {
+    text: true,
+    code: false,
+    vision: "unknown",
+    toolCalling: false,
+    streaming: false,
+    structuredOutput: false,
+    reasoning: false,
+    contextWindow: 16_000,
+  };
   class UnknownVisionProvider extends NativeFixture {
-    capabilities = { ...super.capabilities, vision: "unknown" as const };
+    getCapabilities() {
+      return unknownCapabilities;
+    }
   }
   const provider = new UnknownVisionProvider();
   const gateway = new AIGateway([provider], "native");
