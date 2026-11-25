@@ -52,6 +52,20 @@ adminRouter.put("/roles/:userId", requireAdminPermission("roles.manage"), async 
 
   try {
     const assignment = await withDatabaseTransaction(async (client) => {
+      // Serialize all Super Admin promotion/demotion paths to protect the last owner.
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('kvard_admin_super_admin_guard'))");
+      const existing = await client.query<{ role: AdminRole }>(
+        "SELECT role FROM admin_role_assignments WHERE user_id = $1 FOR UPDATE",
+        [targetUserId],
+      );
+      if (existing.rows[0]?.role === "super_admin" && role !== "super_admin") {
+        const count = await client.query<{ count: string }>(
+          "SELECT COUNT(*)::text AS count FROM admin_role_assignments WHERE role = 'super_admin'",
+        );
+        if (Number(count.rows[0]?.count ?? 0) <= 1) {
+          throw new Error("Cannot demote the last Super Admin.");
+        }
+      }
       const updated = await client.query<{ user_id: string; role: AdminRole; created_at: string; updated_at: string }>(
         `INSERT INTO admin_role_assignments (user_id, role, granted_by)
          SELECT id, $2, $3 FROM users WHERE id = $1
@@ -71,7 +85,10 @@ adminRouter.put("/roles/:userId", requireAdminPermission("roles.manage"), async 
     });
     if (!assignment) return res.status(404).json({ success: false, error: "Target user not found." });
     return res.json({ success: true, assignment });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "Cannot demote the last Super Admin.") {
+      return res.status(409).json({ success: false, error: error.message });
+    }
     return res.status(503).json({ success: false, error: "Administrative role update failed." });
   }
 });
