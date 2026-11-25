@@ -17,7 +17,7 @@ export function validateObjectKey(key: string): string {
     key.length > 1024 ||
     key.startsWith("/") ||
     key.includes("\\") ||
-    key.includes("\\0") ||
+    key.includes(String.fromCharCode(0)) ||
     key.split("/").some((segment) => !segment || segment === "." || segment === "..")
   ) {
     throw new Error("Object key is invalid");
