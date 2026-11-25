@@ -1,6 +1,6 @@
 # КВАРД — единая пользовательская дизайн-система и план внедрения
 
-**Статус:** аудит завершён; первый брендовый этап внедрён; UI Kit и browser visual QA ещё впереди  
+**Статус:** аудит, брендовый знак и первый UI Kit increment внедрены; browser visual QA и расширение UI Kit остаются открытыми  
 **Дата проверки:** 26 ноября 2026  
 **Проверенная ветка:** `main`  
 **HEAD исходного snapshot:** `66990520c9e23c1c7c9cfe250045518fa2b5b509`  
@@ -11,13 +11,24 @@
 
 ## Implementation progress — 26 November 2026
 
+**Brand foundation**
 - [x] Added the shared `KvardMark` React SVG component using the existing favicon geometry and semantic brand tokens.
-- [x] Migrated Sidebar, Welcome, OSSystemChrome, BuilderShell, OSDesktop, BuilderChat and BuilderHome to the shared mark.
-- [x] Removed duplicate letter tiles and the CSS-generated Welcome mark.
-- [x] Added four focused brand tests and a dedicated CI step.
-- [x] CI verified the focused brand tests and Web build. A full green pipeline is not claimed: the latest run contains unrelated API-test and runtime E2E failures.
-- [ ] Browser visual QA, real screenshots, clear-space and light/dark responsive inspection remain open.
-- [ ] Next implementation phase: shared UI Kit primitives, starting with Button, Field and Status patterns.
+- [x] Migrated Sidebar, Welcome, OSSystemChrome, BuilderShell, OSDesktop, BuilderChat, BuilderHome and Business Agents list marks.
+- [x] Removed duplicate letter tiles and CSS-generated brand marks.
+- [x] Added focused brand geometry, sizing and accessibility tests.
+
+**First UI Kit increment**
+- [x] Added `KvardButton`, `KvardField` and `KvardStatusBadge` with native HTML semantics.
+- [x] Added semantic token-based styles for button variants/states, field labels/hints/errors and status tones.
+- [x] Integrated shared controls into AI Agents and Business Agents without changing handlers or API behavior.
+- [x] Removed the local button/status styles superseded by shared primitives.
+- [x] Added focused UI Kit tests and CI execution.
+
+**Verification**
+- [x] CI build job on commit `f8311dd`: brand tests, UI Kit tests, API typecheck/tests, Web runtime tests, Web typecheck/build/lint, production Docker build and production-container smoke test all passed.
+- [ ] E2E job for that commit is still running; no E2E pass is claimed yet.
+- [ ] Browser screenshots, clear-space and manual light/dark responsive QA remain open.
+- [ ] Next UI Kit increments: Tabs, Dialog/Modal, Alert, Empty and Loading patterns.
 
 
 ---
@@ -462,10 +473,10 @@ Welcome проходит фиксированные timed scenes. Прогрес
 
 - Проверены implementation commits: `c90c38c`, `96e3f08`, `dec6cf2`, `d7e8502`, `ef636e0`; каждый затронул только запланированные user-facing brand files.
 - В implementation commits не затронуты административные файлы, маршруты, API, MFA или permissions.
-- CI run `45704112563`: brand tests, API typecheck/tests, Web runtime tests, Web typecheck/build/lint, Docker build и production-container smoke test прошли в build job.
-- E2E job run `45704112563` завершился ошибкой существующего runtime resource-cleanup assertion: после отмены ожидалось `runtimeData.resources === 0`. Это не связано с рендерингом бренда.
-- Более поздний run `45704411330`: brand tests и Web build в E2E job прошли; build job остановился на трёх API-тестах по tool-call capability, legacy bridge validation и bearer-credential redaction.
-- CI не считается полностью зелёным. Browser visual QA, скриншоты, clear-space и ручная проверка light/dark остаются открытыми.
+- CI run `45707760275` build job прошёл полностью: brand tests, UI Kit tests, API typecheck/tests, Web runtime tests, Web typecheck/build/lint, production Docker build и production-container smoke test.
+- E2E job run `45707760275` на момент обновления документа ещё выполнялся.
+- CI build job для этой реализации зелёный; общий pipeline не объявляется полностью зелёным до завершения E2E.
+- Browser visual QA, скриншоты, clear-space и ручная проверка light/dark остаются открытыми.
 - Разработка выполняется непосредственно в `main`, без отдельных веток и PR, по прямому требованию владельца продукта.
 
 ## 13. Источники внутри репозитория
