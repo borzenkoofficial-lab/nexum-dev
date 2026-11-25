@@ -99,6 +99,7 @@ export interface AIResponse {
   usageSource?: AIUsageSource;
   toolCalls?: AIToolCall[];
   finishReason?: string;
+  stopSequence?: string;
   latencyMs?: number;
 }
 
