@@ -33,7 +33,7 @@ async function launchConfiguredAgent(page: any, projectId: string, agent: { id: 
   await page.goto("/agents");
   await expect(page.getByRole("heading", { name: "Агенты и профили запуска" })).toBeVisible();
   await page.getByLabel("Проект для запуска").selectOption(projectId);
-  const task = "Покажи структуру текущего проекта. Ничего не изменяй.";
+  const task = "Покажи структуру текущего проекта.";
   await page.getByLabel("Задача для выбранного агента").fill(task);
   const card = page.locator(".kv-agents-profile").filter({ hasText: agent.name });
   await card.getByRole("button", { name: "Открыть в Studio" }).click();
