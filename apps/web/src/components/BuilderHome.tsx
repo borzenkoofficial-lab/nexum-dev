@@ -64,7 +64,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
 
         <div className="kv-home-sidebar-bottom">
           <button type="button" onClick={() => onOpenView("settings")}><span>⚙</span>Настройки</button>
-          <div className="kv-home-profile"><span>К</span><div><strong>Моё пространство</strong><small>Личный аккаунт</small></div><i>•••</i></div>
+          <div className="kv-home-profile"><span>К</span><div><strong>Моё пространство</strong><small>Рабочее пространство</small></div><i>•••</i></div>
         </div>
       </aside>
 
@@ -72,7 +72,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
         <header className="kv-home-topbar">
           <div className="kv-home-breadcrumb"><span>Рабочая среда</span><i>/</i><strong>Обзор</strong></div>
           <div className="kv-home-top-actions">
-            <span className="kv-home-system-state"><i />Рабочая среда готова</span>
+            <span className="kv-home-top-context">Панель управления</span>
             <button type="button" onClick={() => onOpenView("settings")} aria-label="Открыть настройки">⚙</button>
           </div>
         </header>
