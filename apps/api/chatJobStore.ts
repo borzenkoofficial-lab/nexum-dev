@@ -402,8 +402,17 @@ export async function cancelChatJob(id: string, userId: string, message = "Agent
         SET status='cancelled',
             updated_at=$3,
             payload=jsonb_set(
-              jsonb_set(payload, '{stage}', '"cancelled"'::jsonb, true),
-              '{error}', to_jsonb($4::text), true
+              jsonb_set(
+                jsonb_set(
+                  jsonb_set(
+                    jsonb_set(payload, '{stage}', '"cancelled"'::jsonb, true),
+                    '{error}', to_jsonb($4::text), true
+                  ),
+                  '{pendingApproval,status}', '"cancelled"'::jsonb, true
+                ),
+                '{pendingApproval,resolvedAt}', to_jsonb($5::bigint), true
+              ),
+              '{pendingApproval,resolvedBy}', '"system"'::jsonb, true
             )
       WHERE id=$1 AND user_id=$2 AND status IN ('queued','running')
       RETURNING *`,
