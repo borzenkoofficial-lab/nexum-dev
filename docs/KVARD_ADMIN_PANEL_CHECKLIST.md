@@ -4,7 +4,7 @@
 
 **Принцип готовности:** пункт получает `DONE` только после реализации в коде, проверки серверной авторизации, тестов и фиксации доказательства (commit/PR/CI). Наличие макета или UI без работающего backend не считается выполнением.
 
-**Текущий статус:** `IN_PROGRESS` — создан первый backend security foundation; административный UI, MFA и production-доступ ещё не реализованы. Пункты не переводятся в DONE до прохождения CI и проверок реального API.
+**Текущий статус:** `IN_PROGRESS` — RBAC foundation, TOTP/recovery primitives, AES-256-GCM encrypt/decrypt и MFA storage migration подготовлены; enrollment/login challenge integration, админ UI, end-to-end security tests и production access ещё не реализованы. Пункты не переводятся в DONE до прохождения CI и проверок реального API.
 
 ## Правила ведения чек-листа
 
@@ -34,7 +34,7 @@
 - [ ] SEC-09. Проверить, что обычный пользователь, даже зная URL и API endpoints, получает 403.
 - [ ] SEC-10. Проверить, что пользователь не может повысить собственную роль через изменение запроса, профиля, организации или JWT payload.
 - [ ] SEC-11. Административные сессии имеют отдельную политику: короткий idle timeout, повторное подтверждение для критических действий, отзыв сессий.
-- [ ] SEC-12. Добавить MFA для административных аккаунтов до production-доступа. — TODO; production admin API принудительно возвращает 503, пока MFA не реализована.
+- [ ] SEC-12. Добавить MFA для административных аккаунтов до production-доступа. — IN_PROGRESS: TOTP и recovery-code primitives (`totp.ts`), AES-256-GCM encryption (`mfaEncryption.ts`), tests и migration `013_admin_mfa.sql` добавлены; CI отменялся на последовательных push и должен быть запущен после интеграционного этапа. MFA login/enrollment/replay protection integration не готова; production admin API остаётся закрытым.
 - [ ] SEC-13. Все критические действия требуют подтверждения и пишутся в неизменяемый аудит. — PARTIAL: append-only audit schema создана; подтверждения и запись всех действий ещё не реализованы.
 - [ ] SEC-14. Секреты провайдеров никогда не возвращаются UI; показывать только маскированное значение/статус наличия.
 - [ ] SEC-15. Защита от CSRF, rate limiting, secure/HttpOnly/SameSite cookies, строгая CORS policy и проверка origin для административных операций.
