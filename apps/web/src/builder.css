@@ -148,3 +148,14 @@
 .nx-code > header > div:last-child { display: flex; align-items: center; gap: 8px; }
 .nx-code > header > div:last-child > span { color: var(--nx-muted); font-size: 10px; }
 .nx-code-file span { color: var(--nx-muted); font-size: 10px; }
+
+.nx-agent-state { padding: 5px 7px; border: 1px solid var(--nx-border); border-radius: 4px; color: var(--nx-muted); font-size: 10px; }
+.nx-agent-state.live { color: var(--nx-text); }
+.nx-device-tabs { justify-content: flex-end; padding: 8px 12px 0; }
+.nx-device-tabs button.selected { background: var(--nx-surface-muted); }
+.nx-files aside button.selected, .nx-code-body aside button.selected { border-color: var(--nx-border); background: var(--nx-surface-muted); }
+.nx-messages article.user { margin-left: auto; width: min(88%, 620px); background: var(--nx-surface-muted); }
+.nx-messages article:not(.user) { width: min(96%, 680px); }
+.nx-messages article aside { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; color: var(--nx-muted); font-size: 10px; }
+.nx-model-pop { max-height: min(360px, 55dvh); overflow: auto; box-shadow: 0 8px 24px rgb(0 0 0 / 8%); }
+.nx-send { min-width: 36px; font-size: 18px; font-weight: 650; }
