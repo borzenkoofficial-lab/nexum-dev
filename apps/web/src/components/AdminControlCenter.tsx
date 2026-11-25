@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import "./AdminControlCenter.css";
 
 type Role = "super_admin" | "admin" | "support" | "finance" | "developer" | "auditor";
-type Section = "overview" | "users" | "organizations" | "roles" | "sessions" | "audit";
+type Section = "overview" | "users" | "organizations" | "roles" | "sessions" | "audit" | "ai";
+type AIProviderRow = { id: string; name: string; defaultModel: string; isDefault: boolean; configured: boolean; runtimeReady: boolean; source: string; status: string; lastVerifiedAt: string | null; updatedAt: string | null };
 type Identity = { role: Role; permissions: string[]; user: { id: string } };
 type Assignment = { user_id: string; role: Role; updated_at: string };
 type Session = { id: string; user_id: string; email: string; mfa_verified: boolean; last_seen_at: string; expires_at: string };
@@ -43,6 +44,8 @@ export function AdminControlCenter() {
   const [auditFilterQuery, setAuditFilterQuery] = useState("");
   const [organizations, setOrganizations] = useState<OrganizationRow[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
+  const [aiProviders, setAiProviders] = useState<AIProviderRow[]>([]);
+  const [aiProviderKeys, setAiProviderKeys] = useState<Record<string, string>>({});
   const [directorySearch, setDirectorySearch] = useState("");
   const [suspensionReason, setSuspensionReason] = useState("");
   const [selectedOrganization, setSelectedOrganization] = useState<string | null>(null);
@@ -70,6 +73,7 @@ export function AdminControlCenter() {
         setEvents((await request<{ events: Event[] }>("/api/admin/audit?limit=100" + auditFilterQuery)).events);
       }
       if (section === "overview") setMetrics((await request<{ metrics: DashboardMetrics }>("/api/admin/overview")).metrics);
+      if (section === "ai" && me.permissions.includes("ai.read")) setAiProviders((await request<{ providers: AIProviderRow[] }>("/api/admin/ai/providers")).providers);
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка загрузки"); }
     finally { setLoading(false); }
   }, [section, directorySearch, selectedUserId, auditFilterQuery]);
@@ -103,13 +107,14 @@ export function AdminControlCenter() {
     { id: "roles", title: "Доступы" },
     { id: "sessions", title: "Сессии" },
     { id: "audit", title: "Аудит" },
+    { id: "ai", title: "AI и модели" },
   ];
   return <div className="kvard-admin">
     <aside className="kvard-admin-rail">
       <a className="kvard-admin-brand" href="/"><b>К</b><span>КВАРД<small>CONTROL CENTER</small></span></a>
       <label>УПРАВЛЕНИЕ</label>
       <nav>{items.map(item => {
-        const allowed = item.id === "overview" || (item.id === "users" && can("users.read")) || (item.id === "organizations" && can("organizations.read")) || (item.id === "roles" && can("roles.manage")) || (item.id === "sessions" && can("sessions.manage")) || (item.id === "audit" && can("audit.read"));
+        const allowed = item.id === "overview" || (item.id === "users" && can("users.read")) || (item.id === "organizations" && can("organizations.read")) || (item.id === "roles" && can("roles.manage")) || (item.id === "sessions" && can("sessions.manage")) || (item.id === "audit" && can("audit.read")) || (item.id === "ai" && can("ai.read"));
         return allowed ? <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}>{item.title}</button> : null;
       })}</nav>
       <footer><span>● Защищённая сессия</span><a href="/">Вернуться в КВАРД ↗</a></footer>
@@ -154,6 +159,16 @@ export function AdminControlCenter() {
         <div className="kvard-admin-panel"><small>ACCESS REGISTRY</small><h3>Текущие назначения</h3>{assignments.length ? <div className="kvard-admin-table"><table><thead><tr><th>User ID</th><th>Роль</th><th>Изменено</th><th/></tr></thead><tbody>{assignments.map(x => <tr key={x.user_id}><td>{x.user_id}</td><td>{x.role}</td><td>{date(x.updated_at)}</td><td><button className="danger" onClick={() => void mutate(() => request("/api/admin/roles/" + encodeURIComponent(x.user_id), { method: "DELETE" }).then(() => undefined))}>Отозвать</button></td></tr>)}</tbody></table></div> : <p>Назначений нет.</p>}</div>
       </section>}
       {section === "sessions" && can("sessions.manage") && <section><div className="kvard-admin-panel"><small>SESSION REGISTRY</small><h3>Активные сессии</h3>{sessions.length ? <div className="kvard-admin-table"><table><thead><tr><th>Пользователь</th><th>MFA</th><th>Активность</th><th>Истекает</th><th/></tr></thead><tbody>{sessions.map(x => <tr key={x.id}><td>{x.email}<small>{x.user_id}</small></td><td>{x.mfa_verified ? "Да" : "Нет"}</td><td>{date(x.last_seen_at)}</td><td>{date(x.expires_at)}</td><td><button className="danger" onClick={() => void mutate(() => request("/api/admin/sessions/" + encodeURIComponent(x.id), { method: "DELETE" }).then(() => undefined))}>Отозвать</button></td></tr>)}</tbody></table></div> : <p>Нет активных сессий.</p>}</div></section>}
+
+      {section === "ai" && can("ai.read") && <section>
+        <div className="kvard-admin-panel"><small>AI PROVIDER REGISTRY</small><h3>Провайдеры платформы</h3><p>Ключи хранятся только на backend в зашифрованном виде. Значения секретов не возвращаются в интерфейс.</p>
+          <div className="kvard-admin-table"><table><thead><tr><th>Провайдер</th><th>Модель по умолчанию</th><th>Конфигурация</th><th>Последняя проверка</th><th>Действия</th></tr></thead><tbody>
+            {aiProviders.map(provider => <tr key={provider.id}><td><strong>{provider.name}</strong>{provider.isDefault && <small>Основной</small>}</td><td>{provider.defaultModel}</td><td>{provider.runtimeReady ? "Ключ загружен" : provider.configured ? "Сохранён, но не загружен" : "Не настроен"}<small>{provider.source}</small></td><td>{provider.lastVerifiedAt ? date(provider.lastVerifiedAt) : provider.status === "environment_configured" ? "Переменная окружения" : "Не проверялся"}</td><td>{can("ai.manage") && <><input type="password" autoComplete="new-password" value={aiProviderKeys[provider.id] ?? ""} placeholder="Новый API-ключ" onChange={event => setAiProviderKeys(current => ({ ...current, [provider.id]: event.target.value }))}/><button disabled={!(aiProviderKeys[provider.id] ?? "").trim()} onClick={() => void mutate(async () => { await request("/api/admin/ai/providers/" + provider.id + "/credential", { method: "PUT", body: JSON.stringify({ apiKey: aiProviderKeys[provider.id] }) }); setAiProviderKeys(current => ({ ...current, [provider.id]: "" })); })}>Сохранить ключ</button><button disabled={!provider.runtimeReady} onClick={() => void mutate(() => request("/api/admin/ai/providers/" + provider.id + "/verify", { method: "POST", body: JSON.stringify({}) }).then(() => undefined))}>Проверить</button></>}</td></tr>)}
+          </tbody></table></div>
+          {!aiProviders.length && <p>Провайдеры не загружены.</p>}
+        </div>
+      </section>}
+
       {section === "audit" && can("audit.read") && <section><div className="kvard-admin-panel"><small>APPEND-ONLY LOG</small><h3>Журнал действий</h3><form className="kvard-admin-form" onSubmit={event => { event.preventDefault(); const params = new URLSearchParams(); if (auditActor.trim()) params.set("actorUserId", auditActor.trim()); if (auditAction.trim()) params.set("action", auditAction.trim()); if (auditTarget.trim()) params.set("targetType", auditTarget.trim()); if (auditFrom) params.set("from", new Date(auditFrom).toISOString()); if (auditTo) params.set("to", new Date(auditTo).toISOString()); setAuditFilterQuery(params.toString() ? "&" + params.toString() : ""); }}><input value={auditActor} onChange={event => setAuditActor(event.target.value)} placeholder="UUID актора"/><input value={auditAction} onChange={event => setAuditAction(event.target.value)} placeholder="Действие"/><input value={auditTarget} onChange={event => setAuditTarget(event.target.value)} placeholder="Тип объекта"/><input type="datetime-local" value={auditFrom} onChange={event => setAuditFrom(event.target.value)}/><input type="datetime-local" value={auditTo} onChange={event => setAuditTo(event.target.value)}/><button>Применить фильтры</button></form>{events.length ? <div className="kvard-admin-table"><table><thead><tr><th>Событие</th><th>Актор</th><th>Объект</th><th>Время</th></tr></thead><tbody>{events.map(x => <tr key={x.id}><td>{x.action}</td><td>{x.actor_user_id ?? "system"}</td><td>{x.target_type}: {x.target_id}</td><td>{date(x.created_at)}</td></tr>)}</tbody></table></div> : <p>Событий пока нет.</p>}</div></section>}
     </main>
     {mfaOpen && <div className="kvard-admin-modal"><form onSubmit={confirmMfa}><small>SECURITY CHECK</small><h2>Подтвердите действие</h2><p>Введите новый код аутентификатора или неиспользованный резервный код. Подтверждение действует 10 минут.</p><input autoFocus value={mfaCode} onChange={event => setMfaCode(event.target.value)} placeholder="Код MFA" required/><div><button type="button" onClick={() => { setMfaOpen(false); setPending(null); setMfaCode(""); }}>Отмена</button><button>Подтвердить</button></div></form></div>}

@@ -13,15 +13,17 @@ export type AdminPermission =
   | "runtime.manage"
   | "audit.read"
   | "roles.manage"
-  | "sessions.manage";
+  | "sessions.manage"
+  | "ai.read"
+  | "ai.manage";
 
 const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
-  super_admin: ["dashboard.read", "users.read", "users.manage", "organizations.read", "billing.read", "billing.manage", "runtime.read", "runtime.manage", "audit.read", "roles.manage", "sessions.manage"],
-  admin: ["dashboard.read", "users.read", "users.manage", "organizations.read", "runtime.read", "audit.read"],
+  super_admin: ["dashboard.read", "users.read", "users.manage", "organizations.read", "billing.read", "billing.manage", "runtime.read", "runtime.manage", "audit.read", "roles.manage", "sessions.manage", "ai.read", "ai.manage"],
+  admin: ["dashboard.read", "users.read", "users.manage", "organizations.read", "runtime.read", "audit.read", "ai.read"],
   support: ["dashboard.read", "users.read", "organizations.read"],
   finance: ["dashboard.read", "billing.read", "billing.manage"],
-  developer: ["dashboard.read", "runtime.read", "runtime.manage"],
-  auditor: ["dashboard.read", "users.read", "organizations.read", "billing.read", "runtime.read", "audit.read"],
+  developer: ["dashboard.read", "runtime.read", "runtime.manage", "ai.read"],
+  auditor: ["dashboard.read", "users.read", "organizations.read", "billing.read", "runtime.read", "audit.read", "ai.read"],
 };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

@@ -64,6 +64,19 @@ export class AIGateway {
     this.onFallback = options.onFallback;
   }
 
+  setRuntimeProviderApiKey(providerId: string, apiKey: string): void {
+    const provider = this.providers.get(providerId);
+    const setter = provider && (provider as unknown as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey;
+    if (!setter) throw new Error(`Provider ${providerId} does not support API credentials`);
+    setter.call(provider, apiKey);
+  }
+
+  hasRuntimeProviderApiKey(providerId: string): boolean {
+    const provider = this.providers.get(providerId);
+    const hasKey = provider && (provider as unknown as { hasApiKey?: () => boolean }).hasApiKey;
+    return Boolean(hasKey?.call(provider));
+  }
+
   setRuntimeOpenAIKey(apiKey: string): void {
     const provider = this.providers.get("openai");
     if (!provider || typeof (provider as { setRuntimeApiKey?: (key: string) => void }).setRuntimeApiKey !== "function") {

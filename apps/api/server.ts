@@ -48,6 +48,7 @@ import { createWorkforcesRouter } from "./routes/workforces.js";
 import { knowledgeRouter } from "./routes/knowledge.js";
 import { approvalsRouter } from "./routes/approvals.js";
 import { adminMfaRouter } from "./routes/adminMfa.js";
+import { bindPlatformAIGateway, loadPlatformProviderCredentials } from "./ai/providerRegistry.js";
 
 
 const requestIds = new WeakMap<object, string>();
@@ -227,6 +228,9 @@ const aiGateway = new AIGateway(
     },
   },
 );
+
+bindPlatformAIGateway(aiGateway);
+void loadPlatformProviderCredentials();
 
 const userAIGateways = new Map<string, AIGateway>();
 

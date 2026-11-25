@@ -2,6 +2,7 @@ import { Router } from "express";
 import { getAuthUser } from "../auth.js";
 import { withDatabaseTransaction, query } from "../db.js";
 import { requireAdminPermission, requireRecentMfa, type AdminRole } from "../adminAccess.js";
+import { isPlatformKeyedProvider, listPlatformProviders, savePlatformProviderCredential, verifyPlatformProvider } from "../ai/providerRegistry.js";
 
 export const adminRouter = Router();
 
@@ -482,5 +483,37 @@ adminRouter.get("/audit", requireAdminPermission("audit.read"), async (req, res)
     return res.json({ success: true, events: result.rows, pagination: { page, limit, total: Number(count.rows[0]?.total ?? 0) } });
   } catch {
     return res.status(503).json({ success: false, error: "Administrative audit storage unavailable" });
+  }
+});
+
+adminRouter.get("/ai/providers", requireAdminPermission("ai.read"), async (_req, res) => {
+  try {
+    return res.json({ success: true, providers: await listPlatformProviders() });
+  } catch {
+    return res.status(503).json({ success: false, error: "AI provider registry unavailable." });
+  }
+});
+
+adminRouter.put("/ai/providers/:providerId/credential", requireAdminPermission("ai.manage"), requireRecentMfa, async (req, res) => {
+  const providerId = typeof req.params.providerId === "string" ? req.params.providerId : "";
+  const apiKey = typeof req.body?.apiKey === "string" ? req.body.apiKey : "";
+  if (!isPlatformKeyedProvider(providerId)) return res.status(400).json({ success: false, error: "Unsupported AI provider." });
+  if (!apiKey.trim()) return res.status(400).json({ success: false, error: "API key is required." });
+  try {
+    await savePlatformProviderCredential(providerId, apiKey, getAuthUser(req).id, req.header("x-request-id") ?? null);
+    return res.json({ success: true, providerId, configured: true, verified: false });
+  } catch (error) {
+    return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "AI credential could not be stored." });
+  }
+});
+
+adminRouter.post("/ai/providers/:providerId/verify", requireAdminPermission("ai.manage"), requireRecentMfa, async (req, res) => {
+  const providerId = typeof req.params.providerId === "string" ? req.params.providerId : "";
+  if (!isPlatformKeyedProvider(providerId)) return res.status(400).json({ success: false, error: "Unsupported AI provider." });
+  try {
+    const status = await verifyPlatformProvider(providerId, getAuthUser(req).id, req.header("x-request-id") ?? null);
+    return res.json({ success: true, status });
+  } catch {
+    return res.status(503).json({ success: false, error: "AI provider verification failed." });
   }
 });
