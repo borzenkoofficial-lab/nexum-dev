@@ -7,6 +7,8 @@ import { Readable } from "node:stream";
 import { DaytonaSandboxProvider, collectWorkspaceFiles, type DaytonaClientLike } from "./daytonaSandbox.js";
 import { disposeAllSandboxSessions, releaseSandboxSession, resetSandboxRunnerForTests, runInConfiguredSandbox, setSandboxProviderForTests } from "./runner.js";
 import type { SandboxProvider, SandboxSession } from "./provider.js";
+import { TestProjectTool } from "../agent/tools/testProject.js";
+import { ProjectWorkspace } from "../agent/tools/workspace.js";
 
 test("workspace staging excludes secrets, dependencies, build output and symlinks", async () => {
   const root = await mkdtemp(join(tmpdir(), "nexum-daytona-stage-"));
@@ -327,4 +329,30 @@ test("sandbox runner rejects new work after shutdown begins", async () => {
   );
   assert.equal(createCalls, 0);
   await resetSandboxRunnerForTests();
+});
+
+
+test("TestProject build-only fallback forwards the cancellation signal", async () => {
+  await resetSandboxRunnerForTests();
+  const root = await mkdtemp(join(tmpdir(), "nexum-test-project-cancel-"));
+  const controller = new AbortController();
+  let receivedSignal: AbortSignal | undefined;
+  let disposeCalls = 0;
+  setSandboxProviderForTests({
+    create: async (_request, signal) => {
+      receivedSignal = signal;
+      return fakeSession(() => { disposeCalls += 1; });
+    },
+  });
+  try {
+    await writeFile(join(root, "package.json"), JSON.stringify({ scripts: { build: "vite build" } }));
+    const tool = new TestProjectTool(new ProjectWorkspace(root));
+    const result = await tool.execute(".", controller.signal);
+    assert.equal(result.success, true);
+    assert.equal(receivedSignal, controller.signal);
+    assert.equal(disposeCalls, 1);
+  } finally {
+    await resetSandboxRunnerForTests();
+    await rm(root, { recursive: true, force: true });
+  }
 });
