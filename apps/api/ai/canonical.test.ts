@@ -76,7 +76,7 @@ test("requires tool-calling capability for assistant tool-call history", () => {
     ...textRequest,
     messages: [{
       role: "assistant",
-      content: "I will call a tool",
+      content: "",
       toolCalls: [{ id: "call-1", name: "lookup", arguments: { query: "status" } }],
     }],
   } as unknown as AIRequest;
