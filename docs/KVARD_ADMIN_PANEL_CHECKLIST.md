@@ -356,3 +356,12 @@
 |---|---|---|---|
 | 2026-11-26 | AI-ADAPTER-01–08 | Canonical contract, validation, strict legacy bridge, gateway routing, usage normalization and conformance fixture tests implemented. Native adapters for real providers and product-call migration remain pending. | Dedicated workflow `45705059762` passed on `9f4e999`; commits include `1994066`, `46326d4`, `1be20a3`, `c75c394`, `b198745`, `bed827d`, `eedb792`, `9f4e999`. PARTIAL. |
 | 2026-11-26 | CI-BASELINE | Build job passed; Runtime E2E remains red on a cancellation/resource-release assertion unrelated to provider-contract tests. | Workflow `45704112563`; 40 passed, 1 failed, 3 skipped in E2E. Full CI not green. |
+
+
+### AI Provider Contract — follow-up hardening
+
+- Canonical assistant messages теперь поддерживают tool-call history, включая assistant tool-call-only messages без текстового content. Для них требуется `toolCalling`; legacy bridge отклоняет их до обращения к provider.
+- Usage валидируется как неотрицательное целое число. Отсутствующий, malformed или противоречивый usage не маркируется как provider-reported и не превращается в нули; источник становится `unavailable`. Estimated usage остаётся явно estimated.
+- Credential redaction применяется также к `userSafeMessage` и `technicalDetails` уже типизированных `NexumError`, а не только к обычным Error от provider.
+- Dedicated workflow `45705690934` завершился успешно на commit `53e0be5392fce43a3b623623ab63aa32022d9891`: API typecheck прошёл, 241/241 API tests прошли, 0 failures.
+- Это подтверждает contract foundation и test suite. Нативные реализации протоколов для реальных поставщиков, продуктовая миграция и sandbox checks остаются pending.
