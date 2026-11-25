@@ -68,8 +68,8 @@ async function bootstrapSuperAdmins(): Promise<void> {
 }
 
 export async function requireAdminAccess(req: Request, res: Response, next: NextFunction): Promise<void> {
-  // MFA is not implemented in the current authentication flow. Keep production
-  // administration closed even if an operator accidentally configures the bootstrap list.
+  // Keep production administration closed until the complete security review is signed off.
+  // In every environment, an admin session must carry the server-signed MFA claim.
   if (process.env.NODE_ENV === "production") {
     res.status(503).json({ success: false, error: "Administrative access is disabled until MFA is enforced." });
     return;
@@ -77,6 +77,10 @@ export async function requireAdminAccess(req: Request, res: Response, next: Next
   const userId = req.user?.id;
   if (!userId) {
     res.status(401).json({ success: false, error: "Authentication required" });
+    return;
+  }
+  if (req.user?.mfaVerified !== true) {
+    res.status(403).json({ success: false, error: "MFA verification required for administrative access." });
     return;
   }
   try {
