@@ -1512,6 +1512,7 @@ function parseAgentDefinitionInput(body: Record<string, unknown>, partial = fals
     } else if (field === "provider" || field === "model") {
       if (value !== null && typeof value !== "string") return null;
       if (typeof value === "string" && value.length > (field === "provider" ? 40 : 120)) return null;
+      if (field === "provider" && typeof value === "string" && !["ollama", "openrouter", "anymodel", "openai", "anthropic", "orcarouter"].includes(value)) return null;
       result[field] = value;
     } else {
       if (typeof value !== "string") return null;
