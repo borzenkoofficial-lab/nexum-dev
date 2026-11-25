@@ -415,3 +415,15 @@
 - Added provider conformance tests covering exact upstream catalog results, missing credentials and provider outage behavior.
 - Dedicated workflow `45710389512` passed on commit `5fbbd6b50784eeabf136175019d1e196fdac44db`: API typecheck passed; 79/79 API tests passed.
 - Full NEXUM CI for the final documentation commit is pending. No production deployment, paid request or provider credential purchase occurred.
+
+
+### AI Provider Contract — native OpenAI Responses adapter
+
+- OpenAI получил native `generateRequest()` на официальном Responses API; старые string-based вызовы остаются на Chat Completions через явно отделённый `legacyProtocol`.
+- Реализованы сериализация canonical messages, images (URL/data URL), function calls и tool outputs, function definitions/tool choice, JSON/JSON Schema, max output tokens, sampling params, timeout/cancellation, idempotency key, response/usage normalization.
+- Model discovery возвращает только provider-reported IDs; статические defaults не выдаются за проверенный каталог. Известные text-generation families допускаются, неизвестные и embedding/image/audio модели остаются fail-closed; расширенные capabilities пока unknown.
+- Добавлен отдельный `OPENAI_RESPONSES_BASE_URL` для случаев, когда Responses endpoint размещён отдельно от legacy Chat Completions base URL.
+- Stop sequences и streaming явно отклоняются до вызова API: streaming требует отдельного event contract.
+- Dedicated workflow `45710389512` passed на commit `5fbbd6b50784`: API typecheck passed, 79/79 focused AI provider contract tests passed.
+- Full NEXUM CI `45709660925` passed на commit `853e...` (build + E2E); это было до native OpenAI adapter. Full CI после последнего адаптера ожидает отдельного подтверждения.
+- Реальные provider credentials, платные запросы и production deploy не использовались.
