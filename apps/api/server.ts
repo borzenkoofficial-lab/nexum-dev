@@ -701,20 +701,24 @@ async function shutdownServer(signal: "SIGTERM" | "SIGINT"): Promise<void> {
   if (shutdownPromise) return shutdownPromise;
   shutdownPromise = (async () => {
     console.log(`[Nexum] ${signal} received; shutting down HTTP server and runtime.`);
-    // Abort background Agent jobs first so no model/tool work can keep the
-    // process alive while Playwright or a production supervisor waits for exit.
-    for (const controller of chatJobControllers.values()) controller.abort();
-    chatJobControllers.clear();
-    await disposeAllSandboxSessions();
-    serverRuntime.shutdown();
-
-    await new Promise<void>((resolve) => {
+    // Stop accepting new requests before taking the task/session cleanup
+    // snapshot. Otherwise a request could create a sandbox after the snapshot
+    // and leave it alive until its provider TTL expires.
+    const serverClosed = new Promise<void>((resolve) => {
       if (!httpServer || !httpServer.listening) {
         resolve();
         return;
       }
       httpServer.close(() => resolve());
     });
+
+    // Abort background Agent jobs so no model/tool work can keep the process
+    // alive while Playwright or a production supervisor waits for exit.
+    for (const controller of chatJobControllers.values()) controller.abort();
+    chatJobControllers.clear();
+    await disposeAllSandboxSessions();
+    serverRuntime.shutdown();
+    await serverClosed;
 
     await closeDatabase().catch((error) => {
       console.error("[Nexum] database shutdown failed", error);
