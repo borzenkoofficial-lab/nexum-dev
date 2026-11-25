@@ -387,3 +387,12 @@ The adapter now preserves Anthropic cache-read and cache-creation token dimensio
 Authentication is part of each provider adapter contract and must not be generalized into one universal header. For Anthropic Messages, the adapter sends the provider credential in `x-api-key` and the API version in `anthropic-version`; it must not send the key as a Bearer token. The regression test asserts both the required header and absence of `Authorization`.
 
 Provider acceptance remains staged: source-level contract tests do not equal a live provider smoke test. A provider is not marked operationally verified until an authorized sandbox request succeeds and returns a valid model identity and usage metadata.
+
+
+## 13. Canonical streaming contract
+
+The canonical streaming API is an async event stream. Event types are `message_start`, `text_delta`, `tool_call_start`, `tool_call_delta`, `usage`, `message_end`, and provider errors are surfaced as classified gateway errors (not as fabricated text). Provider adapters must preserve event order, honor AbortSignal and request timeout, parse incomplete SSE chunks safely, and never expose upstream credentials or raw sensitive error payloads. Usage is authoritative only when the provider supplies the required counters; otherwise emit `source: unavailable` and do not synthesize zeroes.
+
+The gateway rejects streaming before provider invocation unless the adapter implements `streamRequest` and the selected model explicitly reports streaming support. A completed-response API must not silently buffer a streaming request.
+
+Anthropic Messages now implements SSE streaming with text deltas, tool-call start/JSON argument deltas, finish reason, request identity, and reported usage. Its adapter test uses a deterministic in-memory SSE response; this is a contract test, not a live Anthropic connectivity test.
