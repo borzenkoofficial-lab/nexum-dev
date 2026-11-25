@@ -1,9 +1,7 @@
 import type { AIGateway } from "./gateway.js";
-import type { AIModelCapabilities } from "./types.js";
+import type { AIModelCapabilities, AIModelCapabilityKey } from "./types.js";
 
-export type AIModelRequirement = Partial<Pick<AIModelCapabilities,
-  "text" | "code" | "vision" | "toolCalling" | "streaming" | "structuredOutput" | "reasoning"
->>;
+export type AIModelRequirement = Partial<Record<AIModelCapabilityKey, boolean>>;
 
 export interface RegisteredAIModel {
   provider: string;
