@@ -293,3 +293,20 @@
 |---|---|---|---|
 | 2026-11-25 | USER-02, AUDIT-01–02 | Карточка пользователя: организации/роли, проекты, подписки, AI usage, агрегаты запусков. Аудит API: фильтры actor/action/target/date, пагинация; UI применяет фильтры явно. | Commits `19f4527`, `e1844cc`, `adb8734`. Workflow `45698449442`: API tests, Web typecheck/build/lint, Docker build и smoke test прошли; Runtime E2E отменён до результата. IN_PROGRESS. |
 | 2026-11-25 | SEC-13, USER-05 | Защита административных аккаунтов от блокировки обычным Admin; только Super Admin может блокировать/активировать администраторов. Последний активный Super Admin защищён advisory lock + транзакционной проверкой. | Commit `f5763a0`; вошёл в build workflow `45698449442` (build success), отдельные abuse-case tests pending. IN_PROGRESS. |
+
+
+## 2026-11-25 — AI Providers, Models, Subscriptions и usage billing
+
+- Архитектурная спецификация создана: `docs/KVARD_AI_BILLING_ARCHITECTURE.md` (commit `eb4d276`).
+- Подтверждено по текущему коду: поддерживаются OpenAI, Anthropic, OpenRouter, OrcaRouter, AnyModel и Ollama; уже существует общий AI Gateway и получение каталога моделей.
+- Обнаружен важный технический долг: пользовательские provider credentials хранятся в process-local `Map` и теряются при перезапуске API. Это не подходит для постоянной платформенной конфигурации и нескольких экземпляров.
+- Существующая `usage_records` содержит provider/model/tokens/estimated_cost, но не обеспечивает полноценный idempotent usage ledger, предварительное резервирование бюджета и settlement.
+- Уже есть `subscription_plans` и `organization_subscriptions`, однако платежный webhook lifecycle и entitlement-модель для конкретных AI-моделей пока не подтверждены.
+- Автоматическое пополнение баланса provider API не является универсальной функцией. Оно будет подключаться только через официально поддерживаемые механизмы конкретного провайдера; в остальных случаях нужны мониторинг баланса, жёсткий spend cap и fail-closed.
+- Следующие этапы реализации: (1) encrypted persistent provider credentials + admin registry, (2) model catalog + entitlements, (3) usage reservations/ledger, (4) subscription enforcement, (5) payment webhooks, (6) provider balance monitoring/top-up adapters.
+- Ничего не развёртывалось в production, миграции production не запускались, секреты и платежи не менялись.
+- Workflow `45698861118`: Build завершился успешно; Runtime E2E был отменён, поэтому полный CI для текущего набора изменений не подтверждён.
+
+| Дата | Пункты | Изменение | Проверки / статус |
+|---|---|---|---|
+| 2026-11-25 | AI-01–AI-10, BILL-01, BILL-04–05 | Проведён аудит существующих AI gateway/provider adapters, subscription tables и usage records; зафиксирована целевая архитектура ключей, модели, entitlement, ledger, платежей и provider top-up. | Commit `eb4d276`; документ спецификации добавлен. Реализация backend/UI ещё не начата. IN_PROGRESS |
