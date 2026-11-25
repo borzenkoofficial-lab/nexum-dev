@@ -40,6 +40,16 @@ test("KvardButton preserves native type, variant, size, accessible name and load
   assert.equal(spinner.props["aria-hidden"], true);
 });
 
+test("uses safe defaults for ordinary buttons", () => {
+  const props = propsOf(KvardButton({ children: "Открыть" }));
+
+  assert.equal(props.type, "button");
+  assert.match(String(props.className), /kv-button--secondary/);
+  assert.match(String(props.className), /kv-button--md/);
+  assert.equal(props.disabled, false);
+  assert.equal(props["aria-busy"], undefined);
+});
+
 test("KvardField connects its label, hint and error to the native control", () => {
   const field = KvardField({
     id: "email",
