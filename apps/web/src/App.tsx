@@ -54,6 +54,7 @@ function App() {
     return segments[0] === "projects" && segments[1] ? decodeURIComponent(segments[1]) : "nexum";
   });
   const [message, setMessage] = useState("");
+  const [pendingAgentDefinitionId, setPendingAgentDefinitionId] = useState<string | null>(null);
   const [reply, setReply] = useState("");
   const [lastMessage, setLastMessage] = useState("");
   const [agentStage, setАгентStage] = useState<АгентStage>(null);
@@ -583,6 +584,7 @@ function App() {
 
   async function sendMessage(task = message, projectIdOverride?: string) {
     const targetПроектId = projectIdOverride ?? activeПроектId;
+    const agentDefinitionIdForRequest = pendingAgentDefinitionId;
     if (!task.trim() || !targetПроектId) return;
     setLastMessage(task);
     setProjectTaskMeta((items) => ({ ...items, [targetПроектId]: { task: task.trim(), timestamp: Date.now(), status: "queued" } }));
@@ -617,6 +619,7 @@ function App() {
           model: aiModel,
           attachments: serializedAttachments,
           conversation: chatContext,
+          ...(agentDefinitionIdForRequest ? { agentDefinitionId: agentDefinitionIdForRequest } : {}),
         }),
       });
 
@@ -633,6 +636,7 @@ function App() {
       };
       if (!data.jobId) throw new Error(data.error || "API чата не вернул идентификатор задачи");
 
+      if (agentDefinitionIdForRequest && pendingAgentDefinitionId === agentDefinitionIdForRequest) setPendingAgentDefinitionId(null);
       setAuthoritativeChatJobId(data.jobId);
       if (import.meta.env.VITE_E2E === "true") {
         const testWindow = window as unknown as { __NEXUM_E2E_LAST_JOB_ID__?: string; __NEXUM_E2E_RUNTIME_TASK_ID__?: string };
@@ -966,10 +970,18 @@ function App() {
             <AgentsPage
               projects={projects}
               onUseProfile={(projectId, prompt) => {
+                setPendingAgentDefinitionId(null);
                 openПроект(projectId, "agent");
                 setProjectMode("agent");
                 setMessage(prompt);
                 setNotice("Профиль загружен в Studio. Проверьте инструкцию и запустите задачу.");
+              }}
+              onUseAgent={(projectId, agentId, task) => {
+                setPendingAgentDefinitionId(agentId);
+                openПроект(projectId, "agent");
+                setProjectMode("agent");
+                setMessage(task);
+                setNotice("Агент выбран. Проверьте задачу в Studio и отправьте её: сервер применит его системную инструкцию и список разрешённых инструментов.");
               }}
               onCreateProject={(description) => openNewProject(description)}
             />
