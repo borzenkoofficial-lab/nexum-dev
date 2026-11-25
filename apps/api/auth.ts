@@ -184,11 +184,13 @@ export async function authMiddleware(request: Request, response: Response, next:
   }
   try {
     const active = await query(
-      `UPDATE auth_sessions SET last_seen_at = NOW()
-       WHERE id = $1 AND user_id = $2 AND mfa_verified = $3
-         AND revoked_at IS NULL AND expires_at > NOW()
-         AND last_seen_at > NOW() - INTERVAL '30 minutes'
-       RETURNING id`,
+      `UPDATE auth_sessions s SET last_seen_at = NOW()
+       FROM users u
+       WHERE s.id = $1 AND s.user_id = $2 AND s.mfa_verified = $3
+         AND s.revoked_at IS NULL AND s.expires_at > NOW()
+         AND s.last_seen_at > NOW() - INTERVAL '30 minutes'
+         AND u.id = s.user_id AND u.status = 'active'
+       RETURNING s.id`,
       [user.sessionId, user.id, user.mfaVerified === true],
     );
     if (active.rows.length !== 1) {
