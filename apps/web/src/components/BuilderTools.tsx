@@ -37,6 +37,8 @@ export function BuilderTools(p: Props) {
   const [content, setContent] = useState("");
   const [saved, setSaved] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fileLoading, setFileLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const frame = useRef<HTMLIFrameElement>(null);
   const dirty = content !== saved;
@@ -64,10 +66,15 @@ export function BuilderTools(p: Props) {
   }, [p.tab, loadFiles, p.previewKey]);
 
   useEffect(() => {
-    if (!selected || p.tab !== "files") return;
+    if (!selected || p.tab !== "files") {
+      setFileLoading(false);
+      return;
+    }
     let cancelled = false;
-    setLoading(true);
+    setFileLoading(true);
     setError("");
+    setContent("");
+    setSaved("");
     fetch("/api/projects/" + encodeURIComponent(p.projectId) + "/file?path=" + encodeURIComponent(selected))
       .then(async (response) => {
         const data = await response.json();
@@ -83,14 +90,14 @@ export function BuilderTools(p: Props) {
         if (!cancelled) setError(cause instanceof Error ? cause.message : String(cause));
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setFileLoading(false);
       });
     return () => { cancelled = true; };
   }, [selected, p.projectId, p.tab]);
 
   async function save() {
-    if (!selected || !dirty || loading) return;
-    setLoading(true);
+    if (!selected || !dirty || fileLoading || saving) return;
+    setSaving(true);
     setError("");
     try {
       const response = await fetch("/api/projects/" + encodeURIComponent(p.projectId) + "/file", {
@@ -105,7 +112,7 @@ export function BuilderTools(p: Props) {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
@@ -158,8 +165,8 @@ export function BuilderTools(p: Props) {
           <main>
             {selected ? (
               <>
-                <div className="nx-file-head"><b>{selected}</b><button type="button" disabled={!dirty || loading} onClick={() => void save()}>{loading ? "Сохранение…" : dirty ? "Сохранить изменения" : "Сохранено"}</button></div>
-                <textarea aria-label={"Содержимое файла " + selected} spellCheck={false} value={content} onChange={(event) => setContent(event.target.value)} />
+                <div className="nx-file-head"><b>{selected}</b><button type="button" disabled={!dirty || fileLoading || saving} onClick={() => void save()}>{saving ? "Сохранение…" : fileLoading ? "Загрузка…" : dirty ? "Сохранить изменения" : "Сохранено"}</button></div>
+                <textarea aria-label={"Содержимое файла " + selected} spellCheck={false} disabled={fileLoading} value={content} onChange={(event) => setContent(event.target.value)} />
               </>
             ) : <div className="nx-empty">Выберите файл проекта</div>}
           </main>
