@@ -346,3 +346,28 @@ test("native Messages adapter streams canonical text, finish reason and usage ev
     { type: "usage", usage: { inputTokens: 11, outputTokens: 4, totalTokens: 15 }, source: "provider_reported" },
   ]);
 });
+
+
+test("native Messages streaming rejects a truncated stream without message_stop", async () => {
+  const streamBody = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode([
+        "event: message_start",
+        'data: {"message":{"id":"msg-truncated","model":"claude-sonnet-5","usage":{"input_tokens":2}}}',
+        "",
+        "event: content_block_delta",
+        'data: {"index":0,"delta":{"type":"text_delta","text":"partial"}}',
+        "",
+        "",
+      ].join("\n")));
+      controller.close();
+    },
+  });
+  const provider = createProvider(async () => new Response(streamBody, { status: 200, headers: { "content-type": "text/event-stream" } }));
+  await assert.rejects(async () => {
+    for await (const _event of provider.streamRequest({
+      version: 1, model: "claude-sonnet-5", stream: true,
+      messages: [{ role: "user", content: "Hello" }],
+    })) { /* consume */ }
+  }, /message_stop/);
+});
