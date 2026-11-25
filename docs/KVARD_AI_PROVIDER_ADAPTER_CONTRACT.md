@@ -198,3 +198,11 @@ CI evidence: dedicated provider-contract workflow `45705059762` passed (API type
 - Token counts must be non-negative integers. Missing, malformed, or contradictory usage metadata is normalized to `unavailable`; no zero values are invented. Explicit estimated usage remains `estimated`.
 - Credential redaction applies to both technical details and user-safe messages from already-classified `NexumError` instances, not only raw provider exceptions.
 - Latest dedicated workflow `45705690934` passed on commit `53e0be5392fce43a3b623623ab63aa32022d9891`: API typecheck passed and 241/241 API tests passed.
+
+
+### Unknown capabilities — fail-closed semantics
+
+- `AIModelCapabilities` теперь допускает явное значение `"unknown"` для каждой capability.
+- Неизвестная capability не трактуется ни как поддерживаемая, ни как отрицательно подтверждённая. При запросе функции Gateway требует строго `true`; `false` и `unknown` оба блокируют вызов.
+- `AIModelRequirement` в каталоге остаётся boolean-only, чтобы нельзя было выбирать модель по требованию "unknown".
+- Dedicated workflow `45706535742` passed on commit `d9d2c03b5de7a7800df5972e96d91ea185d5b4d3`: API typecheck passed; 242/242 API tests passed.
