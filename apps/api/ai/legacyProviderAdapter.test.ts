@@ -84,3 +84,17 @@ test("legacy bridge does not call provider when request signal is already aborte
   await assert.rejects(() => generateWithLegacyProvider(provider, request({ signal: controller.signal })));
   assert.equal(provider.calls.length, 0);
 });
+
+
+test("legacy bridge rejects assistant tool-call history before invoking the provider", async () => {
+  const provider = new LegacyStub();
+  const input = request({
+    messages: [{
+      role: "assistant",
+      content: "Calling a tool",
+      toolCalls: [{ id: "call-1", name: "lookup", arguments: { query: "status" } }],
+    } as unknown as AIRequest["messages"][number]],
+  });
+  await assert.rejects(() => generateWithLegacyProvider(provider, input), (error: any) => error?.code === "MODEL_ERROR");
+  assert.equal(provider.calls.length, 0);
+});
