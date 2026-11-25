@@ -13,6 +13,8 @@ type MarkChildProps = {
   strokeLinejoin?: string;
 };
 
+type MarkElement = { type: string; props: MarkChildProps };
+
 type MarkProps = {
   viewBox: string;
   width: number;
@@ -20,11 +22,11 @@ type MarkProps = {
   role?: string;
   "aria-label"?: string;
   "aria-hidden"?: boolean;
-  children: ReactElement<MarkChildProps>[];
+  children: MarkElement[];
 };
 
 function propsOf(mark: ReactElement): MarkProps {
-  return mark.props as MarkProps;
+  return mark.props as unknown as MarkProps;
 }
 
 test("renders the canonical KVARD mark geometry at the requested size", () => {
