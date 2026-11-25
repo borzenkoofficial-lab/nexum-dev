@@ -69,7 +69,7 @@ export class AnyModelProvider implements AIProvider {
   }
 
   getCapabilities(model = this.model): AIModelCapabilities {
-    const capabilities = getOpenAICompatibleModelCapabilities(this.modelInfo.get(model), true);
+    const capabilities = getOpenAICompatibleModelCapabilities(this.modelInfo.get(model), Boolean(this.modelInfo.get(model)));
     return { ...capabilities, streaming: this.modelInfo.has(model) };
   }
 
@@ -134,7 +134,7 @@ export class AnyModelProvider implements AIProvider {
     } catch (error) {
       if (callerSignal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (controller.signal.aborted) throw new Error("AnyModel request timed out");
-      if (error instanceof Error && error.message.startsWith("AnyModel")) throw error;
+      if (error instanceof Error && error.message.toLowerCase().startsWith(this.id)) throw error;
       throw new Error("AnyModel streaming request failed");
     } finally {
       clearTimeout(timeout);
