@@ -28,21 +28,21 @@ test("parses events split across arbitrary chunks and preserves event order", as
 });
 
 test("supports UTF-8 code points split across byte chunks", async () => {
-  const bytes = new TextEncoder().encode('event: text_delta\ndata: {"type":"text_delta","text":"Привет 👋"}\n\n');
+  const bytes = new TextEncoder().encode('event: text_delta\ndata: {"type":"text_delta","text":"Привет 👋"}\n\nevent: message_end\ndata: {"type":"message_end"}\n\n');
   const chunks = Array.from(bytes, (byte) => Uint8Array.of(byte));
   const stream = new ReadableStream<Uint8Array>({
     start(controller) { for (const chunk of chunks) controller.enqueue(chunk); controller.close(); },
   });
   const received: AIStreamEvent[] = [];
   await consumeAIStream(new Response(stream), (event) => { received.push(event); });
-  assert.deepEqual(received, [{ type: "text_delta", text: "Привет 👋" }]);
+  assert.deepEqual(received, [{ type: "text_delta", text: "Привет 👋" }, { type: "message_end" }]);
 });
 
 test("ignores comments and parses CRLF plus multi-line data fields", async () => {
-  const frame = ': keep-alive\r\nevent: text_delta\r\ndata: {"type":"text_delta",\r\ndata: "text":"line one\\nline two"}\r\n\r\n';
+  const frame = ': keep-alive\r\nevent: text_delta\r\ndata: {"type":"text_delta",\r\ndata: "text":"line one\\nline two"}\r\n\r\nevent: message_end\r\ndata: {"type":"message_end"}\r\n\r\n';
   const received: AIStreamEvent[] = [];
   await consumeAIStream(responseFromChunks([frame]), (event) => { received.push(event); });
-  assert.deepEqual(received, [{ type: "text_delta", text: "line one\nline two" }]);
+  assert.deepEqual(received, [{ type: "text_delta", text: "line one\nline two" }, { type: "message_end" }]);
 });
 
 test("flushes a final event without a trailing blank line", async () => {
@@ -87,7 +87,7 @@ test("rejects oversized SSE frames", async () => {
 });
 
 test("rejects a stream that ends without message_end or error", async () => {
-  const frame = 'event: text_delta\\ndata: {"type":"text_delta","text":"partial"}\\n\\n';
+  const frame = 'event: text_delta\ndata: {"type":"text_delta","text":"partial"}\n\n';
   await assert.rejects(
     () => consumeAIStream(responseFromChunks([frame]), () => undefined),
     /without a terminal event/,
@@ -96,8 +96,8 @@ test("rejects a stream that ends without message_end or error", async () => {
 
 test("rejects events after the terminal event", async () => {
   const frames = [
-    'event: message_end\\ndata: {"type":"message_end"}\\n\\n',
-    'event: text_delta\\ndata: {"type":"text_delta","text":"late"}\\n\\n',
+    'event: message_end\ndata: {"type":"message_end"}\n\n',
+    'event: text_delta\ndata: {"type":"text_delta","text":"late"}\n\n',
   ].join("");
   await assert.rejects(
     () => consumeAIStream(responseFromChunks([frames]), () => undefined),
