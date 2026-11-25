@@ -425,6 +425,9 @@ export class AnthropicProvider implements AIProvider {
         }
         if (part.done) break;
       }
+      if (buffer.startsWith("event:")) eventName = buffer.slice(6).trim();
+      else if (buffer.startsWith("data:")) data += (data ? "\\n" : "") + buffer.slice(5).trimStart();
+      if (data) for (const event of emit(eventName, data)) yield event;
     } catch (error) {
       if (request.signal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (controller.signal.aborted) throw new Error("Anthropic request timed out");
