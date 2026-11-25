@@ -306,3 +306,43 @@ test("model discovery follows Anthropic cursor pagination and excludes deprecate
   assert.match(urls[1], /after_id=claude-sonnet-5/);
   assert.equal(provider.getCapabilities("claude-old").text, "unknown");
 });
+
+test("native Messages adapter streams canonical text, finish reason and usage events", async () => {
+  const encoder = new TextEncoder();
+  const streamBody = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(encoder.encode([
+        "event: message_start",
+        'data: {"message":{"id":"msg_stream_1","model":"claude-sonnet-5","usage":{"input_tokens":11}}}',
+        "",
+        "event: content_block_delta",
+        'data: {"index":0,"delta":{"type":"text_delta","text":"Привет"}}',
+        "",
+        "event: message_delta",
+        'data: {"delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":4}}',
+        "",
+        "event: message_stop",
+        "data: {}",
+        "",
+        "",
+      ].join("\n")));
+      controller.close();
+    },
+  });
+  const provider = createProvider(async (_input, init) => {
+    assert.equal((init?.headers as Record<string, string>)["x-api-key"], key);
+    assert.equal(JSON.parse(String(init?.body)).stream, true);
+    return new Response(streamBody, { status: 200, headers: { "content-type": "text/event-stream" } });
+  });
+  const events = [];
+  for await (const event of provider.streamRequest({
+    version: 1, model: "claude-sonnet-5", stream: true,
+    messages: [{ role: "user", content: "Привет" }],
+  })) events.push(event);
+  assert.deepEqual(events, [
+    { type: "message_start", provider: "anthropic", model: "claude-sonnet-5", requestId: "msg_stream_1" },
+    { type: "text_delta", text: "Привет" },
+    { type: "message_end", finishReason: "end_turn" },
+    { type: "usage", usage: { inputTokens: 11, outputTokens: 4, totalTokens: 15 }, source: "provider_reported" },
+  ]);
+});
