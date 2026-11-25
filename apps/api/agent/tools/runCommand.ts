@@ -3,7 +3,7 @@ import { resolveProjectPath } from "./path.js";
 import type { Tool } from "../types.js";
 import type { ToolResult } from "../types.js";
 import type { ServerRuntime } from "../../runtime/runtime.js";
-import { DockerSandbox } from "../../sandbox/dockerSandbox.js";
+import { runInConfiguredSandbox } from "../../sandbox/runner.js";
 import { spawn } from "node:child_process";
 
 export interface RunCommandResult extends ToolResult {
@@ -62,12 +62,11 @@ export class RunCommandTool implements Tool {
         return result;
       }
 
-      const sandbox = new DockerSandbox(this.projectRoot, undefined, this.runtime, this.context);
-      const sandboxResult = await sandbox.run({
+      const sandboxResult = await runInConfiguredSandbox(this.projectRoot, {
         projectPath: ".",
         command,
         timeoutMs: this.timeoutMs,
-      }, signal);
+      }, this.runtime, this.context, signal);
       const result: RunCommandResult = {
         success: sandboxResult.success,
         exitCode: sandboxResult.exitCode,
