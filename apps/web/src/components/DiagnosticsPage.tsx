@@ -29,7 +29,12 @@ type DiagnosticsResponse = {
   generatedAt?: string;
 };
 
-function statusLabel(status: string) {\n  const labels: Record<string, string> = { queued: "В очереди", running: "Выполняется", completed: "Завершено", failed: "Ошибка", cancelled: "Отменено" };\n  return labels[status] ?? status;\n}\n\nexport function DiagnosticsPage() {
+function statusLabel(status: string) {
+  const labels: Record<string, string> = { queued: "В очереди", running: "Выполняется", completed: "Завершено", failed: "Ошибка", cancelled: "Отменено" };
+  return labels[status] ?? status;
+}
+
+export function DiagnosticsPage() {
   const [data, setData] = useState<DiagnosticsResponse>({});
   const [selectedJob, setSelectedJob] = useState<string>("");
   const [jobEvents, setJobEvents] = useState<DiagnosticEvent[]>([]);
@@ -40,6 +45,7 @@ function statusLabel(status: string) {\n  const labels: Record<string, string> =
 
   const load = useCallback(async () => {
     setLoading(true);
+    setNotice("");
     try {
       const response = await fetch("/api/agent/diagnostics?limit=300");
       if (!response.ok) throw new Error(`Diagnostics HTTP ${response.status}`);
@@ -56,6 +62,7 @@ function statusLabel(status: string) {\n  const labels: Record<string, string> =
   const loadJob = useCallback(async (jobId: string) => {
     setSelectedJob(jobId);
     setJobLoading(true);
+    setNotice("");
     try {
       const response = await fetch(`/api/chat/jobs/${encodeURIComponent(jobId)}`);
       if (!response.ok) throw new Error(`Job HTTP ${response.status}`);
