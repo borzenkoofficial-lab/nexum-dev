@@ -35,10 +35,6 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
       <div className="kv-home-workspace">
         <header className="kv-home-topbar">
           <div className="kv-home-breadcrumb"><span>Рабочая среда</span><i>/</i><strong>Обзор</strong></div>
-          <div className="kv-home-top-actions">
-            <span className="kv-home-top-context">Панель управления</span>
-            <button type="button" onClick={() => onOpenView("settings")} aria-label="Открыть настройки">⚙</button>
-          </div>
         </header>
 
         <main className="kv-home-content" id="kv-home-content">
