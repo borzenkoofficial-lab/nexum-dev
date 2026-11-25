@@ -1,0 +1,149 @@
+name: Hourly autonomous development
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: hourly-codex-development
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    outputs:
+      role: ${{ steps.role.outputs.role }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Select rotating task
+        id: role
+        shell: bash
+        run: |
+          hour=$(date -u +%H)
+          slot=$((10#$hour % 3))
+          case "$slot" in
+            0) role="architecture-audit"; prompt_file=".github/codex/prompts/hourly-audit.md" ;;
+            1) role="implementation"; prompt_file=".github/codex/prompts/hourly-implementation.md" ;;
+            2) role="verification"; prompt_file=".github/codex/prompts/hourly-verification.md" ;;
+          esac
+          echo "role=$role" >> "$GITHUB_OUTPUT"
+          echo "prompt_file=$prompt_file" >> "$GITHUB_OUTPUT"
+          echo "Selected hourly role: $role (UTC hour $hour)"
+
+      - name: Require API secret
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::error::Set repository secret OPENAI_API_KEY to enable hourly Codex runs."
+            exit 1
+          fi
+
+      - name: Run Codex for selected role
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: ${{ steps.role.outputs.prompt_file }}
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          codex-args: '["--ephemeral"]'
+          output-file: codex-report.txt
+
+      - name: Export reviewable patch
+        shell: bash
+        run: |
+          # Include newly-created files in the patch, but never include the report itself.
+          git add -N -- . ':!codex-report.txt'
+          git diff --binary HEAD -- . ':!codex-report.txt' > hourly.patch
+          if [ ! -s hourly.patch ]; then
+            echo "Codex made no changes in this run." > hourly.patch
+          fi
+          if grep -Eiq '(sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----)' hourly.patch; then
+            echo "::error::Patch appears to contain a secret; artifact publishing blocked."
+            exit 1
+          fi
+          echo "Role: ${{ steps.role.outputs.role }}" > hourly-run.txt
+          echo "UTC run: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> hourly-run.txt
+          cat codex-report.txt >> hourly-run.txt || true
+
+      - name: Upload patch and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: hourly-codex-output
+          path: |
+            hourly.patch
+            hourly-run.txt
+          retention-days: 7
+
+  publish:
+    needs: agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download agent output
+        uses: actions/download-artifact@v4
+        with:
+          name: hourly-codex-output
+
+      - name: Apply patch and update persistent work branch
+        id: publish
+        shell: bash
+        run: |
+          if grep -q "Codex made no changes" hourly.patch; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --heads origin automation/hourly-codex-devloop | grep -q .; then
+            git fetch origin automation/hourly-codex-devloop
+            git checkout -B automation/hourly-codex-devloop FETCH_HEAD
+          else
+            git checkout -b automation/hourly-codex-devloop
+          fi
+          git apply --check hourly.patch
+          git apply hourly.patch
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git add -A
+          git commit -m "chore(agent): hourly ${{ needs.agent.outputs.role }} work"
+          git push origin automation/hourly-codex-devloop
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update autonomous work PR
+        if: steps.publish.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          pr_url=$(gh pr list --head automation/hourly-codex-devloop --base main --json url --jq '.[0].url')
+          if [ -z "$pr_url" ]; then
+            gh pr create --base main --head automation/hourly-codex-devloop \
+              --title "Hourly autonomous development work" \
+              --body "This PR is maintained by the hourly rotating Codex development workflow. Each run performs one bounded task (architecture/audit, implementation, or verification) and adds reviewed, tested changes. CI must pass; no auto-merge or production deploy."
+          else
+            echo "Existing PR will be updated by branch push: $pr_url"
+          fi
