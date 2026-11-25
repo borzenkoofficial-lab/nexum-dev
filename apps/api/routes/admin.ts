@@ -35,7 +35,7 @@ adminRouter.get("/users", requireAdminPermission("users.read"), async (req, res)
   const offset = (page - 1) * limit;
   try {
     const result = await query(
-      "SELECT u.id, u.email, u.name, u.created_at, ara.role AS admin_role, " +
+      "SELECT u.id, u.email, u.name, u.created_at, u.status, u.suspended_at, u.suspension_reason, ara.role AS admin_role, " +
       "COUNT(DISTINCT om.organization_id)::int AS organizations_count, COUNT(DISTINCT p.id)::int AS projects_count " +
       "FROM users u LEFT JOIN admin_role_assignments ara ON ara.user_id = u.id " +
       "LEFT JOIN organization_members om ON om.user_id = u.id LEFT JOIN project_workspaces p ON p.user_id = u.id " +
@@ -50,6 +50,71 @@ adminRouter.get("/users", requireAdminPermission("users.read"), async (req, res)
     return res.json({ success: true, users: result.rows, pagination: { page, limit, total: Number(count.rows[0]?.total ?? 0) } });
   } catch {
     return res.status(503).json({ success: false, error: "User directory unavailable." });
+  }
+});
+
+
+adminRouter.post("/users/:userId/suspend", requireAdminPermission("users.manage"), requireRecentMfa, async (req, res) => {
+  const targetUserId = typeof req.params.userId === "string" ? req.params.userId : "";
+  const reasonValue = (req.body as { reason?: unknown } | undefined)?.reason;
+  const reason = typeof reasonValue === "string" ? reasonValue.trim().slice(0, 500) : "";
+  if (!UUID_PATTERN.test(targetUserId) || reason.length < 5) {
+    return res.status(400).json({ success: false, error: "A valid user UUID and a suspension reason of at least 5 characters are required." });
+  }
+  const actor = getAuthUser(req);
+  if (targetUserId === actor.id) return res.status(409).json({ success: false, error: "You cannot suspend your own account." });
+  try {
+    const result = await withDatabaseTransaction(async (client) => {
+      const target = await client.query<{ id: string; status: string }>(
+        "SELECT id, status FROM users WHERE id = $1 FOR UPDATE", [targetUserId],
+      );
+      if (!target.rows[0]) return null;
+      const updated = await client.query(
+        "UPDATE users SET status = 'suspended', suspended_at = NOW(), suspended_by = $2, suspension_reason = $3 WHERE id = $1 RETURNING id, status, suspended_at, suspension_reason",
+        [targetUserId, actor.id, reason],
+      );
+      const revoked = await client.query(
+        "UPDATE auth_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL RETURNING id",
+        [targetUserId],
+      );
+      await client.query(
+        "INSERT INTO admin_audit_log (actor_user_id, action, target_type, target_id, request_id, metadata) VALUES ($1, 'user.suspend', 'user', $2, $3, $4::jsonb)",
+        [actor.id, targetUserId, req.header("x-request-id") ?? null, JSON.stringify({ reason, previousStatus: target.rows[0].status, revokedSessions: revoked.rows.length })],
+      );
+      return { user: updated.rows[0], revokedSessions: revoked.rows.length };
+    });
+    if (!result) return res.status(404).json({ success: false, error: "User not found." });
+    return res.json({ success: true, ...result });
+  } catch {
+    return res.status(503).json({ success: false, error: "Account suspension failed." });
+  }
+});
+
+adminRouter.post("/users/:userId/activate", requireAdminPermission("users.manage"), requireRecentMfa, async (req, res) => {
+  const targetUserId = typeof req.params.userId === "string" ? req.params.userId : "";
+  if (!UUID_PATTERN.test(targetUserId)) return res.status(400).json({ success: false, error: "A valid user UUID is required." });
+  const actor = getAuthUser(req);
+  if (targetUserId === actor.id) return res.status(409).json({ success: false, error: "Self-reactivation is not allowed through the admin endpoint." });
+  try {
+    const result = await withDatabaseTransaction(async (client) => {
+      const target = await client.query<{ id: string; status: string }>(
+        "SELECT id, status FROM users WHERE id = $1 FOR UPDATE", [targetUserId],
+      );
+      if (!target.rows[0]) return null;
+      const updated = await client.query(
+        "UPDATE users SET status = 'active', suspended_at = NULL, suspended_by = NULL, suspension_reason = NULL WHERE id = $1 RETURNING id, status",
+        [targetUserId],
+      );
+      await client.query(
+        "INSERT INTO admin_audit_log (actor_user_id, action, target_type, target_id, request_id, metadata) VALUES ($1, 'user.activate', 'user', $2, $3, $4::jsonb)",
+        [actor.id, targetUserId, req.header("x-request-id") ?? null, JSON.stringify({ previousStatus: target.rows[0].status })],
+      );
+      return updated.rows[0];
+    });
+    if (!result) return res.status(404).json({ success: false, error: "User not found." });
+    return res.json({ success: true, user: result, note: "The user must sign in again; previous sessions were revoked on suspension." });
+  } catch {
+    return res.status(503).json({ success: false, error: "Account reactivation failed." });
   }
 });
 
