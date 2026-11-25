@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import type { Tool, ToolResult } from "../types.js";
 import type { ServerRuntime } from "../../runtime/runtime.js";
 import { ProjectWorkspace } from "./workspace.js";
-import { DockerSandbox } from "../../sandbox/dockerSandbox.js";
+import { runInConfiguredSandbox } from "../../sandbox/runner.js";
 
 export class TestProjectTool implements Tool {
   name = "testProject";
@@ -24,7 +24,7 @@ export class TestProjectTool implements Tool {
       const scripts = pkg.scripts ?? {};
       const commands = ["test", "typecheck", "lint"].filter((name) => typeof scripts[name] === "string");
       if (!commands.length) {
-        if (typeof scripts.build === "string") return this.run(root, "npm", ["run", "build"], "build");
+        if (typeof scripts.build === "string") return this.run(root, "npm", ["run", "build"], "build", signal);
         return { success: true, output: "No automated test/typecheck/lint/build script is defined; project structure is valid for Preview." };
       }
 
@@ -66,12 +66,11 @@ export class TestProjectTool implements Tool {
 
   private async run(cwd: string, command: string, args: string[], stage: string, signal?: AbortSignal): Promise<ToolResult> {
     const requested = [command, ...args].join(" ");
-    const sandbox = new DockerSandbox(cwd, undefined, this.runtime, this.context);
-    const result = await sandbox.run({
+    const result = await runInConfiguredSandbox(cwd, {
       projectPath: ".",
       command: requested,
       timeoutMs: 120_000,
-    }, signal);
+    }, this.runtime, this.context, signal);
     return {
       success: result.success,
       output: JSON.stringify({

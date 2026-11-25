@@ -1,5 +1,5 @@
 import type { Tool, ToolResult } from "../types.js";
-import { DockerSandbox } from "../../sandbox/dockerSandbox.js";
+import { runInConfiguredSandbox } from "../../sandbox/runner.js";
 import type { SandboxRequest, SandboxResult } from "../../sandbox/types.js";
 import type { ServerRuntime } from "../../runtime/runtime.js";
 
@@ -13,18 +13,22 @@ export interface RunSandboxResult extends ToolResult {
 
 export class RunSandboxTool implements Tool {
   name = "runSandbox";
-  description = "Runs an allowlisted build or test command in an isolated Docker container";
+  description = "Runs an allowlisted build or test command in an isolated sandbox";
 
-  private readonly sandbox: DockerSandbox;
+  private readonly projectRoot: string;
+  private readonly runtime?: ServerRuntime;
+  private readonly context: { projectId?: string; taskId?: string };
 
   constructor(projectRoot: string, runtime?: ServerRuntime, context: { projectId?: string; taskId?: string } = {}) {
-    this.sandbox = new DockerSandbox(projectRoot, undefined, runtime, context);
+    this.projectRoot = projectRoot;
+    this.runtime = runtime;
+    this.context = context;
   }
 
   async execute(input: string, signal?: AbortSignal): Promise<RunSandboxResult> {
     try {
       const request = this.parseRequest(input);
-      const result = await this.sandbox.run(request, signal);
+      const result = await runInConfiguredSandbox(this.projectRoot, request, this.runtime, this.context, signal);
       return {
         success: result.success,
         exitCode: result.exitCode,
