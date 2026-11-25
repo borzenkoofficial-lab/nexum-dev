@@ -413,7 +413,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .kv-home-composer-footer > span { font-size: 0; }
   .kv-home-composer-footer kbd { font-size: 9px; }
   .kv-home-starters { align-items: flex-start; }
-  .kv-home-starters > span { width: 100%; }
   .kv-home-starters button { font-size: 10px; }
   .kv-home-recent { margin-top: 30px; }
   .kv-home-project-row { min-height: 66px; padding-inline: 11px; }
@@ -662,14 +661,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 
 
 /* Finish pass — readable hierarchy, consistent controls, and real mobile ergonomics. */
-.kv-home-eyebrow, .kv-home-nav-label, .kv-home-project-head,
-.kv-home-starters > span, .kv-agents-section-head > div:first-child > span {
-  font-size: 10px;
-}
-.kv-home-top-context, .kv-home-breadcrumb, .kv-home-footer,
-.kv-home-project-details small, .kv-home-composer-footer > span {
-  font-size: 11px;
-}
+.kv-agents-section-head > div:first-child > span { font-size: 10px; }
+.kv-home-footer, .kv-home-project-details small, .kv-home-composer-footer > span { font-size: 11px; }
 .kv-home-starters button { min-height: 36px; font-size: 12px; }
 .kv-home-empty strong { font-size: 13px; }
 .kv-home-empty p { font-size: 12px; }
