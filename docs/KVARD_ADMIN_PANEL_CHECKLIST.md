@@ -468,3 +468,6 @@
 - 2026-11-26 — Added Gateway tests confirming canonical event forwarding and fail-closed behavior when streaming capability is unknown; verifies unsupported streams are rejected before adapter invocation. Commit: `8d56ac2d06927fa64937be38a6534d8dc21d3e68`. CI still pending; Vercel previously reported build-rate-limit.
 
 - 2026-11-26 — Hardened Anthropic SSE parsing to flush a final frame even when the stream closes without a trailing blank line. Commit: `24564cfe92b824570d7eb5e6a1e7b6161b23fd7b`.
+
+
+- 2026-11-26 — Implemented native OpenAI Responses SSE streaming in `apps/api/ai/providers/openai.ts`: text deltas, function-call start/argument deltas, response identity, terminal status, usage dimensions, timeout/cancellation, SSE chunk framing and truncated-stream rejection. Recognized OpenAI text-generation models advertise streaming; unknown families remain unsupported. Added deterministic adapter tests for event mapping, arbitrary chunk boundaries, usage and truncation. Commits: `9167fb2509577049595a0c041f8b27259132dfe6`, `626f2fe6e34fdb803bdbaedbc896cfc3dd342d82`. OpenAI provider live smoke test not performed; no credentials or paid requests used. CI status must be checked before calling this stage verified.
