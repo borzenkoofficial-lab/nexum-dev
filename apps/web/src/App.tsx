@@ -1084,28 +1084,27 @@ function App() {
           <section className="settings-page settings-page-v2">
             <div className="settings-hero">
               <div>
-                <div className="eyebrow">КВАРД / НАСТРОЙКИ</div>
                 <h1>Настройки</h1>
-                <p>Единый центр управления интерфейсом, AI Engine, проектами и рабочим процессом.</p>
+                <p>Тема, масштаб интерфейса, модели, проекты и уведомления.</p>
               </div>
-              <div className="settings-hero-status"><i />Система готова</div>
             </div>
 
             <div className="settings-layout">
               <aside className="settings-index">
-                <span>РАЗДЕЛЫ</span>
+                <span>Разделы</span>
                 <a href="#settings-interface">Интерфейс</a>
-                <a href="#settings-ai">AI Engine</a>
+                <a href="#settings-ai">AI-провайдеры</a>
                 <a href="#settings-projects">Проекты</a>
                 <a href="#settings-notifications">Уведомления</a>
                 <a href="#settings-shortcuts">Горячие клавиши</a>
                 <a href="#settings-storage">Хранилище</a>
+                <a href="#settings-api">Доступ к API</a>
               </aside>
 
               <div className="settings-content">
                 <section id="settings-interface" className="settings-section">
                   <div className="settings-section-head">
-                    <span>01</span>
+                    
                     <div><h2>Интерфейс</h2><p>Масштаб, плотность и движение интерфейса.</p></div>
                   </div>
                   <div className="settings-card settings-card-wide kvard-theme-card">
@@ -1151,8 +1150,8 @@ function App() {
 
                 <section id="settings-ai" className="settings-section">
                   <div className="settings-section-head">
-                    <span>02</span>
-                    <div><h2>AI-движок</h2><p>Провайдер, модель и ключи доступа.</p></div>
+                    
+                    <div><h2>AI-провайдеры</h2><p>Провайдер, модель и ключи доступа.</p></div>
                   </div>
                   <div className="settings-grid">
                     <div className="settings-card settings-card-wide">
@@ -1196,7 +1195,7 @@ function App() {
 
                 <section id="settings-projects" className="settings-section">
                   <div className="settings-section-head">
-                    <span>03</span>
+                    
                     <div><h2>Проекты</h2><p>Поведение Builder и Preview.</p></div>
                   </div>
                   <div className="settings-grid">
@@ -1214,7 +1213,7 @@ function App() {
                 </section>
 
                 <section id="settings-notifications" className="settings-section">
-                  <div className="settings-section-head"><span>04</span><div><h2>Уведомления</h2><p>Только полезные сигналы от Agent.</p></div></div>
+                  <div className="settings-section-head"><div><h2>Уведомления</h2><p>Только полезные сигналы от Agent.</p></div></div>
                   <div className="settings-card settings-card-wide">
                     <strong>Звук завершения</strong><span>{uiSettings.sound ? "Включён" : "Выключен"}</span><small>Сигнал при завершении или ошибке Agent.</small>
                     <div className="settings-option-row">
@@ -1225,7 +1224,7 @@ function App() {
                 </section>
 
                 <section id="settings-shortcuts" className="settings-section">
-                  <div className="settings-section-head"><span>05</span><div><h2>Горячие клавиши</h2><p>Быстрый доступ к рабочему пространству.</p></div></div>
+                  <div className="settings-section-head"><div><h2>Горячие клавиши</h2><p>Быстрый доступ к рабочему пространству.</p></div></div>
                   <div className="settings-card settings-card-wide settings-shortcuts">
                     <div><strong>Палитра команд</strong><small>Открыть палитру команд</small></div>
                     <kbd>⌘ K</kbd>
@@ -1234,15 +1233,15 @@ function App() {
                 </section>
 
                 <section id="settings-storage" className="settings-section">
-                  <div className="settings-section-head"><span>06</span><div><h2>Хранилище</h2><p>Данные проектов и локальные настройки.</p></div></div>
+                  <div className="settings-section-head"><div><h2>Хранилище</h2><p>Данные проектов и локальные настройки.</p></div></div>
                   <div className="settings-card settings-card-wide">
                     <strong>Локальное состояние</strong><span>{projects.length} проектов загружено</span>
                     <small>Настройки интерфейса и история чатов сохраняются локально. Секретные ключи не встраиваются в клиентский bundle.</small>
                   </div>
                 </section>
 
-                <section className="settings-section">
-                  <div className="settings-section-head"><span>07</span><div><h2>Доступ к API</h2><p>Подключение внешних AI-моделей.</p></div></div>
+                <section id="settings-api" className="settings-section">
+                  <div className="settings-section-head"><div><h2>Доступ к API</h2><p>Подключение внешних AI-моделей.</p></div></div>
                   <div className="settings-card settings-card-wide anymodel-api-card">
                     <div className="anymodel-api-head">
                       <div>
