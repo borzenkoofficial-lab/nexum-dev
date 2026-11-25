@@ -2,7 +2,6 @@ import type { AIProvider, AIProviderStatus, AIGenerateOptions } from "../types.j
 
 const DEFAULT_BASE_URL = "https://api.anthropic.com/v1";
 const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
-const DEFAULT_MODELS = ["claude-sonnet-5", "claude-opus-4-8"];
 
 interface AnthropicResponse { content?: Array<{ type?: string; text?: string }> }
 interface AnthropicModelsResponse { data?: Array<{ id?: string }> }
