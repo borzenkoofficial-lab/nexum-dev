@@ -89,6 +89,8 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
   }
 
   function deleteProfile(profileId: string) {
+    const profile = customProfiles.find((item) => item.id === profileId);
+    if (!profile || !window.confirm(`Удалить профиль «${profile.name}»?`)) return;
     const next = customProfiles.filter((profile) => profile.id !== profileId);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
     catch { setFormError("Не удалось обновить локальное хранилище."); return; }
@@ -137,7 +139,7 @@ export function AgentsPage({ projects, onUseProfile, onCreateProject }: {
             <div className="kv-agents-table-head"><span>ИДЕНТИФИКАТОР</span><span>СТАТУС</span><span>ОБНОВЛЕНО</span></div>
             {loading && !jobs.length ? <p className="kv-agents-empty">Загружаю состояние Runtime…</p> : jobs.length ? jobs.slice().sort((a,b) => b.updatedAt-a.updatedAt).map((job) => <div className="kv-agents-job-row" key={job.id}><div><strong>{job.id.slice(0, 8)}</strong><small>{job.error || job.problems?.[0]?.message || "Задание AI Runtime"}</small></div><span className={`kv-agents-status ${job.status}`}>{statusText(job.status)}</span><time>{dateText(job.updatedAt)}</time></div>) : <p className="kv-agents-empty">Пока нет заданий в доступной истории. Запустите профиль в Studio — результаты появятся здесь.</p>}
           </div>
-          <aside className="kv-agents-events"><div className="kv-agents-events-head"><strong>Последние события</strong><span>{recentEvents.length}</span></div>{recentEvents.length ? recentEvents.map((event, index) => <div className="kv-agents-event" key={event.jobId + (event.timestamp ?? index) + index}><i /><div><strong>{event.message || event.type || "Событие агента"}</strong><small>{dateText(event.timestamp)}{event.provider ? ` · ${event.provider}` : ""}{event.tool ? ` · ${event.tool}` : ""}</small></div></div>) : <p className="kv-agents-empty">События появятся после запуска задач.</p>}</aside>
+          <aside className="kv-agents-events"><div className="kv-agents-events-head"><strong>Последние события</strong><span>{recentEvents.length}</span></div>{recentEvents.length ? recentEvents.map((event, index) => <div className="kv-agents-event" key={(event.jobId ?? "event") + String(event.timestamp ?? index) + index}><i /><div><strong>{event.message || event.type || "Событие агента"}</strong><small>{dateText(event.timestamp)}{event.provider ? ` · ${event.provider}` : ""}{event.tool ? ` · ${event.tool}` : ""}</small></div></div>) : <p className="kv-agents-empty">События появятся после запуска задач.</p>}</aside>
         </div>
         <div className="kv-agents-runtime-footer"><span>{diagnostics.generatedAt ? `Данные обновлены ${dateText(diagnostics.generatedAt)}` : "Время обновления пока неизвестно"}</span><span>Ошибок в журнале: {diagnostics.failureCount ?? "—"}</span></div>
       </section>
