@@ -40,10 +40,10 @@
 - Store functions: `listAgentDefinitions(userId)`, `createAgentDefinition(userId,input)`, `updateAgentDefinition(userId,id,patch)`, `deleteAgentDefinition(userId,id)`.
 - `approvalPolicy`: `always | writes | autonomous`; `status`: `active | paused`.
 
-- [ ] Write tests first for create/list, account isolation, case-insensitive duplicate names, update only by owner, partial patch semantics, delete only by owner, and unknown tool rejection.
-- [ ] Run `npm --prefix apps/api test -- agent/agentDefinitionStore.test.ts` and confirm expected failures.
-- [ ] Implement in-memory and PostgreSQL stores; use a JSONB/text[] field for allowedTools, unique per-user lower(name) index, and owner-scoped UPDATE/DELETE.
-- [ ] Add migration 003 to the migration runner and register the test in the API test script.
+- [x] Write tests first for create/list, account isolation, case-insensitive duplicate names, update only by owner, partial patch semantics, delete only by owner, unknown tool rejection, unsupported provider and empty fields.
+- [ ] Run `npm --prefix apps/api test -- agent/agentDefinitionStore.test.ts` and confirm expected failures. Not yet run: no repository execution environment is connected.
+- [x] Implement in-memory and PostgreSQL stores; use a text[] field for allowedTools, unique per-user lower(name) index, and owner-scoped UPDATE/DELETE.
+- [x] Add migration 003 to the migration runner and register the test in the API test script.
 - [ ] Run focused test and full API test suite.
 
 ### Task 2: Authenticated API
@@ -59,10 +59,10 @@
 - `DELETE /api/agents/:id` → { success }; 404 for absent/non-owned ID.
 - Validate name ≤ 48, description ≤ 160, systemPrompt ≤ 5000, provider ≤ 40, model ≤ 120, max 32 allowed tools.
 
-- [ ] Add auth middleware and CRUD routes using authenticated user ID.
-- [ ] Validate all inputs and tool names against `getToolSecurityPolicy`.
-- [ ] Return safe DTOs without userId.
-- [ ] Preserve profile routes and existing rate-limit behavior.
+- [x] Add auth middleware and CRUD routes using authenticated user ID.
+- [x] Validate all inputs and tool names against `getToolSecurityPolicy`.
+- [x] Return safe DTOs without userId.
+- [x] Preserve profile routes and existing rate-limit behavior.
 - [ ] Run API typecheck and full API tests.
 
 ### Task 3: Agents workspace configuration UI
@@ -71,10 +71,10 @@
 - Modify: `apps/web/src/components/AgentsPage.tsx`
 - Modify: `apps/web/src/kvard-design-system.css`
 
-- [ ] Add list/create/edit/pause/activate/delete flows for agent definitions.
-- [ ] Expose system prompt, optional provider/model, allowed tools and approval policy.
-- [ ] Show a clear notice that schedules and policy enforcement are not yet active.
-- [ ] Keep existing reusable prompt profiles and task history available.
+- [x] Add list/create/edit/pause/activate/delete flows for agent definitions.
+- [x] Expose system prompt, optional provider/model, allowed tools and approval policy.
+- [x] Show a clear notice that schedules and policy enforcement are not yet active.
+- [x] Keep existing reusable prompt profiles and task history available.
 - [ ] Run web typecheck, runtime tests and production build.
 
 ### Task 4: Documentation and verification
@@ -83,6 +83,6 @@
 - Modify: `docs/KVARD_DESIGN_SYSTEM.md`
 - Create: `docs/AGENT_DEFINITIONS.md`
 
-- [ ] Document API, data model, security limits and deferred runtime work.
+- [x] Document API, data model, security limits and deferred runtime work.
 - [ ] Run the full CI-equivalent API/Web checks and E2E workflow.
-- [ ] Review the final diff for account isolation, secret leakage, and inaccurate autonomy claims.
+- [x] Perform a static self-review of account isolation, secret handling and autonomy claims; independent review and executable verification remain pending.
