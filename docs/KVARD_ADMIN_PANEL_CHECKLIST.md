@@ -389,3 +389,12 @@
 - `AIGateway.generateRequest()` is a complete-response API. Запросы с `stream: true` отклоняются до вызова адаптера даже при заявленном `streaming: true`.
 - Для реального streaming требуется отдельный canonical event protocol и `AIGateway.streamRequest()`; до его реализации ни один provider не должен включать streaming в доступные пользователям функции.
 - Dedicated workflow `45708228452` passed на commit `83ae24ea58875a3868279bb80820348d6943e900`: API typecheck passed, 247/247 API tests passed.
+
+
+### AI Provider Contract — protocol metadata and verified model catalog
+
+- Добавлен `AIProviderProtocol` с точными upstream protocol IDs и расширяемым custom protocol. Все текущие adapters теперь указывают фактический протокол и версию адаптера.
+- Gateway проверяет уникальность provider IDs и требует `protocol` + `adapterVersion` у native adapters.
+- `AIGateway.getModelCatalog()` отличает реально полученные модели от fallback model ID из конфигурации; пустой/недоступный каталог явно помечается unverified.
+- `AIModelRegistry.list()` возвращает verified/source/status, а `select()` допускает только модель, реально присутствующую в проверенном каталоге провайдера.
+- Dedicated workflow `45709473332` passed на commit `7746b9b8263fed0eef503d1c4fe73e2ffaf70211`: API typecheck passed, 66/66 focused AI provider contract tests passed.
