@@ -431,8 +431,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agents-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 22px; margin-bottom: 22px; }
 .kv-agents-header h1 { margin: 0; color: var(--kv-text); font-size: clamp(26px, 3vw, 34px); font-weight: 680; letter-spacing: -.05em; line-height: 1.15; }
 .kv-agents-header p:last-child { max-width: 700px; margin: 9px 0 0; color: var(--kv-text-secondary); font-size: 13px; }
-.kv-agents-refresh, .kv-agents-create { min-height: 38px; padding: 8px 12px; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-control); background: var(--kv-surface); color: var(--kv-text); font-size: 12px; font-weight: 600; white-space: nowrap; }
-.kv-agents-refresh:hover, .kv-agents-create:hover { border-color: var(--kv-action); color: var(--kv-action); }
+.kv-agents-refresh { min-height: 38px; padding: 8px 12px; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-control); background: var(--kv-surface); color: var(--kv-text); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.kv-agents-refresh:hover { border-color: var(--kv-action); color: var(--kv-action); }
 .kv-agents-refresh:disabled { opacity: .55; cursor: wait; }
 .kv-agents-notice { display: flex; align-items: flex-start; gap: 11px; padding: 13px 15px; border: 1px solid var(--kv-info-soft); border-radius: var(--kv-radius-panel); background: var(--kv-info-soft); color: var(--kv-text-secondary); }
 .kv-agents-notice > span { display: grid; flex: 0 0 20px; place-items: center; width: 20px; height: 20px; border: 1px solid var(--kv-info); border-radius: 50%; color: var(--kv-info); font-size: 12px; font-weight: 700; }
@@ -446,8 +446,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agents-section-head > div:first-child > span { color: var(--kv-action); font-size: 9px; font-weight: 750; letter-spacing: .13em; }
 .kv-agents-section-head h2 { margin: 4px 0 0; color: var(--kv-text); font-size: 19px; font-weight: 660; letter-spacing: -.03em; }
 .kv-agents-section-head p { margin: 4px 0 0; color: var(--kv-text-secondary); font-size: 11px; }
-.kv-agents-create { border-color: var(--kv-action); background: var(--kv-action); color: var(--kv-on-action); }
-.kv-agents-create:hover { border-color: var(--kv-action-hover); background: var(--kv-action-hover); color: var(--kv-on-action); }
 .kv-agents-launchbar { display: grid; grid-template-columns: auto minmax(180px, 300px) 1fr; align-items: center; gap: 12px; margin-bottom: 12px; padding: 12px 14px; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-panel); background: var(--kv-surface); }
 .kv-agents-launchbar label { color: var(--kv-text-secondary); font-size: 11px; font-weight: 650; }
 .kv-agents-launchbar select { width: 100%; min-height: 38px; padding: 7px 10px; border: 1px solid var(--kv-border-strong); border-radius: var(--kv-radius-control); background: var(--kv-surface); color: var(--kv-text); font-size: 13px; }
@@ -478,8 +476,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agents-form textarea { min-height: 112px; resize: vertical; line-height: 1.5; }
 .kv-agents-form-error { margin: 0; color: var(--kv-danger); font-size: 11px; }
 .kv-agents-form-footer > span { color: var(--kv-text-tertiary); font-size: 10px; font-variant-numeric: tabular-nums; }
-.kv-agents-primary { min-height: 38px; padding: 8px 13px; border: 1px solid var(--kv-action); border-radius: var(--kv-radius-control); background: var(--kv-action); color: var(--kv-on-action); font-size: 11px; font-weight: 650; }
-.kv-agents-primary:hover { background: var(--kv-action-hover); }
 .kv-agents-empty-project { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 15px; border: 1px dashed var(--kv-border-strong); border-top: 0; border-radius: 0 0 var(--kv-radius-panel) var(--kv-radius-panel); color: var(--kv-text-secondary); font-size: 11px; }
 .kv-agents-empty-project button { padding: 7px 10px; border: 1px solid var(--kv-action); border-radius: 7px; background: var(--kv-action-soft); color: var(--kv-action); font-size: 11px; font-weight: 650; }
 .kv-agents-live-count { display: flex; align-items: baseline; gap: 7px; padding: 5px 10px; border: 1px solid var(--kv-border); border-radius: 8px; background: var(--kv-surface); }
@@ -495,11 +491,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agents-job-row strong { color: var(--kv-text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; }
 .kv-agents-job-row small { overflow: hidden; color: var(--kv-text-tertiary); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .kv-agents-job-row time { color: var(--kv-text-tertiary); font-size: 10px; text-align: right; }
-.kv-agents-status { justify-self: start; padding: 3px 7px; border-radius: 5px; background: var(--kv-surface-subtle); color: var(--kv-text-secondary); font-size: 9px; font-weight: 650; }
-.kv-agents-status.running, .kv-agents-status.queued { background: var(--kv-info-soft); color: var(--kv-info); }
-.kv-agents-status.completed { background: var(--kv-success-soft); color: var(--kv-success); }
-.kv-agents-status.failed { background: var(--kv-danger-soft); color: var(--kv-danger); }
-.kv-agents-status.cancelled { background: var(--kv-surface-subtle); color: var(--kv-text-secondary); }
 .kv-agents-empty { margin: 0; padding: 24px 15px; color: var(--kv-text-tertiary); font-size: 11px; line-height: 1.5; }
 .kv-agents-events-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 14px; border-bottom: 1px solid var(--kv-border); }
 .kv-agents-events-head strong { color: var(--kv-text); font-size: 11px; }
@@ -541,7 +532,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agents-storage-warning, .kv-agents-storage-ok { margin: 8px 0 10px; font-size: 10px; }
 .kv-agents-storage-warning { color: var(--kv-warning); }
 .kv-agents-storage-ok { color: var(--kv-success); }
-.kv-agents-primary:disabled { opacity: .55; cursor: wait; }
 
 
 /* Agent configuration controls */
@@ -656,7 +646,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 
 /* AI Agents: readable control plane instead of compressed metadata. */
 .kv-agents-header p:last-child { font-size: 14px; line-height: 1.55; }
-.kv-agents-refresh, .kv-agents-create { min-height: 42px; padding: 9px 14px; font-size: 13px; }
+.kv-agents-refresh { min-height: 42px; padding: 9px 14px; font-size: 13px; }
 .kv-agents-notice { padding: 14px 16px; }
 .kv-agents-notice p { font-size: 12px; line-height: 1.6; }
 .kv-agents-section-head h2 { font-size: 20px; }
@@ -691,7 +681,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agents-tool-picker label { min-height: 36px; gap: 10px; font-size: 13px; }
 .kv-agents-tool-picker input { width: 16px; height: 16px; flex: 0 0 auto; accent-color: var(--kv-action); }
 .kv-agents-form-footer > span, .kv-agents-runtime-footer { font-size: 11px; }
-.kv-agents-primary { min-height: 42px; padding: 9px 15px; font-size: 12px; }
 .kv-agents-profile { min-height: 106px; gap: 16px; padding: 17px 19px; }
 .kv-agents-profile-meta { gap: 9px; font-size: 10px; }
 .kv-agents-profile-meta b { font-size: 9px; }
@@ -708,7 +697,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-agents-job-row { min-height: 66px; }
 .kv-agents-job-row small { font-size: 10px; }
 .kv-agents-job-row time { font-size: 11px; }
-.kv-agents-status { padding: 4px 8px; font-size: 10px; }
 .kv-agents-event { padding: 12px 14px; }
 .kv-agents-event strong { font-size: 11px; line-height: 1.45; }
 .kv-agents-event small { font-size: 10px; }
