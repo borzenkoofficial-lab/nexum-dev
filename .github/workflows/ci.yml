@@ -30,14 +30,14 @@ jobs:
         run: npm ci --prefix apps/api
       - name: Install Web
         run: npm ci --prefix apps/web
+      - name: Test Web Brand Components
+        run: npm --prefix apps/web run test:brand
       - name: Typecheck API
         run: npm --prefix apps/api run typecheck
       - name: Test API
         run: npm --prefix apps/api run test
       - name: Test Web Runtime
         run: npm --prefix apps/web run test:runtime
-      - name: Test Web Brand Components
-        run: npm --prefix apps/web run test:brand
       - name: Typecheck Web
         run: npm --prefix apps/web run typecheck
       - name: Build API
