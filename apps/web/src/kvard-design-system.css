@@ -646,3 +646,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   color: var(--kv-text, #17171b);
   font: inherit;
 }
+
+
+.kv-agents-launchbar textarea {
+  width: 100%;
+  min-height: 74px;
+  padding: 9px 11px;
+  border: 1px solid var(--kv-border-strong);
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-surface);
+  color: var(--kv-text);
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+.kv-agents-launchbar textarea:focus-visible {
+  outline: 2px solid var(--kv-focus-ring);
+  outline-offset: 2px;
+}
