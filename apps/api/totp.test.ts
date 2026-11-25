@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { decodeBase32, encodeBase32, generateRecoveryCodes, generateTotpCode, generateTotpSecret, hashRecoveryCode, verifyRecoveryCode, verifyTotpCode } from "./totp.js";
+import { decodeBase32, encodeBase32, generateRecoveryCodes, generateTotpCode, generateTotpSecret, hashRecoveryCode, matchTotpCounter, verifyRecoveryCode, verifyTotpCode } from "./totp.js";
 
 test("Base32 encoding and decoding round-trip", () => {
   const input = Buffer.from("hello world");
@@ -22,6 +22,19 @@ test("TOTP 6-digit verification accepts current and adjacent step, rejects malfo
   assert.equal(verifyTotpCode(secret, "abc123", now), false);
   assert.equal(verifyTotpCode(secret, "12345", now), false);
   assert.equal(verifyTotpCode(secret, "000000", now, 0), false);
+});
+
+
+test("TOTP exposes the matched time counter so callers can reject replay", () => {
+  const secret = encodeBase32(Buffer.from("12345678901234567890"));
+  const now = 1_700_000_000_000;
+  const currentCounter = Math.floor(now / 30_000);
+  const currentCode = generateTotpCode(secret, now);
+  const previousCode = generateTotpCode(secret, now - 30_000);
+  assert.equal(matchTotpCounter(secret, currentCode, now), currentCounter);
+  assert.equal(matchTotpCounter(secret, previousCode, now), currentCounter - 1);
+  assert.equal(matchTotpCounter(secret, "abc123", now), null);
+  assert.equal(matchTotpCounter(secret, currentCode, now, 0), currentCounter);
 });
 
 test("recovery codes are random, one-time-ready, hashed, and verified", () => {
