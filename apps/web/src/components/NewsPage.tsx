@@ -15,44 +15,35 @@ const chapters = [
   {eyebrow:"NOW",version:"14",title:"КВАРД сегодня.",date:"28 сентября 2026",lead:"Builder, Agent, Preview и Core развиваются одновременно.",body:"Текущий КВАРД — это не финальная версия. Это система, в которой интерфейс, агентный runtime, модели и собственный Core продолжают развиваться вместе.",tags:["КВАРД","КВАРД Core","Agent","Builder"],variant:"now"}
 ];
 
-function BrowserMockup({title="КВАРД / Preview",variant="workspace"}:{title?:string;variant?:string}) {
-  const nav:Record<string,string[]>={home:["Projects","New project","Recent","Settings"],builder:["Chat","Preview","Agent","Files"],agent:["Agent","Live","Tasks","History"],files:["Files","src","components","App.tsx"],verify:["Preview","Console","Errors","Checks"],repair:["Problems","Diagnosis","Repair","Verify"],intelligence:["Models","Planning","Tools","Memory"],core:["Core","Models","Memory","Teachers"],models:["Gateway","Ollama","Providers","Routing"],tools:["Tools","Read","Write","Search","Git"],memory:["Memory","Project","History","Knowledge"],product:["Product","Pages","Entities","Flows"],visual:["Projects","Chat","Preview","Agent"],now:["Workspace","Builder","Core","Settings"]};
-  const items=nav[variant]||nav.workspace;
-  const titleMap:Record<string,string>={core:"КВАРД Core",models:"AI Engine",tools:"Tools Engine",memory:"Memory & Context",product:"Product Intelligence",repair:"Repair Engine",agent:"Agent Workspace",verify:"Verification",builder:"Builder",files:"Project Files",now:"КВАРД Workspace"};
-  const active=variant==="agent"||variant==="verify"||variant==="repair";
-  return <div className="news-mock-browser real-ui-mock">
-    <div className="news-mock-top"><span/><span/><span/><b>{title}</b><em>●</em></div>
-    <div className="news-product-screen">
-      <aside>{items.map((x,i)=><div className={i===0?"mock-nav active":"mock-nav"} key={x}><i/>{x}</div>)}<div className="mock-nav mock-nav-bottom"><i/>⌘ K</div></aside>
-      <main>
-        <div className="mock-product-header"><div><small>КВАРД WORKSPACE</small><strong>{titleMap[variant]||"КВАРД"}</strong></div><span className="mock-live">● LIVE</span></div>
-        {active ? <div className="mock-agent-layout">
-          <div className="mock-chat-card"><small>USER</small><b>{variant==="repair"?"Исправь ошибку в Preview":"Создай приложение и запусти Preview"}</b><div className="mock-chat-response"><span className="mock-avatar">N</span><span>КВАРД анализирует задачу и выполняет следующий шаг…</span></div></div>
-          <div className="mock-check-list">{["Analyze task","Plan architecture","Build interface","Run Preview","Verify result"].map((x,i)=><div key={x}><b>{i<3?"✓":i===3?"◉":"○"}</b><span>{x}</span><small>{i<3?"Done":i===3?"Working":"Waiting"}</small></div>)}</div>
-        </div> : variant==="files" ? <div className="mock-file-layout"><div className="mock-file-tree">{["src","components","App.tsx","App.css","package.json"].map((x,i)=><div key={x} className={i===2?"selected":""}><span>{i<2?"▸":"□"}</span>{x}</div>)}</div><div className="mock-code"><div><i/> <i/> <i/></div><span>function App() {"{"}</span><span>  return &lt;Workspace /&gt;</span><span>{"}"}</span><span className="code-muted">// КВАРД generated</span></div></div> : variant==="models" ? <div className="mock-routing"><div><b>Model Gateway</b><span>Choose engine per task</span></div>{["Local · Ollama","Coding · Provider","Reasoning · Provider"].map((x,i)=><div className="mock-route" key={x}><span>{x}</span><b>{i===0?"qwen3:4b":i===1?"Coding model":"Reasoning model"}</b><i>READY</i></div>)}</div> : variant==="product" ? <div className="mock-product-plan"><div><small>PRODUCT TYPE</small><b>Marketplace</b></div><div className="mock-plan-row"><span>Pages</span><b>Home · Search · Listing · Chat</b></div><div className="mock-plan-row"><span>Entities</span><b>User · Product · Order</b></div><div className="mock-plan-row"><span>Flows</span><b>Browse → Select → Order</b></div></div> : variant==="tools" ? <div className="mock-tools-grid">{["readFile","searchFiles","writeFile","gitStatus","githubGet"].map((x,i)=><div key={x}><b>{x}</b><span>{i<3?"available":"ready"}</span></div>)}</div> : variant==="memory" ? <div className="mock-memory"><div className="memory-score"><b>PROJECT CONTEXT</b><strong>92%</strong><span>relevant context</span></div>{["Project structure","Previous task","Current goal"].map(x=><div key={x}><span>{x}</span><b>Loaded</b></div>)}</div> : <><div className="mock-line wide"/><div className="mock-line"/><div className="mock-product-cards"><i/><i/><i/></div><div className="mock-product-canvas"><span/><span/><span/></div><div className="mock-status-line"><span>● Preview</span><span>✓ Build</span><span>↻ Iteration</span></div></>}
-      </main>
-    </div>
-  </div>;
-}
-function PhoneMockup(){return <div className="news-phone"><div className="news-phone-speaker"/><div className="news-phone-screen"><div className="phone-status">9:41</div><div className="phone-title">КВАРД</div><div className="phone-card"/><div className="phone-card short"/><div className="phone-nav"><i/><i/><i/></div></div></div>;}
-function AgentMockup(){return <div className="news-agent-mock"><div className="agent-mock-head"><b>AGENT</b><span>● Live</span></div>{["Analyze task","Plan architecture","Build interface","Run Preview","Verify result"].map((x,i)=><div className="agent-mock-step" key={x}><b>{i<3?"✓":i===3?"◉":"○"}</b><span>{x}</span><small>{i<3?"Done":i===3?"Working":"Waiting"}</small></div>)}<div className="agent-mock-progress"><i/></div></div>;}
-function CoreDiagram(){return <div className="news-core-diagram"><div className="core-node main">КВАРД CORE</div><div className="core-orbit"><span>MODEL</span><span>MEMORY</span><span>TOOLS</span><span>TEACHERS</span><span>SOURCES</span><span>VERIFY</span></div><div className="core-caption">INPUT → REASON → ACT → CHECK → LEARN</div></div>;}
+export function NewsPage() {
+  return (
+    <section className="news-page" aria-label="Журнал КВАРД">
+      <header className="news-hero">
+        <div>
+          <h1>Журнал КВАРД</h1>
+          <p>Хронология разработки и ключевые изменения продукта.</p>
+        </div>
+      </header>
 
-export function NewsPage(){
-  return <section className="news-page news-page-editorial">
-    <header className="news-hero news-hero-editorial"><div><div className="eyebrow">КВАРД / PRODUCT JOURNAL</div><h1>Как мы строим КВАРД.</h1><p>Не просто список релизов. Это визуальный журнал разработки: продукт, агент, движки, модели, КВАРД Core и эксперименты, которые постепенно превращают идею в самостоятельную AI development platform.</p></div><div className="news-hero-badge"><span>●</span> Открытая разработка</div></header>
-
-    <article className="news-feature news-feature-editorial"><div className="news-feature-content"><div className="news-kicker">NOW · КВАРД SYSTEM</div><h2>Один продукт. Несколько двигателей.</h2><p>КВАРД — интерфейс и Builder. Agent — исполнитель. Tools — руки. Model Gateway — слой моделей. КВАРД Core — отдельная лаборатория интеллекта. Verification и Repair замыкают цикл.</p><button type="button" onClick={()=>window.scrollTo({top:520,behavior:"smooth"})}>Открыть журнал ↓</button></div><div className="news-feature-art news-feature-art-rich"><BrowserMockup title="КВАРД / System" variant="now"/><div className="news-floating-agent"><AgentMockup/></div></div></article>
-
-    <section className="news-showcase"><div className="news-section-heading"><div><div className="eyebrow">PRODUCT SYSTEM</div><h2>Из чего состоит КВАРД</h2></div><span>UI · AGENT · CORE · ENGINES</span></div><div className="news-mockup-grid">
-      <article className="news-visual-card news-visual-wide"><div className="news-visual-copy"><span>01 · BUILDER</span><h3>Среда создания продукта.</h3><p>Chat, Preview, Files и Agent объединены в одном рабочем цикле.</p></div><BrowserMockup title="КВАРД / Builder" variant="builder"/></article>
-      <article className="news-visual-card news-visual-agent"><div className="news-visual-copy"><span>02 · AGENT</span><h3>Агент, который не просто отвечает.</h3><p>Он планирует, действует, проверяет и исправляет.</p></div><AgentMockup/></article>
-      <article className="news-visual-card news-visual-wide"><div className="news-visual-copy"><span>03 · CORE</span><h3>КВАРД Core Lab.</h3><p>Отдельный слой для моделей, памяти, teachers, источников и AI-пайплайнов.</p></div><CoreDiagram/></article>
-      <article className="news-visual-card news-visual-phone"><div className="news-visual-copy"><span>04 · PRODUCT</span><h3>КВАРД в мобильном формате.</h3><p>Продуктовая система должна быть понятной независимо от устройства.</p></div><PhoneMockup/></article>
-    </div></section>
-
-    <section className="news-journal"><div className="news-section-heading news-release-heading"><div><div className="eyebrow">THE JOURNAL</div><h2>От первой строки к собственной AI-платформе</h2></div><span>{chapters.length} chapters</span></div><div className="news-journal-list">{chapters.map((c,i)=><article className={i===chapters.length-1?"news-journal-story current":"news-journal-story"} key={c.version}><div className="journal-meta"><b>{c.version}</b><span>{c.eyebrow}</span><time>{c.date}</time></div><div className="journal-copy"><h3>{c.title}</h3><p className="journal-lead">{c.lead}</p><p className="journal-body">{c.body}</p><div className="news-tags">{c.tags.map(t=><span key={t}>✓ {t}</span>)}</div></div><div className="journal-art"><BrowserMockup title={`КВАРД / ${c.eyebrow}`} variant={c.variant}/></div></article>)}</div></section>
-
-    <footer className="news-footer"><strong>КВАРД создаётся открыто.</strong><span>Следующая глава появляется вместе с реальным изменением продукта.</span></footer>
-  </section>;
+      <div className="news-journal-list">
+        {chapters.map((chapter) => (
+          <article className="news-journal-story" key={chapter.version}>
+            <div className="journal-meta">
+              <b>{chapter.version}</b>
+              <time>{chapter.date}</time>
+              <span>{chapter.eyebrow}</span>
+            </div>
+            <div className="journal-copy">
+              <h2>{chapter.title}</h2>
+              <p className="journal-lead">{chapter.lead}</p>
+              <p className="journal-body">{chapter.body}</p>
+              <div className="news-tags">
+                {chapter.tags.map((tag) => <span key={tag}>{tag}</span>)}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
 }
