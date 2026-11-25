@@ -54,8 +54,7 @@ async function bootstrapSuperAdmins(): Promise<void> {
     `WITH changed AS (
        INSERT INTO admin_role_assignments (user_id, role)
        SELECT id, 'super_admin' FROM users WHERE id = ANY($1::uuid[])
-       ON CONFLICT (user_id) DO UPDATE
-         SET role = 'super_admin', updated_at = NOW()
+       ON CONFLICT (user_id) DO NOTHING
          WHERE admin_role_assignments.role <> 'super_admin'
        RETURNING user_id
      )
