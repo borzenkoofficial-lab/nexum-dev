@@ -342,8 +342,8 @@ test("native Messages adapter streams canonical text, finish reason and usage ev
   assert.deepEqual(events, [
     { type: "message_start", provider: "anthropic", model: "claude-sonnet-5", requestId: "msg_stream_1" },
     { type: "text_delta", text: "Привет" },
-    { type: "message_end", finishReason: "end_turn" },
     { type: "usage", usage: { inputTokens: 11, outputTokens: 4, totalTokens: 15 }, source: "provider_reported" },
+    { type: "message_end", finishReason: "end_turn" },
   ]);
 });
 
