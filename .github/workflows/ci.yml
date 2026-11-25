@@ -34,6 +34,8 @@ jobs:
       # Run the focused UI contract before unrelated API checks can short-circuit the job.
       - name: Test Web Brand Components
         run: npm --prefix apps/web run test:brand
+      - name: Test Web UI Kit Components
+        run: npm --prefix apps/web run test:ui-kit
       - name: Typecheck API
         run: npm --prefix apps/api run typecheck
       - name: Test API
