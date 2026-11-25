@@ -15,6 +15,8 @@ interface ModelsResponse {
 export class OrcaRouterProvider implements AIProvider {
   id = "orcarouter";
   name = "OrcaRouter";
+  protocol = "openai-chat-completions" as const;
+  adapterVersion = "1.0.0";
   model = process.env.ORCAROUTER_MODEL || DEFAULT_MODEL;
   capabilities = { text: true, code: true, vision: false, toolCalling: false, streaming: false, structuredOutput: false, reasoning: false, contextWindow: null } as const;
   private readonly baseUrl: string;
