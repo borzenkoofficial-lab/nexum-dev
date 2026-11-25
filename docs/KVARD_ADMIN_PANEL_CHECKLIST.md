@@ -457,3 +457,10 @@
 
 - 2026-11-26 — Anthropic native adapter authentication corrected to the official API key header (`x-api-key`); regression test now asserts `x-api-key` is present and `Authorization` is absent. Commits: `9e616028e947e118ea8e3b847a5527aa019e18d4`, `3dc6ea4a7a4398d29d5aedd82d13b8883156e1a9`. This is a source-level correction; live provider verification is not claimed because no provider credential/sandbox request was used.
 - CI limitation: Vercel check reported `build-rate-limit`; no successful Vercel build is claimed for these commits. GitHub Actions run association was not returned for the commit at the time of inspection.
+
+
+### AI Provider streaming — implementation journal
+
+- 2026-11-26 — Added canonical `AIStreamEvent` types and optional provider `streamRequest` contract; Gateway now exposes guarded async streaming and rejects providers/models without confirmed streaming capability before invocation. Commits: `525130e`, `ce0daf3`.
+- 2026-11-26 — Implemented Anthropic Messages SSE adapter: text deltas, tool-call start and JSON argument deltas, finish reason, request identity, cancellation/timeout, and provider-reported usage. Model streaming capability is advertised only for active catalog entries. Added deterministic SSE contract test. Commits: `1c645c0`, `5efa30a`.
+- Verification caveat: CI has not yet been confirmed for this stage; no live provider request was performed. Do not mark the provider production-ready until CI and credential-backed sandbox smoke tests pass.
