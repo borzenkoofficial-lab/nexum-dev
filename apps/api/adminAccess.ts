@@ -51,15 +51,29 @@ async function bootstrapSuperAdmins(): Promise<void> {
   const ids = parseBootstrapUserIds(process.env.KVARD_SUPER_ADMIN_USER_IDS);
   if (ids.length === 0) return;
   await query(
-    `INSERT INTO admin_role_assignments (user_id, role)
-     SELECT id, 'super_admin' FROM users WHERE id = ANY($1::uuid[])
-     ON CONFLICT (user_id) DO UPDATE
-       SET role = 'super_admin', updated_at = NOW()`,
+    `WITH changed AS (
+       INSERT INTO admin_role_assignments (user_id, role)
+       SELECT id, 'super_admin' FROM users WHERE id = ANY($1::uuid[])
+       ON CONFLICT (user_id) DO UPDATE
+         SET role = 'super_admin', updated_at = NOW()
+         WHERE admin_role_assignments.role <> 'super_admin'
+       RETURNING user_id
+     )
+     INSERT INTO admin_audit_log (actor_user_id, action, target_type, target_id, metadata)
+     SELECT NULL, 'admin.bootstrap.super_admin', 'user', user_id::text,
+       '{"source":"KVARD_SUPER_ADMIN_USER_IDS"}'::jsonb
+     FROM changed`,
     [ids],
   );
 }
 
 export async function requireAdminAccess(req: Request, res: Response, next: NextFunction): Promise<void> {
+  // MFA is not implemented in the current authentication flow. Keep production
+  // administration closed even if an operator accidentally configures the bootstrap list.
+  if (process.env.NODE_ENV === "production") {
+    res.status(503).json({ success: false, error: "Administrative access is disabled until MFA is enforced." });
+    return;
+  }
   const userId = req.user?.id;
   if (!userId) {
     res.status(401).json({ success: false, error: "Authentication required" });
