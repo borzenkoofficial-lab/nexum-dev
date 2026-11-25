@@ -21,14 +21,18 @@ adminMfaRouter.post("/setup", async (req, res) => {
   const user = getAuthUser(req);
   try {
     if (!(await ensureAdminUser(user.id))) return res.status(403).json({ success: false, error: "Admin role required for MFA enrollment." });
+    const existing = await query<{ enabled: boolean }>("SELECT enabled FROM admin_mfa WHERE user_id = $1", [user.id]);
+    if (existing.rows[0]?.enabled) return res.status(409).json({ success: false, error: "MFA is already enabled. Use a separate verified rotation flow." });
     const key = getEncryptionKey();
     const secret = generateTotpSecret();
     const encrypted = encryptMfaSecret(secret, key);
     await query(
-      `INSERT INTO admin_mfa (user_id, pending_encrypted_secret, updated_at)
-       VALUES ($1, $2, NOW())
+      `INSERT INTO admin_mfa (user_id, pending_encrypted_secret, pending_expires_at, enrollment_failed_attempts, updated_at)
+       VALUES ($1, $2, NOW() + INTERVAL '10 minutes', 0, NOW())
        ON CONFLICT (user_id) DO UPDATE SET
          pending_encrypted_secret = EXCLUDED.pending_encrypted_secret,
+         pending_expires_at = EXCLUDED.pending_expires_at,
+         enrollment_failed_attempts = 0,
          updated_at = NOW()`,
       [user.id, encrypted],
     );
@@ -47,23 +51,33 @@ adminMfaRouter.post("/confirm", async (req, res) => {
   if (!/^\d{6}$/.test(code)) return res.status(400).json({ success: false, error: "Enter the 6-digit authenticator code." });
   try {
     const key = getEncryptionKey();
-    const pending = await query<{ pending_encrypted_secret: string | null }>(
-      "SELECT pending_encrypted_secret FROM admin_mfa WHERE user_id = $1",
+    const pending = await query<{ pending_encrypted_secret: string | null; pending_expires_at: string | null; enrollment_failed_attempts: number }>(
+      "SELECT pending_encrypted_secret, pending_expires_at, enrollment_failed_attempts FROM admin_mfa WHERE user_id = $1",
       [user.id],
     );
-    const encryptedSecret = pending.rows[0]?.pending_encrypted_secret;
-    if (!encryptedSecret) return res.status(409).json({ success: false, error: "MFA setup was not started or has expired. Start setup again." });
+    const pendingRow = pending.rows[0];
+    const encryptedSecret = pendingRow?.pending_encrypted_secret;
+    if (!encryptedSecret || !pendingRow?.pending_expires_at || new Date(pendingRow.pending_expires_at).getTime() <= Date.now()) {
+      return res.status(409).json({ success: false, error: "MFA setup was not started or has expired. Start setup again." });
+    }
+    if ((pendingRow.enrollment_failed_attempts ?? 0) >= 5) {
+      return res.status(429).json({ success: false, error: "MFA enrollment confirmation is locked. Start a new setup after cooldown." });
+    }
     const { decryptMfaSecret } = await import("../mfaEncryption.js");
     const secret = decryptMfaSecret(encryptedSecret, key);
-    if (!verifyTotpCode(secret, code)) return res.status(401).json({ success: false, error: "Invalid authenticator code." });
+    if (!verifyTotpCode(secret, code)) {
+      await query("UPDATE admin_mfa SET enrollment_failed_attempts = enrollment_failed_attempts + 1, updated_at = NOW() WHERE user_id = $1", [user.id]);
+      return res.status(401).json({ success: false, error: "Invalid authenticator code." });
+    }
     const recovery = generateRecoveryCodes();
     const currentCounter = Math.floor(Date.now() / 30_000);
     const enabled = await withDatabaseTransaction(async (client) => {
       const result = await client.query(
         `UPDATE admin_mfa SET enabled = TRUE, encrypted_secret = pending_encrypted_secret,
-           pending_encrypted_secret = NULL, recovery_code_hashes = $2, last_accepted_totp_counter = $3,
+           pending_encrypted_secret = NULL, pending_expires_at = NULL, enrollment_failed_attempts = 0,
+           recovery_code_hashes = $2, last_accepted_totp_counter = $3,
            failed_attempts = 0, locked_until = NULL, enrolled_at = NOW(), updated_at = NOW()
-         WHERE user_id = $1 AND pending_encrypted_secret = $4
+         WHERE user_id = $1 AND pending_encrypted_secret = $4 AND pending_expires_at > NOW()
          RETURNING user_id`,
         [user.id, recovery.hashes, currentCounter, encryptedSecret],
       );
