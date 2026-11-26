@@ -942,7 +942,7 @@ test("AgentLoop stops when a tool result cannot be durably finalized", async () 
 
 
 test("AgentLoop emits encrypted-checkpoint payloads only at safe iteration boundaries", async () => {
-  const snapshots: Array<{ iteration: number; previousResults: number; phase: string }> = [];
+  const snapshots: Array<{ iteration: number; previousResults: number; phase: string; task: string; builderTask: boolean; repairRequested: boolean }> = [];
   const runtime: AgentRuntime = {
     getAvailableTools: () => ["fake"],
     plan: (_task, previousResults) => previousResults.length === 0
@@ -955,6 +955,9 @@ test("AgentLoop emits encrypted-checkpoint payloads only at safe iteration bound
       iteration: state.iteration,
       previousResults: state.previousResults.length,
       phase: state.phase,
+      task: state.resumeState?.task ?? "",
+      builderTask: state.resumeState?.builderTask ?? false,
+      repairRequested: state.resumeState?.repairRequested ?? false,
     });
   };
   const result = await new AgentLoop(
@@ -974,4 +977,7 @@ test("AgentLoop emits encrypted-checkpoint payloads only at safe iteration bound
   assert.equal(snapshots[0]?.previousResults, 0);
   assert.equal(snapshots[1]?.previousResults, 1);
   assert.equal(snapshots[1]?.iteration, 2);
+  assert.equal(snapshots[0]?.task, "Inspect current state");
+  assert.equal(snapshots[0]?.builderTask, false);
+  assert.equal(snapshots[0]?.repairRequested, false);
 });
