@@ -111,12 +111,6 @@ function sendSafeError(res: Response, error: unknown, requestId: string, fallbac
 }
 
 const app = express();
-const databaseConfigured = Boolean(process.env.NEXUM_DATABASE_URL?.trim());
-if (databaseConfigured) {
-  void recoverStaleChatJobs(0).catch((error) => console.error("[Nexum] stale Agent recovery failed", error));
-} else {
-  console.warn("[Nexum] PostgreSQL is not configured; persistent ChatJob recovery is disabled for this process.");
-}
 serverRuntime.start();
 app.use((req, _res, next) => {
   const requestId = getRequestId(req);
@@ -187,6 +181,16 @@ function getProjectManager(userId: string): ProjectManager {
     projectManagers.set(userId, manager);
   }
   return manager;
+}
+const databaseConfigured = Boolean(process.env.NEXUM_DATABASE_URL?.trim());
+if (databaseConfigured) {
+  void recoverStaleChatJobs(0, async (job) => {
+    if (!job.projectId) return null;
+    const project = await getProjectManager(job.userId).getProject(job.projectId);
+    return computeProjectRevisionFingerprint(project.path);
+  }).catch((error) => console.error("[Nexum] stale Agent recovery failed", error));
+} else {
+  console.warn("[Nexum] PostgreSQL is not configured; persistent ChatJob recovery is disabled for this process.");
 }
 async function getLatestProjectSourceMtime(projectRoot: string): Promise<number> {
   let latest = 0;
