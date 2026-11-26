@@ -14,7 +14,8 @@ export interface ChatJobRecoveryAssessment {
     | "side_effect_may_have_started"
     | "tool_outcome_unknown"
     | "approval_was_pending"
-    | "unrecognized_tool_activity";
+    | "unrecognized_tool_activity"
+    | "execution_evidence_missing";
   startedTools: string[];
   completedTools: string[];
   assessedAt: number;
@@ -28,6 +29,7 @@ type RecoveryEvent = {
 
 type RecoveryStep = { tool?: unknown };
 type RecoveryJobLike = {
+  status?: "queued" | "running" | "completed" | "failed" | "cancelled";
   events?: unknown[];
   steps?: unknown[];
   pendingApproval?: { status?: unknown } | null;
@@ -118,6 +120,11 @@ export function assessChatJobRecovery(
   } else if (sideEffectMayHaveStarted) {
     disposition = "inspect_before_retry";
     reason = "side_effect_may_have_started";
+  } else if (job.status === "running" && startedTools.size === 0 && completedTools.size === 0) {
+    // A running job without durable tool evidence may have crossed a tool
+    // boundary whose event write was not committed before the process died.
+    disposition = "inspect_before_retry";
+    reason = "execution_evidence_missing";
   } else {
     disposition = "safe_to_restart";
     reason = "read_only_progress_only";
