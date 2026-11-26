@@ -329,7 +329,7 @@
     min-height: 40px;
     padding-inline: 11px;
   }
-  .nx-builder-project-copy strong {
+  .nx-builder-project .kv-page-header__title {
     max-width: 42vw;
   }
   .nx-builder-header-actions .nx-builder-open {
