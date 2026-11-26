@@ -43,6 +43,17 @@ function ConnectorModal({ name, onClose }: { name: string; onClose: () => void }
   </div>;
 }
 
+function broadcastChatJobTerminal(jobId: string, projectId: string, status: "completed" | "failed" | "cancelled") {
+  if (typeof BroadcastChannel === "undefined") return;
+  try {
+    const channel = new BroadcastChannel("kvard-chat-job-sync-v1");
+    channel.postMessage({ type: "terminal", jobId, projectId, status, sentAt: Date.now() });
+    channel.close();
+  } catch {
+    // Cross-tab synchronization is an enhancement; server state remains authoritative.
+  }
+}
+
 function WorkspaceApp() {
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     try { return localStorage.getItem("kvard:theme") === "dark" ? "dark" : "light"; } catch { return "light"; }
@@ -630,6 +641,7 @@ function WorkspaceApp() {
       const response = await nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
       const data = await response.json().catch(() => ({})) as { success?: boolean; job?: { status?: string; error?: string } };
       if (!response.ok || !data.success) throw new Error(data.job?.error || `Cancel API: HTTP ${response.status}`);
+      broadcastChatJobTerminal(jobId, activeПроектId, "cancelled");
       setАгентStage("error");
       setCurrentActivity("Agent отменён пользователем.");
       setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "cancelled" } }));
@@ -764,12 +776,15 @@ function WorkspaceApp() {
     let terminalHandled = false;
     let reconnecting = false;
     let snapshotRecoveryInFlight = false;
+    let lastAppliedUpdatedAt = 0;
     const activeJobId = chatJobId;
+    const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("kvard-chat-job-sync-v1") : null;
     const source = new EventSource(`/api/chat/jobs/${encodeURIComponent(activeJobId)}/events`);
 
     type ChatJobSnapshot = {
       status?: "queued" | "running" | "completed" | "failed" | "cancelled";
       projectId?: string;
+      updatedAt?: number;
       pendingApproval?: AgentApprovalView;
       stage?: string;
       reply?: string | null;
@@ -787,9 +802,16 @@ function WorkspaceApp() {
       } | null;
     };
 
-    async function applyJob(job: ChatJobSnapshot) {
+    async function applyJob(job: ChatJobSnapshot, shouldBroadcast = true) {
       if (cancelled || chatJobIdRef.current !== activeJobId) return;
+      if (typeof job.updatedAt === "number") {
+        if (job.updatedAt < lastAppliedUpdatedAt) return;
+        lastAppliedUpdatedAt = job.updatedAt;
+      }
       const status = job.status;
+      if (shouldBroadcast && (status === "completed" || status === "failed" || status === "cancelled")) {
+        broadcastChatJobTerminal(activeJobId, job.projectId ?? activeПроектId, status);
+      }
       if (typeof job.reply === "string" && job.reply.length > 0) {
         setReply(job.reply);
         upsertAssistantReply(activeJobId, job.reply);
@@ -900,6 +922,19 @@ function WorkspaceApp() {
       setАгентStage((job.stage as typeof agentStage) ?? (status === "running" ? "running" : "thinking"));
     }
 
+    channel?.addEventListener("message", (event: MessageEvent<{ type?: string; jobId?: string }>) => {
+      if (cancelled || terminalHandled || event.data?.type !== "terminal" || event.data.jobId !== activeJobId) return;
+      // Another tab changed this job. Re-read the canonical server snapshot rather
+      // than trusting a cross-tab message as state or authority.
+      void nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(activeJobId)}`)
+        .then(async (response) => {
+          if (!response.ok || cancelled) return;
+          const data = await response.json() as { job?: ChatJobSnapshot };
+          if (data.job) await applyJob(data.job, false);
+        })
+        .catch(() => undefined);
+    });
+
     source.addEventListener("job", (event) => {
       if (cancelled) return;
       try {
@@ -949,6 +984,7 @@ function WorkspaceApp() {
     return () => {
       cancelled = true;
       source.close();
+      channel?.close();
     };
   }, [chatJobId]);
   async function connectAIKey() {
