@@ -49,9 +49,10 @@ test("ChatJob SSE emits an initial snapshot and terminal job then closes", async
   assert.equal(response.flushHeadersCalled, true);
   assert.equal(response.headers.get("content-type"), "text/event-stream; charset=utf-8");
   assert.equal(response.headers.get("x-accel-buffering"), "no");
-  assert.equal(response.chunks.length, 1);
-  assert.match(response.chunks[0], /event: job/);
-  assert.match(response.chunks[0], /"reply":"finished"/);
+  const jobEvents = response.chunks.filter((chunk) => chunk.includes("event: job"));
+  assert.equal(jobEvents.length, 1);
+  assert.match(response.chunks[0], /retry: 1500/);
+  assert.match(jobEvents[0], /"reply":"finished"/);
   assert.equal(response.writableEnded, true);
 });
 
@@ -66,10 +67,11 @@ test("ChatJob SSE sends updates as they change and stops at terminal state", asy
     heartbeatIntervalMs: 1000,
   });
   await handler(request(), response as never);
-  assert.equal(response.chunks.length, 3);
-  assert.match(response.chunks[1], /"status":"running"/);
-  assert.match(response.chunks[1], /"reply":"partial"/);
-  assert.match(response.chunks[2], /"status":"completed"/);
+  const jobEvents = response.chunks.filter((chunk) => chunk.includes("event: job"));
+  assert.equal(jobEvents.length, 3);
+  assert.match(jobEvents[1], /"status":"running"/);
+  assert.match(jobEvents[1], /"reply":"partial"/);
+  assert.match(jobEvents[2], /"status":"completed"/);
   assert.equal(response.writableEnded, true);
 });
 
