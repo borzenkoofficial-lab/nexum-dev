@@ -865,3 +865,56 @@ test("keeps planner payloads private and emits only the final user-facing respon
   assert.deepEqual(deltas, ["Задача выполнена."]);
 });
 
+
+test("AgentLoop awaits durable tool intent and result journal around execution", async () => {
+  const calls: string[] = [];
+  let toolExecutions = 0;
+  const runtime = fakeRuntime(
+    (_task, previousResults) => previousResults.length === 0
+      ? { tool: "fake", input: "perform action" }
+      : { tool: "", input: "", done: true, finalResponse: "done" },
+    async () => {
+      toolExecutions += 1;
+      calls.push("execute");
+      return { success: true, output: "action result" };
+    },
+  );
+  const journal = {
+    start: async (tool: string, input: string) => {
+      calls.push(`start:${tool}:${input}`);
+      return "action-1";
+    },
+    finish: async (actionId: string, result: { success: boolean; output: string }) => {
+      calls.push(`finish:${actionId}:${result.success}:${result.output}`);
+    },
+  };
+
+  const result = await new AgentLoop(runtime, gateway, 3, undefined, undefined, undefined, undefined, undefined, journal).run("say hello");
+  assert.equal(result.success, true);
+  assert.equal(toolExecutions, 1);
+  assert.deepEqual(calls, [
+    "start:fake:perform action",
+    "execute",
+    "finish:action-1:true:action result",
+  ]);
+});
+
+test("AgentLoop does not execute a tool if durable intent journaling fails", async () => {
+  let toolExecutions = 0;
+  const runtime = fakeRuntime(
+    () => ({ tool: "fake", input: "must not run" }),
+    async () => {
+      toolExecutions += 1;
+      return { success: true, output: "unexpected" };
+    },
+  );
+  const journal = {
+    start: async () => { throw new Error("journal unavailable"); },
+    finish: async () => undefined,
+  };
+  await assert.rejects(
+    new AgentLoop(runtime, gateway, 1, undefined, undefined, undefined, undefined, undefined, journal).run("say hello"),
+    /journal unavailable/,
+  );
+  assert.equal(toolExecutions, 0);
+});
