@@ -24,7 +24,7 @@
 .nx-chat-empty p { color: var(--nx-muted); line-height: 1.6; }
 .nx-suggestions, .nx-composer-row, .nx-composer-left, .nx-composer-right, .nx-tool-actions, .nx-device-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .nx-suggestions { justify-content: center; margin-top: 20px; }
-.nx-suggestions button, .nx-composer button, .nx-tool button, .nx-code button { border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface); padding: 8px 10px; }
+.nx-suggestions button, .nx-composer button, .nx-tool button:not(.kv-segmented__option), .nx-code button { border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface); padding: 8px 10px; }
 .nx-composer { width: min(720px, calc(100% - 32px)); margin: 0 auto 12px; padding: 10px; border: 1px solid var(--nx-border); border-radius: var(--nx-radius); background: var(--nx-surface); }
 .nx-composer textarea { display: block; width: 100%; min-height: 100px; resize: vertical; border: 0; padding: 8px; background: transparent; }
 .nx-composer-row { justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--nx-border); }
@@ -151,7 +151,6 @@
 .nx-agent-state { padding: 5px 7px; border: 1px solid var(--nx-border); border-radius: 4px; color: var(--nx-muted); font-size: 10px; }
 .nx-agent-state.live { color: var(--nx-text); }
 .nx-device-tabs { justify-content: flex-end; padding: 8px 12px 0; }
-.nx-device-tabs button.selected { background: var(--nx-surface-muted); }
 .nx-files aside button.selected, .nx-code-body aside button.selected { border-color: var(--nx-border); background: var(--nx-surface-muted); }
 .nx-messages article.user { margin-left: auto; width: min(88%, 620px); background: var(--nx-surface-muted); }
 .nx-messages article:not(.user) { width: min(96%, 680px); }
