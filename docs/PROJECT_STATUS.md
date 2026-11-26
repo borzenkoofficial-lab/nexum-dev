@@ -355,3 +355,10 @@ NEXUM.DEV — браузерная платформа для создания и
 - Fixed `GET /api/chat/jobs` to return the project ID and current stage/message metadata required by Builder reload recovery. Previously the route returned raw jobs, but this was subsequently changed to a reduced list that omitted `projectId`; the frontend therefore treated every active job as eligible for the current project and could restore a job belonging to another project.
 - The list response is now an explicit minimal projection (`id`, `projectId`, `status`, `stage`, `currentMessage`, `updatedAt`); no provider credentials or full job payload are exposed.
 - Extended the active-job reload E2E to assert the list endpoint preserves the correct project association and stage before reload. CI validation pending.
+
+
+## Builder terminal ChatJob restoration — 2026-11-26
+
+- Added authenticated `GET /api/chat/jobs/recent` returning up to 20 recent terminal jobs for the current user, scoped to a specific project by the client. The response is a minimal projection containing the completed reply, execution steps/events, problems, error and product plan; no credentials or internal provider secrets are exposed.
+- Builder reload recovery now restores the latest terminal job for the active project when no active queued/running job exists, including the assistant reply and execution summary. Active jobs continue to use the SSE endpoint and existing active-job list route.
+- Validation pending CI and E2E. No production deployment, migration, secrets or paid AI calls.
