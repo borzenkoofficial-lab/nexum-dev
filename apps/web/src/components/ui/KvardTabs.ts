@@ -9,6 +9,7 @@ export interface KvardTabItem {
 
 export interface KvardTabsProps {
   id: string;
+  className?: string;
   ariaLabel: string;
   value: string;
   onChange: (value: string) => void;
@@ -18,6 +19,7 @@ export interface KvardTabsProps {
 export function KvardTabs({
   id,
   ariaLabel,
+  className,
   value,
   onChange,
   items,
@@ -52,7 +54,7 @@ export function KvardTabs({
     "div",
     {
       id,
-      className: "kv-tabs",
+      className: ["kv-tabs", className].filter(Boolean).join(" "),
       role: "tablist",
       "aria-label": ariaLabel,
       "aria-orientation": "horizontal",
