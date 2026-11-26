@@ -375,3 +375,15 @@
     width: 100%;
   }
 }
+@media (max-width: 680px) {
+  .nx-builder-project.kv-page-header {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    max-width: min(360px, 100%);
+  }
+  .nx-builder-project .kv-page-header__actions {
+    width: auto;
+    flex: 0 0 auto;
+  }
+}
