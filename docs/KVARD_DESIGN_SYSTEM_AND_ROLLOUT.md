@@ -546,3 +546,21 @@ Additional user-facing integrations:
 - Business Agents — Create AI Employee modal uses the shared dialog frame with its existing form state, validation, API submit path, and close control preserved. The agent-name field receives initial focus.
 - Workspace — Application Manager switcher uses the shared dialog frame. Its existing project/window selection and close-project callbacks remain unchanged. Backdrop dismissal now occurs only when clicking the backdrop itself, not when clicking inside the switcher.
 - Both integrations retain their existing consumer-specific CSS classes; no admin surfaces were changed.
+
+
+## 17. Feedback and empty-state primitives
+
+Three reusable user-facing primitives now extend the shared UI kit:
+
+- `KvardAlert`: inline feedback with `danger`, `warning`, `success`, and `info` tones. Errors use `role="alert"` and assertive live announcements; non-error feedback uses `role="status"` and polite announcements. Optional dismissal is an explicit callback.
+- `KvardToast`: a presentational, polite, atomic status live region. It deliberately does not own timers, queueing, persistence, or global notification state; the existing screen remains the source of truth for visibility and content.
+- `KvardEmptyState`: a labelled region with a concise title, optional description, and optional action slot. It does not invent actions or data.
+
+Initial user-facing integrations:
+- Workspace global notice uses `KvardToast`, retaining the existing `notice` state and visual `toast` class.
+- Business Agents uses `KvardAlert` for dismissible error/success feedback and `KvardEmptyState` for the no-agents and no-pending-approvals states.
+- Agents uses `KvardAlert` for retryable loading errors and success feedback, plus `KvardEmptyState` for the no-saved-agents state.
+- Existing retry handlers, close callbacks, data conditions and API paths remain in their owning pages.
+- Shared styling uses semantic KVARD tokens; consumer classes remain in place for gradual migration.
+
+No notification scheduler, toast timeout, server event, fake state, API, authentication, or administrative UI was introduced or changed.
