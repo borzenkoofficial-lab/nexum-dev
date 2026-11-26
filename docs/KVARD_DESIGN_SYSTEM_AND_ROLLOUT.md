@@ -646,3 +646,19 @@ The Builder now uses the shared heading structure at project and tool-panel leve
 - Code-panel action controls wrap within their shared action slot on narrow screens; the project return action has a visible keyboard-focus outline.
 
 Verification boundary: source and diff review only. CI, typecheck, lint, tests, build, visual browser QA and keyboard QA remain to be confirmed on the final commit; none are claimed as passing.
+
+
+## 23. Builder responsive layout and overflow hardening
+
+The Builder's existing desktop split and narrow-screen stacked layout now receive a focused responsive hardening pass.
+
+- Constrain the Builder grid, panels, file panes, editor surfaces and nested content with min-width: 0 / max-width: 100% to prevent long content from widening the workspace.
+- Long conversation messages, agent events, plans, problem details and file paths can wrap within their own panels instead of forcing page-level horizontal overflow.
+- Keep source-code textareas intentionally scrollable; the editor remains the horizontal-scroll boundary for long code lines.
+- Make the model picker, Composer controls, panel actions and project header fit narrow viewports without changing their actions or state ownership.
+- Correct the filename emphasis selector to target the actual <b> element rendered by Files and Code panels.
+- Preserve semantic design tokens for focus visibility, borders, surfaces and text; no new hard-coded theme palette was introduced.
+- Keep existing preview, file loading/saving, agent execution, tabs and API contracts unchanged.
+- No admin UI, admin styles, routes, APIs, permissions or business logic were changed.
+
+Verification boundary: source and diff review only. CI is pending for this commit; typecheck, lint, tests, build, browser visual QA and manual device/keyboard QA are not yet confirmed.
