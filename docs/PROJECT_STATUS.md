@@ -544,3 +544,27 @@ Next:
 3. Provision Timeweb VPS, Managed PostgreSQL, domain DNS and Daytona credentials.
 4. Perform first deployment and test persistence across a container rebuild.
 5. Enable backups and complete a restore drill before opening public access.
+
+
+## KVARD Studio — выделение в самостоятельное приложение (2026-11-26)
+
+**Статус: IN_PROGRESS — архитектурное решение зафиксировано; кодовое разделение ещё не начато.**
+
+- Принято решение выделить Studio в отдельное frontend-приложение и deployment target внутри текущего monorepo, сохранив единый `apps/api` и общие сервисы проектов, авторизации, AI Orchestrator, ChatJob, approvals, billing и sandbox.
+- Проведён read-only аудит: текущий frontend — один React 19/Vite SPA в `apps/web`; основной workspace и Builder state сосредоточены в крупном `apps/web/src/App.tsx`; авторизация в `apps/web/src/auth/AuthGate.tsx` использует same-origin `/api` и cookie credentials.
+- Текущий `vercel.json` собирает только `apps/web`. Отдельного Studio app/build пока нет.
+- Создана архитектурная спецификация `docs/KVARD_STUDIO_ARCHITECTURE.md`: границы ответственности, целевая структура, этапы миграции, критерии готовности и риски cross-origin auth.
+- Отдельный subdomain не включать до проверки API origin, cookie Domain/SameSite/Secure, CORS allowlist, CSRF и E2E login/logout/MFA.
+- Существующий Builder не удалять и не отключать до parity-проверок новой Studio. Backend AgentLoop/ChatJob/sandbox не дублировать в frontend.
+
+Проверка:
+- Проверен `main` HEAD до изменения: `36c394737c0e3d80fb4cdb987ad9bac37778ab3a`.
+- Архитектурный документ добавлен в `main`, commit: `d5032807f10d7ec395c2c030b502dea76552db13`.
+- Аудит выполнен через GitHub read-only fetch. Локальный build/typecheck/lint/tests не запускались; Studio app не создана; CI и deployment не запускались.
+- Production domain, Vercel production alias, DNS, auth config и secrets не менялись.
+
+Следующий этап:
+1. Проверить cookie/CORS/CSRF реализацию API и полный импорт-граф Builder.
+2. Спроектировать минимальную границу shared client/contracts.
+3. Создать независимый `apps/studio` build с сохранением текущего `apps/web`.
+4. Подключить Preview и пройти auth + Builder E2E до изменения production.
