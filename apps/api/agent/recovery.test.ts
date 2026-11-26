@@ -53,3 +53,13 @@ test("unknown tool activity fails closed to manual review", () => {
   assert.equal(assessment.disposition, "manual_review_required");
   assert.equal(assessment.reason, "unrecognized_tool_activity");
 });
+
+test("persisted write steps remain unsafe even when their event stream is incomplete", () => {
+  const assessment = assessChatJobRecovery({
+    steps: [{ tool: "writeFile", success: true }, { tool: "patchFile", success: true }],
+    events: [],
+  });
+  assert.equal(assessment.disposition, "inspect_before_retry");
+  assert.equal(assessment.reason, "side_effect_may_have_started");
+  assert.deepEqual(assessment.completedTools, ["patchFile", "writeFile"]);
+});
