@@ -625,7 +625,7 @@ ${attachment.content.slice(0, 80_000)}`);
         start: (tool, input) => startChatJobToolAction(jobId, userId, tool, input),
         finish: (actionId, result) => finishChatJobToolAction(jobId, userId, actionId, result),
       },
-      isAgentExecutionCheckpointEncryptionConfigured()
+      process.env.NEXUM_DATABASE_URL?.trim() && isAgentExecutionCheckpointEncryptionConfigured()
         ? async (state) => {
             const sandboxRevisionFingerprint = await computeProjectRevisionFingerprint(project.path);
             const sequence = ++executionCheckpointSequence;
