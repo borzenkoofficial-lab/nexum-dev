@@ -15,6 +15,7 @@ import {
   listChatJobToolActions,
   saveChatJobExecutionCheckpoint,
   getLatestChatJobExecutionCheckpoint,
+  updateChatJob,
   type ChatJob,
   type ChatJobApproval,
 } from "./chatJobStore.js";
@@ -306,12 +307,27 @@ test("execution checkpoints are encrypted, sequenced and owner-scoped in the Cha
       seenPlannerContexts: [],
       actionSequence: [],
       toolActionIds: [journalActionId],
+      resumeState: {
+        task: "Inspect project",
+        builderTask: false,
+        repairRequested: false,
+        forceCompletionNextIteration: false,
+        remotePlannerRateLimited: false,
+        productPlannerCreated: false,
+      },
       sandboxRevisionFingerprint: "sha256:revision-1",
     };
     await saveChatJobExecutionCheckpoint(checkpoint);
     assert.deepEqual(await getLatestChatJobExecutionCheckpoint(jobId, userId), checkpoint);
     assert.equal(await getLatestChatJobExecutionCheckpoint(jobId, "another-user"), null);
     await assert.rejects(saveChatJobExecutionCheckpoint(checkpoint), /sequence already exists/);
+    await updateChatJob(jobId, userId, { updatedAt: Date.now() - 60_000 });
+    const recovered = await recoverStaleChatJobs(5_000, async () => "sha256:revision-1");
+    assert.ok(recovered >= 1);
+    const recoveredJob = await getChatJob(jobId, userId);
+    assert.equal(recoveredJob?.status, "failed");
+    assert.equal(recoveredJob?.checkpointRecoveryAssessment?.disposition, "checkpoint_compatible");
+    assert.equal(recoveredJob?.checkpointRecoveryAssessment?.automaticResumeAllowed, false);
   } finally {
     if (previousKey === undefined) delete process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
     else process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY = previousKey;
