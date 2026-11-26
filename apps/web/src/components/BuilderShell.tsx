@@ -43,7 +43,7 @@ export function BuilderShell({
 
   return (
     <section className="nx-builder" aria-label={"КВАРД Studio — " + projectName}>
-      <header className="nx-builder-header">
+      <div className="nx-builder-header">
         <KvardPageHeader
           className="nx-builder-project"
           headingLevel="h1"
@@ -70,7 +70,7 @@ export function BuilderShell({
           <button type="button" onClick={onShare}>Скопировать ссылку</button>
           <button className="nx-builder-open" type="button" onClick={onOpenPreview}>Открыть предпросмотр ↗</button>
         </div>
-      </header>
+      </div>
       <div className="nx-builder-body" role="tabpanel" id={`kv-builder-tools-panel-${activeTool}`} aria-labelledby={`kv-builder-tools-tab-${activeTool}`} tabIndex={0}>{children}</div>
     </section>
   );
