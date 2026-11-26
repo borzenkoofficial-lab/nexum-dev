@@ -676,3 +676,16 @@ The Builder now uses the shared feedback and empty-state primitives for key user
 - Existing design tokens are used for the feedback and empty-state presentation. No admin UI, admin styles, routes, APIs, permissions or business logic were changed.
 
 Verification boundary: source and diff review only. CI, typecheck, lint, tests, build and browser/keyboard visual QA must be checked against final HEAD; none are claimed as passing.
+
+
+## 25. Business Agents interaction polish
+
+The Business Agents user-facing screen receives a focused interaction-consistency pass.
+
+- Alert-dismiss and modal-close controls use a consistent 36px hit area, shared control radius and semantic focus token.
+- Hover feedback uses the semantic surface-hover token, preserving the independent light/dark palette.
+- Header actions and modal footer children are constrained with min-width: 0 to prevent intrinsic content from forcing overflow.
+- Existing modal dismissal, alert actions, business-agent APIs, forms, approvals, execution and organization state remain unchanged.
+- No admin UI, styles, routes, APIs, permissions or business logic were changed.
+
+Verification boundary: source and diff review only. CI, typecheck, lint, tests, build and browser visual/keyboard QA remain unconfirmed for this change.
