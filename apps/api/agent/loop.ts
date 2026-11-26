@@ -162,6 +162,12 @@ export interface AgentToolJournal {
   finish(actionId: string, result: { success: boolean; output: string }): Promise<void>;
 }
 
+export type AgentExecutionCheckpointWriter = (
+  state: Omit<AgentExecutionCheckpoint,
+    "version" | "jobId" | "userId" | "projectId" | "sequence" | "createdAt" | "sandboxRevisionFingerprint"
+  >,
+) => Promise<void>;
+
 export class AgentLoop {
   private readonly runtime: AgentRuntime;
   private lastExecutionSnapshot?: AgentExecutionSnapshot;
@@ -176,6 +182,7 @@ export class AgentLoop {
     private readonly journalContext?: { requestId?: string; agentRunId?: string; taskId?: string; projectId?: string; provider?: string; model?: string },
     private readonly onExecutionUpdate?: (snapshot: AgentExecutionSnapshot) => void,
     toolJournal?: AgentToolJournal,
+    private readonly onCheckpoint?: AgentExecutionCheckpointWriter,
   ) {
     this.runtime = toolJournal
       ? new Proxy(runtime, {
@@ -430,6 +437,42 @@ export class AgentLoop {
 
     for (let iteration = 1; iteration <= iterationLimit; iteration += 1) {
       throwIfAborted(options?.signal);
+      // The loop boundary is a safe checkpoint: the preceding tool result has
+      // been journaled, added to previousResults and observed by the planner.
+      // No in-flight tool operation is represented as resumable state.
+      if (this.onCheckpoint) {
+        await this.onCheckpoint({
+          phase,
+          iteration,
+          intent: structuredClone(intent),
+          executionPlan: structuredClone(executionSnapshot.plan),
+          executionSnapshot: structuredClone(executionSnapshot),
+          taskState: {
+            ...taskState,
+            changedFiles: [...taskState.changedFiles],
+            verified: { ...taskState.verified },
+            verifiedAtChangeVersion: { ...taskState.verifiedAtChangeVersion },
+          },
+          ...(productPlan ? { productPlan: structuredClone(productPlan) } : {}),
+          previousResults: structuredClone(previousResults),
+          counters: {
+            modelTurns,
+            aiPlannerCalls,
+            productPlannerAttempts,
+            productReviewAttempts,
+            repairAttempts: executionSnapshot.repairAttempts,
+            eventId,
+          },
+          tokenBudget: adaptiveBudget.snapshot(),
+          seenActions: [...seenActions],
+          actionAttempts: [...actionAttempts.entries()],
+          seenPlannerContexts: [...seenPlannerContexts],
+          actionSequence: [...actionSequence],
+          toolActionIds: [...new Set(previousResults
+            .map((item) => item.result.metadata?.journalActionId)
+            .filter((id): id is string => typeof id === "string"))],
+        });
+      }
       if (agentFailureInjection.consumeFailure("PLANNER_CHECKPOINT", this.journalContext?.projectId)) {
         await agentFailureInjection.waitForCheckpoint("PLANNER_CHECKPOINT", this.journalContext?.projectId, options?.signal);
       }
