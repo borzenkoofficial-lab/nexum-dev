@@ -157,11 +157,17 @@ export interface AgentEvent {
   planId?: string;
 }
 
+export interface AgentToolJournal {
+  start(tool: string, input: string): Promise<string>;
+  finish(actionId: string, result: { success: boolean; output: string }): Promise<void>;
+}
+
 export class AgentLoop {
+  private readonly runtime: AgentRuntime;
   private lastExecutionSnapshot?: AgentExecutionSnapshot;
 
   constructor(
-    private readonly runtime: AgentRuntime,
+    runtime: AgentRuntime,
     private readonly gateway: AIGateway,
     private readonly maxIterations = DEFAULT_MAX_ITERATIONS,
     private readonly onStep?: (step: AgentStep) => void,
@@ -169,7 +175,38 @@ export class AgentLoop {
     private readonly onPlan?: (plan: ProductPlan) => void,
     private readonly journalContext?: { requestId?: string; agentRunId?: string; taskId?: string; projectId?: string; provider?: string; model?: string },
     private readonly onExecutionUpdate?: (snapshot: AgentExecutionSnapshot) => void,
-  ) {}
+    toolJournal?: AgentToolJournal,
+  ) {
+    this.runtime = toolJournal
+      ? new Proxy(runtime, {
+          get: (target, property, receiver) => {
+            if (property === "executeTool") {
+              return async (tool: string, input: string, signal?: AbortSignal) => {
+                // The intent record must be committed before the external/project
+                // operation begins. If it cannot be committed, fail closed.
+                const actionId = await toolJournal.start(tool, input);
+                try {
+                  const result = await target.executeTool(tool, input, signal);
+                  // A failed journal finalization leaves the action in "started";
+                  // recovery will correctly treat its outcome as unknown.
+                  await toolJournal.finish(actionId, result);
+                  return result;
+                } catch (error) {
+                  if (error instanceof Error && error.message.includes("journal entry")) throw error;
+                  await toolJournal.finish(actionId, {
+                    success: false,
+                    output: error instanceof Error ? error.message : "Tool execution failed with an unknown error.",
+                  });
+                  throw error;
+                }
+              };
+            }
+            const value = Reflect.get(target, property, receiver);
+            return typeof value === "function" ? value.bind(target) : value;
+          },
+        })
+      : runtime;
+  }
 
   async run(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
     try {
