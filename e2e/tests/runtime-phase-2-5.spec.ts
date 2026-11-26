@@ -576,4 +576,13 @@ test("active ChatJob and Builder progress restore after page reload with reconne
     const data = await response.json();
     return data.job?.status;
   }, { timeout: 10_000 }).toBe("cancelled");
+
+  const recentResponse = await page.request.get("/api/chat/jobs/recent");
+  expect(recentResponse.ok()).toBeTruthy();
+  const recent = await recentResponse.json();
+  expect(recent.jobs.some((item: any) => item.id === jobId && item.projectId === runtimeWorkspaceId && item.status === "cancelled")).toBeTruthy();
+
+  await page.reload();
+  await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("body")).toContainText("Agent task cancelled by user.", { timeout: 10_000 });
 });
