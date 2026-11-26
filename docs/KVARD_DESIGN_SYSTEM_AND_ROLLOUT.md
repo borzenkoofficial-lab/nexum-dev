@@ -564,3 +564,24 @@ Initial user-facing integrations:
 - Shared styling uses semantic KVARD tokens; consumer classes remain in place for gradual migration.
 
 No notification scheduler, toast timeout, server event, fake state, API, authentication, or administrative UI was introduced or changed.
+
+
+## 18. Shared surface system — KvardSurface
+
+The UI kit now defines a common container primitive for Workspace and Builder:
+
+- Component: `apps/web/src/components/ui/KvardSurface.ts`.
+- Public export: `KvardSurface` plus its element, variant, padding and prop types.
+- Semantic element choices: `div`, `section`, or `article`; no implicit interactive role or keyboard behavior.
+- Surface variants: `default`, `subtle`, `raised`, and `outline`.
+- Spacing variants: `none`, `sm`, `md`, and `lg`.
+- Visual styling uses shared surface, border, radius and shadow tokens. Consumer classes remain available for local layout and responsive adjustments.
+
+Initial migrations:
+- Workspace home: create-project section, recent-project list and empty-project panel.
+- Builder: development chat, preview panel, files panel, agent panel and code editor.
+- Existing component-owned layout, content, actions, API calls and state remain unchanged.
+- Builder panel base border/background/radius/shadow declarations now come from the shared primitive rather than duplicated surface CSS.
+- Superseded Workspace surface declarations were removed while retaining layout and responsive rules.
+
+No route, API, authentication, permission, agent execution or administrative UI behavior was changed.
