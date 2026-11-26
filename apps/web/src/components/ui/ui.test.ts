@@ -8,6 +8,7 @@ import { KvardToast } from "./KvardToast.ts";
 import { KvardTabs } from "./KvardTabs.ts";
 import { KvardPageHeader } from "./KvardPageHeader.ts";
 import { KvardSegmentedControl } from "./KvardSegmentedControl.ts";
+import { profileSaveNotice } from "../agentStorage.ts";
 
 type ElementShape = { type: unknown; props: Record<string, unknown> };
 
@@ -19,6 +20,12 @@ function childrenOf(props: Record<string, unknown>): ElementShape[] {
   const children = props.children;
   return (Array.isArray(children) ? children : [children]).filter(Boolean) as ElementShape[];
 }
+
+test("profile save feedback never assumes an unknown storage is server memory", () => {
+  assert.equal(profileSaveNotice("database"), "Профиль сохранён в базе данных аккаунта.");
+  assert.match(profileSaveNotice("memory"), /памяти сервера/);
+  assert.match(profileSaveNotice("unknown"), /Тип хранилища не подтверждён/);
+});
 
 test("KvardButton preserves native type, variant, size, accessible name and loading semantics", () => {
   const button = KvardButton({
