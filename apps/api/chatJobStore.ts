@@ -541,7 +541,7 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
             updated_at=$1,
             payload=jsonb_set(
               jsonb_set(payload, '{stage}', '"error"'::jsonb, true),
-              '{error}', '"API process restarted while this Agent Run was active."'::jsonb, true
+              '{error}', '"API process restarted before this Agent Run finished."'::jsonb, true
             )
       WHERE status IN ('queued','running') AND updated_at < $2
       RETURNING id`,
