@@ -4,6 +4,7 @@ import {
   acquireProjectLock,
   heartbeatProjectLock,
   releaseProjectLock,
+  recoverStaleChatJobs,
   cancelChatJob,
   createChatJob,
   getChatJob,
@@ -128,4 +129,33 @@ test("project lock admits one concurrent Agent Run and enforces owner-only heart
   await releaseProjectLock(projectId, ownerJobId);
   assert.equal(await acquireProjectLock(projectId, "owner-lock-c", "job-lock-c"), true);
   await releaseProjectLock(projectId, "job-lock-c");
+});
+
+
+test("API restart recovery fails orphaned queued and running jobs and releases their locks", async () => {
+  const staleAt = Date.now() - 60_000;
+  const runningId = "chat-job-restart-running";
+  const queuedId = "chat-job-restart-queued";
+  await createChatJob({ ...makeJob(runningId, "restart-owner"), updatedAt: staleAt, projectId: "restart-project-running" });
+  await createChatJob({
+    ...makeJob(queuedId, "restart-owner"),
+    status: "queued",
+    stage: "queued",
+    updatedAt: staleAt,
+    projectId: "restart-project-queued",
+  });
+  await acquireProjectLock("restart-project-running", "restart-owner", runningId);
+  await acquireProjectLock("restart-project-queued", "restart-owner", queuedId);
+
+  const recovered = await recoverStaleChatJobs(5_000);
+  assert.ok(recovered >= 2);
+  for (const id of [runningId, queuedId]) {
+    const job = await getChatJob(id, "restart-owner");
+    assert.equal(job?.status, "failed");
+    assert.match(job?.error ?? "", /API process restarted/);
+  }
+  assert.equal(await acquireProjectLock("restart-project-running", "restart-owner", "restart-next-running"), true);
+  assert.equal(await acquireProjectLock("restart-project-queued", "restart-owner", "restart-next-queued"), true);
+  await releaseProjectLock("restart-project-running", "restart-next-running");
+  await releaseProjectLock("restart-project-queued", "restart-next-queued");
 });
