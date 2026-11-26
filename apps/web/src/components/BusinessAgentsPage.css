@@ -401,13 +401,22 @@
   .kv-business-page {
     padding: 22px 14px calc(40px + env(safe-area-inset-bottom));
   }
-  .kv-business-header { gap: 15px; }
+  .kv-business-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 15px;
+    padding-bottom: 18px;
+  }
   .kv-business-header-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     width: 100%;
+    min-width: 0;
   }
-  .kv-business-header-actions > :last-child { grid-column: 1 / -1; }
+  .kv-business-header-actions > * {
+    width: 100%;
+    min-width: 0;
+  }
   .kv-business-metrics { gap: 8px; margin-top: 17px; }
   .kv-business-metrics article {
     min-height: 98px;
