@@ -1,6 +1,9 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import type { AgentIntent, AgentPlan, AgentToolResult, AgentExecutionPlan, ProductPlan } from "./types.js";
 import type { AdaptiveTokenBudgetSnapshot } from "./tokenBudget.js";
+import type { AgentExecutionSnapshot } from "./executionState.js";
+import type { AgentPhase } from "./types.js";
+import type { AgentTaskState } from "./taskState.js";
 
 export const AGENT_EXECUTION_CHECKPOINT_VERSION = 1 as const;
 const KEY_ENV = "KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY";
@@ -13,8 +16,10 @@ export interface AgentExecutionCheckpoint {
   projectId: string;
   sequence: number;
   createdAt: number;
-  phase: string;
+  phase: AgentPhase;
   iteration: number;
+  executionSnapshot: AgentExecutionSnapshot;
+  taskState: Omit<AgentTaskState, "changedFiles"> & { changedFiles: string[] };
   intent: AgentIntent;
   executionPlan: AgentExecutionPlan;
   productPlan?: ProductPlan;
@@ -50,6 +55,15 @@ export interface EncryptedAgentCheckpoint {
   ciphertext: string;
 }
 
+export function isAgentExecutionCheckpointEncryptionConfigured(): boolean {
+  try {
+    checkpointKey();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function checkpointKey(): Buffer {
   const encoded = process.env[KEY_ENV]?.trim();
   if (!encoded) throw new Error(`${KEY_ENV} is not configured; durable Agent checkpoints are disabled.`);
@@ -82,6 +96,7 @@ export function validateAgentExecutionCheckpoint(value: unknown): asserts value 
   if (
     !Number.isFinite(item.createdAt) ||
     !["analyze", "plan", "implement", "validate", "repair", "verify", "finish"].includes(String(item.phase)) ||
+    !item.executionSnapshot || !item.taskState ||
     !Array.isArray(item.previousResults) ||
     !Array.isArray(item.toolActionIds) ||
     !Array.isArray(item.seenActions) ||
@@ -106,6 +121,18 @@ export function validateAgentExecutionCheckpoint(value: unknown): asserts value 
     item.tokenBudget.remaining !== item.tokenBudget.hardCap - item.tokenBudget.reserved
   ) {
     throw new Error("Agent checkpoint counters or token budget are invalid.");
+  }
+  if (
+    item.executionSnapshot.intent.agentJobId !== item.jobId ||
+    item.executionSnapshot.plan.agentJobId !== item.jobId ||
+    item.executionSnapshot.intent.projectId !== item.projectId ||
+    !Array.isArray(item.executionSnapshot.observations) ||
+    !Array.isArray(item.executionSnapshot.completedStepIds) ||
+    !Array.isArray(item.taskState.changedFiles) ||
+    !item.taskState.verified ||
+    !item.taskState.verifiedAtChangeVersion
+  ) {
+    throw new Error("Agent checkpoint snapshot state is invalid.");
   }
   if (item.executionPlan.agentJobId !== item.jobId || item.intent.agentJobId !== item.jobId || item.intent.projectId !== item.projectId) {
     throw new Error("Agent checkpoint ownership does not match its execution state.");
