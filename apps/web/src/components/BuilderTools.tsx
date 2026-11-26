@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentStage } from "./types";
-import { KvardSegmentedControl } from "./ui/KvardSegmentedControl.ts";
+import { KvardSegmentedControl, KvardSurface } from "./ui/index.ts";
 
 interface Props {
   tab: "preview" | "files" | "agent";
@@ -120,7 +120,7 @@ export function BuilderTools(p: Props) {
 
   if (p.tab === "preview") {
     return (
-      <section className="nx-tool" aria-label="Предпросмотр приложения">
+      <KvardSurface as="section" className="nx-tool" variant="raised" padding="none" aria-label="Предпросмотр приложения">
         <div className="nx-tool-head">
           <div><span>ПРЕДПРОСМОТР</span><strong>{p.previewOnline ? "Приложение доступно" : "Ожидает первую сборку"}</strong></div>
           <div className="nx-tool-actions">
@@ -152,13 +152,13 @@ export function BuilderTools(p: Props) {
             <div><span>PREVIEW</span><h2>Здесь появится ваше приложение</h2><p>Отправьте задачу в чате, чтобы начать разработку.</p><button type="button" onClick={p.onOpenAgent}>Открыть AI-агента</button></div>
           </div>
         )}
-      </section>
+      </KvardSurface>
     );
   }
 
   if (p.tab === "files") {
     return (
-      <section className="nx-tool" aria-label="Файлы проекта">
+      <KvardSurface as="section" className="nx-tool" variant="raised" padding="none" aria-label="Файлы проекта">
         <div className="nx-tool-head">
           <div><span>ФАЙЛЫ</span><strong>Исходный код проекта</strong></div>
           <button type="button" onClick={() => void loadFiles()} disabled={loading}>{loading ? "Загрузка…" : "Обновить"}</button>
@@ -181,7 +181,7 @@ export function BuilderTools(p: Props) {
           </main>
         </div>
         {error && <div className="nx-error" role="alert">{error}</div>}
-      </section>
+      </KvardSurface>
     );
   }
 
@@ -197,7 +197,7 @@ export function BuilderTools(p: Props) {
   const successfulSteps = p.activitySteps.filter((step) => step.success).length;
 
   return (
-    <section className="nx-tool nx-agent" aria-label="Ход выполнения AI-агента">
+    <KvardSurface as="section" className="nx-tool nx-agent" variant="raised" padding="none" aria-label="Ход выполнения AI-агента">
       <div className="nx-tool-head">
         <div><span>AI-АГЕНТ</span><strong>{live ? "Выполняет задачу" : p.stage === "completed" ? "Задача выполнена" : p.stage === "error" ? "Задача остановлена с ошибкой" : "Готов к работе"}</strong></div>
         <span className={"nx-agent-state " + (live ? "live" : p.stage === "error" ? "error" : p.stage === "completed" ? "done" : "")} role="status" aria-live="polite">{live ? "Работает" : p.stage === "error" ? "Ошибка" : p.stage === "completed" ? "Завершено" : "Ожидание"}</span>
@@ -243,6 +243,6 @@ export function BuilderTools(p: Props) {
           ? [...p.activityEvents].reverse().slice(0, 20).map((event) => <p key={event.id}><b>{event.tool ?? "Агент"}</b> · {event.message}</p>)
           : <span>События появятся после запуска задачи.</span>}
       </div>
-    </section>
+    </KvardSurface>
   );
 }
