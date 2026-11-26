@@ -118,7 +118,8 @@ test("ChatJob SSE rejects malformed route parameters", async () => {
     getUserId: () => "user-1",
     getJob: async () => { throw new Error("Should not look up invalid ID"); },
   });
-  await handler(request(undefined as unknown as string), response as never);
+  const malformedRequest = { params: { id: undefined } } as unknown as Parameters<ReturnType<typeof createChatJobEventsHandler>>[0];
+  await handler(malformedRequest, response as never);
   assert.equal(response.statusCode, 400);
   assert.equal(response.writableEnded, true);
 });
