@@ -490,3 +490,19 @@ Welcome проходит фиксированные timed scenes. Прогрес
 - `docs/KVARD_DESIGN_SYSTEM.md`
 - `docs/KVARD_GLOBAL_DESIGN_PLAN.md`
 - `docs/KVARD_BALANCED_BRAND_ROLLOUT.md`
+
+
+## 14. Shared navigation primitive — KvardTabs
+
+The first shared navigation primitive is implemented for the user-facing Business Agents workspace.
+
+- Component: apps/web/src/components/ui/KvardTabs.ts.
+- Public export: apps/web/src/components/ui/index.ts.
+- Styling: apps/web/src/kvard-ui-kit.css, using existing KVARD semantic tokens only.
+- Integration: the five existing Business Agents sections — Agents, Knowledge, Teams, Approvals and Usage.
+- Accessibility contract: tablist/tab/tabpanel roles, stable tab-to-panel IDs, selected state, roving tabindex, accessible badge labels, disabled-item handling, and ArrowLeft/ArrowRight/Home/End keyboard navigation.
+- The selected tab remains controlled by the owning page; the component does not own route or business state.
+- Existing API calls, data loading, actions and domain logic are unchanged.
+- Superseded local tab styles were removed from BusinessAgentsPage.css after integration.
+
+Verification boundary: implementation and tests are committed, but the final CI run is pending and browser visual QA has not been completed. Do not describe the component as fully verified until typecheck, focused tests, lint, build and browser keyboard/visual checks complete. No administrative files were included in the implementation commits.
