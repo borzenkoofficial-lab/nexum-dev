@@ -448,9 +448,24 @@ The Builder's final user-facing answer now streams through the existing AgentLoo
 - Once visible text has been emitted, a failed stream is not silently retried through another provider. This prevents duplicate or concatenated answers after partial output.
 - `AgentLoop` strips the callback from planner calls and reattaches it only at the finalizer. Internal planner JSON and tool-call arguments are never forwarded as user-visible text. Explicit planner-provided final text is emitted only after the Completion Gate passes.
 - `runChatJob` appends deltas to the existing `ChatJob.reply` field and persists them with a 350 ms write throttle; it flushes the last delta before completing, failing or cancelling the job.
-- The Web app upserts one stable assistant message per ChatJob while its existing job polling refreshes the partial reply. This is incremental Builder rendering over the ChatJob API, not an SSE subscription to ChatJob updates.
+- The Web app upserts one stable assistant message per ChatJob. Builder now subscribes to authenticated ChatJob SSE snapshots instead of polling every 900 ms; one snapshot fetch is used only while EventSource reconnects.
 - Builder tasks whose final response is deterministic after verification produce that summary at finalization; tool execution and internal code/planner output remain represented by existing activity/progress events rather than raw token output.
 - Tests cover gateway delta aggregation, non-stream compatibility, no fallback after partial output, and AgentLoop privacy of planner output. The full CI also exercises the existing ChatJob and runtime flows.
 
-The browser `consumeAIStream` utility remains the parser for direct canonical AI SSE responses. It is not the transport used by Builder ChatJob updates. A future ChatJob SSE subscription can replace polling if needed, but is not required for the current incremental final-answer behavior.
+The browser `consumeAIStream` utility remains the parser for direct canonical AI SSE responses. Builder ChatJob updates use a separate authenticated snapshot stream so the browser continues to consume the existing AgentLoop/ChatJob lifecycle without bypassing planning, tools, approvals, cancellation or Completion Gate.
+
+## 17. ChatJob server-sent events (SSE)
+
+- Authenticated route: `GET /api/chat/jobs/:id/events`, under existing `/api/chat` session authentication and rate limiting.
+- Job ownership is checked before streaming; missing or cross-user IDs return 404 before SSE headers.
+- Sends an initial snapshot and subsequent snapshots whenever the persisted ChatJob changes. Reconnect starts with the latest snapshot; replay of prior snapshots is unnecessary for state recovery.
+- Event type `job` carries a full ChatJob snapshot. `unavailable` is a safe terminal transport notice. Event IDs use `updatedAt`; payload-change comparison also catches same-millisecond updates.
+- Includes `retry: 1500`, heartbeat comments, `Cache-Control: no-cache, no-store, no-transform`, and `X-Accel-Buffering: no`.
+- Polling on the server is 500 ms against the persistent ChatJob store/cache; the browser no longer polls every 900 ms. SSE writes honor backpressure and abort on client disconnect.
+- The Web uses native EventSource with automatic reconnect and a one-shot REST snapshot fetch on reconnect errors. Terminal states close the subscription; completed tasks still wait for Preview readiness and then refresh the Preview iframe.
+- Tests cover owner/missing job response, invalid ID, initial terminal snapshot, changed snapshots, disconnect cleanup, and response backpressure.
+- This is state streaming, not a durable event log. On reconnect the latest state is sent, and intermediate snapshots may be coalesced; the authoritative job/history remains persisted in ChatJob.
+
+No live provider requests, production credentials, migrations, paid resources or deployment were used.
+
 
