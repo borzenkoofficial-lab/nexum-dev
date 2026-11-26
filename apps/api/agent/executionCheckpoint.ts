@@ -332,6 +332,30 @@ export async function computeProjectRevisionFingerprint(projectRoot: string): Pr
 }
 
 
+export interface RestoredAgentLoopState {
+  checkpoint: AgentExecutionCheckpoint;
+  adaptiveBudget: AdaptiveTokenBudget;
+  task: string;
+  builderTask: boolean;
+  repairRequested: boolean;
+  forceCompletionNextIteration: boolean;
+  remotePlannerRateLimited: boolean;
+  productPlannerCreated: boolean;
+  steps: Array<{ iteration: number; tool: string; input: string; success: boolean; toolCallId?: string }>;
+  phase: AgentPhase;
+  nextIteration: number;
+  eventId: number;
+  modelTurns: number;
+  aiPlannerCalls: number;
+  productPlannerAttempts: number;
+  productReviewAttempts: number;
+  repairAttempts: number;
+  seenActions: string[];
+  actionAttempts: Array<[string, number]>;
+  seenPlannerContexts: string[];
+  actionSequence: string[];
+}
+
 export interface HydratedAgentCheckpoint {
   checkpoint: AgentExecutionCheckpoint;
   adaptiveBudget: AdaptiveTokenBudget;
@@ -341,6 +365,19 @@ export interface HydratedAgentCheckpoint {
   forceCompletionNextIteration: boolean;
   remotePlannerRateLimited: boolean;
   productPlannerCreated: boolean;
+  steps: RestoredAgentLoopState["steps"];
+  phase: AgentPhase;
+  nextIteration: number;
+  eventId: number;
+  modelTurns: number;
+  aiPlannerCalls: number;
+  productPlannerAttempts: number;
+  productReviewAttempts: number;
+  repairAttempts: number;
+  seenActions: string[];
+  actionAttempts: Array<[string, number]>;
+  seenPlannerContexts: string[];
+  actionSequence: string[];
 }
 
 /** Rehydrates validated planner/runtime continuation data without executing or replaying tools. */
@@ -361,5 +398,28 @@ export function hydrateAgentExecutionCheckpoint(value: unknown): HydratedAgentCh
     forceCompletionNextIteration: checkpoint.resumeState.forceCompletionNextIteration,
     remotePlannerRateLimited: checkpoint.resumeState.remotePlannerRateLimited,
     productPlannerCreated: checkpoint.resumeState.productPlannerCreated,
+    steps: checkpoint.previousResults.map((item) => ({
+      iteration: item.iteration,
+      tool: item.tool,
+      input: item.input,
+      success: item.result.success,
+      ...(typeof item.toolCallId === "string" ? { toolCallId: item.toolCallId } : {}),
+    })),
+    phase: checkpoint.phase,
+    nextIteration: checkpoint.iteration,
+    eventId: checkpoint.counters.eventId,
+    modelTurns: checkpoint.counters.modelTurns,
+    aiPlannerCalls: checkpoint.counters.aiPlannerCalls,
+    productPlannerAttempts: checkpoint.counters.productPlannerAttempts,
+    productReviewAttempts: checkpoint.counters.productReviewAttempts,
+    repairAttempts: checkpoint.counters.repairAttempts,
+    seenActions: [...checkpoint.seenActions],
+    actionAttempts: checkpoint.actionAttempts.map(([key, count]) => [key, count]),
+    seenPlannerContexts: [...checkpoint.seenPlannerContexts],
+    actionSequence: [...checkpoint.actionSequence],
   };
+}
+
+export function restoreAgentLoopState(value: unknown): RestoredAgentLoopState {
+  return hydrateAgentExecutionCheckpoint(value);
 }

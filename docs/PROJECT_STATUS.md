@@ -409,7 +409,12 @@ NEXUM.DEV — браузерная платформа для создания и
 - Therefore this change is a safety boundary, not yet durable execution. The next implementation phase must introduce a versioned execution journal/checkpoint written around each tool invocation, stable action IDs, durable tool results, and explicit idempotency/reconciliation policy for side-effecting tools. A checkpoint may only be marked resumable after its required state is durably committed.
 - A GitHub Actions run exposed an existing TypeScript listener mismatch in the cancellation bridge; the parent AbortSignal handler now uses a zero-argument wrapper and removes that exact listener. Earlier rapid-push CI runs were cancelled; the consolidated run for the latest commit must still be checked. No production migration, deployment, secret change, or live/paid provider request was performed.
 
-## ### Durable Agent Execution — checkpoint validation hardening (2026-11-26)
+## ### ### Durable Agent Execution — restored loop-state projection (2026-11-26)
+- Checkpoint hydration now reconstructs completed display steps and persisted loop control counters/history (phase, next iteration, model/planner counters, seen action/context fingerprints, action sequence).
+- This remains a validated projection primitive only. It does not resume the AgentLoop or invoke tools; restart restoration is gated on project lock and sandbox continuity verification.
+- Added regression coverage demonstrating state reconstruction without tool replay.
+
+Durable Agent Execution — checkpoint validation hardening (2026-11-26)
 - Checkpoint schema validation now bounds all restored histories (tool results, journal IDs, planner context/action tracking, observations, changed files) before hydration.
 - Tool journal action IDs must be unique and reference tool history entries; malformed history, oversized inputs/outputs, or inconsistent action references fail closed.
 - Added regression coverage for excessive history, unreferenced journal IDs, and oversized tool input. CI verification is pending; no automatic resume or production deployment is enabled.

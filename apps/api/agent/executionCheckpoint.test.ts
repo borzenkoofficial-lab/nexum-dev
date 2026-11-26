@@ -238,6 +238,30 @@ test("Agent execution checkpoints reject malformed loop continuation state", () 
 });
 
 
+test("hydrated loop state reconstructs history and control counters without replay", () => {
+  const checkpoint = fixture();
+  checkpoint.previousResults = [
+    { iteration: 2, tool: "readFile", input: "src/App.tsx", result: { success: true, output: "contents" }, toolCallId: "read-action" },
+    { iteration: 3, tool: "writeFile", input: JSON.stringify({ path: "src/App.tsx", content: "updated" }), result: { success: true, output: "written" }, toolCallId: "write-action" },
+  ];
+  checkpoint.toolActionIds = ["write-action"];
+  checkpoint.seenActions = ["fingerprint"];
+  checkpoint.actionAttempts = [["fingerprint", 1]];
+  checkpoint.seenPlannerContexts = ["planner-context"];
+  checkpoint.actionSequence = ["tool:writeFile"];
+  checkpoint.counters = { modelTurns: 4, aiPlannerCalls: 2, productPlannerAttempts: 1, productReviewAttempts: 1, repairAttempts: 0, eventId: 21 };
+  const restored = restoreAgentLoopState(checkpoint);
+  assert.deepEqual(restored.steps.map(({ iteration, tool, input, success, toolCallId }) => ({ iteration, tool, input, success, toolCallId })), checkpoint.previousResults.map(({ iteration, tool, input, result, toolCallId }) => ({ iteration, tool, input, success: result.success, toolCallId })));
+  assert.equal(restored.nextIteration, checkpoint.iteration);
+  assert.equal(restored.eventId, 21);
+  assert.equal(restored.modelTurns, 4);
+  assert.deepEqual(restored.seenActions, ["fingerprint"]);
+  assert.deepEqual(restored.actionAttempts, [["fingerprint", 1]]);
+  assert.deepEqual(restored.seenPlannerContexts, ["planner-context"]);
+  assert.deepEqual(restored.actionSequence, ["tool:writeFile"]);
+  assert.equal(restored.steps.length, 2, "restore should rebuild completed steps only, not execute tools");
+});
+
 test("checkpoint hydration validates continuation and restores token budget without replay", () => {
   const state = fixture();
   const hydrated = hydrateAgentExecutionCheckpoint(state);
