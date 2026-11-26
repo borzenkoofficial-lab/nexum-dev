@@ -634,3 +634,101 @@
 @media (prefers-reduced-motion: reduce) {
   .nx-builder *, .nx-builder *::before, .nx-builder *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+
+/* Motion layer — truthful, restrained feedback for the existing Builder lifecycle. */
+.nx-agent-state.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.nx-agent-state.live::after {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+  animation: nx-agent-presence 1.35s ease-in-out infinite;
+}
+.nx-run .nx-progress > i {
+  position: relative;
+  overflow: hidden;
+}
+.nx-run .nx-progress > i.active::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 58%), transparent);
+  content: "";
+  transform: translateX(-100%);
+  animation: nx-progress-sheen 1.8s ease-in-out infinite;
+}
+.nx-agent-list > div {
+  transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+.nx-agent-list > div.active {
+  position: relative;
+  margin-inline: -7px;
+  padding: 7px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--kv-action-soft) 62%, transparent);
+}
+.nx-agent-list > div.active b {
+  animation: nx-stage-number 1.8s ease-in-out infinite;
+}
+.nx-messages article {
+  animation: nx-message-arrive 220ms cubic-bezier(.2,.7,.25,1) both;
+}
+.nx-messages article.user {
+  transform-origin: right bottom;
+}
+.nx-messages article:not(.user) {
+  transform-origin: left bottom;
+}
+.nx-live-reply {
+  animation: nx-message-arrive 220ms cubic-bezier(.2,.7,.25,1) both;
+}
+.nx-send,
+.nx-cancel {
+  transition: transform 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+.nx-send:hover:not(:disabled),
+.nx-cancel:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.nx-send:active:not(:disabled),
+.nx-cancel:active:not(:disabled) {
+  transform: translateY(0) scale(.97);
+}
+@keyframes nx-agent-presence {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .38; transform: scale(.72); }
+}
+@keyframes nx-progress-sheen {
+  0% { transform: translateX(-100%); }
+  65%, 100% { transform: translateX(100%); }
+}
+@keyframes nx-stage-number {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .62; }
+}
+@keyframes nx-message-arrive {
+  from { opacity: 0; transform: translateY(7px) scale(.992); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-agent-state.live::after,
+  .nx-run .nx-progress > i.active::after,
+  .nx-agent-list > div.active b {
+    animation: none;
+  }
+  .nx-messages article,
+  .nx-live-reply {
+    animation: none;
+  }
+  .nx-send,
+  .nx-cancel {
+    transition: none;
+  }
+}
