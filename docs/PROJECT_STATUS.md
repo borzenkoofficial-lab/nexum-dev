@@ -510,30 +510,30 @@ Durable Agent Execution — tool action journal (2026-11-26)
 **Статус: IN_PROGRESS — repository scaffolding prepared; live Timeweb deployment not yet performed.**
 
 - Production target selected: Timeweb Cloud VPS + Docker Compose, Managed PostgreSQL, Caddy HTTPS and Daytona remote sandbox.
-- App Platform is not selected for primary production because it recreates containers and does not preserve container-local data; its Compose implementation forbids \`volumes\`. KVARD currently stores project workspaces and checkpoints on the local filesystem.
-- Added a persistent runtime bind mount at \`/app/runtime\` and documented host ownership requirements.
+- App Platform is not selected for primary production because it recreates containers and does not preserve container-local data; its Compose implementation forbids `volumes`. KVARD currently stores project workspaces and checkpoints on the local filesystem.
+- Added a persistent runtime bind mount at `/app/runtime` and documented host ownership requirements.
 - Added production entrypoint to apply SQL migrations from the compiled runtime image before API startup when PostgreSQL is configured.
 - Added the SQL migration assets explicitly to the runtime Docker image.
 - Added Caddy reverse proxy and API/database readiness health check.
 - Added a main-only deployment script with clean-tree guard, fast-forward update, Compose validation, image rebuild and HTTPS health verification.
-- Converted \`KvardDialog.ts\` JSX to React \`createElement\` so the existing \`.ts\` module remains valid TypeScript without renaming import paths. This addresses the previously observed TypeScript JSX parsing blocker; CI must confirm it.
+- Converted `KvardDialog.ts` JSX to React `createElement` so the existing `.ts` module remains valid TypeScript without renaming import paths. This addresses the previously observed TypeScript JSX parsing blocker; CI must confirm it.
 - No administrative UI or admin business logic changed.
 - No production secrets, database credentials, API keys or customer data were added to the repository.
 
 Files added/updated:
-- \`Dockerfile\`
-- \`docker-compose.yml\`
-- \`deploy/timeweb/Caddyfile\`
-- \`deploy/timeweb/compose.env.example\`
-- \`deploy/timeweb/env.production.example\`
-- \`scripts/start-production.sh\`
-- \`scripts/deploy-timeweb.sh\`
-- \`docs/deployment/timeweb-vps.md\`
-- \`apps/web/src/components/ui/KvardDialog.ts\`
-- \`README.md\`
+- `Dockerfile`
+- `docker-compose.yml`
+- `deploy/timeweb/Caddyfile`
+- `deploy/timeweb/compose.env.example`
+- `deploy/timeweb/env.production.example`
+- `scripts/start-production.sh`
+- `scripts/deploy-timeweb.sh`
+- `docs/deployment/timeweb-vps.md`
+- `apps/web/src/components/ui/KvardDialog.ts`
+- `README.md`
 
 Verification:
-- Repository branch and parent HEAD checked before writing: \`main\` at \`bceae78b43066e19332401117bd35b72a1bae23c\`.
+- Repository branch and parent HEAD checked before writing: `main` at `bceae78b43066e19332401117bd35b72a1bae23c`.
 - Local container build/test execution unavailable in this environment; GitHub Actions CI is the required verification gate after commit.
 - Live Timeweb deployment, TLS issuance, managed database connectivity, Daytona credentials and restore test are NOT RUN.
 - Existing Vercel status on the parent commit is rate-limited; this is separate from Timeweb readiness.

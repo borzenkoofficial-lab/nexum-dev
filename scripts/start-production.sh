@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-if [ -n "\${NEXUM_DATABASE_URL:-}" ]; then
+if [ -n "${NEXUM_DATABASE_URL:-}" ]; then
   echo "[KVARD] Applying pending PostgreSQL migrations..."
   node /app/apps/api/dist/db/migrate.js
 else

@@ -15,7 +15,7 @@ services:
       PORT: "3001"
     volumes:
       - type: bind
-        source: \${KVARD_DATA_DIR:-/srv/kvard/data}
+        source: ${KVARD_DATA_DIR:-/srv/kvard/data}
         target: /app/runtime
     expose:
       - "3001"
@@ -42,7 +42,7 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     environment:
-      KVARD_DOMAIN: \${KVARD_DOMAIN:?Set KVARD_DOMAIN in .env}
+      KVARD_DOMAIN: ${KVARD_DOMAIN:?Set KVARD_DOMAIN in .env}
     ports:
       - "80:80"
       - "443:443"

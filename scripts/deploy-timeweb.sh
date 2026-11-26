@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ROOT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 if [[ "$(git branch --show-current)" != "main" ]]; then
@@ -24,7 +24,7 @@ set -a
 source ./.env
 set +a
 
-if [[ -z "\${KVARD_DOMAIN:-}" || -z "\${KVARD_DATA_DIR:-}" ]]; then
+if [[ -z "${KVARD_DOMAIN:-}" || -z "${KVARD_DATA_DIR:-}" ]]; then
   echo "KVARD_DOMAIN and KVARD_DATA_DIR must be set in .env." >&2
   exit 1
 fi
