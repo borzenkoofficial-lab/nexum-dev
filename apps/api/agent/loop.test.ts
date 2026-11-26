@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { AIGateway } from "../ai/gateway.js";
 import { MockProvider } from "../ai/providers/mock.js";
 import { NexumAgent } from "./agent.js";
-import { AgentLoop, compactAgentHistory } from "./loop.js";
+import { AgentLoop, compactAgentHistory, type AgentExecutionCheckpointWriter } from "./loop.js";
 import type { AgentRuntime } from "./types.js";
 import type { AIProvider } from "../ai/types.js";
 
@@ -950,7 +950,7 @@ test("AgentLoop emits encrypted-checkpoint payloads only at safe iteration bound
       : null,
     executeTool: async () => ({ success: true, output: "observed result" }),
   };
-  const writer = async (state: Parameters<NonNullable<ConstructorParameters<typeof AgentLoop>[9]>>[0]) => {
+  const writer: AgentExecutionCheckpointWriter = async (state) => {
     snapshots.push({
       iteration: state.iteration,
       previousResults: state.previousResults.length,
