@@ -3,8 +3,10 @@ import { AuthGate } from "./auth/AuthGate";
 import { AdminControlCenter } from "./components/AdminControlCenter";
 import "./builder.css";
 import "./kvard-design-system.css";
+import "./kvard-ui-kit.css";
 import { NexumWelcome } from "./components/NexumWelcome";
 import { useEffect, useRef, useState } from "react";
+import { KvardToast } from "./components/ui/index.ts";
 import { CommandPalette } from "./components/CommandPalette";
 import { NewProjectModal } from "./components/NewProjectModal";
 import { NewsPage } from "./components/NewsPage";
@@ -1551,7 +1553,7 @@ function WorkspaceApp() {
         onSubmit={(data) => void createПроект(data)}
       />
       {connectorModal && <ConnectorModal name={connectorModal} onClose={() => setConnectorModal(null)} />}
-      {notice && <div className="toast" role="status">{notice}</div>}
+      {notice && <KvardToast className="toast" tone="info">{notice}</KvardToast>}
     </div>
   );
 }
