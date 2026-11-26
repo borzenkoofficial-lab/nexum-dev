@@ -568,3 +568,10 @@ Next:
 2. Спроектировать минимальную границу shared client/contracts.
 3. Создать независимый `apps/studio` build с сохранением текущего `apps/web`.
 4. Подключить Preview и пройти auth + Builder E2E до изменения production.
+
+
+**Уточнение auth/CORS после дополнительного read-only аудита:**
+- `apps/api/auth.ts`: основная session cookie — HttpOnly, Path=/, SameSite=Lax, Secure в production; Domain не задан (host-only). MFA challenge cookie имеет Path=/api/auth/admin-mfa и SameSite=Strict.
+- `apps/api/server.ts`: production CORS использует явный allowlist `NEXUM_CORS_ORIGINS` и `credentials: true`.
+- Это позволяет проектировать отдельный Studio origin с единым API origin и credentials, но CSRF-покрытие state-changing endpoints ещё нужно проверить. Не менять cookie Domain и не расширять CORS на wildcard.
+- Архитектурная спецификация обновлена commit `6c0fc166a58cc964be786e3abdb7e2fae56547c5`.
