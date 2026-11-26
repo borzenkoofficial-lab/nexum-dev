@@ -464,6 +464,7 @@ The browser `consumeAIStream` utility remains the parser for direct canonical AI
 - Polling on the server is 500 ms against the persistent ChatJob store/cache; the browser no longer polls every 900 ms. SSE writes honor backpressure and abort on client disconnect.
 - The Web uses native EventSource with automatic reconnect and a one-shot REST snapshot fetch on reconnect errors. Terminal states close the subscription; completed tasks still wait for Preview readiness and then refresh the Preview iframe.
 - Tests cover owner/missing job response, invalid ID, initial terminal snapshot, changed snapshots, disconnect cleanup, and response backpressure.
+- Full [NEXUM CI #45740728242](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/45740728242) passed on implementation commit `cae93f6abd64f0ab433f8f6ddb0209ca188af6851`: API 323/323 (five SSE tests), Web test suites 4/4 and 4/4, runtime 5/5, AI SSE parser 10/10, API/Web typecheck and builds, lint, production Docker image, container smoke test, and Runtime Phase 2.5 E2E.
 - This is state streaming, not a durable event log. On reconnect the latest state is sent, and intermediate snapshots may be coalesced; the authoritative job/history remains persisted in ChatJob.
 
 No live provider requests, production credentials, migrations, paid resources or deployment were used.
