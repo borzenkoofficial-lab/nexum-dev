@@ -398,6 +398,11 @@ function WorkspaceApp() {
               reason: string;
               automaticResumeAllowed: false;
             };
+            checkpointRecoveryAssessment?: {
+              disposition: "checkpoint_compatible" | "inspect_before_resume" | "manual_review_required";
+              reason: string;
+              automaticResumeAllowed: false;
+            };
             productPlan?: { goal?: string; productType?: string; pages?: string[]; components?: string[]; acceptanceCriteria?: string[] };
           }> };
           const completedJob = (recentData.jobs ?? []).find((item) => item.projectId === activeПроектId);
@@ -409,6 +414,13 @@ function WorkspaceApp() {
           setActivitySteps(completedJob.steps ?? []);
           setActivityEvents(completedJob.events ?? []);
           setProblems(completedJob.problems ?? []);
+          const checkpointMessage = completedJob.checkpointRecoveryAssessment?.disposition === "checkpoint_compatible"
+            ? "Контрольная точка совпадает с текущим проектом и журналом действий. Автоматическое продолжение пока отключено."
+            : completedJob.checkpointRecoveryAssessment?.disposition === "inspect_before_resume"
+              ? "Контрольная точка не подтверждена относительно текущего проекта или журнала. Перед продолжением нужна проверка."
+              : completedJob.checkpointRecoveryAssessment?.disposition === "manual_review_required"
+                ? "Контрольная точка неполна или не прошла проверку целостности. Требуется ручная проверка."
+                : "";
           const recoveryMessage = completedJob.recoveryAssessment?.disposition === "safe_to_restart"
             ? "Сбой прервал задачу до зафиксированных операций изменения. Её можно запустить заново."
             : completedJob.recoveryAssessment?.disposition === "inspect_before_retry"
@@ -419,6 +431,7 @@ function WorkspaceApp() {
           setCurrentActivity([
             completedJob.error ?? completedJob.currentMessage ?? (completedJob.status === "completed" ? "Последняя задача завершена." : "Последняя задача завершилась."),
             recoveryMessage,
+            checkpointMessage,
           ].filter(Boolean).join(" "));
           setАгентStage(completedJob.status === "completed" ? "completed" : "error");
           if (completedJob.productPlan) setProductPlan({
