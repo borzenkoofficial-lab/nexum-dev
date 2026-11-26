@@ -190,7 +190,7 @@ input, textarea, select { max-width: 100%; border: 1px solid var(--nx-border); b
 .diagnostics-hero h1 { margin: 7px 0; font-size: clamp(24px, 3vw, 32px); font-weight: 600; }
 .diagnostics-hero p { margin: 0; color: var(--nx-muted); line-height: 1.5; }
 .diagnostics-actions { display: flex; gap: 8px; }
-.diagnostics-actions button, .diagnostics-filters button { padding: 8px 10px; border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface); }
+.diagnostics-actions button { padding: 8px 10px; border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface); }
 .diagnostics-stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 16px; }
 .diagnostics-stats > div { display: grid; gap: 5px; min-width: 0; padding: 13px; border: 1px solid var(--nx-border); border-radius: var(--nx-radius); background: var(--nx-surface); }
 .diagnostics-stats span, .diagnostics-stats small { color: var(--nx-muted); font-size: 10px; }
@@ -211,8 +211,6 @@ input, textarea, select { max-width: 100%; border: 1px solid var(--nx-border); b
 .diagnostics-job-status { overflow-wrap: anywhere; }
 .diagnostics-empty { padding: 20px 8px; color: var(--nx-muted); font-size: 12px; text-align: center; }
 .diagnostics-filters { display: flex; gap: 5px; }
-.diagnostics-filters button { padding: 6px 8px; font-size: 10px; }
-.diagnostics-filters button.selected { background: var(--nx-surface-muted); }
 .diagnostics-timeline { display: grid; gap: 8px; }
 .diagnostics-event { padding: 11px; border: 1px solid var(--nx-border); border-radius: 6px; }
 .diagnostics-event.error { border-left: 3px solid #666; }
