@@ -371,7 +371,45 @@ function WorkspaceApp() {
         const response = await nexumRuntime.network.fetch("/api/chat/jobs");
         if (!response.ok || cancelled) return;
         const data = await response.json() as { jobs?: Array<{ id: string; projectId?: string; status?: string; stage?: string; currentMessage?: string }> };
-        const job = (data.jobs ?? []).find((item) => (item.status === "queued" || item.status === "running") && (!item.projectId || item.projectId === activeПроектId));
+        const job = (data.jobs ?? []).find((item) => (item.status === "queued" || item.status === "running") && item.projectId === activeПроектId);
+        if (!job && !cancelled && chatJobIdRef.current === null) {
+          const recentResponse = await nexumRuntime.network.fetch("/api/chat/jobs/recent");
+          if (!recentResponse.ok || cancelled) return;
+          const recentData = await recentResponse.json() as { jobs?: Array<{
+            id: string; projectId?: string; status?: "completed" | "failed" | "cancelled";
+            stage?: string; currentMessage?: string; reply?: string; steps?: unknown[];
+            events?: unknown[]; problems?: Array<{ message: string; source?: string }>;
+            error?: string; productPlan?: { goal?: string; productType?: string; pages?: string[]; components?: string[]; acceptanceCriteria?: string[] };
+          }> };
+          const completedJob = (recentData.jobs ?? []).find((item) => item.projectId === activeПроектId);
+          if (!completedJob || cancelled) return;
+          if (completedJob.reply) {
+            setReply(completedJob.reply);
+            upsertAssistantReply(completedJob.id, completedJob.reply);
+          }
+          setActivitySteps(completedJob.steps ?? []);
+          setActivityEvents(completedJob.events ?? []);
+          setProblems(completedJob.problems ?? []);
+          setCurrentActivity(completedJob.error ?? completedJob.currentMessage ?? (completedJob.status === "completed" ? "Последняя задача завершена." : "Последняя задача завершилась."));
+          setАгентStage(completedJob.status === "completed" ? "completed" : "error");
+          if (completedJob.productPlan) setProductPlan({
+            goal: completedJob.productPlan.goal ?? "",
+            productType: completedJob.productPlan.productType ?? "Product",
+            pages: completedJob.productPlan.pages ?? [],
+            components: completedJob.productPlan.components ?? [],
+            acceptanceCriteria: completedJob.productPlan.acceptanceCriteria ?? [],
+          });
+          setProjectTaskMeta((items) => ({
+            ...items,
+            [activeПроектId]: {
+              ...(items[activeПроектId] ?? { task: "Последняя задача", timestamp: completedJob.updatedAt ?? Date.now() }),
+              status: completedJob.status ?? "completed",
+            },
+          }));
+          setRightTab("agent");
+          setWorkspaceMode("agent");
+          return;
+        }
         if (!job || cancelled || chatJobIdRef.current !== null) return;
         setAuthoritativeChatJobId(job.id);
         
