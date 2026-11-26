@@ -4,6 +4,7 @@ import { createElement, type ReactElement } from "react";
 import { KvardButton } from "./KvardButton.ts";
 import { KvardField } from "./KvardField.ts";
 import { KvardStatusBadge } from "./KvardStatusBadge.ts";
+import { KvardToast } from "./KvardToast.ts";
 import { KvardTabs } from "./KvardTabs.ts";
 import { KvardPageHeader } from "./KvardPageHeader.ts";
 import { KvardSegmentedControl } from "./KvardSegmentedControl.ts";
@@ -83,6 +84,17 @@ test("KvardStatusBadge exposes a visible label and semantic tone class", () => {
 
   assert.match(String(props.className), /kv-status-badge--success/);
   assert.equal(props.children, "Опубликован");
+});
+
+test("KvardToast exposes a polite atomic status region without an implicit dismiss action", () => {
+  const toast = KvardToast({ children: "Диагностика экспортирована" });
+  const props = propsOf(toast);
+
+  assert.equal(props.role, "status");
+  assert.equal(props["aria-live"], "polite");
+  assert.equal(props["aria-atomic"], true);
+  assert.equal(props.children, "Диагностика экспортирована");
+  assert.equal(props.onClick, undefined);
 });
 
 
