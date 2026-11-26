@@ -236,9 +236,11 @@ test("KvardDialog traps Tab focus at both ends of the dialog", async () => {
   });
   const first = makeFocusable("first");
   const last = makeFocusable("last");
+  const ownerDocument = { activeElement: first };
   const dialog = {
     querySelectorAll: () => [first, last],
     contains: () => true,
+    ownerDocument,
     focus: () => focused.push("dialog"),
   } as unknown as HTMLElement;
 
@@ -250,7 +252,6 @@ test("KvardDialog traps Tab focus at both ends of the dialog", async () => {
     preventDefault: () => undefined,
     stopPropagation: () => undefined,
   } as unknown as KeyboardEvent;
-  Object.defineProperty(dialog, "ownerDocument", { value: { activeElement: first } });
   handleKvardDialogKeyDown(backwards, dialog, () => undefined);
   assert.deepEqual(focused, ["last"]);
 
@@ -262,7 +263,7 @@ test("KvardDialog traps Tab focus at both ends of the dialog", async () => {
     preventDefault: () => undefined,
     stopPropagation: () => undefined,
   } as unknown as KeyboardEvent;
-  Object.defineProperty(dialog, "ownerDocument", { value: { activeElement: last } });
+  ownerDocument.activeElement = last;
   handleKvardDialogKeyDown(forwards, dialog, () => undefined);
   assert.deepEqual(focused, ["first"]);
 });
