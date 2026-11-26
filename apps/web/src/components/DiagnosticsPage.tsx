@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { KvardSegmentedControl } from "./ui/KvardSegmentedControl.ts";
 
 type DiagnosticEvent = {
   id?: string;
@@ -141,8 +142,17 @@ export function DiagnosticsPage() {
         <section className="diagnostics-main" aria-label="Журнал событий">
           <div className="diagnostics-panel-head">
             <h2>{selectedJob ? `Задание ${selectedJob.slice(0, 12)}` : "Последние события"}</h2>
-            <div className="diagnostics-filters" aria-label="Фильтр событий">
-              {(["all", "errors", "jobs"] as const).map((value) => <button key={value} type="button" className={filter === value ? "selected" : ""} aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === "all" ? "Все" : value === "errors" ? "Ошибки" : "Задания"}</button>)}
+            <div className="diagnostics-filters">
+              <KvardSegmentedControl
+                ariaLabel="Фильтр событий"
+                value={filter}
+                onChange={value => setFilter(value as "all" | "errors" | "jobs")}
+                items={[
+                  { id: "all", label: "Все" },
+                  { id: "errors", label: "Ошибки" },
+                  { id: "jobs", label: "Задания" },
+                ]}
+              />
             </div>
           </div>
           {jobLoading && <div className="diagnostics-empty">Загружаю историю задания…</div>}
