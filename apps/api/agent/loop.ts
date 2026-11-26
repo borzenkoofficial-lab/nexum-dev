@@ -185,20 +185,20 @@ export class AgentLoop {
                 // The intent record must be committed before the external/project
                 // operation begins. If it cannot be committed, fail closed.
                 const actionId = await toolJournal.start(tool, input);
+                let result: Awaited<ReturnType<AgentRuntime["executeTool"]>>;
                 try {
-                  const result = await target.executeTool(tool, input, signal);
-                  // A failed journal finalization leaves the action in "started";
-                  // recovery will correctly treat its outcome as unknown.
-                  await toolJournal.finish(actionId, result);
-                  return result;
+                  result = await target.executeTool(tool, input, signal);
                 } catch (error) {
-                  if (error instanceof Error && error.message.includes("journal entry")) throw error;
                   await toolJournal.finish(actionId, {
                     success: false,
                     output: error instanceof Error ? error.message : "Tool execution failed with an unknown error.",
                   });
                   throw error;
                 }
+                // A failed journal finalization leaves the action in "started";
+                // recovery will correctly treat its outcome as unknown.
+                await toolJournal.finish(actionId, result);
+                return result;
               };
             }
             const value = Reflect.get(target, property, receiver);
