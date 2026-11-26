@@ -171,3 +171,33 @@
 ### Verification boundary
 
 The implementation is committed to `main`. The test-first commit was not executed in a completed CI run before subsequent commits, so a red/green TDD cycle is not claimed. Final focused tests, typecheck, lint and build remain pending CI. No browser screenshots or preview QA are available for this revision.
+
+
+## Task 6 — shared accessible dialogs
+
+**Purpose:** Replace duplicated modal keyboard/focus behavior with one accessible user-facing primitive, without changing domain behavior or visual direction.
+
+- [x] Add focused tests for modal semantics, Escape propagation, and Tab / Shift+Tab focus wrapping.
+- [x] Implement `KvardDialog` with controlled visibility, accessible naming, Escape handling, focus trap, initial focus, and focus restoration.
+- [x] Export the component and public prop type from the UI barrel.
+- [x] Integrate the New Project modal while preserving form state, validation, submit payload, and callbacks.
+- [x] Integrate the Command Palette while preserving filtering, arrow-key selection, and action execution.
+- [x] Preserve existing consumer-owned visual classes; no global modal CSS or stacking changes were introduced.
+- [x] Document behavior and explicit limitations.
+- [ ] Run focused UI Kit tests, Web typecheck, lint and build on the final commit.
+- [ ] Inspect both integrations in a real browser at desktop and mobile widths.
+- [ ] Manually verify keyboard-only open, traversal, Escape, backdrop close, and focus restoration.
+
+### Task 6 implementation commits
+
+- Tests first: `7ca35ab`.
+- Dialog primitive: `7be3671`.
+- UI barrel export: `f486687`.
+- Command Palette integration: `19e7bd8`.
+- Focus-test fixture correction: `3fe9f89`.
+- New Project modal integration: `4a3a65c`.
+- Design-system documentation: `22ce96c`.
+
+### Verification boundary
+
+Latest observed GitHub Actions run for implementation commit `4a3a65c`: `45797144520`, status pending; the jobs endpoint returned zero jobs. The current documentation commit triggers a newer run, which must be checked against its exact HEAD. Focused tests, typecheck, lint, build, browser screenshots and manual keyboard QA are not yet confirmed. Vercel's previous deployment status was blocked by the account's build-rate limit. No administrative files were changed.
