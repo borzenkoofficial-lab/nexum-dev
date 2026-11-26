@@ -5,9 +5,7 @@
 .nx-builder-header { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); flex: 0 0 56px; min-height: 56px; padding: 8px 14px; border-bottom: 1px solid var(--nx-border); background: var(--nx-surface); }
 .nx-builder-nav button, .nx-builder-header-actions button { border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface); padding: 7px 10px; }
 .nx-builder-project { display: flex; align-items: center; gap: 9px; width: max-content; max-width: min(360px, 100%); min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
-.nx-builder-project-copy { display: grid; gap: 2px; min-width: 0; }
-.nx-builder-project-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
-.nx-builder-project-copy small, .nx-builder-status { color: var(--nx-muted); font-size: 11px; }
+.nx-builder-status { color: var(--nx-muted); font-size: 11px; }
 .nx-builder-nav, .nx-builder-header-actions { display: flex; align-items: center; gap: 6px; }
 .nx-builder-nav button.active, .nx-builder-header-actions button:focus-visible { background: var(--nx-surface-muted); }
 .nx-builder-header-actions { justify-content: flex-end; }
@@ -17,7 +15,7 @@
 .nx-chat, .nx-tool, .nx-code { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: var(--nx-surface); }
 .nx-chat-head, .nx-tool-head, .nx-code > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; padding: 10px 16px; border-bottom: 1px solid var(--nx-border); }
 .nx-chat-head .kv-page-header__content, .nx-tool-head .kv-page-header__content, .nx-code-head .kv-page-header__content { display: grid; gap: 4px; }
-.nx-chat-head span, .nx-tool-head span, .nx-code small, .nx-chat footer { color: var(--nx-muted); font-size: 11px; }
+.nx-chat-head .kv-page-header__eyebrow, .nx-tool-head .kv-page-header__eyebrow, .nx-code-head .kv-page-header__eyebrow, .nx-chat footer { color: var(--nx-muted); font-size: 11px; }
 .nx-chat-scroll { flex: 1; min-height: 0; overflow: auto; padding: 20px; }
 .nx-chat-empty { width: min(600px, 100%); margin: 8vh auto 24px; text-align: center; }
 .nx-chat-empty h3 { font-size: clamp(24px, 4vw, 36px); font-weight: 600; }
@@ -33,7 +31,7 @@
 .nx-messages article { padding: 12px; border: 1px solid var(--nx-border); border-radius: 6px; }
 .nx-messages article small { display: block; margin-bottom: 8px; color: var(--nx-muted); }
 .nx-tool-head { flex: 0 0 auto; }
-.nx-tool-head > div strong { font-size: 14px; }
+.nx-tool-head .kv-page-header__title { font-size: 14px; }
 .nx-preview-empty, .nx-empty { display: grid; flex: 1; place-items: center; min-height: 220px; padding: 24px; text-align: center; color: var(--nx-muted); }
 .nx-preview { display: flex; flex: 1; flex-direction: column; min-height: 0; margin: 12px; border: 1px solid var(--nx-border); }
 .nx-browser { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid var(--nx-border); font-size: 11px; }
