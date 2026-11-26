@@ -3500,3 +3500,227 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .nx-system-nav button,.nx-system-icon-button,.nx-system-clock,.nx-mobile-system-nav button,
   .nexum-os-event-head button { transition: none; }
 }
+
+
+/* KVARD Studio — project workspace hierarchy and responsive control rail. */
+.nx-builder {
+  background: var(--kv-canvas);
+  color: var(--kv-text);
+}
+.nx-builder-header {
+  position: relative;
+  z-index: 8;
+  grid-template-columns: minmax(190px, 1fr) auto minmax(250px, 1fr);
+  gap: clamp(10px, 1.5vw, 22px);
+  min-height: 72px;
+  padding: 10px clamp(16px, 2vw, 28px);
+  border-bottom-color: var(--kv-border);
+  background: color-mix(in srgb, var(--kv-surface) 96%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--kv-border) 65%, transparent);
+}
+.nx-builder-project { max-width: min(100%, 390px); }
+.nx-builder-project .kv-page-header__eyebrow { font-size: 9px; letter-spacing: .13em; }
+.nx-builder-project .kv-page-header__title { font-size: 15px; font-weight: 700; letter-spacing: -.035em; }
+.nx-builder-project .kv-page-header__actions > button { min-height: 34px; border-radius: 9px; }
+.nx-builder-nav {
+  justify-content: center;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.nx-builder-nav button {
+  min-height: 36px;
+  padding: 7px clamp(9px, 1.15vw, 15px);
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 650;
+  transition: background-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+.nx-builder-nav button.active {
+  background: var(--kv-surface);
+  color: var(--kv-action);
+  box-shadow: 0 1px 3px rgb(20 20 35 / 8%), inset 0 0 0 1px color-mix(in srgb, var(--kv-border) 70%, transparent);
+}
+.nx-builder-header-actions { gap: 7px; min-width: 0; }
+.nx-builder-header-actions button {
+  min-height: 35px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.nx-builder-status {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--kv-border);
+  border-radius: 999px;
+  background: var(--kv-surface-subtle);
+  font-size: 9px;
+  white-space: nowrap;
+}
+.nx-builder-status i { flex: 0 0 7px; }
+.nx-builder-header-actions .nx-builder-open {
+  min-height: 36px;
+  padding-inline: 13px;
+  box-shadow: 0 3px 9px color-mix(in srgb, var(--kv-action) 17%, transparent);
+}
+.nx-builder-body {
+  min-width: 0;
+  padding: clamp(10px, 1.35vw, 18px);
+  gap: clamp(10px, 1.2vw, 16px);
+}
+.nx-builder-grid {
+  grid-template-columns: minmax(0, .96fr) minmax(0, 1.04fr);
+  gap: clamp(10px, 1.2vw, 16px);
+}
+.nx-chat, .nx-tool, .nx-code {
+  min-width: 0;
+  border: 1px solid var(--kv-border);
+  border-radius: 14px;
+  background: var(--kv-surface);
+  box-shadow: var(--kv-shadow-panel);
+}
+.nx-chat-head, .nx-tool-head, .nx-code > header {
+  min-height: 62px;
+  padding: 12px 17px;
+}
+.nx-chat-scroll { padding: clamp(16px, 2vw, 26px); }
+.nx-messages { gap: 13px; }
+.nx-messages article {
+  padding: 13px 15px;
+  border-radius: 12px;
+  line-height: 1.6;
+  font-size: 12px;
+}
+.nx-messages article.user { border-color: transparent; border-radius: 13px 13px 4px 13px; }
+.nx-messages article:not(.user) { border-radius: 4px 13px 13px 13px; }
+.nx-composer {
+  margin-bottom: 14px;
+  padding: 11px;
+  border-radius: 14px;
+}
+.nx-composer textarea { min-height: 96px; padding: 9px; line-height: 1.55; }
+.nx-composer-row { gap: 8px; padding-top: 10px; }
+.nx-composer button { min-height: 34px; border-radius: 9px; }
+.nx-composer .nx-send { min-width: 38px; min-height: 38px; border-radius: 10px; }
+.nx-tool-head { border-radius: 13px 13px 0 0; }
+.nx-preview {
+  overflow: hidden;
+  border-color: var(--kv-border);
+  border-radius: 12px;
+  background: var(--kv-surface);
+  box-shadow: 0 1px 3px rgb(20 20 35 / 4%);
+}
+.nx-browser { min-height: 40px; padding: 9px 12px; background: var(--kv-surface-subtle); }
+.nx-files aside, .nx-code-body aside {
+  padding: 14px 10px;
+  background: var(--kv-surface-subtle);
+}
+.nx-files aside button, .nx-code-body aside button {
+  min-height: 34px;
+  padding: 8px 9px;
+  border-radius: 8px;
+  font-size: 10px;
+}
+.nx-files aside button.active, .nx-code-body aside button.active,
+.nx-files aside button.selected, .nx-code-body aside button.selected {
+  border-color: color-mix(in srgb, var(--kv-action) 18%, var(--kv-border));
+  background: var(--kv-action-soft);
+  color: var(--kv-action);
+}
+.nx-files main, .nx-code-body main { background: var(--kv-surface); }
+.nx-file-head, .nx-code-file { min-height: 46px; padding: 10px 14px; }
+.nx-files textarea, .nx-code-body textarea {
+  padding: 16px;
+  background: var(--kv-surface);
+  color: var(--kv-text);
+  font-size: 12px;
+  line-height: 1.65;
+  tab-size: 2;
+}
+.nx-agent { gap: 11px; padding: 14px; }
+.nx-run, .nx-progress, .nx-agent-list, .nx-problems, .nx-plan, .nx-events {
+  padding: 14px;
+  border-color: var(--kv-border);
+  border-radius: 12px;
+  background: var(--kv-surface);
+}
+.nx-agent-list > div, .nx-problems > div, .nx-plan > div, .nx-events > div {
+  gap: 12px;
+  padding-top: 10px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.nx-tool-actions button { min-height: 34px; border-radius: 9px; }
+.nx-agent-state { padding: 5px 8px; border-radius: 999px; }
+.nx-preview-empty, .nx-empty { color: var(--kv-text-secondary); }
+.nx-chat-empty p { max-width: 460px; margin-inline: auto; }
+.nx-builder :where(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--kv-focus);
+  outline-offset: 2px;
+}
+@media (max-width: 1180px) {
+  .nx-builder-header {
+    grid-template-columns: minmax(160px, 1fr) auto;
+    gap: 8px 14px;
+    padding-inline: 16px;
+  }
+  .nx-builder-nav { grid-row: 2; grid-column: 1 / -1; justify-content: flex-start; width: 100%; overflow-x: auto; }
+  .nx-builder-header-actions { grid-column: 2; grid-row: 1; }
+  .nx-builder-header-actions .nx-builder-status { display: none; }
+}
+@media (max-width: 900px) {
+  .nx-builder-header { min-height: 0; padding: 10px 14px 8px; }
+  .nx-builder-project .kv-page-header__title { font-size: 14px; }
+  .nx-builder-nav { padding: 3px; }
+  .nx-builder-nav button { min-height: 38px; }
+  .nx-builder-body { padding: 10px; }
+  .nx-builder-grid { gap: 10px; }
+  .nx-chat, .nx-tool, .nx-code { border-radius: 12px; }
+}
+@media (max-width: 680px) {
+  .nx-builder-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 9px 11px 7px;
+  }
+  .nx-builder-project { gap: 7px; }
+  .nx-builder-project .kv-page-header__eyebrow { font-size: 8px; }
+  .nx-builder-project .kv-page-header__title { max-width: 46vw; font-size: 13px; }
+  .nx-builder-project .kv-page-header__actions > button { min-height: 32px; padding: 5px 8px; font-size: 10px; }
+  .nx-builder-nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-start;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nx-builder-nav::-webkit-scrollbar { display: none; }
+  .nx-builder-nav button { flex: 0 0 auto; min-height: 39px; padding-inline: 12px; font-size: 10px; }
+  .nx-builder-header-actions { grid-column: 2; grid-row: 1; gap: 5px; }
+  .nx-builder-header-actions button:not(.nx-builder-open) { display: none; }
+  .nx-builder-header-actions .nx-builder-open { min-height: 33px; padding: 6px 9px; font-size: 9px; }
+  .nx-builder-body { gap: 9px; padding: 9px; }
+  .nx-builder-grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(340px, 1fr) minmax(320px, .9fr); gap: 9px; }
+  .nx-chat-head, .nx-tool-head, .nx-code > header { min-height: 54px; padding: 10px 12px; }
+  .nx-chat-scroll { padding: 14px 11px; }
+  .nx-composer { width: calc(100% - 16px); margin-bottom: 9px; padding: 8px; }
+  .nx-composer textarea { min-height: 82px; font-size: 16px; }
+  .nx-composer-row { align-items: center; }
+  .nx-agent { padding: 10px; }
+  .nx-files, .nx-code-body { grid-template-columns: minmax(94px, 28%) minmax(0, 1fr); }
+  .nx-files aside, .nx-code-body aside { padding: 9px 6px; }
+  .nx-files aside button, .nx-code-body aside button { padding: 8px 6px; font-size: 9px; }
+  .nx-files textarea, .nx-code-body textarea { padding: 11px 9px; font-size: 11px; }
+}
+@media (max-width: 380px) {
+  .nx-builder-project .kv-page-header__actions { display: none; }
+  .nx-builder-header-actions .nx-builder-open { max-width: 116px; overflow: hidden; text-overflow: ellipsis; }
+  .nx-builder-nav button { padding-inline: 9px; }
+  .nx-builder-grid { grid-template-rows: minmax(320px, 1fr) minmax(300px, .9fr); }
+}
