@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentStage } from "./types";
-import { KvardPageHeader, KvardSegmentedControl, KvardSurface } from "./ui/index.ts";
+import { KvardAlert, KvardEmptyState, KvardPageHeader, KvardSegmentedControl, KvardSurface } from "./ui/index.ts";
 
 interface Props {
   tab: "preview" | "files" | "agent";
@@ -42,12 +42,15 @@ export function BuilderTools(p: Props) {
   const [fileLoading, setFileLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [errorType, setErrorType] = useState<"list" | "file" | "save" | "">("");
+  const [fileReloadKey, setFileReloadKey] = useState(0);
   const frame = useRef<HTMLIFrameElement>(null);
   const dirty = content !== saved;
 
   const loadFiles = useCallback(async () => {
     setLoading(true);
     setError("");
+    setErrorType("");
     try {
       const response = await fetch("/api/projects/" + encodeURIComponent(p.projectId) + "/files");
       const data = await response.json();
@@ -57,6 +60,7 @@ export function BuilderTools(p: Props) {
       setSelected((current) => current && next.includes(current) ? current : (next[0] ?? ""));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
+      setErrorType("list");
     } finally {
       setLoading(false);
     }
@@ -75,6 +79,7 @@ export function BuilderTools(p: Props) {
     let cancelled = false;
     setFileLoading(true);
     setError("");
+    setErrorType("");
     setContent("");
     setSaved("");
     fetch("/api/projects/" + encodeURIComponent(p.projectId) + "/file?path=" + encodeURIComponent(selected))
@@ -89,18 +94,22 @@ export function BuilderTools(p: Props) {
         setSaved(data.content ?? "");
       })
       .catch((cause) => {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : String(cause));
+        if (!cancelled) {
+          setError(cause instanceof Error ? cause.message : String(cause));
+          setErrorType("file");
+        }
       })
       .finally(() => {
         if (!cancelled) setFileLoading(false);
       });
     return () => { cancelled = true; };
-  }, [selected, p.projectId, p.tab]);
+  }, [selected, p.projectId, p.tab, fileReloadKey]);
 
   async function save() {
     if (!selected || !dirty || fileLoading || saving) return;
     setSaving(true);
     setError("");
+    setErrorType("");
     try {
       const response = await fetch("/api/projects/" + encodeURIComponent(p.projectId) + "/file", {
         method: "PUT",
@@ -113,6 +122,7 @@ export function BuilderTools(p: Props) {
       p.onRefresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
+      setErrorType("save");
     } finally {
       setSaving(false);
     }
@@ -155,7 +165,7 @@ export function BuilderTools(p: Props) {
           </>
         ) : (
           <div className="nx-preview-empty">
-            <div><span>PREVIEW</span><h3>Здесь появится ваше приложение</h3><p>Отправьте задачу в чате, чтобы начать разработку.</p><button type="button" onClick={p.onOpenAgent}>Открыть AI-агента</button></div>
+            <KvardEmptyState title="Здесь появится ваше приложение" description="Отправьте задачу в чате, чтобы начать разработку." action={<button type="button" onClick={p.onOpenAgent}>Открыть AI-агента</button>} />
           </div>
         )}
       </KvardSurface>
@@ -179,18 +189,21 @@ export function BuilderTools(p: Props) {
               : files.length ? files.map((file) => (
                 <button className={selected === file ? "selected" : ""} aria-pressed={selected === file} key={file} type="button" onClick={() => setSelected(file)}>{file}</button>
               ))
-              : <p>Файлы пока не созданы.</p>}
+              : errorType === "list" ? <p>Список файлов недоступен.</p> : <p>Файлы пока не созданы.</p>}
           </aside>
           <main>
-            {selected ? (
-              <>
-                <div className="nx-file-head"><b>{selected}</b><button type="button" disabled={!dirty || fileLoading || saving} onClick={() => void save()}>{saving ? "Сохранение…" : fileLoading ? "Загрузка…" : dirty ? "Сохранить изменения" : "Сохранено"}</button></div>
+            {selected ? fileLoading ? <p role="status">Открываем файл…</p>
+              : errorType === "file" ? <KvardEmptyState title="Не удалось открыть файл" description="Повторите загрузку, чтобы продолжить редактирование." action={<button type="button" onClick={() => setFileReloadKey((value) => value + 1)}>Повторить загрузку</button>} />
+              : <>
+                <div className="nx-file-head"><b>{selected}</b><button type="button" disabled={!dirty || fileLoading || saving}>{saving ? "Сохранение…" : dirty ? "Сохранить изменения" : "Сохранено"}</button></div>
                 <textarea aria-label={"Содержимое файла " + selected} spellCheck={false} disabled={fileLoading} value={content} onChange={(event) => setContent(event.target.value)} />
               </>
-            ) : <div className="nx-empty">Выберите файл проекта</div>}
+              : errorType === "list" ? <KvardEmptyState title="Не удалось загрузить файлы" description="Проверьте соединение и повторите загрузку." action={<button type="button" onClick={() => void loadFiles()}>Повторить</button>} />
+              : files.length ? <KvardEmptyState title="Выберите файл проекта" description="Выберите файл слева, чтобы просмотреть или изменить его содержимое." />
+              : <KvardEmptyState title="Файлов пока нет" description="Файлы появятся здесь после создания приложения." />}
           </main>
         </div>
-        {error && <div className="nx-error" role="alert">{error}</div>}
+        {error && <KvardAlert tone="danger" title={errorType === "save" ? "Не удалось сохранить файл" : errorType === "file" ? "Не удалось открыть файл" : "Не удалось загрузить список файлов"}>{error}{errorType === "save" ? " Ваши изменения остаются в редакторе." : null}</KvardAlert>}
       </KvardSurface>
     );
   }
@@ -255,7 +268,7 @@ export function BuilderTools(p: Props) {
         <strong>История выполнения</strong>
         {p.activityEvents.length
           ? [...p.activityEvents].reverse().slice(0, 20).map((event) => <p key={event.id}><b>{event.tool ?? "Агент"}</b> · {event.message}</p>)
-          : <span>События появятся после запуска задачи.</span>}
+          : <KvardEmptyState title="История пока пуста" description="События выполнения появятся после запуска задачи." />}
       </div>
     </KvardSurface>
   );
