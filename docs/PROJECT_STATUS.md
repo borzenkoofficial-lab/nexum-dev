@@ -337,3 +337,9 @@ NEXUM.DEV — браузерная платформа для создания и
 - Added structured, payload-free stream delivery metrics: stream duration, snapshot count, changed snapshot count, initial snapshot latency, first changed snapshot latency, average interval between snapshots, and close reason (`terminal`, `client_disconnect`, `job_unavailable`, `poll_error`). No job IDs, user IDs, message text, prompts, or provider data are included in these metric logs.
 - Added regression test confirming a new/reconnected SSE session begins from the latest stored snapshot (no durable replay of intermediate states is claimed).
 - Changes are on `main`; validation is pending CI. No production deployment, migration, paid AI request, or secret change.
+
+
+## Builder active-job reload recovery test — 2026-11-26
+
+- Added Playwright E2E scenario to hold a ChatJob at a deterministic planner checkpoint, reload Builder while the job remains active, verify restored active job/cancel affordance and API status, then cancel and verify terminal state.
+- E2E validation is pending CI. This specifically tests browser reload + active task restoration, not offline reconnect timing or recovery of already-terminal jobs. No production deploy or paid provider call.
