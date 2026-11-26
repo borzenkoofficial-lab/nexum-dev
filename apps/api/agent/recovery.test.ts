@@ -204,3 +204,14 @@ test("checkpoint recovery fails closed on ownership substitution", () => {
   assert.equal(assessment.disposition, "manual_review_required");
   assert.equal(assessment.reason, "checkpoint_ownership_mismatch");
 });
+
+
+test("checkpoint recovery rejects malformed journal entries instead of dropping them", () => {
+  const fixture = checkpointRecoveryFixture();
+  const assessment = assessAgentCheckpointRecovery({
+    ...fixture,
+    toolActions: [...fixture.toolActions, { status: "succeeded" }],
+  });
+  assert.equal(assessment.disposition, "manual_review_required");
+  assert.equal(assessment.reason, "checkpoint_state_invalid");
+});
