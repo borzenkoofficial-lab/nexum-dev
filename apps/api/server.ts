@@ -33,7 +33,7 @@ import { requireAdminAccess } from "./adminAccess.js";
 import { adminRouter } from "./routes/admin.js";
 import { closeDatabase, pingDatabase, query } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
-import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
+import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, startChatJobToolAction, finishChatJobToolAction, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
@@ -618,6 +618,10 @@ ${attachment.content.slice(0, 80_000)}`);
           void checkpointManager.writeExecutionState(project.id, project.path, job.checkpointId, snapshot)
             .catch((error: unknown) => console.error("[Nexum] execution checkpoint persistence failed", error));
         }
+      },
+      {
+        start: (tool, input) => startChatJobToolAction(jobId, userId, tool, input),
+        finish: (actionId, result) => finishChatJobToolAction(jobId, userId, actionId, result),
       },
     );
     if (process.env.NODE_ENV !== "production" && Number(process.env.NEXUM_E2E_AGENT_DELAY_MS || 0) > 0) {
