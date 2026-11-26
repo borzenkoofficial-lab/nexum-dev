@@ -533,7 +533,12 @@ export async function cleanupChatJobs(ttlMs = 30 * 60 * 1000): Promise<void> {
   if (!databaseAvailable()) {
     const cutoff = Date.now() - ttlMs;
     for (const [id, job] of memoryJobs) {
-      if (job.updatedAt < cutoff && ["completed", "failed", "cancelled"].includes(job.status)) memoryJobs.delete(id);
+      if (job.updatedAt < cutoff && ["completed", "failed", "cancelled"].includes(job.status)) {
+        memoryJobs.delete(id);
+        for (const [actionId, action] of memoryToolActions) {
+          if (action.jobId === id) memoryToolActions.delete(actionId);
+        }
+      }
     }
     return;
   }
