@@ -670,7 +670,8 @@ ${attachment.content.slice(0, 80_000)}`);
       return;
     }
 
-    if (signal?.aborted || (await getChatJob(jobId, userId))?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
+    throwIfAgentAborted(signal);
+    if ((await getChatJob(jobId, userId))?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
     job.steps = result.steps;
     job.productPlan = result.productPlan;
     job.agentIntent = result.intent;
@@ -687,7 +688,8 @@ ${attachment.content.slice(0, 80_000)}`);
       (step.tool === "runCommand" || step.tool === "runSandbox") &&
       /npm run build/.test(step.input),
     );
-    if (signal?.aborted || (await getChatJob(jobId, userId))?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
+    throwIfAgentAborted(signal);
+    if ((await getChatJob(jobId, userId))?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
     await waitForChatJobPersistence(jobId);
     if (successfulBuild) await stateManager.markBuildSucceeded();
     await stateManager.refresh(message, result.productPlan, result.steps.filter((step) => step.success && /^(writeFile|patchFile|scaffoldProject)$/.test(step.tool)).map((step) => {
