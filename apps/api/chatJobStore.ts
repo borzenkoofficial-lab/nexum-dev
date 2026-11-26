@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { getToolSecurityPolicy, type ToolRisk } from "./agent/toolPolicy.js";
 import { assessChatJobRecovery, type ChatJobRecoveryAssessment } from "./agent/recovery.js";
 import { decryptAgentExecutionCheckpoint, encryptAgentExecutionCheckpoint, type AgentExecutionCheckpoint, type EncryptedAgentCheckpoint } from "./agent/executionCheckpoint.js";
+import { assessAgentCheckpointRecovery, type AgentCheckpointRecoveryAssessment } from "./agent/recovery.js";
 
 export type ChatJobStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 export type ChatJobStage = "queued" | "analyzing" | "planning" | "reading" | "editing" | "building" | "testing" | "awaiting_approval" | "completed" | "cancelled" | "error";
@@ -57,6 +58,7 @@ export interface ChatJob {
   requestId?: string;
   pendingApproval?: ChatJobApproval;
   recoveryAssessment?: ChatJobRecoveryAssessment;
+  checkpointRecoveryAssessment?: AgentCheckpointRecoveryAssessment;
 }
 
 let initialized: Promise<void> | null = null;
@@ -673,7 +675,10 @@ export async function listChatJobToolActions(jobId: string, userId: string): Pro
   }));
 }
 
-export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promise<number> {
+export async function recoverStaleChatJobs(
+  maxRunningMs = 10 * 60 * 1000,
+  getCurrentSandboxRevisionFingerprint?: (job: Pick<ChatJob, "id" | "userId" | "projectId">) => Promise<string | null>,
+): Promise<number> {
   const cutoff = Date.now() - maxRunningMs;
   const recoveryError = "API process restarted before this Agent Run finished.";
   if (!databaseAvailable()) {
@@ -682,12 +687,31 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
       if ((job.status === "queued" || job.status === "running") && job.updatedAt < cutoff) {
         const updatedAt = Date.now();
         const toolActions = await listChatJobToolActions(id, job.userId);
+        let checkpoint: AgentExecutionCheckpoint | null = null;
+        let checkpointLoadFailed = false;
+        try {
+          checkpoint = await getLatestChatJobExecutionCheckpoint(id, job.userId);
+        } catch {
+          checkpointLoadFailed = true;
+        }
+        let currentFingerprint: string | null = null;
+        if (getCurrentSandboxRevisionFingerprint && job.projectId) {
+          try { currentFingerprint = await getCurrentSandboxRevisionFingerprint(job); } catch { currentFingerprint = null; }
+        }
+        const checkpointAssessment = assessAgentCheckpointRecovery({
+          checkpoint: checkpointLoadFailed ? { version: -1 } : checkpoint,
+          job,
+          currentSandboxRevisionFingerprint: currentFingerprint,
+          toolActions,
+          assessedAt: updatedAt,
+        });
         memoryJobs.set(id, cloneJob({
           ...job,
           status: "failed",
           stage: "error",
           error: recoveryError,
           recoveryAssessment: assessChatJobRecovery({ ...job, toolActions }, updatedAt),
+          checkpointRecoveryAssessment: checkpointAssessment,
           updatedAt,
         }));
         if (job.projectId) {
@@ -711,21 +735,42 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
     const job = decode(row);
     const updatedAt = Date.now();
     const toolActions = await listChatJobToolActions(job.id, job.userId);
+    let checkpoint: AgentExecutionCheckpoint | null = null;
+    let checkpointLoadFailed = false;
+    try {
+      checkpoint = await getLatestChatJobExecutionCheckpoint(job.id, job.userId);
+    } catch {
+      checkpointLoadFailed = true;
+    }
+    let currentFingerprint: string | null = null;
+    if (getCurrentSandboxRevisionFingerprint && job.projectId) {
+      try { currentFingerprint = await getCurrentSandboxRevisionFingerprint(job); } catch { currentFingerprint = null; }
+    }
     const assessment = assessChatJobRecovery({ ...job, toolActions }, updatedAt);
+    const checkpointAssessment = assessAgentCheckpointRecovery({
+      checkpoint: checkpointLoadFailed ? { version: -1 } : checkpoint,
+      job,
+      currentSandboxRevisionFingerprint: currentFingerprint,
+      toolActions,
+      assessedAt: updatedAt,
+    });
     const updated = await query(
       `UPDATE agent_chat_jobs
           SET status='failed',
               updated_at=$3,
               payload=jsonb_set(
                 jsonb_set(
-                  jsonb_set(payload, '{stage}', '"error"'::jsonb, true),
-                  '{error}', to_jsonb($4::text), true
+                  jsonb_set(
+                    jsonb_set(payload, '{stage}', '"error"'::jsonb, true),
+                    '{error}', to_jsonb($4::text), true
+                  ),
+                  '{recoveryAssessment}', $5::jsonb, true
                 ),
-                '{recoveryAssessment}', $5::jsonb, true
+                '{checkpointRecoveryAssessment}', $6::jsonb, true
               )
-        WHERE id=$1 AND status=$2 AND updated_at=$6
+        WHERE id=$1 AND status=$2 AND updated_at=$7
         RETURNING id`,
-      [row.id, job.status, updatedAt, recoveryError, JSON.stringify(assessment), job.updatedAt],
+      [row.id, job.status, updatedAt, recoveryError, JSON.stringify(assessment), JSON.stringify(checkpointAssessment), job.updatedAt],
     );
     if (!updated.rows.length) continue;
     await query(`DELETE FROM agent_project_locks WHERE job_id=$1`, [row.id]);
