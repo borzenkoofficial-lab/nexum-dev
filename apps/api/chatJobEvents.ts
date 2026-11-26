@@ -78,18 +78,36 @@ export function createChatJobEventsHandler({
     response.on("close", onClose);
     let lastSnapshot = "";
     let lastHeartbeat = Date.now();
+    const streamStartedAt = Date.now();
+    let firstSnapshotAt: number | null = null;
+    let firstChangedSnapshotAt: number | null = null;
+    let eventCount = 0;
+    let changedSnapshotCount = 0;
+    let lastSnapshotAt: number | null = null;
+    let totalSnapshotIntervalMs = 0;
+    let closeReason: "terminal" | "client_disconnect" | "job_unavailable" | "poll_error" | "unknown" = "unknown";
 
-    const emitJob = async (snapshot: ChatJob) => {
+    const emitJob = async (snapshot: ChatJob, isChange: boolean) => {
       const serialized = JSON.stringify(snapshot);
       await writeChunk(response, `id: ${snapshot.updatedAt}\nevent: job\ndata: ${serialized}\n\n`, controller.signal);
+      const sentAt = Date.now();
+      if (firstSnapshotAt === null) firstSnapshotAt = sentAt;
+      if (isChange) {
+        changedSnapshotCount += 1;
+        if (firstChangedSnapshotAt === null) firstChangedSnapshotAt = sentAt;
+      }
+      if (lastSnapshotAt !== null) totalSnapshotIntervalMs += sentAt - lastSnapshotAt;
+      lastSnapshotAt = sentAt;
+      eventCount += 1;
       lastSnapshot = serialized;
-      lastHeartbeat = Date.now();
+      lastHeartbeat = sentAt;
     };
 
     try {
       await writeChunk(response, "retry: 1500\n\n", controller.signal);
-      await emitJob(job);
+      await emitJob(job, false);
       if (terminalStatuses.has(job.status)) {
+        closeReason = "terminal";
         response.end();
         return;
       }
@@ -102,11 +120,13 @@ export function createChatJobEventsHandler({
           if (controller.signal.aborted) break;
           if (!latest) {
             await writeChunk(response, `event: unavailable\ndata: ${JSON.stringify({ error: "Chat job expired or unavailable" })}\n\n`, controller.signal);
+            closeReason = "job_unavailable";
             response.end();
             break;
           }
-          if (JSON.stringify(latest) !== lastSnapshot) await emitJob(latest);
+          if (JSON.stringify(latest) !== lastSnapshot) await emitJob(latest, true);
           if (terminalStatuses.has(latest.status)) {
+            closeReason = "terminal";
             response.end();
             break;
           }
@@ -117,13 +137,25 @@ export function createChatJobEventsHandler({
         } catch (error) {
           console.error("[Nexum] ChatJob SSE poll failed", { jobId, error });
           await writeChunk(response, `event: unavailable\ndata: ${JSON.stringify({ error: "Chat job status unavailable" })}\n\n`, controller.signal);
+          closeReason = "poll_error";
           response.end();
           break;
         }
       }
     } finally {
       response.removeListener("close", onClose);
+      if (controller.signal.aborted && closeReason === "unknown") closeReason = "client_disconnect";
       if (!response.writableEnded) response.end();
+      const completedAt = Date.now();
+      console.info("[Nexum] ChatJob SSE metrics", {
+        durationMs: completedAt - streamStartedAt,
+        snapshotCount: eventCount,
+        changedSnapshotCount,
+        initialSnapshotLatencyMs: firstSnapshotAt === null ? null : firstSnapshotAt - streamStartedAt,
+        firstChangedSnapshotLatencyMs: firstChangedSnapshotAt === null ? null : firstChangedSnapshotAt - streamStartedAt,
+        averageSnapshotIntervalMs: eventCount > 1 ? Math.round(totalSnapshotIntervalMs / (eventCount - 1)) : null,
+        closeReason,
+      });
     }
   };
 }
