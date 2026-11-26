@@ -41,6 +41,15 @@ export interface AgentExecutionCheckpoint {
   seenPlannerContexts: string[];
   actionSequence: string[];
   toolActionIds: string[];
+  /** Original task and loop-control flags required to reconstruct the next iteration. */
+  resumeState?: {
+    task: string;
+    builderTask: boolean;
+    repairRequested: boolean;
+    forceCompletionNextIteration: boolean;
+    remotePlannerRateLimited: boolean;
+    productPlannerCreated: boolean;
+  };
   sandboxRevisionFingerprint: string;
 }
 
@@ -135,6 +144,19 @@ export function validateAgentExecutionCheckpoint(value: unknown): asserts value 
     !item.taskState.verifiedAtChangeVersion
   ) {
     throw new Error("Agent checkpoint snapshot state is invalid.");
+  }
+  if (item.resumeState !== undefined) {
+    const resume = item.resumeState;
+    if (
+      !resume || typeof resume.task !== "string" || resume.task.length === 0 || resume.task.length > 100_000 ||
+      typeof resume.builderTask !== "boolean" ||
+      typeof resume.repairRequested !== "boolean" ||
+      typeof resume.forceCompletionNextIteration !== "boolean" ||
+      typeof resume.remotePlannerRateLimited !== "boolean" ||
+      typeof resume.productPlannerCreated !== "boolean"
+    ) {
+      throw new Error("Agent checkpoint loop-control state is invalid.");
+    }
   }
   if (item.executionPlan.agentJobId !== item.jobId || item.intent.agentJobId !== item.jobId || item.intent.projectId !== item.projectId) {
     throw new Error("Agent checkpoint ownership does not match its execution state.");
