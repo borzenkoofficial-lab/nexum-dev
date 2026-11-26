@@ -397,14 +397,14 @@ NEXUM.DEV — браузерная платформа для создания и
 
 ## Agent Run recovery — conservative restart assessment (2026-11-26)
 
-- Added `apps/api/agent/recovery.ts` with a deterministic recovery classifier based on persisted tool events and pending approvals.
+- Added `apps/api/agent/recovery.ts` with a deterministic recovery classifier based on persisted tool events, completed step records, original job status, and pending approvals.
 - Restart recovery now persists `recoveryAssessment` into the ChatJob payload for both the in-memory fallback and PostgreSQL storage.
 - Classifications:
-  - `safe_to_restart`: only recognized, completed READ operations are present (or no tool activity is recorded). This means a fresh run may be considered after user intent is retained; it does **not** mean the original AgentLoop can resume.
-  - `inspect_before_retry`: a WRITE/EXECUTE operation may have run, or a tool start has no recorded terminal result. Inspect the project/sandbox before retrying.
+  - `safe_to_restart`: only a queued job with no recorded execution activity is eligible for a fresh start. Running jobs are never classified as safe to restart yet, even if their visible events show only READ tools, because AgentLoop persistence callbacks are currently asynchronous and do not prove a durable checkpoint.
+  - `inspect_before_retry`: a WRITE/EXECUTE operation may have run, a tool start has no recorded terminal result, or a running job lacks a commit-confirmed checkpoint. Inspect the project/sandbox before retrying.
   - `manual_review_required`: a pending approval was interrupted or tool activity is unrecognized.
 - `automaticResumeAllowed` is explicitly `false` for every classification. No automatic replay or provider call is started after recovery.
-- Added deterministic tests for read-only activity, write/execute activity, unmatched tool starts, interrupted approvals, and unknown tools. Added the recovery test file to the API test script.
+- Added deterministic tests for read-only activity, write/execute activity, unmatched tool starts, interrupted approvals, unknown tools, legacy step-only evidence, and the fail-closed handling of running jobs without durable checkpoints. Added the recovery test file to the API test script.
 - Important implementation finding: the current `AgentLoop.runInternal` keeps critical continuation state in process memory, including `previousResults`, planner-context fingerprints, action-attempt tracking, token budget, and phase-local control flags. Persisted ChatJob snapshots and the execution plan do not contain enough information to continue the exact loop safely. Reconstructing only from the visible steps would risk repeating writes or commands.
 - Therefore this change is a safety boundary, not yet durable execution. The next implementation phase must introduce a versioned execution journal/checkpoint written around each tool invocation, stable action IDs, durable tool results, and explicit idempotency/reconciliation policy for side-effecting tools. A checkpoint may only be marked resumable after its required state is durably committed.
-- No production migration, deployment, secret change, or live/paid provider request was performed. CI and local typecheck/test results remain unverified for these commits.
+- A GitHub Actions run exposed an existing TypeScript listener mismatch in the cancellation bridge; the parent AbortSignal handler now uses a zero-argument wrapper and removes that exact listener. Earlier rapid-push CI runs were cancelled; the consolidated run for the latest commit must still be checked. No production migration, deployment, secret change, or live/paid provider request was performed.
