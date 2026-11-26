@@ -3376,3 +3376,127 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .journal-copy h2{font-size:19px}.journal-lead{font-size:12px}.journal-body{font-size:11px}
 }
 @media(prefers-reduced-motion:reduce){.external-card{transition:none}.external-card:hover{transform:none}}
+
+
+/* System shell polish — navigation, calendar and transient feedback. */
+.nx-system-chrome {
+  position: relative;
+  z-index: 30;
+  min-height: 64px;
+  padding-inline: clamp(16px, 2.4vw, 32px);
+  background: color-mix(in srgb, var(--kv-surface) 94%, transparent);
+  box-shadow: 0 1px 0 var(--kv-border);
+}
+.nx-system-left { min-width: 0; gap: 14px; }
+.nx-system-brand { min-height: 38px; padding: 4px 7px; border-radius: 10px; }
+.nx-system-brand .kvard-mark { width: 29px; height: 29px; }
+.nx-system-divider { width: 1px; height: 27px; background: var(--kv-border); }
+.nx-system-app { min-width: 0; gap: 9px; }
+.nx-system-app-icon {
+  display: grid; place-items: center; width: 32px; height: 32px;
+  border: 1px solid var(--kv-border); border-radius: 10px;
+  background: var(--kv-surface-subtle); color: var(--kv-action); font-size: 12px; font-weight: 750;
+}
+.nx-system-app > div { display: grid; gap: 2px; min-width: 0; }
+.nx-system-app strong { overflow: hidden; color: var(--kv-text); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.nx-system-app small { color: var(--kv-text-tertiary); font-size: 10px; }
+.nx-system-nav { align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--kv-border); border-radius: 12px; background: var(--kv-surface-subtle); }
+.nx-system-nav button { min-height: 34px; padding: 7px 11px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+.nx-system-nav button.active { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kv-action) 16%, transparent); }
+.nx-system-right { gap: 8px; }
+.nx-system-status { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid var(--kv-border); border-radius: 999px; background: var(--kv-surface-subtle); font-size: 10px; white-space: nowrap; }
+.nx-system-status i { width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 0 3px var(--kv-success-soft); }
+.nx-system-icon-button { width: 36px; height: 36px; padding: 0; font-size: 19px; }
+.nx-system-clock { display: grid; gap: 1px; min-width: 82px; padding: 5px 9px; border-radius: 9px; text-align: right; }
+.nx-system-clock strong { color: var(--kv-text); font-size: 12px; font-variant-numeric: tabular-nums; }
+.nx-system-clock span { color: var(--kv-text-tertiary); font-size: 9px; }
+.nx-system-calendar {
+  z-index: 60; top: 70px; right: 20px; width: 292px; padding: 17px;
+  border-radius: var(--kv-radius-large); box-shadow: var(--kv-shadow-popover);
+}
+.nx-calendar-head { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--kv-border); }
+.nx-calendar-head > div { display: grid; gap: 3px; }
+.nx-calendar-head small { color: var(--kv-text-tertiary); font-size: 9px; font-weight: 750; letter-spacing: .12em; }
+.nx-calendar-head strong { color: var(--kv-text); font-size: 25px; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+.nx-calendar-head span,.nx-calendar-footer { color: var(--kv-text-secondary); font-size: 10px; }
+.nx-calendar-head button { width: 29px; height: 29px; border: 1px solid var(--kv-border); border-radius: 8px; background: var(--kv-surface-subtle); color: var(--kv-text-secondary); }
+.nx-calendar-week { color: var(--kv-text-tertiary); font-size: 9px; font-weight: 700; }
+.nx-calendar-grid { gap: 4px; }
+.nx-calendar-grid span { display: grid; place-items: center; min-height: 30px; border-radius: 8px; color: var(--kv-text-secondary); font-size: 10px; font-variant-numeric: tabular-nums; }
+.nx-calendar-grid span.today { background: var(--kv-action); color: var(--kv-on-action); font-weight: 750; }
+.nx-calendar-grid span.muted { color: var(--kv-text-tertiary); opacity: .42; }
+.nx-calendar-footer { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--kv-border); text-align: center; }
+.nx-mobile-system-nav { display: none; }
+.sidebar {
+  flex-basis: 256px; width: 256px; min-width: 256px;
+  padding: 22px 15px 16px;
+  background: color-mix(in srgb, var(--kv-surface) 97%, var(--kv-canvas));
+}
+.sidebar .logo { min-height: 42px; margin: 0 9px 25px; }
+.sidebar .new-project { min-height: 44px; margin: 0 0 25px; border-radius: 11px; box-shadow: 0 5px 14px color-mix(in srgb, var(--kv-action) 16%, transparent); }
+.sidebar .section-title { padding-inline: 11px; margin-bottom: 10px; }
+.sidebar-nav { gap: 4px; }
+.sidebar .nav-item { min-height: 42px; border-radius: 10px; }
+.sidebar .nav-item.active { box-shadow: inset 2px 0 0 var(--kv-action); }
+.sidebar .projects { gap: 4px; padding: 2px 0; }
+.sidebar .project { min-height: 40px; border-radius: 9px; }
+.sidebar .project-row.active .project { background: var(--kv-action-soft); color: var(--kv-text); }
+.sidebar .project-mark { width: 26px; height: 26px; flex-basis: 26px; border: 1px solid color-mix(in srgb, var(--kv-action) 15%, transparent); border-radius: 8px; }
+.nexum-os-event-center { top: 78px; right: 20px; width: min(370px, calc(100vw - 40px)); gap: 9px; }
+.nexum-os-event {
+  gap: 8px; padding: 13px 14px; border-color: var(--kv-border);
+  border-radius: 13px; background: var(--kv-surface);
+  box-shadow: var(--kv-shadow-popover); color: var(--kv-text);
+}
+.nexum-os-event-head { align-items: center; padding: 0; border: 0; background: transparent; color: var(--kv-text); font-size: 11px; }
+.nexum-os-event-head strong { gap: 8px; font-weight: 700; }
+.nexum-os-event-head button { width: 27px; height: 27px; border-color: transparent; border-radius: 8px; background: var(--kv-surface-subtle); color: var(--kv-text-tertiary); font-size: 17px; }
+.nexum-os-event-head button:hover { background: var(--kv-border); color: var(--kv-text); }
+.nexum-os-event-dot { width: 7px; height: 7px; margin: 0; border: 0; background: var(--kv-info); box-shadow: 0 0 0 3px var(--kv-info-soft); }
+.nexum-os-event-success .nexum-os-event-dot { background: var(--kv-success); box-shadow: 0 0 0 3px var(--kv-success-soft); }
+.nexum-os-event-error .nexum-os-event-dot { background: var(--kv-danger); box-shadow: 0 0 0 3px var(--kv-danger-soft); }
+.nexum-os-event-error { border-left: 1px solid var(--kv-border); box-shadow: inset 3px 0 0 var(--kv-danger), var(--kv-shadow-popover); }
+.nexum-os-event > span { color: var(--kv-text-secondary); font-size: 11px; line-height: 1.55; }
+@media (max-width: 1080px) {
+  .nx-system-chrome { gap: 8px; padding-inline: 16px; }
+  .nx-system-nav button { padding-inline: 8px; }
+  .nx-system-status { display: none; }
+  .sidebar { flex-basis: 232px; width: 232px; min-width: 232px; }
+}
+@media (max-width: 760px) {
+  .nx-system-chrome { min-height: 56px; padding: 0 12px; }
+  .nx-system-left { gap: 9px; }
+  .nx-system-brand { gap: 6px; padding-inline: 3px; }
+  .nx-system-brand strong { font-size: 12px; }
+  .nx-system-brand .kvard-mark { width: 26px; height: 26px; }
+  .nx-system-divider,.nx-system-nav,.nx-system-status { display: none; }
+  .nx-system-app-icon { width: 29px; height: 29px; border-radius: 9px; }
+  .nx-system-app strong { max-width: 38vw; font-size: 11px; }
+  .nx-system-app small { font-size: 9px; }
+  .nx-system-right { gap: 4px; }
+  .nx-system-icon-button { width: 32px; height: 32px; }
+  .nx-system-clock { min-width: 0; padding: 5px 6px; }
+  .nx-system-clock strong { font-size: 11px; }
+  .nx-system-clock span { font-size: 8px; }
+  .nx-system-calendar { position: fixed; top: 62px; right: 10px; width: min(292px, calc(100vw - 20px)); }
+  .nx-mobile-system-nav {
+    position: fixed; z-index: 50; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); left: 12px;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px;
+    padding: 6px; border: 1px solid var(--kv-border);
+    border-radius: 16px; background: color-mix(in srgb, var(--kv-surface) 92%, transparent);
+    box-shadow: var(--kv-shadow-popover); backdrop-filter: blur(18px);
+  }
+  .nx-mobile-system-nav button {
+    display: grid; justify-items: center; gap: 3px; min-height: 48px; padding: 5px 3px;
+    border: 1px solid transparent; border-radius: 11px; background: transparent; color: var(--kv-text-tertiary);
+  }
+  .nx-mobile-system-nav button span { font-size: 17px; line-height: 1.1; }
+  .nx-mobile-system-nav button b { font-size: 9px; font-weight: 650; }
+  .nx-mobile-system-nav button.active { background: var(--kv-action-soft); color: var(--kv-action); }
+  .nexum-os-event-center { top: 64px; right: 10px; width: calc(100vw - 20px); }
+  .sidebar { width: min(300px, calc(100vw - 56px)); min-width: min(300px, calc(100vw - 56px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-system-nav button,.nx-system-icon-button,.nx-system-clock,.nx-mobile-system-nav button,
+  .nexum-os-event-head button { transition: none; }
+}
