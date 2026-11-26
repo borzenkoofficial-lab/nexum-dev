@@ -130,6 +130,19 @@ test("KvardPageHeader supports section-level heading semantics", () => {
   assert.equal(title.props.id, "profiles-title");
 });
 
+test("KvardPageHeader supports content-level heading semantics", () => {
+  const header = KvardPageHeader({
+    title: "С чего начнём?",
+    headingLevel: "h3",
+    titleId: "builder-empty-state-title",
+  });
+  const props = propsOf(header);
+  const [content] = childrenOf(props);
+  const [title] = childrenOf(propsOf(content));
+  assert.equal(title.type, "h3");
+  assert.equal(title.props.id, "builder-empty-state-title");
+});
+
 test("KvardTabs exposes linked tab semantics and an accessible badge label", () => {
   const onChange = () => undefined;
   const tabs = KvardTabs({
