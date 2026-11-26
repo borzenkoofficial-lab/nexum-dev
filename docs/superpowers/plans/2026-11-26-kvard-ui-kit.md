@@ -412,3 +412,20 @@ Verification boundary: GitHub source/diff review only. No successful tests/build
 - [ ] Confirm final GitHub Actions and deployment status.
 
 Verification boundary: GitHub source/diff review only. No successful tests/build or browser visual QA is claimed.
+
+
+## Task 16 — Integration catalog status truthfulness
+
+**Purpose:** Make the current connector availability explicit and consistent with the shared UI kit without implying that a live OAuth/API connection exists.
+
+- [x] Render connector state with the shared `KvardStatusBadge` primitive.
+- [x] Label connectors absent from the configured list as `Не настроено`.
+- [x] Clarify that the page is currently a reference catalog and server-side OAuth/API setup is not implemented.
+- [x] Keep the existing details modal informational and preserve its disabled action.
+- [x] Preserve connector definitions, modal callback, routing and future connected-state contract.
+- [x] Keep all changes on `main`; no admin UI or admin files included.
+- [ ] Run focused UI tests, typecheck, lint and build against final HEAD.
+- [ ] Verify status contrast, responsive cards, light/dark and keyboard interaction in a real browser.
+- [ ] Confirm final GitHub Actions and deployment status.
+
+Verification boundary: source and diff review only. No successful tests/build or browser visual QA is claimed.
