@@ -201,3 +201,17 @@ test("tool action journal fails closed for a job that is not running", async () 
     /non-running or inaccessible/,
   );
 });
+
+test("restart recovery consults durable action journal before marking an Agent Run failed", async () => {
+  const jobId = "tool-action-journal-restart";
+  const staleAt = Date.now() - 60_000;
+  await createChatJob({ ...makeJob(jobId, "journal-restart-owner"), updatedAt: staleAt });
+  const actionId = await startChatJobToolAction(jobId, "journal-restart-owner", "writeFile", "{\"path\":\"src/App.tsx\"}");
+  const recovered = await recoverStaleChatJobs(5_000);
+  assert.ok(recovered >= 1);
+  const job = await getChatJob(jobId, "journal-restart-owner");
+  assert.equal(job?.status, "failed");
+  assert.equal(job?.recoveryAssessment?.disposition, "inspect_before_retry");
+  assert.equal(job?.recoveryAssessment?.reason, "tool_outcome_unknown");
+  assert.deepEqual(job?.recoveryAssessment?.startedActionIds, [actionId]);
+});
