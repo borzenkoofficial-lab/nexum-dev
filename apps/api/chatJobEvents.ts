@@ -48,6 +48,10 @@ export function createChatJobEventsHandler({
 }: ChatJobEventHandlerDependencies) {
   return async (request: Request, response: Response): Promise<void> => {
     const jobId = request.params.id;
+    if (typeof jobId !== "string" || jobId.length === 0) {
+      response.status(400).json({ success: false, error: "Invalid chat job ID" });
+      return;
+    }
     const userId = getUserId(request);
     let job: ChatJob | null;
     try {
