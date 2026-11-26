@@ -330,3 +330,10 @@ NEXUM.DEV — браузерная платформа для создания и
 
 **Следующий технический этап:** дождаться полного NEXUM CI/E2E, устранить обнаруженные дефекты, затем измерить event latency и проверить reconnect/refresh сценарии. Не выполнять live provider calls без согласования credentials/limits.
 
+
+
+## ChatJob SSE observability — 2026-11-26
+
+- Added structured, payload-free stream delivery metrics: stream duration, snapshot count, changed snapshot count, initial snapshot latency, first changed snapshot latency, average interval between snapshots, and close reason (`terminal`, `client_disconnect`, `job_unavailable`, `poll_error`). No job IDs, user IDs, message text, prompts, or provider data are included in these metric logs.
+- Added regression test confirming a new/reconnected SSE session begins from the latest stored snapshot (no durable replay of intermediate states is claimed).
+- Changes are on `main`; validation is pending CI. No production deployment, migration, paid AI request, or secret change.
