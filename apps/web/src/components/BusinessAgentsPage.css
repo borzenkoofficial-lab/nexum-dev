@@ -79,5 +79,31 @@
 .kv-business-two-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .kv-business-modal-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-top:12px;border-top:1px solid var(--kv-border,#e5e6eb)}
 .kv-business-modal-foot small{max-width:420px;color:var(--kv-text-tertiary,#777b87);font-size:10px;line-height:1.5}
+
+/* Small controls retain the same interaction geometry as the shared UI kit. */
+.kv-business-alert button,
+.kv-business-modal-head button {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: var(--kv-radius-control, 8px);
+  cursor: pointer;
+}
+.kv-business-alert button:hover:not(:disabled),
+.kv-business-modal-head button:hover:not(:disabled) {
+  background: var(--kv-surface-hover, var(--kv-surface-subtle, #f1f2f5));
+}
+.kv-business-alert button:focus-visible,
+.kv-business-modal-head button:focus-visible {
+  outline: 2px solid var(--kv-focus, #8b5cf6);
+  outline-offset: 2px;
+}
+.kv-business-header-actions > *,
+.kv-business-modal-foot > * {
+  min-width: 0;
+}
 @media(max-width:900px){.kv-business-header{align-items:flex-start;flex-direction:column}.kv-business-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.kv-business-layout{grid-template-columns:1fr}.kv-business-list{order:1}.kv-business-detail{order:0}}
 @media(max-width:600px){.kv-business-page{padding:18px 12px 32px}.kv-business-metrics{gap:8px}.kv-business-metrics article{min-height:90px;padding:12px}.kv-business-detail{padding:15px}.kv-business-agent-facts{grid-template-columns:1fr}.kv-business-tool-grid,.kv-business-two-cols{grid-template-columns:1fr}.kv-business-source-list article,.kv-business-approval-list article{align-items:flex-start;flex-direction:column}.kv-business-modal{padding:16px}.kv-business-modal-foot{align-items:flex-start;flex-direction:column}.kv-business-header-actions{width:100%}.kv-business-header-actions>*{flex:1}}
