@@ -19,6 +19,7 @@ export interface ToolResult {
     agentJobId?: string;
     durationMs?: number;
     exitCode?: number | null;
+    journalActionId?: string;
   };
 }
 
