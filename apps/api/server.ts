@@ -296,6 +296,8 @@ function createAgentCancellationBridge(
     }
   };
 
+  const onParentAbort = () => abort();
+
   const poll = async () => {
     if (controller.signal.aborted) return;
     try {
@@ -309,7 +311,7 @@ function createAgentCancellationBridge(
 
   if (parentSignal) {
     if (parentSignal.aborted) abort();
-    else parentSignal.addEventListener("abort", abort, { once: true });
+    else parentSignal.addEventListener("abort", onParentAbort, { once: true });
   }
   pollTimer = setInterval(() => { void poll(); }, 750);
 
@@ -319,7 +321,7 @@ function createAgentCancellationBridge(
     stop: () => {
       if (pollTimer) clearInterval(pollTimer);
       pollTimer = undefined;
-      parentSignal?.removeEventListener("abort", abort);
+      parentSignal?.removeEventListener("abort", onParentAbort);
     },
   };
 }
