@@ -429,3 +429,20 @@ Verification boundary: GitHub source/diff review only. No successful tests/build
 - [ ] Confirm final GitHub Actions and deployment status.
 
 Verification boundary: source and diff review only. No successful tests/build or browser visual QA is claimed.
+
+
+## Task 17 — Diagnostics toast semantics
+
+**Purpose:** Align transient diagnostics feedback with the shared accessible status primitive and remove a non-functional click affordance.
+
+- [x] Replace the page-local status div with the shared `KvardToast` primitive.
+- [x] Preserve the existing notice state and message content for API errors and successful JSON export.
+- [x] Remove the click-to-dismiss handler: the element was not a keyboard-operable control and its toast styling disables pointer events.
+- [x] Add focused UI coverage for polite atomic live-region semantics and no implicit click action.
+- [x] Preserve diagnostics APIs, event data, retry behavior and export flow.
+- [x] Keep all changes on `main`; no admin UI or admin files included.
+- [ ] Run focused UI tests, typecheck, lint and build against final HEAD.
+- [ ] Verify announcements, visual placement, light/dark and responsive behavior in a real browser.
+- [ ] Confirm final GitHub Actions and deployment status.
+
+Verification boundary: source and test additions reviewed; no successful test/build or browser visual QA is claimed.
