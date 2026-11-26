@@ -322,3 +322,20 @@ Verification boundary: no local test/build execution is available in this GitHub
 Implementation commits: `c21f172`, `fedefb8`, `8d2b064`, `60fa35c`, `00a0180`, `3819fe8`, `e0768d6`, `d3b8089`, followed by test and documentation commits.
 
 Verification boundary: no local test/build execution or browser session is available in this GitHub-only workflow. CI and deployment checks must be read from the final commit; no successful build or visual QA is claimed.
+
+## Task 11 — Workspace and internal section heading consistency
+
+**Purpose:** Extend the existing shared header contract into user-facing workspace and operational panels without flattening their page-specific visual hierarchy or changing data/actions.
+
+- [x] Reuse `KvardPageHeader` with `headingLevel="h2"` for Workspace create/recent sections.
+- [x] Migrate AI Agents profile, saved-agent and runtime section headings while retaining eyebrow labels, descriptions, real actions and counts.
+- [x] Migrate Business Agents agent, knowledge, teams, approvals and usage section headings.
+- [x] Migrate Integrations category headings and Diagnostics job/event panel headings.
+- [x] Preserve existing consumer classes and update action-slot selectors affected by the shared wrapper.
+- [x] Keep the existing event filter, counters, callbacks and data conditions unchanged.
+- [x] Keep all changes on `main`; no admin files or routes included.
+- [ ] Run focused UI tests, typecheck, lint and build on the final HEAD.
+- [ ] Verify light/dark rendering, responsive wrapping, keyboard focus and heading outline in a real browser.
+- [ ] Confirm final GitHub Actions and deployment statuses.
+
+Verification boundary: GitHub source and diff review only. No local execution or browser session is available in this workflow; CI/build and visual QA are not claimed as passing.
