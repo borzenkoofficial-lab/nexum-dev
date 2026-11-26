@@ -540,28 +540,35 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
     return recovered;
   }
   await ensureTable();
-  const recovered = await query(
-    `UPDATE agent_chat_jobs
-        SET status='failed',
-            updated_at=$1,
-            payload=jsonb_set(
-              jsonb_set(payload, '{stage}', '"error"'::jsonb, true),
-              '{error}', to_jsonb($3::text), true
-            )
-      WHERE status IN ('queued','running') AND updated_at < $2
-      RETURNING *`,
-    [Date.now(), cutoff, recoveryError],
+  const staleJobs = await query(
+    `SELECT * FROM agent_chat_jobs
+      WHERE status IN ('queued','running') AND updated_at < $1
+      ORDER BY updated_at ASC`,
+    [cutoff],
   );
-  for (const row of recovered.rows) {
+  let recoveredCount = 0;
+  for (const row of staleJobs.rows) {
     const job = decode(row);
-    const assessment = assessChatJobRecovery(job, Date.now());
-    await query(
+    const updatedAt = Date.now();
+    const assessment = assessChatJobRecovery(job, updatedAt);
+    const updated = await query(
       `UPDATE agent_chat_jobs
-          SET payload=jsonb_set(payload, '{recoveryAssessment}', $2::jsonb, true)
-        WHERE id=$1 AND status='failed'`,
-      [row.id, JSON.stringify(assessment)],
+          SET status='failed',
+              updated_at=$3,
+              payload=jsonb_set(
+                jsonb_set(
+                  jsonb_set(payload, '{stage}', '"error"'::jsonb, true),
+                  '{error}', to_jsonb($4::text), true
+                ),
+                '{recoveryAssessment}', $5::jsonb, true
+              )
+        WHERE id=$1 AND status=$2 AND updated_at=$6
+        RETURNING id`,
+      [row.id, job.status, updatedAt, recoveryError, JSON.stringify(assessment), job.updatedAt],
     );
+    if (!updated.rows.length) continue;
     await query(`DELETE FROM agent_project_locks WHERE job_id=$1`, [row.id]);
+    recoveredCount += 1;
   }
-  return recovered.rows.length;
+  return recoveredCount;
 }
