@@ -131,7 +131,7 @@ export function DiagnosticsPage() {
 
       <div className="diagnostics-layout">
         <aside className="diagnostics-jobs" aria-label="История заданий">
-          <div className="diagnostics-panel-head"><h2>Задания агента</h2><b>{jobs.length}</b></div>
+          <KvardPageHeader className="diagnostics-panel-head" headingLevel="h2" title="Задания агента" titleId="kv-diagnostics-jobs-title" actions={<b>{jobs.length}</b>} />
           {jobs.length === 0 && <div className="diagnostics-empty">Запустите задачу в рабочей среде, чтобы здесь появилась история.</div>}
           {jobs.slice().reverse().map((job) => (
             <button key={job.id} type="button" className={selectedJob === job.id ? "diagnostics-job selected" : "diagnostics-job"} aria-pressed={selectedJob === job.id} onClick={() => void loadJob(job.id)}>
@@ -143,9 +143,7 @@ export function DiagnosticsPage() {
         </aside>
 
         <section className="diagnostics-main" aria-label="Журнал событий">
-          <div className="diagnostics-panel-head">
-            <h2>{selectedJob ? `Задание ${selectedJob.slice(0, 12)}` : "Последние события"}</h2>
-            <div className="diagnostics-filters">
+          <KvardPageHeader className="diagnostics-panel-head" headingLevel="h2" title={selectedJob ? `Задание ${selectedJob.slice(0, 12)}` : "Последние события"} titleId="kv-diagnostics-events-title" actions={<div className="diagnostics-filters">
               <KvardSegmentedControl
                 ariaLabel="Фильтр событий"
                 value={filter}
@@ -156,8 +154,7 @@ export function DiagnosticsPage() {
                   { id: "jobs", label: "Задания" },
                 ]}
               />
-            </div>
-          </div>
+            </div>} />
           {jobLoading && <div className="diagnostics-empty">Загружаю историю задания…</div>}
           {!jobLoading && visibleEvents.length === 0 && <div className="diagnostics-empty">Событий пока нет.</div>}
           <div className="diagnostics-timeline">
