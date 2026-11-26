@@ -227,6 +227,7 @@ test("execution checkpoints are encrypted, sequenced and owner-scoped in the Cha
     const userId = "execution-checkpoint-owner";
     const projectId = "execution-checkpoint-project";
     await createChatJob({ ...makeJob(jobId, userId), projectId });
+    await claimChatJob(jobId, userId);
     const intent = {
       requestId: "request-checkpoint",
       projectId,
