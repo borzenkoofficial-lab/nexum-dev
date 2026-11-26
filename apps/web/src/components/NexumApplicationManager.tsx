@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { KvardDialog } from "./ui/index.ts";
 
 export type NexumOSWindowMode = "preview" | "agent" | "files" | "code";
 
@@ -69,8 +70,7 @@ export function NexumApplicationManager({ projectName, projects, projectModes = 
       ))}
       <button type="button" className="nexum-os-app-more" onClick={() => setOpen(true)} aria-label="Application Manager">⌘⇥</button>
     </div>
-    {open && <div className="nexum-os-switcher-backdrop" role="dialog" aria-modal="true" aria-label="Application Manager" onMouseDown={() => setOpen(false)}>
-      <div className="nexum-os-switcher" onMouseDown={(event) => event.stopPropagation()}>
+    <KvardDialog open={open} onClose={() => setOpen(false)} ariaLabel="Application Manager" backdropClassName="nexum-os-switcher-backdrop kv-dialog-backdrop" dialogClassName="nexum-os-switcher kv-dialog">
         <div className="nexum-os-switcher-head"><span>APPLICATION MANAGER</span><small>{projectName ?? "NEXUM"} · {windows.length} windows</small></div>
         <div className="nexum-os-switcher-projects" aria-label="Running projects">
           {projectItems.map((project) => <button key={project.id} type="button" className={"nexum-os-project-chip" + (project.active ? " active" : "")} onClick={() => { onSelectProject?.(project.id); setOpen(false); }}>
@@ -86,7 +86,6 @@ export function NexumApplicationManager({ projectName, projects, projectModes = 
           <button type="button" onClick={minimized ? onRestore : onMinimize}>{minimized ? "Restore workspace" : "Minimize workspace"}</button>
           <button type="button" className="danger" onClick={() => { onClose(); setOpen(false); }}>Close project</button>
         </div>
-      </div>
-    </div>}
+    </KvardDialog>
   </>;
 }
