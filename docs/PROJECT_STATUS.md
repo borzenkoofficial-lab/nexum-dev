@@ -485,3 +485,11 @@ NEXUM.DEV — браузерная платформа для создания и
 - Checkpoint validation now also validates token-budget tier and call counter.
 - This is a prerequisite primitive only: AgentLoop does not yet hydrate from checkpoint, so no task automatically resumes. A compatible stale checkpoint remains diagnostic; stale jobs still fail safely.
 - CI for prior HEAD b6cfc484bbf76d6fe4cfe12c169891aa23e0d702 failed at API typecheck with TS18049 in recovery assessment; the fix is committed after that run. CI for the new consolidated commits must be checked before calling this batch verified. No local test run was available. No production deployment/migration, secrets change, or live/paid provider request.
+
+
+## Durable Agent Execution — validated checkpoint hydration groundwork (2026-11-26)
+
+- Added `hydrateAgentExecutionCheckpoint`: validates and clones the full checkpoint, requires continuation-state completeness, and restores AdaptiveTokenBudget using the original task classification and bounded Builder/non-Builder cap. It returns hydrated task flags and budget alongside checkpoint state without executing tools or replaying results.
+- Added hydration round-trip tests for continuation fields, token-budget capacity, tool-action linkage, and rejection of missing continuation state / inconsistent budget.
+- AgentLoop is not yet wired to consume this hydration object. This is intentionally a hydration primitive, not automatic restore; sandbox identity, project-lock acquisition, approval reconciliation, step/event UI continuity, and no-replay invariants still need integration and restart E2E proof.
+- CI for the consolidated latest commit is pending. No local test run was performed. No production deploy, production migration, secret change, or live/paid provider request.
