@@ -642,5 +642,7 @@ The Builder now uses the shared heading structure at project and tool-panel leve
 - The shared page-header responsive stack is overridden only for the compact project bar, which remains a single-row identity/control unit on mobile. Tool panel actions continue to stack under the shared responsive rule.
 - The Builder top bar wrapper is a neutral layout container; the nested project header provides the actual semantic header landmark, avoiding nested header landmarks.
 - Existing API calls, file loading/saving, preview navigation, agent state, tool tabs and project callbacks remain unchanged.
+- The UI Kit suite now explicitly covers `h3` content-level heading semantics in addition to the existing `h1` and `h2` cases.
+- Code-panel action controls wrap within their shared action slot on narrow screens; the project return action has a visible keyboard-focus outline.
 
 Verification boundary: source and diff review only. CI, typecheck, lint, tests, build, visual browser QA and keyboard QA remain to be confirmed on the final commit; none are claimed as passing.
