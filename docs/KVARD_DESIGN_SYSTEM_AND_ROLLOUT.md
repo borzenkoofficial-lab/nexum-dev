@@ -798,3 +798,13 @@ Verification boundary: implementation and focused tests added; test execution, t
 - Preserved the existing empty state, navigation, callbacks, project data and all mobile interactions.
 - Tablet/mobile layouts return to a single-column reading order with touch-sized controls.
 - Presentation-only CSS. No app behavior, backend, API, database or admin surface changed.
+
+
+## 36. Agent workspaces — AI Agents and Business AI
+
+- Reworked the personal AI Agents library into clearer profile cards, distinct configuration surfaces and a more legible Runtime/events area.
+- Strengthened storage truthfulness states and made the project launch context easier to scan.
+- Rebalanced Business AI into an operator workspace: real organization metrics, agent selector, selected-agent detail, configuration facts and run composer.
+- Refined knowledge, teams, approvals and usage panels as consistent workspace sections; no fabricated data or new capabilities were introduced.
+- Improved responsive behavior, touch targets, focus visibility and reduced-motion handling.
+- All API calls, payloads, callbacks, permissions, status transitions and domain behavior remain unchanged. Admin surfaces remain untouched.

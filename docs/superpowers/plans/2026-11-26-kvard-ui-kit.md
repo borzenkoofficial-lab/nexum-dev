@@ -579,3 +579,19 @@ Verification boundary: source-level review only; no live browser visual QA is cl
 - [ ] Inspect the full application in a real browser at desktop, tablet and mobile widths.
 
 Verification boundary: CSS source review only; browser visual QA is not claimed.
+
+
+## Task 26 — AI Agents and Business AI workspace polish
+
+**Purpose:** Give both agent surfaces a consistent, premium operating experience without changing how agents work.
+
+- [x] Clarify the personal agent/profile library and configuration cards.
+- [x] Improve the Runtime jobs and events reading hierarchy.
+- [x] Rebalance Business AI metrics, agent list and selected-agent detail.
+- [x] Refine knowledge, team, approval and usage sections.
+- [x] Improve form, modal, focus and mobile ergonomics.
+- [x] Preserve all existing API contracts, callbacks, permissions and domain logic.
+- [x] Keep administrative surfaces out of scope.
+- [ ] Inspect desktop, tablet and mobile in a real browser.
+
+Verification boundary: source-level CSS and diff review only; no browser visual QA claimed.

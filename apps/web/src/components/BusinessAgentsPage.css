@@ -107,3 +107,337 @@
 }
 @media(max-width:900px){.kv-business-header{align-items:flex-start;flex-direction:column}.kv-business-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.kv-business-layout{grid-template-columns:1fr}.kv-business-list{order:1}.kv-business-detail{order:0}}
 @media(max-width:600px){.kv-business-page{padding:18px 12px 32px}.kv-business-metrics{gap:8px}.kv-business-metrics article{min-height:90px;padding:12px}.kv-business-detail{padding:15px}.kv-business-agent-facts{grid-template-columns:1fr}.kv-business-tool-grid,.kv-business-two-cols{grid-template-columns:1fr}.kv-business-source-list article,.kv-business-approval-list article{align-items:flex-start;flex-direction:column}.kv-business-modal{padding:16px}.kv-business-modal-foot{align-items:flex-start;flex-direction:column}.kv-business-header-actions{width:100%}.kv-business-header-actions>*{flex:1}}
+
+
+/* Business AI workspace — product hierarchy, operator clarity and responsive rhythm. */
+.kv-business-page {
+  width: min(1520px, 100%);
+  margin-inline: auto;
+  padding: clamp(28px, 3.2vw, 46px) clamp(18px, 3vw, 42px) 64px;
+}
+.kv-business-header {
+  align-items: flex-end;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--kv-border);
+}
+.kv-business-header .kv-page-header__title {
+  font-size: clamp(29px, 3vw, 38px);
+  letter-spacing: -.052em;
+}
+.kv-business-header .kv-page-header__description {
+  max-width: 620px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.kv-business-header-actions { gap: 10px; }
+.kv-business-header-actions select {
+  min-height: 42px;
+  border-radius: var(--kv-radius-control);
+}
+.kv-business-alert {
+  margin-top: 14px;
+  border-radius: var(--kv-radius-control);
+}
+.kv-business-metrics {
+  gap: 13px;
+  margin-top: 22px;
+  margin-bottom: 23px;
+}
+.kv-business-metrics article {
+  position: relative;
+  overflow: hidden;
+  min-height: 116px;
+  justify-content: space-between;
+  padding: 18px 19px;
+  border-radius: var(--kv-radius-panel);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--kv-action-soft) 25%, transparent), transparent 65%),
+    var(--kv-surface);
+}
+.kv-business-metrics article strong {
+  font-size: clamp(27px, 2.5vw, 34px);
+  font-variant-numeric: tabular-nums;
+}
+.kv-business-metrics article small {
+  padding-top: 8px;
+  border-top: 1px solid var(--kv-border);
+}
+.kv-business-page > .kv-tabs {
+  margin: 0 auto 17px;
+}
+.kv-business-page .kv-tabs__panel {
+  min-width: 0;
+  outline-offset: 4px;
+}
+.kv-business-layout {
+  grid-template-columns: minmax(255px, .72fr) minmax(0, 1.65fr);
+  gap: 15px;
+  margin-top: 0;
+}
+.kv-business-list {
+  align-self: start;
+  padding: 17px;
+  border-radius: var(--kv-radius-panel);
+}
+.kv-business-list .kv-business-section-head {
+  align-items: flex-start;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--kv-border);
+}
+.kv-business-agent {
+  position: relative;
+  min-height: 76px;
+  margin-top: 5px;
+  padding: 12px 10px;
+  border-radius: var(--kv-radius-control);
+  text-align: left;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+.kv-business-agent .kvard-mark {
+  flex: 0 0 auto;
+}
+.kv-business-agent.is-selected {
+  border-color: color-mix(in srgb, var(--kv-action) 28%, var(--kv-border));
+  background: color-mix(in srgb, var(--kv-action-soft) 65%, var(--kv-surface));
+  box-shadow: inset 2px 0 0 var(--kv-action);
+}
+.kv-business-agent:focus-visible {
+  outline: 2px solid var(--kv-focus);
+  outline-offset: 2px;
+}
+.kv-business-agent-copy { gap: 4px; }
+.kv-business-agent-copy strong { font-size: 13px; }
+.kv-business-agent-copy small { font-size: 10px; }
+.kv-business-detail {
+  min-height: 350px;
+  padding: clamp(19px, 2.4vw, 29px);
+  border-radius: var(--kv-radius-panel);
+  background:
+    radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--kv-action-soft) 30%, transparent), transparent 44%),
+    var(--kv-surface);
+}
+.kv-business-detail-head {
+  padding-bottom: 19px;
+  border-bottom: 1px solid var(--kv-border);
+}
+.kv-business-detail-head h2 {
+  font-size: clamp(23px, 2.4vw, 29px);
+  letter-spacing: -.045em;
+}
+.kv-business-detail-head p {
+  max-width: 620px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.kv-business-agent-facts {
+  gap: 11px;
+  margin: 18px 0;
+}
+.kv-business-agent-facts span {
+  min-width: 0;
+  padding: 13px;
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-surface-subtle);
+}
+.kv-business-agent-facts b {
+  font-size: 12px;
+}
+.kv-business-detail-actions {
+  padding-bottom: 17px;
+}
+.kv-business-run-form {
+  gap: 11px;
+  max-width: 820px;
+}
+.kv-business-run-form label {
+  color: var(--kv-text);
+  font-size: 12px;
+}
+.kv-business-run-form textarea {
+  min-height: 112px;
+  padding: 13px 14px;
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-surface);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.kv-business-run-form textarea:focus-visible,
+.kv-business-knowledge-form input:focus-visible,
+.kv-business-knowledge-form textarea:focus-visible,
+.kv-business-team-form input:focus-visible,
+.kv-business-modal input:focus-visible,
+.kv-business-modal textarea:focus-visible,
+.kv-business-modal select:focus-visible {
+  outline: 2px solid var(--kv-focus);
+  outline-offset: 2px;
+}
+.kv-business-run-form > button {
+  justify-self: start;
+  min-height: 43px;
+}
+.kv-business-run-card {
+  border-radius: var(--kv-radius-panel);
+  background: var(--kv-surface-subtle);
+}
+.kv-business-run-head { gap: 12px; }
+.kv-business-events div {
+  padding: 8px 0;
+  border-top: 1px solid var(--kv-border);
+  line-height: 1.45;
+}
+.kv-business-section-card {
+  padding: clamp(19px, 2.5vw, 28px);
+  border-radius: var(--kv-radius-large);
+}
+.kv-business-section-card > .kv-business-section-head {
+  align-items: flex-end;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--kv-border);
+}
+.kv-business-section-card .kv-business-section-head h2 {
+  font-size: 21px;
+  letter-spacing: -.035em;
+}
+.kv-business-knowledge-form,
+.kv-business-team-form {
+  gap: 15px;
+  max-width: 860px;
+  padding: 19px;
+  border-radius: var(--kv-radius-panel);
+}
+.kv-business-knowledge-form input,
+.kv-business-knowledge-form textarea,
+.kv-business-team-form input {
+  min-height: 44px;
+  padding: 11px 13px;
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-surface);
+  font-size: 14px;
+}
+.kv-business-knowledge-form textarea { min-height: 150px; }
+.kv-business-source-list,
+.kv-business-approval-list { gap: 10px; }
+.kv-business-source-list article,
+.kv-business-approval-list article {
+  min-height: 68px;
+  padding: 14px 15px;
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-surface);
+}
+.kv-business-source-list article > div,
+.kv-business-approval-list article > div:first-child { gap: 5px; }
+.kv-business-source-list strong,
+.kv-business-approval-list strong { font-size: 13px; }
+.kv-business-source-list small,
+.kv-business-approval-list small { font-size: 11px; }
+.kv-business-approval-list article > div:last-child {
+  flex-wrap: wrap;
+}
+.kv-business-team-form fieldset {
+  padding: 16px;
+  border-radius: var(--kv-radius-control);
+}
+.kv-business-tool-grid {
+  gap: 10px;
+}
+.kv-business-tool-grid > label {
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid var(--kv-border);
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-surface);
+}
+.kv-business-check input {
+  flex: 0 0 16px;
+}
+.kv-business-modal {
+  gap: 17px;
+  border-radius: var(--kv-radius-large);
+  padding: clamp(19px, 3vw, 30px);
+}
+.kv-business-modal-head {
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--kv-border);
+}
+.kv-business-modal-head h2 {
+  font-size: 25px;
+}
+.kv-business-modal-foot {
+  padding-top: 16px;
+}
+.kv-business-onboarding {
+  max-width: 600px;
+  padding: clamp(25px, 4vw, 42px);
+  border-radius: var(--kv-radius-large);
+}
+.kv-business-onboarding h1 {
+  font-size: clamp(28px, 4vw, 38px);
+  letter-spacing: -.05em;
+}
+.kv-business-onboarding > p {
+  max-width: 440px;
+  line-height: 1.65;
+}
+.kv-business-loading {
+  padding: 28px;
+  border: 1px solid var(--kv-border);
+  border-radius: var(--kv-radius-panel);
+  background: var(--kv-surface);
+}
+@media (max-width: 1080px) {
+  .kv-business-layout {
+    grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr);
+  }
+  .kv-business-agent-facts { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .kv-business-layout { grid-template-columns: 1fr; }
+  .kv-business-list { order: 0; }
+  .kv-business-detail { order: 1; }
+  .kv-business-agent-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .kv-business-page {
+    padding: 22px 14px calc(40px + env(safe-area-inset-bottom));
+  }
+  .kv-business-header { gap: 15px; }
+  .kv-business-header-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .kv-business-header-actions > :last-child { grid-column: 1 / -1; }
+  .kv-business-metrics { gap: 8px; margin-top: 17px; }
+  .kv-business-metrics article {
+    min-height: 98px;
+    padding: 13px;
+  }
+  .kv-business-metrics article strong { font-size: 25px; }
+  .kv-business-detail { padding: 16px; }
+  .kv-business-detail-head { flex-direction: column; gap: 12px; }
+  .kv-business-agent-facts { grid-template-columns: 1fr; gap: 7px; }
+  .kv-business-agent-facts span {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .kv-business-agent-facts b { text-align: right; }
+  .kv-business-detail-actions > button { width: 100%; }
+  .kv-business-run-form > button { width: 100%; }
+  .kv-business-section-card { padding: 15px; }
+  .kv-business-knowledge-form,
+  .kv-business-team-form { padding: 13px; }
+  .kv-business-source-list article,
+  .kv-business-approval-list article { gap: 12px; }
+  .kv-business-approval-list article > div:last-child {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .kv-business-approval-list article > div:last-child > button { width: 100%; }
+  .kv-business-modal { padding: 17px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kv-business-agent { transition: none; }
+}
