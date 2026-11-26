@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Project as Проект } from "./types";
 import { KvardMark } from "./KvardMark.ts";
+import { KvardSurface } from "./ui/index.ts";
 
 type Props = {
   projects: Проект[];
@@ -40,7 +41,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
             <div className="kv-home-project-count"><strong>{projects.length}</strong><span>проектов</span></div>
           </div>
 
-          <section className="kv-home-create-section" aria-labelledby="kv-home-create-title">
+          <KvardSurface as="section" className="kv-home-create-section" variant="raised" padding="lg" aria-labelledby="kv-home-create-title">
             <div className="kv-home-section-title"><h2 id="kv-home-create-title">Что будем создавать?</h2></div>
             <div className="builder-home-composer kv-home-composer">
               <textarea
@@ -63,12 +64,12 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
             <div className="kv-home-starters" aria-label="Шаблоны задач">
               {starters.map((starter) => <button key={starter.label} type="button" onClick={() => setPrompt(starter.prompt)}>{starter.label}<span aria-hidden="true">↗</span></button>)}
             </div>
-          </section>
+          </KvardSurface>
 
           <section className="kv-home-recent" aria-labelledby="kv-home-recent-title">
             <div className="kv-home-section-title"><h2 id="kv-home-recent-title">Последние проекты</h2></div>
             {recent.length ? (
-              <div className="kv-home-project-list">
+              <KvardSurface className="kv-home-project-list" variant="default" padding="none">
                 {recent.map((project) => (
                   <button key={project.id} type="button" className="kv-home-project-row" onClick={() => onOpenProject(project.id, "agent")}>
                     <span className="kv-home-project-avatar">{project.name.slice(0, 1).toUpperCase()}</span>
@@ -76,13 +77,13 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
                     <span className="kv-home-project-open">Открыть <b aria-hidden="true">→</b></span>
                   </button>
                 ))}
-              </div>
+              </KvardSurface>
             ) : (
-              <div className="kv-home-empty">
+              <KvardSurface className="kv-home-empty" variant="outline" padding="lg">
                 <KvardMark size={42} />
                 <div><strong>Пока нет проектов</strong><p>Опишите задачу выше, чтобы создать первый проект.</p></div>
                 <button type="button" onClick={() => document.querySelector<HTMLTextAreaElement>(".kv-home-composer textarea")?.focus()}>К описанию</button>
-              </div>
+              </KvardSurface>
             )}
           </section>
         </section>
