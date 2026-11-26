@@ -262,7 +262,7 @@ export function assessAgentCheckpointRecovery(input: {
   const base = {
     version: 1 as const,
     automaticResumeAllowed: false as const,
-    ...(Number.isSafeInteger(checkpoint?.sequence) ? { checkpointSequence: checkpoint.sequence as number } : {}),
+    ...(checkpoint && Number.isSafeInteger(checkpoint.sequence) ? { checkpointSequence: checkpoint.sequence as number } : {}),
     checkpointActionIds,
     journalActionIds,
     assessedAt: input.assessedAt ?? Date.now(),
