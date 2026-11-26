@@ -513,3 +513,19 @@ Verification boundary: source and diff review only; browser visual QA is not cla
 - [ ] Run browser visual and keyboard QA.
 
 Verification boundary: source and diff review only; browser visual QA is not claimed.
+
+
+## Task 22 — Global workspace navigation refinement
+
+**Purpose:** Improve orientation and visual hierarchy in the user-facing global sidebar while preserving navigation behavior.
+
+- [x] Clarify the brand-to-action spacing and primary new-project action.
+- [x] Improve navigation row sizing, active-state marker and keyboard-focus spacing.
+- [x] Refine the project section count, selected project row and empty/loading placeholder presentation.
+- [x] Add a compact mobile active marker without changing the responsive navigation structure.
+- [x] Preserve all navigation labels, route callbacks, project state and loading/disabled behavior.
+- [x] Keep scope presentation-only; no admin UI or backend changes.
+- [ ] Review final diff and validate desktop/mobile navigation in browser.
+- [ ] Run keyboard and responsive visual QA.
+
+Verification boundary: source and diff review only; browser visual QA is not claimed.

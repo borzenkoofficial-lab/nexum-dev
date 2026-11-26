@@ -753,3 +753,13 @@ Verification boundary: implementation and focused tests added; test execution, t
 - Existing profile/agent content, state, callbacks, APIs, confirmation behavior and runtime data are unchanged. No admin UI or admin styles are included.
 - The card layout uses existing semantic tokens and collapses to a single column on narrower screens.
 - Scope is presentation-only: kvard-design-system styles.
+
+
+## 32. Global workspace navigation refinement
+
+- The main user-facing sidebar now has a clearer hierarchy between brand, primary project creation, workspace navigation and the project list.
+- Active navigation uses a restrained location marker in addition to the existing semantic active surface.
+- Project count and project selection receive more consistent compact treatments; the selected project remains identifiable without changing the current route or callback.
+- Mobile navigation retains its existing responsive grid and receives a compact active indicator.
+- All navigation labels, project data, loading states, actions, route callbacks and disabled states are unchanged.
+- Scope is presentation-only and excludes administrative navigation and all admin surfaces.
