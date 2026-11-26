@@ -106,6 +106,7 @@ test("KvardTabs exposes linked tab semantics and an accessible badge label", () 
   const [approvalLabel, badge] = childrenOf(approvalsProps);
 
   assert.equal(props.role, "tablist");
+  assert.equal(props.className, "kv-tabs");
   assert.equal(props["aria-label"], "Разделы бизнес-агентов");
   assert.equal(props["aria-orientation"], "horizontal");
   assert.equal(agentsProps.id, "business-tab-agents");
