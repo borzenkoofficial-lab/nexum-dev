@@ -585,3 +585,17 @@ Initial migrations:
 - Superseded Workspace surface declarations were removed while retaining layout and responsive rules.
 
 No route, API, authentication, permission, agent execution or administrative UI behavior was changed.
+
+
+## 19. Builder navigation and responsive project header
+
+The Builder project tool switcher now uses the shared `KvardTabs` primitive instead of a separate set of local buttons.
+
+- `KvardTabs` accepts an optional consumer class while preserving its base `kv-tabs` class and shared keyboard/ARIA behavior.
+- Builder tools (Preview, AI Agent, Files, Code) expose tablist/tab semantics, selected state, arrow-key navigation, Home/End navigation and linked tab-panel naming.
+- The active Builder content is exposed as the corresponding labelled tab panel.
+- The project header keeps its desktop hierarchy and moves the tool tabs into a full-width, horizontally scrollable row on narrow viewports; tabs retain visible keyboard focus and touch-friendly minimum height.
+- Existing project actions, active-tool state, tool callbacks, agent status, preview behavior and domain logic remain owned by BuilderShell and its existing consumers.
+- No route, API, authentication, permission, agent execution or administrative UI behavior was changed.
+
+Verification boundary: focused tests were extended for the consumer-class contract and existing KvardTabs keyboard behavior. CI, typecheck, lint, build, browser visual QA and manual keyboard QA must be checked against the final commit; none are claimed as passing at this point. No administrative files were included.
