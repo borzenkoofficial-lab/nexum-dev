@@ -400,6 +400,9 @@ async function runChatJob(
     const project = await getProjectManager(userId).getActiveProject(projectId);
     throwIfAgentAborted(signal);
     const lockAcquired = await acquireProjectLock(project.id, userId, jobId);
+    // Record ownership before checking cancellation: if cancellation races with
+    // lock acquisition, the finally block must still release the acquired lock.
+    if (lockAcquired) lockedProjectId = project.id;
     throwIfAgentAborted(signal);
     if (!lockAcquired) {
       job.status = "failed";
@@ -425,7 +428,6 @@ async function runChatJob(
         .catch((error) => console.error("[Nexum] project lock heartbeat failed", error));
     }, 60_000);
     lockHeartbeatResourceId = serverRuntime.registerResource("timer", () => { if (lockHeartbeat) clearInterval(lockHeartbeat); lockHeartbeat = undefined; }, { projectId: project.id, taskId: runtimeTask.id, operation: "project-lock-heartbeat" });
-    lockedProjectId = project.id;
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     throwIfAgentAborted(signal);
