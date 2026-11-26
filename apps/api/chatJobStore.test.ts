@@ -228,6 +228,8 @@ test("execution checkpoints are encrypted, sequenced and owner-scoped in the Cha
     const projectId = "execution-checkpoint-project";
     await createChatJob({ ...makeJob(jobId, userId), projectId });
     await claimChatJob(jobId, userId);
+    const journalActionId = await startChatJobToolAction(jobId, userId, "readFile", "src/App.tsx");
+    await finishChatJobToolAction(jobId, userId, journalActionId, { success: true, output: "encrypted source payload" });
     const intent = {
       requestId: "request-checkpoint",
       projectId,
@@ -294,7 +296,8 @@ test("execution checkpoints are encrypted, sequenced and owner-scoped in the Cha
         tool: "readFile",
         input: "src/App.tsx",
         result: { success: true, output: "encrypted source payload" },
-        toolCallId: "action-checkpoint",
+        metadata: { journalActionId },
+        toolCallId: journalActionId,
       }],
       counters: { modelTurns: 1, aiPlannerCalls: 1, productPlannerAttempts: 0, productReviewAttempts: 0, repairAttempts: 0, eventId: 2 },
       tokenBudget: { tier: "small" as const, hardCap: 7000, reserved: 1000, remaining: 6000, calls: 1 },
@@ -302,7 +305,7 @@ test("execution checkpoints are encrypted, sequenced and owner-scoped in the Cha
       actionAttempts: [],
       seenPlannerContexts: [],
       actionSequence: [],
-      toolActionIds: ["action-checkpoint"],
+      toolActionIds: [journalActionId],
       sandboxRevisionFingerprint: "sha256:revision-1",
     };
     await saveChatJobExecutionCheckpoint(checkpoint);
@@ -366,6 +369,44 @@ test("execution checkpoint storage fails closed without an encryption key", asyn
       toolActionIds: [],
       sandboxRevisionFingerprint: "sha256:revision",
     }), /durable Agent checkpoints are disabled/);
+  } finally {
+    if (previousKey === undefined) delete process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
+    else process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY = previousKey;
+  }
+});
+
+
+test("execution checkpoint refuses a journal mismatch or an unfinished tool action", async () => {
+  const previousKey = process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
+  process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString("base64");
+  try {
+    const jobId = "execution-checkpoint-journal-mismatch";
+    const userId = "execution-checkpoint-journal-owner";
+    const projectId = "execution-checkpoint-journal-project";
+    await createChatJob({ ...makeJob(jobId, userId), projectId });
+    await claimChatJob(jobId, userId);
+    const actionId = await startChatJobToolAction(jobId, userId, "writeFile", "{\"path\":\"src/App.tsx\"}");
+    const checkpoint = {
+      version: 1 as const, jobId, userId, projectId, sequence: 1, createdAt: 30,
+      phase: "implement" as const, iteration: 1,
+      executionSnapshot: {
+        intent: { requestId: "r", projectId, taskId: "t", agentJobId: jobId, type: "modify" as const, objective: "test", requirements: [], constraints: [], acceptanceCriteria: [], unknowns: [], createdAt: 1 },
+        state: "EXECUTING" as const,
+        plan: { planId: "p", taskId: "t", agentJobId: jobId, goal: "test", steps: [], acceptanceCriteria: [], risks: [], createdAt: 1 },
+        observations: [], completedStepIds: [], repairAttempts: 0, startedAt: 1, updatedAt: 2,
+      },
+      taskState: { phase: "implement" as const, goal: "test", startedAt: 1, changeVersion: 0, changedFiles: [], verified: { build: false, tests: false, staticValidation: false, domain: false, review: false }, verifiedAtChangeVersion: { build: -1, tests: -1, staticValidation: -1, domain: -1, review: -1, reviewAttempted: -1 } },
+      intent: { requestId: "r", projectId, taskId: "t", agentJobId: jobId, type: "modify" as const, objective: "test", requirements: [], constraints: [], acceptanceCriteria: [], unknowns: [], createdAt: 1 },
+      executionPlan: { planId: "p", taskId: "t", agentJobId: jobId, goal: "test", steps: [], acceptanceCriteria: [], risks: [], createdAt: 1 },
+      previousResults: [], counters: { modelTurns: 0, aiPlannerCalls: 0, productPlannerAttempts: 0, productReviewAttempts: 0, repairAttempts: 0, eventId: 0 },
+      tokenBudget: { tier: "small" as const, hardCap: 7000, reserved: 0, remaining: 7000, calls: 0 },
+      seenActions: [], actionAttempts: [], seenPlannerContexts: [], actionSequence: [],
+      toolActionIds: [], sandboxRevisionFingerprint: "sha256:revision",
+    };
+    await assert.rejects(saveChatJobExecutionCheckpoint(checkpoint), /fully committed tool action journal/);
+    await finishChatJobToolAction(jobId, userId, actionId, { success: true, output: "done" });
+    await assert.rejects(saveChatJobExecutionCheckpoint({ ...checkpoint, toolActionIds: [] }), /fully committed tool action journal/);
+    await saveChatJobExecutionCheckpoint({ ...checkpoint, toolActionIds: [actionId] });
   } finally {
     if (previousKey === undefined) delete process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
     else process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY = previousKey;
