@@ -2,6 +2,7 @@ import { query } from "./db.js";
 import { createHash, randomUUID } from "node:crypto";
 import { getToolSecurityPolicy, type ToolRisk } from "./agent/toolPolicy.js";
 import { assessChatJobRecovery, type ChatJobRecoveryAssessment } from "./agent/recovery.js";
+import { decryptAgentExecutionCheckpoint, encryptAgentExecutionCheckpoint, type AgentExecutionCheckpoint, type EncryptedAgentCheckpoint } from "./agent/executionCheckpoint.js";
 
 export type ChatJobStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 export type ChatJobStage = "queued" | "analyzing" | "planning" | "reading" | "editing" | "building" | "testing" | "awaiting_approval" | "completed" | "cancelled" | "error";
@@ -76,6 +77,7 @@ export interface ChatJobToolAction {
 const memoryJobs = new Map<string, ChatJob>();
 const memoryLocks = new Map<string, { projectId: string; userId: string; jobId: string; expiresAt: number }>();
 const memoryToolActions = new Map<string, ChatJobToolAction>();
+const memoryExecutionCheckpoints = new Map<string, EncryptedAgentCheckpoint>();
 
 function databaseAvailable(): boolean {
   return Boolean(process.env.NEXUM_DATABASE_URL?.trim());
@@ -118,6 +120,17 @@ async function ensureTable(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS agent_chat_job_tool_actions_job_idx
         ON agent_chat_job_tool_actions(job_id, started_at ASC);
+      CREATE TABLE IF NOT EXISTS agent_chat_job_execution_checkpoints (
+        job_id UUID NOT NULL REFERENCES agent_chat_jobs(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        project_id TEXT NOT NULL,
+        sequence BIGINT NOT NULL CHECK (sequence > 0),
+        created_at BIGINT NOT NULL,
+        envelope JSONB NOT NULL,
+        PRIMARY KEY (job_id, sequence)
+      );
+      CREATE INDEX IF NOT EXISTS agent_chat_job_execution_checkpoints_latest_idx
+        ON agent_chat_job_execution_checkpoints(job_id, sequence DESC);
       -- Existing installations may have UUID project IDs; normalize only after each table exists.
       ALTER TABLE agent_chat_jobs DROP CONSTRAINT IF EXISTS agent_chat_jobs_status_check;
       ALTER TABLE agent_chat_jobs ADD CONSTRAINT agent_chat_jobs_status_check CHECK (status IN ('queued','running','completed','failed','cancelled'));
@@ -712,4 +725,62 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
     recoveredCount += 1;
   }
   return recoveredCount;
+}
+
+
+/**
+ * Persists an encrypted, versioned execution checkpoint. This is storage only:
+ * callers must establish a safe boundary and a trustworthy sandbox revision.
+ */
+export async function saveChatJobExecutionCheckpoint(checkpoint: AgentExecutionCheckpoint): Promise<void> {
+  const envelope = encryptAgentExecutionCheckpoint(checkpoint);
+  if (!databaseAvailable()) {
+    const job = memoryJobs.get(checkpoint.jobId);
+    if (!job || job.userId !== checkpoint.userId || job.projectId !== checkpoint.projectId || job.status !== "running") {
+      throw new Error("Cannot checkpoint a non-running or inaccessible Agent Run.");
+    }
+    const key = `${checkpoint.jobId}:${checkpoint.sequence}`;
+    if (memoryExecutionCheckpoints.has(key)) throw new Error("Agent checkpoint sequence already exists.");
+    memoryExecutionCheckpoints.set(key, envelope);
+    return;
+  }
+  await ensureTable();
+  const inserted = await query(
+    `INSERT INTO agent_chat_job_execution_checkpoints
+      (job_id,user_id,project_id,sequence,created_at,envelope)
+     SELECT $1,$2,$3,$4,$5,$6::jsonb
+      WHERE EXISTS (
+        SELECT 1 FROM agent_chat_jobs
+         WHERE id=$1 AND user_id=$2 AND project_id=$3 AND status='running'
+      )
+     RETURNING sequence`,
+    [checkpoint.jobId, checkpoint.userId, checkpoint.projectId, checkpoint.sequence, checkpoint.createdAt, JSON.stringify(envelope)],
+  );
+  if (!inserted.rows.length) {
+    throw new Error("Cannot checkpoint a non-running or inaccessible Agent Run.");
+  }
+}
+
+export async function getLatestChatJobExecutionCheckpoint(
+  jobId: string,
+  userId: string,
+): Promise<AgentExecutionCheckpoint | null> {
+  if (!databaseAvailable()) {
+    const job = memoryJobs.get(jobId);
+    if (!job || job.userId !== userId) return null;
+    const envelopes = [...memoryExecutionCheckpoints.entries()]
+      .filter(([key]) => key.startsWith(`${jobId}:`))
+      .map(([, envelope]) => envelope)
+      .sort((a, b) => b.sequence - a.sequence);
+    return envelopes[0] ? decryptAgentExecutionCheckpoint(envelopes[0]) : null;
+  }
+  await ensureTable();
+  const result = await query(
+    `SELECT envelope FROM agent_chat_job_execution_checkpoints
+      WHERE job_id=$1 AND user_id=$2
+      ORDER BY sequence DESC LIMIT 1`,
+    [jobId, userId],
+  );
+  if (!result.rows[0]) return null;
+  return decryptAgentExecutionCheckpoint(result.rows[0].envelope as EncryptedAgentCheckpoint);
 }
