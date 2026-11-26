@@ -6,7 +6,7 @@ export type ChatJobRecoveryDisposition =
   | "manual_review_required";
 
 export interface ChatJobRecoveryAssessment {
-  version: 1;
+  version: 2;
   disposition: ChatJobRecoveryDisposition;
   automaticResumeAllowed: false;
   reason:
@@ -19,6 +19,9 @@ export interface ChatJobRecoveryAssessment {
     | "execution_evidence_missing";
   startedTools: string[];
   completedTools: string[];
+  startedActionIds: string[];
+  completedActionIds: string[];
+  sideEffectActionIds: string[];
   assessedAt: number;
 }
 
@@ -29,11 +32,18 @@ type RecoveryEvent = {
 };
 
 type RecoveryStep = { tool?: unknown };
+type RecoveryToolAction = {
+  actionId?: unknown;
+  tool?: unknown;
+  risk?: unknown;
+  status?: unknown;
+};
 type RecoveryJobLike = {
   status?: "queued" | "running" | "completed" | "failed" | "cancelled";
   events?: unknown[];
   steps?: unknown[];
   pendingApproval?: { status?: unknown } | null;
+  toolActions?: unknown[];
 };
 
 const riskOrder: Record<ToolRisk, number> = {
@@ -54,6 +64,10 @@ export function assessChatJobRecovery(
   const completedTools = new Set<string>();
   let unknownActivity = false;
   let sideEffectMayHaveStarted = false;
+  let journalHasUnfinishedAction = false;
+  const startedActionIds = new Set<string>();
+  const completedActionIds = new Set<string>();
+  const sideEffectActionIds = new Set<string>();
 
   for (const raw of events) {
     if (!raw || typeof raw !== "object") continue;
@@ -104,7 +118,41 @@ export function assessChatJobRecovery(
     if (riskOrder[risk] > riskOrder.READ) sideEffectMayHaveStarted = true;
   }
 
-  const unmatchedStart = [...started.keys()].some((key) => !completed.has(key));
+  // The dedicated action journal is written synchronously before every tool
+  // invocation and finalized only after its result is known. It takes
+  // precedence over best-effort UI event/step snapshots.
+  for (const raw of Array.isArray(job.toolActions) ? job.toolActions : []) {
+    if (!raw || typeof raw !== "object") {
+      unknownActivity = true;
+      continue;
+    }
+    const action = raw as RecoveryToolAction;
+    if (typeof action.actionId !== "string" || typeof action.tool !== "string" || !action.tool.trim()) {
+      unknownActivity = true;
+      continue;
+    }
+    if (!["READ", "WRITE", "EXECUTE", "DESTRUCTIVE"].includes(String(action.risk))) {
+      unknownActivity = true;
+      continue;
+    }
+    startedTools.add(action.tool);
+    startedActionIds.add(action.actionId);
+    if (action.status === "started") {
+      journalHasUnfinishedAction = true;
+      if (action.risk !== "READ") sideEffectActionIds.add(action.actionId);
+    } else if (action.status === "succeeded" || action.status === "failed") {
+      completedActionIds.add(action.actionId);
+      completedTools.add(action.tool);
+      if (action.risk !== "READ") {
+        sideEffectMayHaveStarted = true;
+        sideEffectActionIds.add(action.actionId);
+      }
+    } else {
+      unknownActivity = true;
+    }
+  }
+
+  const unmatchedStart = journalHasUnfinishedAction || [...started.keys()].some((key) => !completed.has(key));
   const pendingApproval = job.pendingApproval?.status === "pending";
   let disposition: ChatJobRecoveryDisposition;
   let reason: ChatJobRecoveryAssessment["reason"];
@@ -137,12 +185,15 @@ export function assessChatJobRecovery(
   }
 
   return {
-    version: 1,
+    version: 2,
     disposition,
     automaticResumeAllowed: false,
     reason,
     startedTools: [...startedTools].sort(),
     completedTools: [...completedTools].sort(),
+    startedActionIds: [...startedActionIds].sort(),
+    completedActionIds: [...completedActionIds].sort(),
+    sideEffectActionIds: [...sideEffectActionIds].sort(),
     assessedAt,
   };
 }
