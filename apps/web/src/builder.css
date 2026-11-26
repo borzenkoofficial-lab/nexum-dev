@@ -155,3 +155,18 @@
 .nx-messages article aside { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; color: var(--nx-muted); font-size: 10px; }
 .nx-model-pop { max-height: min(360px, 55dvh); overflow: auto; box-shadow: var(--kv-shadow-popover); }
 .nx-send { min-width: 36px; font-size: 18px; font-weight: 650; }
+
+
+/* Builder feedback and empty states */
+.nx-chat-error { margin: 0 0 12px; }
+.nx-chat-error .kv-alert__content { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.nx-chat-error .kv-alert__content button { flex: 0 0 auto; }
+.nx-preview-empty .kv-empty-state,
+.nx-files main > .kv-empty-state,
+.nx-events > .kv-empty-state { width: 100%; padding: 24px; }
+.nx-files main > .kv-empty-state { flex: 1; align-content: center; }
+.nx-files main > .kv-empty-state .kv-empty-state__description,
+.nx-events > .kv-empty-state .kv-empty-state__description { max-width: 360px; }
+.nx-files main > p[role="status"] { margin: auto; padding: 24px; color: var(--nx-muted); font-size: 12px; }
+.nx-files aside > p[role="status"] { color: var(--nx-muted); font-size: 11px; }
+.nx-agent .nx-events > .kv-empty-state { justify-items: start; padding: 12px 0 0; text-align: left; }
