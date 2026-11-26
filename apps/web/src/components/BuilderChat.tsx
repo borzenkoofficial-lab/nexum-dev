@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import type { AIProviderInfo, AIProviderStatus, AgentStage } from "./types";
 import { KvardMark } from "./KvardMark.ts";
-import { KvardSurface } from "./ui/index.ts";
+import { KvardPageHeader, KvardSurface } from "./ui/index.ts";
 
 interface Props {
   message: string;
@@ -45,18 +45,22 @@ export function BuilderChat(p: Props) {
 
   return (
     <KvardSurface as="section" className="nx-chat" variant="raised" padding="none" aria-label="Чат разработки">
-      <div className="nx-chat-head">
-        <div><span>РАЗРАБОТКА</span><strong>Задача для AI-агента</strong></div>
-        <button type="button" onClick={p.onOpenAgent} aria-label="Открыть ход выполнения задачи">
+      <KvardPageHeader
+        className="nx-chat-head"
+        headingLevel="h2"
+        eyebrow="РАЗРАБОТКА"
+        title="Задача для AI-агента"
+        titleId="kv-builder-chat-title"
+        actions={<button type="button" onClick={p.onOpenAgent} aria-label="Открыть ход выполнения задачи">
           AI-агент <span aria-hidden="true">{p.jobId ? "•" : "→"}</span>
-        </button>
-      </div>
+        </button>}
+      />
 
       <div className="nx-chat-scroll">
         {p.messages.length === 0 ? (
           <div className="nx-chat-empty">
             <KvardMark size={48} className="nx-chat-mark" />
-            <h1>С чего начнём?</h1>
+            <h3>С чего начнём?</h3>
             <p>Опишите изменение или новый продукт. КВАРД изучит задачу, составит план и выполнит работу в текущем проекте.</p>
             <div className="nx-suggestions" aria-label="Примеры задач">
               {["Создать новый интерфейс", "Добавить функцию", "Найти и исправить ошибку"].map((value) => (
