@@ -290,10 +290,53 @@ test("execution checkpoint storage fails closed without an encryption key", asyn
   const previousKey = process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
   delete process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
   try {
-    await assert.rejects(
-      getLatestChatJobExecutionCheckpoint("missing-checkpoint-job", "missing-checkpoint-owner"),
-      /durable Agent checkpoints are disabled/,
-    );
+    const jobId = "execution-checkpoint-no-key";
+    const userId = "execution-checkpoint-no-key-owner";
+    const projectId = "execution-checkpoint-no-key-project";
+    await createChatJob({ ...makeJob(jobId, userId), projectId });
+    const intent = {
+      requestId: "request-no-key",
+      projectId,
+      taskId: "task-no-key",
+      agentJobId: jobId,
+      type: "analyze" as const,
+      objective: "Inspect",
+      requirements: [],
+      constraints: [],
+      acceptanceCriteria: [],
+      unknowns: [],
+      createdAt: 1,
+    };
+    await assert.rejects(saveChatJobExecutionCheckpoint({
+      version: 1,
+      jobId,
+      userId,
+      projectId,
+      sequence: 1,
+      createdAt: 2,
+      phase: "analyze",
+      iteration: 0,
+      intent,
+      executionPlan: {
+        planId: "plan-no-key",
+        taskId: intent.taskId,
+        agentJobId: jobId,
+        goal: intent.objective,
+        steps: [],
+        acceptanceCriteria: [],
+        risks: [],
+        createdAt: 1,
+      },
+      previousResults: [],
+      counters: { modelTurns: 0, aiPlannerCalls: 0, productPlannerAttempts: 0, productReviewAttempts: 0, repairAttempts: 0, eventId: 0 },
+      tokenBudget: { tier: "small", hardCap: 7000, reserved: 0, remaining: 7000, calls: 0 },
+      seenActions: [],
+      actionAttempts: [],
+      seenPlannerContexts: [],
+      actionSequence: [],
+      toolActionIds: [],
+      sandboxRevisionFingerprint: "sha256:revision",
+    }), /durable Agent checkpoints are disabled/);
   } finally {
     if (previousKey === undefined) delete process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
     else process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY = previousKey;
