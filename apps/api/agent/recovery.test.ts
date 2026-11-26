@@ -63,3 +63,15 @@ test("persisted write steps remain unsafe even when their event stream is incomp
   assert.equal(assessment.reason, "side_effect_may_have_started");
   assert.deepEqual(assessment.completedTools, ["patchFile", "writeFile"]);
 });
+
+test("running job without durable tool evidence is not considered safe to restart", () => {
+  const assessment = assessChatJobRecovery({ status: "running", events: [], steps: [] });
+  assert.equal(assessment.disposition, "inspect_before_retry");
+  assert.equal(assessment.reason, "execution_evidence_missing");
+});
+
+test("queued job with no execution activity can safely be started", () => {
+  const assessment = assessChatJobRecovery({ status: "queued", events: [], steps: [] });
+  assert.equal(assessment.disposition, "safe_to_restart");
+  assert.equal(assessment.reason, "read_only_progress_only");
+});
