@@ -6,3 +6,5 @@ export { KvardStatusBadge } from "./KvardStatusBadge.ts";
 export type { KvardStatusBadgeProps, KvardStatusTone } from "./KvardStatusBadge.ts";
 export { KvardTabs } from "./KvardTabs.ts";
 export type { KvardTabsProps, KvardTabItem } from "./KvardTabs.ts";
+export { KvardSegmentedControl } from "./KvardSegmentedControl.ts";
+export type { KvardSegmentedControlProps, KvardSegmentedControlItem } from "./KvardSegmentedControl.ts";
