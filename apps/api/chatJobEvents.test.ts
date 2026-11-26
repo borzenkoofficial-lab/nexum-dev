@@ -88,3 +88,27 @@ test("ChatJob SSE exits when client disconnects", async () => {
   await running;
   assert.equal(response.writableEnded, true);
 });
+
+test("ChatJob SSE waits for response drain when the client is backpressured", async () => {
+  class BackpressuredResponse extends FakeResponse {
+    blocked = true;
+    override write(chunk: string) {
+      this.chunks.push(chunk);
+      if (this.blocked) {
+        this.blocked = false;
+        setTimeout(() => this.emit("drain"), 5);
+        return false;
+      }
+      return true;
+    }
+  }
+  const response = new BackpressuredResponse();
+  const handler = createChatJobEventsHandler({
+    getUserId: () => "user-1",
+    getJob: async () => job("completed", 42),
+  });
+  await handler(request(), response as never);
+  assert.equal(response.writableEnded, true);
+  assert.equal(response.chunks.length, 2);
+});
+
