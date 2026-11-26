@@ -267,3 +267,59 @@ test("KvardDialog traps Tab focus at both ends of the dialog", async () => {
   handleKvardDialogKeyDown(forwards, dialog, () => undefined);
   assert.deepEqual(focused, ["first"]);
 });
+
+
+test("KvardAlert uses assertive semantics for errors and polite semantics for notices", async () => {
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { KvardAlert } = await import("./KvardAlert.ts");
+  const error = renderToStaticMarkup(createElement(KvardAlert, {
+    tone: "danger",
+    title: "Не удалось сохранить",
+    children: "Проверьте соединение",
+    onDismiss: () => undefined,
+  }));
+  const notice = renderToStaticMarkup(createElement(KvardAlert, {
+    tone: "success",
+    children: "Изменения сохранены",
+  }));
+
+  assert.match(error, /role="alert"/);
+  assert.match(error, /aria-live="assertive"/);
+  assert.match(error, /Не удалось сохранить/);
+  assert.match(error, /aria-label="Закрыть уведомление"/);
+  assert.match(notice, /role="status"/);
+  assert.match(notice, /aria-live="polite"/);
+});
+
+test("KvardToast is a polite atomic live region and preserves consumer classes", async () => {
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { KvardToast } = await import("./KvardToast.ts");
+  const markup = renderToStaticMarkup(createElement(KvardToast, {
+    tone: "info",
+    className: "toast",
+    children: "Проект создан",
+  }));
+
+  assert.match(markup, /class="kv-toast kv-toast--info toast"/);
+  assert.match(markup, /role="status"/);
+  assert.match(markup, /aria-live="polite"/);
+  assert.match(markup, /aria-atomic="true"/);
+  assert.match(markup, /Проект создан/);
+});
+
+test("KvardEmptyState exposes a labelled section, description and real action slot", async () => {
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { KvardEmptyState } = await import("./KvardEmptyState.ts");
+  const markup = renderToStaticMarkup(createElement(KvardEmptyState, {
+    title: "Пока нет агентов",
+    description: "Создайте первого агента для этой организации.",
+    action: createElement("button", { type: "button" }, "Создать агента"),
+    className: "kv-business-empty",
+  }));
+
+  assert.match(markup, /role="region"/);
+  assert.match(markup, /aria-labelledby=/);
+  assert.match(markup, /Пока нет агентов/);
+  assert.match(markup, /Создайте первого агента/);
+  assert.match(markup, /Создать агента/);
+});
