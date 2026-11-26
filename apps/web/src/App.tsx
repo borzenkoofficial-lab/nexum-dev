@@ -1523,6 +1523,7 @@ function WorkspaceApp() {
               <BuilderChat
                 projectName={activeПроект?.name ?? "КВАРД"} providers={aiProviders} models={selectedModels} provider={aiProvider} model={aiModel}
                 aiStatus={aiStatus} message={message} reply={reply} stage={agentStage} apiError={apiError} jobId={chatJobId}
+                activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity}
                 messages={conversation} attachments={pendingAttachments}
                 onMessageChange={setMessage} onSubmit={() => void sendMessage()} onCancel={() => void cancelAgent()}
                 onRetry={() => void sendMessage(lastMessage)} onQuickTask={runTask}
