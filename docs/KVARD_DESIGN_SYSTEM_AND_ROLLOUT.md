@@ -599,3 +599,20 @@ The Builder project tool switcher now uses the shared `KvardTabs` primitive inst
 - No route, API, authentication, permission, agent execution or administrative UI behavior was changed.
 
 Verification boundary: focused tests were extended for the consumer-class contract and existing KvardTabs keyboard behavior. CI, typecheck, lint, build, browser visual QA and manual keyboard QA must be checked against the final commit; none are claimed as passing at this point. No administrative files were included.
+
+
+## 20. Shared page and section headers
+
+The user-facing sections now share `KvardPageHeader` for consistent semantic structure while retaining page-owned presentation.
+
+- Component: `apps/web/src/components/ui/KvardPageHeader.ts`.
+- Public export: `KvardPageHeader` and `KvardPageHeaderProps`.
+- Standard slots: optional eyebrow, required title, optional description and optional actions.
+- Explicit heading level supports page-level `h1` and section-level `h2` / `h3`.
+- Optional title and description IDs connect the header to its accessible name and description.
+- Consumer classes are preserved on the root, content and action slots. Existing page-specific typography, colors, spacing and action styling remain in their page stylesheets.
+- Migrated sections: AI Agents, Business Agents, Integrations, Diagnostics and News.
+- Responsive shared behavior stacks heading content and action groups on narrow screens; page-specific breakpoints remain intact.
+- No API calls, data flow, permissions, routing, admin components or admin styles were changed.
+
+Verification boundary: component tests cover heading semantics, accessible name/description associations, action slot classes and section-level heading selection. CI, typecheck, lint, build and browser visual QA remain to be checked against the final commit.
