@@ -200,11 +200,11 @@ const MAX_FINGERPRINT_FILES = 5000;
 const MAX_FINGERPRINT_BYTES = 100 * 1024 * 1024;
 
 function isSensitiveFingerprintPath(name: string): boolean {
-  return /^\\.env(?:\\.|$)/i.test(name) ||
-    /^(?:\\.npmrc|\\.pypirc|\\.netrc|\\.git-credentials|\\.dockerconfigjson)$/i.test(name) ||
-    /^(?:credentials|service-account)(?:[-_.].*)?\\.json$/i.test(name) ||
-    /^(?:id_rsa|id_ed25519|id_ecdsa)(?:\\..*)?$/i.test(name) ||
-    /\\.(?:pem|key|p12|pfx|keystore)$/i.test(name);
+  return /^\.env(?:\.|$)/i.test(name) ||
+    /^(?:\.npmrc|\.pypirc|\.netrc|\.git-credentials|\.dockerconfigjson)$/i.test(name) ||
+    /^(?:credentials|service-account)(?:[-_.].*)?\.json$/i.test(name) ||
+    /^(?:id_rsa|id_ed25519|id_ecdsa)(?:\..*)?$/i.test(name) ||
+    /\.(?:pem|key|p12|pfx|keystore)$/i.test(name);
 }
 
 /**
