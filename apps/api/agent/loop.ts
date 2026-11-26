@@ -198,7 +198,10 @@ export class AgentLoop {
                 // A failed journal finalization leaves the action in "started";
                 // recovery will correctly treat its outcome as unknown.
                 await toolJournal.finish(actionId, result);
-                return result;
+                return {
+                  ...result,
+                  metadata: { ...(result.metadata ?? {}), journalActionId: actionId },
+                };
               };
             }
             const value = Reflect.get(target, property, receiver);
@@ -1344,7 +1347,7 @@ export class AgentLoop {
         tool: plan.tool,
         input: plan.input,
         success: result.success,
-        toolCallId: crypto.randomUUID(),
+        toolCallId: result.metadata?.journalActionId ?? crypto.randomUUID(),
         durationMs: toolDurationMs,
         planStepId: actionPlanStepId,
       };
