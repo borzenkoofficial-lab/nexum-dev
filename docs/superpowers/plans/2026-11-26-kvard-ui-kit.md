@@ -359,3 +359,22 @@ Verification boundary: GitHub source and diff review only. No local execution or
 - [ ] Confirm final GitHub Actions and deployment status.
 
 Verification boundary: GitHub source/diff review only. No local test/build or browser session is available in this workflow; no successful verification is claimed.
+
+
+## Task 13 — Builder responsive layout and overflow hardening
+
+**Purpose:** Make the existing Builder workspace resilient to long content and narrow viewports without changing project workflows, API contracts or the desktop split composition.
+
+- [x] Constrain nested Builder panels and file/editor regions to their available width.
+- [x] Allow long conversation messages, agent events, plan details and filenames to wrap within their own surfaces.
+- [x] Keep code editors as the intentional horizontal-scroll boundary for long source lines.
+- [x] Harden the model picker, Composer controls, panel actions and project header for narrow viewports.
+- [x] Align filename emphasis styling with the actual <b> elements rendered in Files and Code.
+- [x] Preserve existing semantic theme tokens and add visible focus treatment for Builder controls.
+- [x] Keep preview, file save/load, agent execution, navigation, APIs and business logic unchanged.
+- [x] Keep all changes in main; no admin UI or admin files included.
+- [ ] Run UI tests, typecheck, lint and build against the final HEAD.
+- [ ] Verify desktop/tablet/mobile, light/dark, long paths/messages and keyboard focus in a real browser.
+- [ ] Confirm final GitHub Actions and deployment status.
+
+Verification boundary: GitHub source/diff review only. CI is pending; no successful test/build or browser visual QA is claimed.
