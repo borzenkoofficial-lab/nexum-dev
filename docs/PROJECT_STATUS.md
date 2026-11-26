@@ -348,3 +348,10 @@ NEXUM.DEV — браузерная платформа для создания и
 
 - Recovery now waits for project-list loading to finish before selecting a queued/running job for the current project. This prevents a transient initial project ID from causing the wrong active task to be restored after reload.
 - Effect dependencies include project-loading state so recovery retries after projects resolve. No deployment or paid provider requests.
+
+
+## ChatJob recovery metadata contract — 2026-11-26
+
+- Fixed `GET /api/chat/jobs` to return the project ID and current stage/message metadata required by Builder reload recovery. Previously the route returned raw jobs, but this was subsequently changed to a reduced list that omitted `projectId`; the frontend therefore treated every active job as eligible for the current project and could restore a job belonging to another project.
+- The list response is now an explicit minimal projection (`id`, `projectId`, `status`, `stage`, `currentMessage`, `updatedAt`); no provider credentials or full job payload are exposed.
+- Extended the active-job reload E2E to assert the list endpoint preserves the correct project association and stage before reload. CI validation pending.
