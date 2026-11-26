@@ -201,7 +201,7 @@ input, textarea, select { max-width: 100%; border: 1px solid var(--nx-border); b
 .diagnostics-panel-head > div:first-child { display: grid; gap: 4px; }
 .diagnostics-panel-head span { color: var(--nx-muted); font-size: 9px; letter-spacing: .08em; }
 .diagnostics-panel-head h2 { margin: 0; font-size: 14px; }
-.diagnostics-panel-head > b { color: var(--nx-muted); font-size: 11px; }
+.diagnostics-panel-head .kv-page-header__actions > b { color: var(--nx-muted); font-size: 11px; }
 .diagnostics-job { display: flex; align-items: center; gap: 9px; width: 100%; padding: 10px 4px; border: 0; border-top: 1px solid var(--nx-border); background: transparent; text-align: left; }
 .diagnostics-job.selected { background: var(--nx-surface-muted); }
 .diagnostics-job-dot { width: 7px; height: 7px; border: 1px solid var(--nx-muted); border-radius: 50%; }
