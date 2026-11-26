@@ -892,6 +892,7 @@ test("AgentLoop awaits durable tool intent and result journal around execution",
   const result = await new AgentLoop(runtime, gateway, 3, undefined, undefined, undefined, undefined, undefined, journal).run("say hello");
   assert.equal(result.success, true);
   assert.equal(toolExecutions, 1);
+  assert.equal(result.steps[0]?.toolCallId, "action-1");
   assert.deepEqual(calls, [
     "start:fake:perform action",
     "execute",
