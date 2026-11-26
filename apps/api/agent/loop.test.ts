@@ -919,3 +919,23 @@ test("AgentLoop does not execute a tool if durable intent journaling fails", asy
   );
   assert.equal(toolExecutions, 0);
 });
+
+test("AgentLoop stops when a tool result cannot be durably finalized", async () => {
+  let toolExecutions = 0;
+  const runtime = fakeRuntime(
+    () => ({ tool: "fake", input: "perform once" }),
+    async () => {
+      toolExecutions += 1;
+      return { success: true, output: "changed project" };
+    },
+  );
+  const journal = {
+    start: async () => "action-finalize-failure",
+    finish: async () => { throw new Error("journal finalization unavailable"); },
+  };
+  await assert.rejects(
+    new AgentLoop(runtime, gateway, 1, undefined, undefined, undefined, undefined, undefined, journal).run("say hello"),
+    /journal finalization unavailable/,
+  );
+  assert.equal(toolExecutions, 1);
+});
