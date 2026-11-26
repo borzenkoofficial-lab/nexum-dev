@@ -305,3 +305,20 @@ The changes are committed to `main`. The final GitHub Actions run must be checke
 Implementation commits: `e6fdbaa`, `c68b307`, `10d577d`, `080efd5`, followed by the final test and documentation commits.
 
 Verification boundary: no local test/build execution is available in this GitHub-only session. CI and Vercel must be checked against the final HEAD; no passing checks or browser QA are claimed.
+
+
+## Task 10 — Shared page and section headers
+
+- [x] Add a shared header primitive with eyebrow/title/description/action slots.
+- [x] Support page-level and section-level heading semantics with explicit accessible associations.
+- [x] Preserve consumer classes so existing page-specific visual systems remain authoritative.
+- [x] Migrate AI Agents, Business Agents, Integrations, Diagnostics and News.
+- [x] Add responsive stacking for narrow viewports.
+- [x] Add focused tests and update the design-system rollout log.
+- [ ] Run UI Kit tests, typecheck, lint and build on the final commit.
+- [ ] Verify all migrated headers at desktop, tablet and mobile sizes, including keyboard focus and long titles.
+- [ ] Confirm CI and ensure no administrative files changed.
+
+Implementation commits: `c21f172`, `fedefb8`, `8d2b064`, `60fa35c`, `00a0180`, `3819fe8`, `e0768d6`, `d3b8089`, followed by test and documentation commits.
+
+Verification boundary: no local test/build execution or browser session is available in this GitHub-only workflow. CI and deployment checks must be read from the final commit; no successful build or visual QA is claimed.
