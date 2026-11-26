@@ -57,14 +57,12 @@ export function createChatJobEventsHandler({
     const controller = new AbortController();
     const onClose = () => controller.abort();
     response.on("close", onClose);
-    let lastUpdatedAt = -1;
     let lastSnapshot = "";
     let lastHeartbeat = Date.now();
 
     const emitJob = (snapshot: ChatJob) => {
       const serialized = JSON.stringify(snapshot);
       response.write(`id: ${snapshot.updatedAt}\nevent: job\ndata: ${serialized}\n\n`);
-      lastUpdatedAt = snapshot.updatedAt;
       lastSnapshot = serialized;
       lastHeartbeat = Date.now();
     };
