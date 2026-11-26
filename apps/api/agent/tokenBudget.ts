@@ -43,6 +43,20 @@ export class AdaptiveTokenBudget {
     this.hardCap = options.builderLifecycle
       ? Math.min(requestedCap, 30_000)
       : Math.min(requestedCap, LIMITS[this.tier].hardCap);
+    if (restored) {
+      if (restored.tier !== this.tier || restored.hardCap !== this.hardCap ||
+          !Number.isSafeInteger(restored.reserved) || restored.reserved < 0 || restored.reserved > restored.hardCap ||
+          restored.remaining !== restored.hardCap - restored.reserved ||
+          !Number.isSafeInteger(restored.calls) || restored.calls < 0) {
+        throw new Error("Adaptive token-budget checkpoint is incompatible with the task configuration.");
+      }
+      this.reservedTokens = restored.reserved;
+      this.calls = restored.calls;
+    }
+  }
+
+  static restore(task: string, snapshot: AdaptiveTokenBudgetSnapshot, options: AdaptiveTokenBudgetOptions = {}): AdaptiveTokenBudget {
+    return new AdaptiveTokenBudget(task, options, snapshot);
   }
 
   reserve(role: AdaptiveRole, requested?: number): number {
@@ -69,4 +83,8 @@ export class AdaptiveTokenBudget {
 
 export function createAdaptiveTokenBudget(task: string, options?: AdaptiveTokenBudgetOptions): AdaptiveTokenBudget {
   return new AdaptiveTokenBudget(task, options);
+}
+
+export function restoreAdaptiveTokenBudget(task: string, snapshot: AdaptiveTokenBudgetSnapshot, options?: AdaptiveTokenBudgetOptions): AdaptiveTokenBudget {
+  return AdaptiveTokenBudget.restore(task, snapshot, options);
 }
