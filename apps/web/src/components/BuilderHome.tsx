@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Project as Проект } from "./types";
 import { KvardMark } from "./KvardMark.ts";
-import { KvardSurface } from "./ui/index.ts";
+import { KvardPageHeader, KvardSurface } from "./ui/index.ts";
 
 type Props = {
   projects: Проект[];
@@ -42,7 +42,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
           </div>
 
           <KvardSurface as="section" className="kv-home-create-section" variant="raised" padding="lg" aria-labelledby="kv-home-create-title">
-            <div className="kv-home-section-title"><h2 id="kv-home-create-title">Что будем создавать?</h2></div>
+            <KvardPageHeader className="kv-home-section-title" headingLevel="h2" title="Что будем создавать?" titleId="kv-home-create-title" />
             <div className="builder-home-composer kv-home-composer">
               <textarea
                 aria-label="Опишите, что нужно создать"
@@ -67,7 +67,7 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
           </KvardSurface>
 
           <section className="kv-home-recent" aria-labelledby="kv-home-recent-title">
-            <div className="kv-home-section-title"><h2 id="kv-home-recent-title">Последние проекты</h2></div>
+            <KvardPageHeader className="kv-home-section-title" headingLevel="h2" title="Последние проекты" titleId="kv-home-recent-title" />
             {recent.length ? (
               <KvardSurface className="kv-home-project-list" variant="default" padding="none">
                 {recent.map((project) => (
