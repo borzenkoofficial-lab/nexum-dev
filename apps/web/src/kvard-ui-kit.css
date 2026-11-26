@@ -206,3 +206,54 @@
 @media (max-width: 480px) {
   .kv-segmented__option { padding-inline: 8px; }
 }
+
+
+/* Feedback and empty-state primitives */
+.kv-alert {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--kv-border);
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-surface);
+  color: var(--kv-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.kv-alert__content { min-width: 0; flex: 1; }
+.kv-alert__title { display: block; margin-bottom: 3px; color: var(--kv-text); font-weight: 700; }
+.kv-alert--success { border-color: var(--kv-success-soft); background: var(--kv-success-soft); color: var(--kv-success); }
+.kv-alert--warning { border-color: var(--kv-warning-soft); background: var(--kv-warning-soft); color: var(--kv-warning); }
+.kv-alert--danger { border-color: var(--kv-danger-soft); background: var(--kv-danger-soft); color: var(--kv-danger); }
+.kv-alert--info { border-color: var(--kv-info-soft); background: var(--kv-info-soft); color: var(--kv-info); }
+.kv-alert__dismiss {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  margin: -4px -6px -4px 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+.kv-alert__dismiss:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
+.kv-alert__dismiss:focus-visible { outline: 2px solid var(--kv-focus); outline-offset: 2px; }
+
+.kv-toast { pointer-events: none; }
+.kv-toast--success { border-color: var(--kv-success-soft); }
+.kv-toast--warning { border-color: var(--kv-warning-soft); }
+.kv-toast--danger { border-color: var(--kv-danger-soft); }
+.kv-toast--info { border-color: var(--kv-border); }
+
+.kv-empty-state { display: grid; justify-items: center; gap: 8px; min-width: 0; text-align: center; }
+.kv-empty-state__title { margin: 0; color: var(--kv-text); font-size: 13px; font-weight: 700; line-height: 1.35; }
+.kv-empty-state__description { max-width: 440px; margin: 0; color: var(--kv-text-secondary); font-size: 12px; line-height: 1.5; }
+.kv-empty-state__action { display: flex; justify-content: center; margin-top: 5px; }
