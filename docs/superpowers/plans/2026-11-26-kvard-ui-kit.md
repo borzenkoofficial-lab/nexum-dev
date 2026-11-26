@@ -396,3 +396,19 @@ Verification boundary: GitHub source/diff review only. CI is pending; no success
 - [ ] Confirm final GitHub Actions and deployment status.
 
 Verification boundary: GitHub source/diff review only. No successful tests/build or browser visual QA is claimed.
+
+
+## Task 15 — Business Agents interaction consistency
+
+**Purpose:** Align compact dismissal controls and responsive action slots with the shared KVARD interaction system without changing Business Agents workflows.
+
+- [x] Give alert-dismiss and modal-close controls a consistent 36px hit area.
+- [x] Use shared semantic radius, hover-surface and focus tokens for those controls.
+- [x] Constrain header action and modal footer children against intrinsic-width overflow.
+- [x] Preserve all existing APIs, modal behavior, alert actions, forms and business-agent workflows.
+- [x] Keep all changes in main; no admin UI or admin files included.
+- [ ] Run focused UI tests, typecheck, lint and build against final HEAD.
+- [ ] Verify light/dark, desktop/mobile and keyboard focus in a real browser.
+- [ ] Confirm final GitHub Actions and deployment status.
+
+Verification boundary: GitHub source/diff review only. No successful tests/build or browser visual QA is claimed.
