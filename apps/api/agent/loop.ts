@@ -472,6 +472,14 @@ export class AgentLoop {
           toolActionIds: [...new Set(previousResults
             .map((item) => item.result.metadata?.journalActionId)
             .filter((id): id is string => typeof id === "string"))],
+          resumeState: {
+            task,
+            builderTask,
+            repairRequested,
+            forceCompletionNextIteration,
+            remotePlannerRateLimited,
+            productPlannerCreated,
+          },
         });
       }
       if (agentFailureInjection.consumeFailure("PLANNER_CHECKPOINT", this.journalContext?.projectId)) {
