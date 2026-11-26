@@ -257,3 +257,21 @@
 .kv-empty-state__title { margin: 0; color: var(--kv-text); font-size: 13px; font-weight: 700; line-height: 1.35; }
 .kv-empty-state__description { max-width: 440px; margin: 0; color: var(--kv-text-secondary); font-size: 12px; line-height: 1.5; }
 .kv-empty-state__action { display: flex; justify-content: center; margin-top: 5px; }
+
+
+/* Shared surface system */
+.kv-surface {
+  min-width: 0;
+  border: 1px solid var(--kv-border);
+  border-radius: var(--kv-radius-panel);
+  background: var(--kv-surface);
+  color: var(--kv-text);
+}
+.kv-surface--default { box-shadow: none; }
+.kv-surface--subtle { background: var(--kv-surface-subtle); }
+.kv-surface--raised { background: var(--kv-surface-raised); box-shadow: var(--kv-shadow-panel); }
+.kv-surface--outline { border-style: dashed; background: var(--kv-surface); }
+.kv-surface--padding-none { padding: 0; }
+.kv-surface--padding-sm { padding: 12px; }
+.kv-surface--padding-md { padding: 16px; }
+.kv-surface--padding-lg { padding: 24px; }
