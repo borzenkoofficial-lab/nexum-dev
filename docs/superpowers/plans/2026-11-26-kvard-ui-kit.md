@@ -446,3 +446,20 @@ Verification boundary: source and diff review only. No successful tests/build or
 - [ ] Confirm final GitHub Actions and deployment status.
 
 Verification boundary: source and test additions reviewed; no successful test/build or browser visual QA is claimed.
+
+
+## Task 18 — AI Agent profile persistence feedback
+
+**Purpose:** Ensure save confirmations describe only the persistence mode actually reported by the API or already established by the page.
+
+- [x] Extract a small typed helper for database, server-memory and unknown storage messages.
+- [x] Resolve API storage against the existing state before updating both storage state and success feedback.
+- [x] Avoid claiming server-memory persistence when the storage mode remains unknown.
+- [x] Add focused coverage for all three storage states.
+- [x] Preserve profile API payloads, save behavior and agent workflows.
+- [x] Keep all changes on `main`; no admin UI or admin files included.
+- [ ] Run focused UI tests, typecheck, lint and build against final HEAD.
+- [ ] Verify success feedback and storage warnings in a real browser.
+- [ ] Confirm final GitHub Actions and deployment status.
+
+Verification boundary: source and test changes reviewed; no successful test/build or browser visual QA is claimed.
