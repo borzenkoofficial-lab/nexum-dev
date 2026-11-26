@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Project } from "./types";
-import { KvardAlert, KvardButton, KvardStatusBadge } from "./ui/index.ts";
+import { KvardAlert, KvardButton, KvardEmptyState, KvardStatusBadge } from "./ui/index.ts";
 import "../kvard-ui-kit.css";
 
 type Job = { id: string; status: string; createdAt: number; updatedAt: number; error?: string; problems?: Array<{ message: string; source?: string }> };
@@ -250,7 +250,7 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
       </header>
 
       <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Как это работает сейчас.</strong> Профили запускают задачи в существующем AI Runtime как инструкции. Сохранённые AI-агенты применяют список разрешённых инструментов и выбранную политику подтверждений. Расписания, триггеры и фоновое выполнение пока не включены.</p></div>
-      {notice && <p className="kv-agents-feedback" role="status">{notice}</p>}
+      {notice && <KvardAlert tone="success" className="kv-agents-feedback">{notice}</KvardAlert>}
       {loadError && <KvardAlert tone="danger" className="kv-agents-error">{loadError} <button type="button" onClick={() => void load()}>Повторить</button></KvardAlert>}
 
       <section className="kv-agents-profiles" aria-labelledby="kv-agents-profiles-title">
@@ -307,7 +307,7 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
           <div className="kv-agents-profile-mark" aria-hidden="true">A</div>
           <div className="kv-agents-profile-copy"><div className="kv-agents-profile-meta"><span>{agent.provider || "Провайдер по умолчанию"}</span><b>{agent.status === "active" ? "КОНФИГУРАЦИЯ ВКЛЮЧЕНА" : "ПРИОСТАНОВЛЕНА"}</b></div><h3>{agent.name}</h3><p>{agent.description || "Без описания"} · {agent.allowedTools.length} инструментов · {agent.approvalPolicy === "always" ? "требуется подтверждение каждого действия" : agent.approvalPolicy === "writes" ? "подтверждение перед записью и командами" : "автономный режим: только чтение"}</p></div>
           <div className="kv-agents-profile-actions"><button type="button" className="kv-agents-use" disabled={!selectedProject || !agentTask.trim() || agent.status !== "active" || agent.allowedTools.length === 0} onClick={() => onUseAgent(selectedProject, agent.id, agentTask.trim())}>Открыть в Studio</button><button type="button" className="kv-agents-use" onClick={() => openAgentForm(agent)}>Настроить</button><button type="button" className="kv-agents-delete" onClick={() => void toggleAgent(agent)}>{agent.status === "active" ? "Пауза" : "Активировать"}</button><button type="button" className="kv-agents-delete" onClick={() => void removeAgent(agent)}>Удалить</button></div>
-        </article>)}</div> : <p className="kv-agents-empty">Пока нет созданных агентов. Создайте первого и сохраните его конфигурацию.</p>}
+        </article>)}</div> : <KvardEmptyState className="kv-agents-empty" title="Пока нет созданных агентов" description="Создайте первого и сохраните его конфигурацию." />}
       </section>
 
       <section className="kv-agents-runtime" aria-labelledby="kv-agents-runtime-title">
