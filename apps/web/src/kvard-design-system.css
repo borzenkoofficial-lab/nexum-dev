@@ -3724,3 +3724,103 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .nx-builder-nav button { padding-inline: 9px; }
   .nx-builder-grid { grid-template-rows: minmax(320px, 1fr) minmax(300px, .9fr); }
 }
+
+
+/* Agent operations — stronger scanability for profiles, runs and event history. */
+.kv-agents-page { padding-top: clamp(28px, 3.2vw, 42px); }
+.kv-agents-header { padding-bottom: 19px; border-bottom: 1px solid var(--kv-border); }
+.kv-agents-header h1 { letter-spacing: -.055em; }
+.kv-agents-section-head { min-height: 43px; }
+.kv-agents-profile-list { box-shadow: var(--kv-shadow-panel); }
+.kv-agents-profile {
+  min-height: 104px;
+  padding: 17px 18px;
+  transition: background-color 140ms ease;
+}
+.kv-agents-profile:hover { background: var(--kv-surface-subtle); }
+.kv-agents-profile-mark {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, var(--kv-action-soft), var(--kv-surface-subtle));
+}
+.kv-agents-profile h3 { font-size: 14px; letter-spacing: -.015em; }
+.kv-agents-profile p { max-width: 720px; line-height: 1.55; }
+.kv-agents-profile-actions { gap: 12px; }
+.kv-agents-use { min-height: 38px; padding-inline: 13px; }
+.kv-agents-launchbar {
+  grid-template-columns: auto minmax(190px, 280px) minmax(0,1fr);
+  min-height: 62px;
+  padding: 13px 16px;
+  box-shadow: var(--kv-shadow-panel);
+}
+.kv-agents-launchbar select { min-height: 40px; }
+.kv-agents-runtime-grid { gap: 15px; }
+.kv-agents-runtime-main, .kv-agents-events {
+  border-radius: var(--kv-radius-large);
+  box-shadow: var(--kv-shadow-panel);
+}
+.kv-agents-runtime-main { align-self: start; }
+.kv-agents-table-head { min-height: 38px; align-items: center; }
+.kv-agents-job-row {
+  min-height: 68px;
+  transition: background-color 140ms ease;
+}
+.kv-agents-job-row:hover { background: var(--kv-surface-subtle); }
+.kv-agents-job-row strong { font-size: 10px; letter-spacing: -.01em; }
+.kv-agents-job-row time { font-variant-numeric: tabular-nums; }
+.kv-agents-events-head { min-height: 46px; }
+.kv-agents-event { min-height: 58px; }
+.kv-agents-event > i { box-shadow: 0 0 0 3px var(--kv-action-soft); }
+.kv-agents-event strong { font-size: 10px; line-height: 1.5; }
+.kv-agents-runtime-footer { padding-inline: 2px; font-variant-numeric: tabular-nums; }
+.kv-agents-form {
+  border-color: color-mix(in srgb, var(--kv-action) 38%, var(--kv-border));
+  box-shadow: var(--kv-shadow-panel);
+}
+.kv-agents-form input:focus-visible, .kv-agents-form textarea:focus-visible, .kv-agents-form select:focus-visible,
+.kv-agents-launchbar select:focus-visible {
+  outline: 2px solid var(--kv-focus);
+  outline-offset: 2px;
+}
+.kv-agents-tool-picker { background: var(--kv-surface-subtle); }
+.kv-agents-tool-picker label {
+  min-height: 38px;
+  padding: 7px 9px;
+  border: 1px solid var(--kv-border);
+  border-radius: 9px;
+  background: var(--kv-surface);
+}
+.kv-agents-tool-picker label:has(input:checked) {
+  border-color: color-mix(in srgb, var(--kv-action) 38%, var(--kv-border));
+  background: var(--kv-action-soft);
+}
+.kv-agent-approval {
+  border-left-width: 4px;
+  border-radius: var(--kv-radius-large);
+  box-shadow: var(--kv-shadow-panel);
+}
+.kv-agent-approval-preview pre { background: var(--kv-surface); }
+@media (max-width: 860px) {
+  .kv-agents-runtime-grid { gap: 11px; }
+  .kv-agents-events { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .kv-agents-header { align-items: flex-start; padding-bottom: 15px; }
+  .kv-agents-profile { grid-template-columns: 38px minmax(0,1fr); gap: 11px; padding: 14px; }
+  .kv-agents-profile-mark { width: 38px; height: 38px; }
+  .kv-agents-profile-actions { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
+  .kv-agents-use { min-height: 40px; }
+  .kv-agents-launchbar { grid-template-columns: 1fr; align-items: stretch; gap: 8px; }
+  .kv-agents-launchbar > span { line-height: 1.45; }
+  .kv-agents-table-head { display: none; }
+  .kv-agents-job-row { grid-template-columns: minmax(0,1fr) auto; gap: 6px 10px; padding: 12px; }
+  .kv-agents-job-row time { grid-column: 2; grid-row: 1; }
+  .kv-agents-job-row > div { grid-column: 1 / -1; }
+  .kv-agent-approval { padding: 14px; }
+  .kv-agent-approval-meta { grid-template-columns: 1fr; }
+  .kv-agent-approval-actions { align-items: stretch; flex-direction: column; }
+  .kv-agent-approval-actions > div { display: grid; grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kv-agents-profile, .kv-agents-job-row { transition: none; }
+}

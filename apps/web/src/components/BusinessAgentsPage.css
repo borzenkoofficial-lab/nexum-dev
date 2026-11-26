@@ -471,3 +471,52 @@
 .kv-business-section-card{background:var(--kv-surface)}.kv-business-modal{max-height:90dvh}
 }
 @media(prefers-reduced-motion:reduce){.kv-business-source-list article,.kv-business-approval-list article,.kv-business-tool-grid>label{transition:none}}
+
+
+/* Business agent operations — calm, readable run and governance surfaces. */
+.kv-business-page .kv-business-run-card,
+.kv-business-page .kv-business-usage,
+.kv-business-page .kv-business-events,
+.kv-business-page .kv-business-source-list,
+.kv-business-page .kv-business-approval-list {
+  border-radius: var(--kv-radius-large);
+}
+.kv-business-page .kv-business-run-card,
+.kv-business-page .kv-business-usage {
+  box-shadow: var(--kv-shadow-panel);
+}
+.kv-business-page .kv-business-run-head {
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--kv-border);
+}
+.kv-business-page .kv-business-run-head strong { letter-spacing: -.015em; }
+.kv-business-page .kv-business-events article,
+.kv-business-page .kv-business-source-list article,
+.kv-business-page .kv-business-approval-list article {
+  min-width: 0;
+  padding: 13px 14px;
+}
+.kv-business-page .kv-business-events article { align-items: flex-start; }
+.kv-business-page .kv-business-events article p,
+.kv-business-page .kv-business-source-list article p,
+.kv-business-page .kv-business-approval-list article p {
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.kv-business-page .kv-business-check { border-radius: 9px; }
+.kv-business-page .kv-business-tool-grid { gap: 9px; }
+.kv-business-page .kv-business-tool-grid > label {
+  min-height: 68px;
+  padding: 11px 12px;
+  border-radius: 11px;
+}
+.kv-business-page .kv-business-empty { padding: 26px 18px; }
+.kv-business-page .kv-business-muted { line-height: 1.55; }
+.kv-business-page .kv-business-error { border-radius: 10px; }
+.kv-business-page .kv-business-modal-backdrop { padding: 16px; }
+.kv-business-page .kv-business-modal-head { position: sticky; top: -17px; z-index: 2; background: var(--kv-surface); }
+@media (max-width: 640px) {
+  .kv-business-page .kv-business-run-head { align-items: flex-start; flex-direction: column; }
+  .kv-business-page .kv-business-tool-grid > label { min-height: 58px; }
+}
