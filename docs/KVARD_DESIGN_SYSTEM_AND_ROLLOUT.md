@@ -630,3 +630,17 @@ The shared header contract now extends beyond page tops into the main user-facin
 - No panel data, API behavior, actions, event filters, route behavior or business logic changed. Admin UI and admin files remain excluded.
 
 Verification boundary: source and diff review only. CI, typecheck, lint, build, browser screenshots and manual keyboard/responsive QA must be checked against the final HEAD; none are claimed as passing.
+
+## 22. Builder project and panel heading hierarchy
+
+The Builder now uses the shared heading structure at project and tool-panel level.
+
+- Project bar: project name is the page-level `h1`; the KVARD mark and workspace eyebrow identify its context. The return-to-workspace action remains explicit and keyboard-operable.
+- Chat panel: the task composer is an `h2` section; the empty-state prompt is demoted to `h3` so it no longer competes with the project title.
+- Preview, Files and AI Agent panels: each has a stable `h2` title, with dynamic availability text and operational actions retained in description/action slots.
+- Code panel: project code has a consistent `h2` title, project context and the existing preview/save controls.
+- The shared page-header responsive stack is overridden only for the compact project bar, which remains a single-row identity/control unit on mobile. Tool panel actions continue to stack under the shared responsive rule.
+- The Builder top bar wrapper is a neutral layout container; the nested project header provides the actual semantic header landmark, avoiding nested header landmarks.
+- Existing API calls, file loading/saving, preview navigation, agent state, tool tabs and project callbacks remain unchanged.
+
+Verification boundary: source and diff review only. CI, typecheck, lint, tests, build, visual browser QA and keyboard QA remain to be confirmed on the final commit; none are claimed as passing.
