@@ -275,3 +275,67 @@
 .kv-surface--padding-sm { padding: 12px; }
 .kv-surface--padding-md { padding: 16px; }
 .kv-surface--padding-lg { padding: 24px; }
+
+
+/* KvardTabs navigation layout overrides for embedded toolbars. */
+.nx-builder-header .nx-builder-nav {
+  display: flex;
+  flex: 0 1 auto;
+  width: auto;
+  max-width: min(100%, 560px);
+  min-width: 0;
+  margin: 0;
+  padding: 4px;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  justify-self: center;
+  scrollbar-width: thin;
+}
+.nx-builder-header .nx-builder-nav .kv-tabs__tab {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 12px;
+}
+.nx-builder-header .nx-builder-nav .kv-tabs__tab[aria-selected="true"] {
+  border-color: var(--kv-border);
+  background: var(--kv-surface);
+  color: var(--kv-action);
+  box-shadow: var(--kv-shadow-panel);
+}
+.nx-builder-header .nx-builder-nav .kv-tabs__tab:focus-visible {
+  outline-offset: -1px;
+}
+.nx-builder-body[role="tabpanel"]:focus-visible {
+  outline: 2px solid var(--kv-focus);
+  outline-offset: -2px;
+}
+@media (max-width: 900px) {
+  .nx-builder-header .nx-builder-nav {
+    order: 3;
+    flex: 1 0 100%;
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 600px) {
+  .nx-builder-header .nx-builder-nav {
+    justify-content: flex-start;
+    scroll-padding-inline: 8px;
+  }
+  .nx-builder-header .nx-builder-nav .kv-tabs__tab {
+    min-height: 40px;
+    padding-inline: 11px;
+  }
+  .nx-builder-project-copy strong {
+    max-width: 42vw;
+  }
+  .nx-builder-header-actions .nx-builder-open {
+    max-width: 44vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
