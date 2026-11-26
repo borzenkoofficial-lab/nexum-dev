@@ -1140,3 +1140,217 @@ input, textarea, select { max-width: 100%; border: 1px solid var(--nx-border); b
 @media (prefers-reduced-motion: reduce) {
   .nexum-os-event { animation: none; }
 }
+
+
+/* Command palette and workspace switcher — consistent overlay and selection language. */
+.palette-backdrop,
+.nexum-os-switcher-backdrop {
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: color-mix(in srgb, #10131b 42%, transparent);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+.command-palette,
+.nexum-os-switcher {
+  border: 1px solid var(--kv-border-strong);
+  border-radius: 15px;
+  background: var(--kv-surface);
+  color: var(--kv-text);
+  box-shadow: 0 28px 90px rgb(10 14 24 / 24%), 0 4px 16px rgb(10 14 24 / 9%);
+}
+.command-palette { overflow: hidden; }
+.palette-window-bar {
+  min-height: 48px;
+  padding: 11px 15px;
+  border-bottom-color: var(--kv-border);
+  color: var(--kv-text-tertiary);
+}
+.palette-list { gap: 2px; padding: 7px; }
+.palette-item {
+  min-height: 40px;
+  align-items: center;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--kv-text-secondary);
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.palette-item.active,
+.palette-item:hover {
+  border-color: var(--kv-border);
+  background: var(--kv-surface-subtle);
+  color: var(--kv-text);
+}
+.palette-item:focus-visible {
+  outline: 2px solid var(--kv-focus);
+  outline-offset: -2px;
+}
+.palette-item kbd {
+  padding: 3px 6px;
+  border: 1px solid var(--kv-border);
+  border-radius: 5px;
+  background: var(--kv-canvas);
+  color: var(--kv-text-tertiary);
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.palette-empty {
+  padding: 30px 18px;
+  color: var(--kv-text-tertiary);
+  line-height: 1.55;
+}
+.nexum-os-switcher {
+  padding: 20px;
+  scrollbar-gutter: stable;
+}
+.nexum-os-switcher-head {
+  align-items: center;
+  margin-bottom: 17px;
+  color: var(--kv-text-tertiary);
+  letter-spacing: .04em;
+}
+.nexum-os-switcher-projects,
+.nexum-os-switcher-grid {
+  gap: 9px;
+}
+.nexum-os-project-chip,
+.nexum-os-switcher-card {
+  min-height: 112px;
+  gap: 9px;
+  padding: 13px;
+  border-color: var(--kv-border);
+  border-radius: 10px;
+  background: var(--kv-surface);
+  color: var(--kv-text);
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+.nexum-os-project-chip:hover,
+.nexum-os-switcher-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--kv-border-strong);
+  background: var(--kv-surface-subtle);
+  box-shadow: var(--kv-shadow-panel);
+}
+.nexum-os-project-chip:focus-visible,
+.nexum-os-switcher-card:focus-visible,
+.nexum-os-switcher-actions button:focus-visible {
+  outline: 2px solid var(--kv-focus);
+  outline-offset: 2px;
+}
+.nexum-os-project-chip > span,
+.nexum-os-switcher-icon {
+  width: 32px;
+  height: 32px;
+  border-color: var(--kv-border);
+  border-radius: 8px;
+  background: var(--kv-surface-subtle);
+  color: var(--kv-action);
+}
+.nexum-os-project-chip small,
+.nexum-os-switcher-card small {
+  color: var(--kv-text-tertiary);
+  line-height: 1.45;
+}
+.nexum-os-switcher-card.active,
+.nexum-os-project-chip.active {
+  border-color: color-mix(in srgb, var(--kv-action) 38%, var(--kv-border));
+  background: var(--kv-action-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kv-action) 12%, transparent);
+}
+.nexum-os-switcher-actions {
+  align-items: center;
+  padding-top: 13px;
+  border-top: 1px solid var(--kv-border);
+}
+.nexum-os-switcher-actions button {
+  min-height: 36px;
+  padding: 8px 11px;
+  border-color: var(--kv-border);
+  border-radius: 8px;
+  background: var(--kv-surface);
+  color: var(--kv-text-secondary);
+}
+.nexum-os-switcher-actions button:hover {
+  background: var(--kv-surface-subtle);
+  color: var(--kv-text);
+}
+.nexum-os-switcher-actions .danger { color: var(--kv-danger); }
+.nexum-os-app-strip {
+  gap: 7px;
+  padding: 9px;
+  border-color: var(--kv-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--kv-surface) 94%, transparent);
+  box-shadow: var(--kv-shadow-popover);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.nexum-os-app-strip-title {
+  padding-inline: 5px;
+  color: var(--kv-text-tertiary);
+  font-weight: 700;
+}
+.nexum-os-app-chip,
+.nexum-os-app-more {
+  min-height: 36px;
+  padding: 6px 9px;
+  border-color: transparent;
+  border-radius: 8px;
+  color: var(--kv-text-secondary);
+  transition: background-color 130ms ease, color 130ms ease, border-color 130ms ease;
+}
+.nexum-os-app-chip:hover,
+.nexum-os-app-more:hover {
+  border-color: var(--kv-border);
+  background: var(--kv-surface-subtle);
+  color: var(--kv-text);
+}
+.nexum-os-app-chip.active {
+  border-color: color-mix(in srgb, var(--kv-action) 25%, var(--kv-border));
+  background: var(--kv-action-soft);
+  color: var(--kv-text);
+}
+.nexum-os-app-chip:focus-visible,
+.nexum-os-app-more:focus-visible {
+  outline: 2px solid var(--kv-focus);
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .palette-backdrop,
+  .nexum-os-switcher-backdrop {
+    place-items: end center;
+    padding: 10px max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  }
+  .command-palette,
+  .nexum-os-switcher {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px);
+    border-radius: 16px;
+  }
+  .nexum-os-switcher { padding: 16px; }
+  .nexum-os-switcher-projects,
+  .nexum-os-switcher-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nexum-os-project-chip,
+  .nexum-os-switcher-card { min-height: 100px; }
+  .nexum-os-app-strip {
+    right: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nexum-os-app-strip::-webkit-scrollbar { display: none; }
+  .nexum-os-app-chip { flex: 0 0 auto; }
+  .nexum-os-app-strip-title { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .palette-item,
+  .nexum-os-project-chip,
+  .nexum-os-switcher-card,
+  .nexum-os-app-chip,
+  .nexum-os-app-more { transition: none; }
+  .nexum-os-project-chip:hover,
+  .nexum-os-switcher-card:hover { transform: none; }
+}
