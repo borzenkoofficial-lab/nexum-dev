@@ -912,8 +912,9 @@ test("AgentLoop does not execute a tool if durable intent journaling fails", asy
     start: async () => { throw new Error("journal unavailable"); },
     finish: async () => undefined,
   };
-  const result = await new AgentLoop(runtime, gateway, 1, undefined, undefined, undefined, undefined, undefined, journal).run("say hello");
-  assert.equal(result.success, false);
-  assert.match(result.error ?? "", /journal unavailable/);
+  await assert.rejects(
+    new AgentLoop(runtime, gateway, 1, undefined, undefined, undefined, undefined, undefined, journal).run("say hello"),
+    /journal unavailable/,
+  );
   assert.equal(toolExecutions, 0);
 });
