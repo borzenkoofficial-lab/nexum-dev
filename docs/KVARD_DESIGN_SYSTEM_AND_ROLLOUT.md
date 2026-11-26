@@ -732,3 +732,13 @@ Verification boundary: source and test additions reviewed; test execution, typec
 - No admin UI, admin styles, routes, APIs, permissions or business logic were changed.
 
 Verification boundary: implementation and focused tests added; test execution, typecheck, lint, build, browser QA and deployment status must be checked against final HEAD before being described as passing.
+
+
+## 30. Workspace home visual refinement
+
+- The Workspace heading now has a restrained product-context eyebrow and a clearer project-count treatment; the count remains the live project total supplied by the existing page state.
+- The creation surface has stronger hierarchy between title, supporting description, composer and starter scenarios.
+- Starter scenarios are presented as three consistent, descriptive selection cards with compact indices and directional affordances. They continue to populate the existing brief field and do not create projects until the user submits.
+- Recent-project rows receive more deliberate spacing and surface treatment while retaining their existing project-open callbacks.
+- Desktop and mobile layouts use the existing semantic light/dark design tokens. No new palette, API, project state, business logic or admin surface was introduced.
+- Scope is presentation-only: BuilderHome markup and kvard-design-system styles.

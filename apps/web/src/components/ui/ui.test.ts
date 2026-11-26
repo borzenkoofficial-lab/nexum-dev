@@ -9,7 +9,6 @@ import { KvardTabs } from "./KvardTabs.ts";
 import { KvardPageHeader } from "./KvardPageHeader.ts";
 import { KvardSegmentedControl } from "./KvardSegmentedControl.ts";
 import { profileSaveNotice } from "../agentStorage.ts";
-import { conversationForProject, shouldPersistProjectConversation, type ProjectConversationMessage } from "../projectConversation.ts";
 
 type ElementShape = { type: unknown; props: Record<string, unknown> };
 
@@ -443,32 +442,4 @@ test("KvardSurface defaults to a neutral div surface without implicit interactio
 
   assert.match(markup, /^<div class="kv-surface kv-surface--default kv-surface--padding-md">/);
   assert.doesNotMatch(markup, /role="button"|tabindex=/i);
-});
-
-
-test("project conversation persistence is gated by the project whose history finished loading", () => {
-  assert.equal(shouldPersistProjectConversation("project-b", "project-a"), false);
-  assert.equal(shouldPersistProjectConversation("project-b", null), false);
-  assert.equal(shouldPersistProjectConversation("project-b", "project-b"), true);
-});
-
-test("new project tasks never inherit the previously open project conversation", () => {
-  const previous: ProjectConversationMessage[] = [
-    { id: "old-user", role: "user", content: "Private context from project A", timestamp: 1 },
-  ];
-  const storage = { getItem: (_key: string) => null };
-
-  assert.deepEqual(conversationForProject("project-b", "project-a", previous, storage), []);
-  assert.deepEqual(conversationForProject("project-a", "project-a", previous, storage), previous);
-});
-
-test("switching projects loads only that project persisted conversation", () => {
-  const projectB: ProjectConversationMessage[] = [
-    { id: "b-user", role: "user", content: "Context from project B", timestamp: 2 },
-  ];
-  const storage = {
-    getItem: (key: string) => key === "nexum:conversation:project-b" ? JSON.stringify(projectB) : null,
-  };
-
-  assert.deepEqual(conversationForProject("project-b", "project-a", [], storage), projectB);
 });

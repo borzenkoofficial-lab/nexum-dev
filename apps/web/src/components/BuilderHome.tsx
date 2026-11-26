@@ -11,9 +11,9 @@ type Props = {
 };
 
 const starters = [
-  { label: "Сайт компании", prompt: "Создай современный сайт для моей компании с услугами, преимуществами и формой заявки." },
-  { label: "Веб-приложение", prompt: "Создай полноценное веб-приложение с авторизацией, личным кабинетом и основными рабочими сценариями." },
-  { label: "AI-агент", prompt: "Создай AI-агента для автоматизации бизнес-процесса. Сначала определи архитектуру и необходимые инструменты." },
+  { label: "Сайт компании", description: "Страницы, услуги и заявки", prompt: "Создай современный сайт для моей компании с услугами, преимуществами и формой заявки." },
+  { label: "Веб-приложение", description: "Интерфейс, данные и роли", prompt: "Создай полноценное веб-приложение с авторизацией, личным кабинетом и основными рабочими сценариями." },
+  { label: "AI-агент", description: "Задачи, инструкции и инструменты", prompt: "Создай AI-агента для автоматизации бизнес-процесса. Сначала определи архитектуру и необходимые инструменты." },
 ];
 
 export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView }: Props) {
@@ -37,12 +37,16 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
       <div className="kv-home-workspace">
         <section className="kv-home-content" id="kv-home-content" aria-label="Обзор">
           <div className="kv-home-heading">
-            <div><h1>Рабочая среда</h1><p>Создавайте цифровые продукты и управляйте разработкой в одном месте.</p></div>
+            <div>
+              <span className="kv-home-eyebrow">КВАРД / РАБОЧЕЕ ПРОСТРАНСТВО</span>
+              <h1>Рабочая среда</h1>
+              <p>Создавайте цифровые продукты и управляйте разработкой в одном месте.</p>
+            </div>
             <div className="kv-home-project-count"><strong>{projects.length}</strong><span>проектов</span></div>
           </div>
 
           <KvardSurface as="section" className="kv-home-create-section" variant="raised" padding="lg" aria-labelledby="kv-home-create-title">
-            <KvardPageHeader className="kv-home-section-title" headingLevel="h2" title="Что будем создавать?" titleId="kv-home-create-title" />
+            <KvardPageHeader className="kv-home-section-title" headingLevel="h2" title="Что будем создавать?" titleId="kv-home-create-title" description="Опишите идею своими словами или начните с готового сценария." />
             <div className="builder-home-composer kv-home-composer">
               <textarea
                 aria-label="Опишите, что нужно создать"
@@ -62,7 +66,13 @@ export function BuilderHome({ projects, onNewProject, onOpenProject, onOpenView 
               </div>
             </div>
             <div className="kv-home-starters" aria-label="Шаблоны задач">
-              {starters.map((starter) => <button key={starter.label} type="button" onClick={() => setPrompt(starter.prompt)}>{starter.label}<span aria-hidden="true">↗</span></button>)}
+              {starters.map((starter, index) => (
+                <button className="kv-home-starter" key={starter.label} type="button" onClick={() => setPrompt(starter.prompt)}>
+                  <span className="kv-home-starter-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="kv-home-starter-copy"><strong>{starter.label}</strong><small>{starter.description}</small></span>
+                  <span className="kv-home-starter-arrow" aria-hidden="true">↗</span>
+                </button>
+              ))}
             </div>
           </KvardSurface>
 

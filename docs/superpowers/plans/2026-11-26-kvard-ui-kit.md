@@ -479,3 +479,20 @@ Verification boundary: source and test changes reviewed; no successful test/buil
 - [ ] Confirm final GitHub Actions and deployment status.
 
 Verification boundary: source changes and focused tests added; successful test/build or browser QA is not yet claimed.
+
+
+## Task 20 — Workspace home visual hierarchy
+
+**Purpose:** Give the main Workspace entry point a more deliberate premium composition while preserving all existing project actions.
+
+- [x] Add a restrained Workspace eyebrow and refine the live project-count presentation.
+- [x] Clarify the creation surface hierarchy with a supporting description and more balanced composer spacing.
+- [x] Present the existing three starter prompts as descriptive, responsive cards.
+- [x] Refine recent-project row spacing and surface treatment.
+- [x] Keep starter prompts connected to the existing brief field and preserve submit/open callbacks.
+- [x] Use existing semantic tokens for light and dark themes.
+- [x] Keep scope to user-facing design; no API, backend, business logic or admin changes.
+- [ ] Review final diff and verify responsive selectors against source.
+- [ ] Run visual browser QA at desktop, tablet and mobile widths.
+
+Verification boundary: source and diff review only; browser visual QA is not claimed.
