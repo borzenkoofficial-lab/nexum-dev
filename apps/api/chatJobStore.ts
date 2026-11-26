@@ -1,5 +1,6 @@
 import { query } from "./db.js";
-import type { ToolRisk } from "./agent/toolPolicy.js";
+import { createHash, randomUUID } from "node:crypto";
+import { getToolSecurityPolicy, type ToolRisk } from "./agent/toolPolicy.js";
 import { assessChatJobRecovery, type ChatJobRecoveryAssessment } from "./agent/recovery.js";
 
 export type ChatJobStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
@@ -58,8 +59,23 @@ export interface ChatJob {
 }
 
 let initialized: Promise<void> | null = null;
+export interface ChatJobToolAction {
+  actionId: string;
+  jobId: string;
+  userId: string;
+  tool: string;
+  risk: ToolRisk;
+  inputSha256: string;
+  status: "started" | "succeeded" | "failed";
+  startedAt: number;
+  completedAt?: number;
+  resultSuccess?: boolean;
+  resultSha256?: string;
+}
+
 const memoryJobs = new Map<string, ChatJob>();
 const memoryLocks = new Map<string, { projectId: string; userId: string; jobId: string; expiresAt: number }>();
+const memoryToolActions = new Map<string, ChatJobToolAction>();
 
 function databaseAvailable(): boolean {
   return Boolean(process.env.NEXUM_DATABASE_URL?.trim());
@@ -87,6 +103,21 @@ async function ensureTable(): Promise<void> {
         job_id UUID NOT NULL,
         expires_at TIMESTAMPTZ NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS agent_chat_job_tool_actions (
+        action_id UUID PRIMARY KEY,
+        job_id UUID NOT NULL REFERENCES agent_chat_jobs(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        tool_name TEXT NOT NULL,
+        risk TEXT NOT NULL CHECK (risk IN ('READ','WRITE','EXECUTE','DESTRUCTIVE')),
+        input_sha256 TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('started','succeeded','failed')),
+        started_at BIGINT NOT NULL,
+        completed_at BIGINT NULL,
+        result_success BOOLEAN NULL,
+        result_sha256 TEXT NULL
+      );
+      CREATE INDEX IF NOT EXISTS agent_chat_job_tool_actions_job_idx
+        ON agent_chat_job_tool_actions(job_id, started_at ASC);
       -- Existing installations may have UUID project IDs; normalize only after each table exists.
       ALTER TABLE agent_chat_jobs DROP CONSTRAINT IF EXISTS agent_chat_jobs_status_check;
       ALTER TABLE agent_chat_jobs ADD CONSTRAINT agent_chat_jobs_status_check CHECK (status IN ('queued','running','completed','failed','cancelled'));
@@ -513,6 +544,109 @@ export async function cleanupChatJobs(ttlMs = 30 * 60 * 1000): Promise<void> {
   );
 }
 
+
+export async function startChatJobToolAction(
+  jobId: string,
+  userId: string,
+  tool: string,
+  input: string,
+): Promise<string> {
+  const policy = getToolSecurityPolicy(tool);
+  const actionId = randomUUID();
+  const startedAt = Date.now();
+  const inputSha256 = createHash("sha256").update(input).digest("hex");
+  const action: ChatJobToolAction = {
+    actionId, jobId, userId, tool, risk: policy.risk, inputSha256,
+    status: "started", startedAt,
+  };
+  if (!databaseAvailable()) {
+    const job = memoryJobs.get(jobId);
+    if (!job || job.userId !== userId || job.status !== "running") {
+      throw new Error("Cannot journal a tool action for a non-running or inaccessible Agent Run.");
+    }
+    memoryToolActions.set(actionId, action);
+    return actionId;
+  }
+  await ensureTable();
+  const inserted = await query(
+    `INSERT INTO agent_chat_job_tool_actions
+      (action_id,job_id,user_id,tool_name,risk,input_sha256,status,started_at)
+     SELECT $1,$2,$3,$4,$5,$6,'started',$7
+      WHERE EXISTS (SELECT 1 FROM agent_chat_jobs WHERE id=$2 AND user_id=$3 AND status='running')
+     RETURNING action_id`,
+    [actionId, jobId, userId, tool, policy.risk, inputSha256, startedAt],
+  );
+  if (!inserted.rows.length) {
+    throw new Error("Cannot journal a tool action for a non-running or inaccessible Agent Run.");
+  }
+  return actionId;
+}
+
+export async function finishChatJobToolAction(
+  jobId: string,
+  userId: string,
+  actionId: string,
+  result: { success: boolean; output: string },
+): Promise<void> {
+  const completedAt = Date.now();
+  const resultSha256 = createHash("sha256").update(result.output).digest("hex");
+  if (!databaseAvailable()) {
+    const action = memoryToolActions.get(actionId);
+    if (!action || action.jobId !== jobId || action.userId !== userId || action.status !== "started") {
+      throw new Error("Tool action journal entry is missing, foreign, or already finalized.");
+    }
+    memoryToolActions.set(actionId, {
+      ...action,
+      status: result.success ? "succeeded" : "failed",
+      completedAt,
+      resultSuccess: result.success,
+      resultSha256,
+    });
+    return;
+  }
+  await ensureTable();
+  const updated = await query(
+    `UPDATE agent_chat_job_tool_actions
+        SET status=$4,completed_at=$5,result_success=$6,result_sha256=$7
+      WHERE action_id=$1 AND job_id=$2 AND user_id=$3 AND status='started'
+      RETURNING action_id`,
+    [actionId, jobId, userId, result.success ? "succeeded" : "failed", completedAt, result.success, resultSha256],
+  );
+  if (!updated.rows.length) {
+    throw new Error("Tool action journal entry is missing, foreign, or already finalized.");
+  }
+}
+
+export async function listChatJobToolActions(jobId: string, userId: string): Promise<ChatJobToolAction[]> {
+  if (!databaseAvailable()) {
+    return [...memoryToolActions.values()]
+      .filter((action) => action.jobId === jobId && action.userId === userId)
+      .sort((a, b) => a.startedAt - b.startedAt)
+      .map((action) => ({ ...action }));
+  }
+  await ensureTable();
+  const result = await query(
+    `SELECT action_id,job_id,user_id,tool_name,risk,input_sha256,status,started_at,
+            completed_at,result_success,result_sha256
+       FROM agent_chat_job_tool_actions
+      WHERE job_id=$1 AND user_id=$2
+      ORDER BY started_at ASC`,
+    [jobId, userId],
+  );
+  return result.rows.map((row) => ({
+    actionId: row.action_id,
+    jobId: row.job_id,
+    userId: row.user_id,
+    tool: row.tool_name,
+    risk: row.risk,
+    inputSha256: row.input_sha256,
+    status: row.status,
+    startedAt: Number(row.started_at),
+    ...(row.completed_at === null ? {} : { completedAt: Number(row.completed_at) }),
+    ...(row.result_success === null ? {} : { resultSuccess: row.result_success }),
+    ...(row.result_sha256 ? { resultSha256: row.result_sha256 } : {}),
+  }));
+}
 
 export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promise<number> {
   const cutoff = Date.now() - maxRunningMs;
