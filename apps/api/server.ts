@@ -1880,6 +1880,30 @@ app.get("/api/chat/jobs", async (req, res) => {
   });
 });
 
+app.get("/api/chat/jobs/recent", async (req, res) => {
+  await cleanupChatJobs();
+  const userId = getAuthUser(req).id;
+  const jobs = await listChatJobs(userId, 50);
+  const recent = jobs
+    .filter((job) => job.status === "completed" || job.status === "failed" || job.status === "cancelled")
+    .slice(0, 20)
+    .map((job) => ({
+      id: job.id,
+      projectId: job.projectId,
+      status: job.status,
+      stage: job.stage,
+      currentMessage: job.currentMessage,
+      reply: job.reply,
+      steps: job.steps,
+      events: job.events,
+      problems: job.problems,
+      error: job.error,
+      productPlan: job.productPlan,
+      updatedAt: job.updatedAt,
+    }));
+  return res.json({ success: true, jobs: recent });
+});
+
 app.get("/api/chat/jobs/:id/events", createChatJobEventsHandler({
   getUserId: (request) => getAuthUser(request).id,
   getJob: (id, userId) => loadChatJob(id, userId, getChatJob, true),
