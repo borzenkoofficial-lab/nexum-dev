@@ -418,6 +418,7 @@ NEXUM.DEV — браузерная платформа для создания и
   3. execute the tool;
   4. commit `succeeded` or `failed` plus a SHA-256 digest of the result before returning control to the AgentLoop.
 - If the intent record cannot be committed, the tool is not executed. If the result cannot be finalized, the AgentLoop stops and the journal remains `started`, so recovery treats the outcome as unknown.
+- The journal action UUID is also propagated as the AgentStep `toolCallId`, linking the visible execution step to its durable record.
 - The journal stores action UUID, job/user scope, tool name, risk class, input digest, lifecycle status, timestamps, result success flag, and result digest. It deliberately does not store raw tool input/output, file contents, prompts, or credentials.
 - Restart recovery now consults this journal in addition to best-effort ChatJob events and steps. Unfinished actions are classified as unknown outcomes; completed WRITE/EXECUTE/DESTRUCTIVE actions still require project inspection. All running jobs remain non-resumable until a full durable execution checkpoint exists.
 - Added tests for journal ordering, exactly-once finalization, owner scoping, fail-closed behavior, and recovery from missing UI events.
