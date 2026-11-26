@@ -780,3 +780,203 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 @media (max-width: 680px) {
   #root input, #root textarea, #root select { font-size: 16px; }
 }
+
+
+/* Builder responsive and overflow hardening — preserve the existing split-workspace behavior. */
+.nx-builder,
+.nx-builder-body,
+.nx-builder-grid,
+.nx-chat,
+.nx-tool,
+.nx-code,
+.nx-files,
+.nx-code-body,
+.nx-files aside,
+.nx-code-body aside,
+.nx-files main,
+.nx-code-body main {
+  min-width: 0;
+}
+.nx-builder-grid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.nx-chat-scroll,
+.nx-messages,
+.nx-messages article,
+.nx-live-reply,
+.nx-events,
+.nx-problems,
+.nx-plan {
+  overflow-wrap: anywhere;
+}
+.nx-messages article > div {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.nx-composer-row,
+.nx-composer-left,
+.nx-composer-right,
+.nx-tool-actions,
+.nx-code-head-actions {
+  min-width: 0;
+}
+.nx-composer-left {
+  flex: 1 1 0;
+}
+.nx-model {
+  min-width: 0;
+  max-width: 100%;
+}
+.nx-model > button {
+  max-width: 100%;
+}
+.nx-model-pop {
+  width: min(280px, calc(100vw - 40px));
+  max-width: calc(100vw - 40px);
+}
+.nx-file-head > b,
+.nx-code-file > b {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-files aside button,
+.nx-code-body aside button {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.nx-files textarea,
+.nx-code-body textarea {
+  min-width: 0;
+  max-width: 100%;
+  overflow: auto;
+  tab-size: 2;
+}
+.nx-preview,
+.nx-preview iframe {
+  min-width: 0;
+  max-width: 100%;
+}
+.nx-agent-list > div,
+.nx-agent-list > div > span,
+.nx-events > p,
+.nx-problems > p,
+.nx-plan > p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.nx-tool-head .kv-page-header__actions,
+.nx-code-head .kv-page-header__actions {
+  min-width: 0;
+  max-width: 100%;
+}
+.nx-tool-head .kv-page-header__actions > *,
+.nx-code-head-actions > * {
+  max-width: 100%;
+}
+.nx-builder button:focus-visible,
+.nx-builder textarea:focus-visible,
+.nx-builder .nx-files aside button:focus-visible,
+.nx-builder .nx-code-body aside button:focus-visible {
+  outline: 2px solid var(--kv-focus);
+  outline-offset: 2px;
+}
+@media (max-width: 900px) {
+  .nx-builder-body {
+    min-width: 0;
+  }
+  .nx-builder-grid {
+    width: 100%;
+    min-width: 0;
+    gap: 12px;
+  }
+  .nx-chat,
+  .nx-tool {
+    width: 100%;
+    max-width: 100%;
+  }
+  .nx-tool-head {
+    min-width: 0;
+  }
+}
+@media (max-width: 600px) {
+  .nx-builder-header {
+    min-width: 0;
+  }
+  .nx-builder-project .kv-page-header__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .nx-builder-header-actions {
+    min-width: 0;
+    max-width: 48%;
+  }
+  .nx-builder-header-actions .nx-builder-open {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .nx-chat-head,
+  .nx-tool-head,
+  .nx-code-head {
+    gap: 8px;
+    padding-inline: 12px;
+  }
+  .nx-chat-head .kv-page-header__actions,
+  .nx-tool-head .kv-page-header__actions,
+  .nx-code-head .kv-page-header__actions {
+    flex: 0 1 auto;
+  }
+  .nx-composer {
+    width: calc(100% - 20px);
+    max-width: 100%;
+  }
+  .nx-composer-left {
+    flex: 1 1 100%;
+  }
+  .nx-composer-right {
+    margin-left: auto;
+  }
+  .nx-chat footer {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+  }
+  .nx-files,
+  .nx-code-body {
+    grid-template-columns: minmax(96px, 30%) minmax(0, 1fr);
+  }
+  .nx-files aside,
+  .nx-code-body aside {
+    min-width: 0;
+    padding: 8px 6px;
+  }
+  .nx-file-head,
+  .nx-code-file {
+    min-width: 0;
+    gap: 6px;
+    padding: 8px;
+  }
+  .nx-file-head button,
+  .nx-code-head-actions button {
+    flex: 0 0 auto;
+  }
+  .nx-agent {
+    padding: 10px;
+  }
+  .nx-run,
+  .nx-agent-list,
+  .nx-problems,
+  .nx-plan,
+  .nx-events {
+    min-width: 0;
+    padding: 10px;
+  }
+}
