@@ -124,3 +124,17 @@ test("ChatJob SSE rejects malformed route parameters", async () => {
   assert.equal(response.writableEnded, true);
 });
 
+
+test("ChatJob SSE reconnect starts with the latest persisted snapshot", async () => {
+  const response = new FakeResponse();
+  const handler = createChatJobEventsHandler({
+    getUserId: () => "user-1",
+    getJob: async () => job("running", 99, "latest persisted progress"),
+  });
+  await handler(request(), response as never);
+  const initial = response.chunks.find((chunk) => chunk.includes("event: job"));
+  assert.match(initial ?? "", /"updatedAt":99/);
+  assert.match(initial ?? "", /"reply":"latest persisted progress"/);
+  assert.equal(response.writableEnded, false);
+  response.emit("close");
+});
