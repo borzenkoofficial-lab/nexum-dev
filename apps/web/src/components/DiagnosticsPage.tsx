@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { KvardPageHeader } from "./ui/index.ts";
+import { KvardPageHeader, KvardToast } from "./ui/index.ts";
 import { KvardSegmentedControl } from "./ui/KvardSegmentedControl.ts";
 
 type DiagnosticEvent = {
@@ -183,7 +183,7 @@ export function DiagnosticsPage() {
           </div>
         </section>
       </div>
-      {notice && <div className="toast" role="status" onClick={() => setNotice("")}>{notice}</div>}
+      {notice && <KvardToast className="toast">{notice}</KvardToast>}
     </section>
   );
 }
