@@ -201,3 +201,21 @@ The implementation is committed to `main`. The test-first commit was not execute
 ### Verification boundary
 
 Latest observed GitHub Actions run for implementation commit `4a3a65c`: `45797144520`, status pending; the jobs endpoint returned zero jobs. The current documentation commit triggers a newer run, which must be checked against its exact HEAD. Focused tests, typecheck, lint, build, browser screenshots and manual keyboard QA are not yet confirmed. Vercel's previous deployment status was blocked by the account's build-rate limit. No administrative files were changed.
+
+
+### Task 6 — additional dialog migrations
+
+- [x] Migrate Business Agents / Create AI Employee modal to `KvardDialog`; preserve form submit and API behavior, add initial focus to the agent-name field.
+- [x] Migrate Workspace / Application Manager switcher to `KvardDialog`; preserve project/window actions and correct backdrop dismissal so clicks inside the dialog do not close it.
+- [x] Keep all existing consumer visual classes and styling.
+- [x] Confirm changed-file scope contains no admin paths.
+- [ ] Re-run focused UI tests, typecheck, lint and build on the latest implementation commit.
+- [ ] Complete browser and keyboard QA for all four dialog consumers.
+
+Additional integration commits:
+- Business Agents modal: `b10b2f2`.
+- Workspace Application Manager: `fe4009c`.
+- Business Agents initial focus: `9366050`.
+- Design-system update: `c2faa24`.
+
+Latest verification remains pending; previous Actions runs for this work were cancelled before jobs executed. No passing test/build claim is made.
