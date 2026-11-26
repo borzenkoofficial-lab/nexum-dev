@@ -199,6 +199,25 @@ test("project revision fingerprint excludes credential files and never follows s
 });
 
 
+test("checkpoint validator bounds restored histories and verifies journal references", () => {
+  const baseline = fixture();
+  assert.throws(() => encryptAgentExecutionCheckpoint({
+    ...baseline,
+    previousResults: Array.from({ length: 41 }, () => baseline.previousResults[0]),
+  }), /previousResults exceeds its safety limit/);
+  assert.throws(() => encryptAgentExecutionCheckpoint({
+    ...baseline,
+    toolActionIds: ["unreferenced-action"],
+  }), /journal references do not match tool history/);
+  assert.throws(() => encryptAgentExecutionCheckpoint({
+    ...baseline,
+    previousResults: [{
+      ...baseline.previousResults[0],
+      input: "x".repeat(100_001),
+    }],
+  }), /tool history is malformed or exceeds safety limits/);
+});
+
 test("Agent execution checkpoints reject malformed loop continuation state", () => {
   const previous = process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
   process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY = randomBytes(32).toString("base64");

@@ -136,6 +136,58 @@ export function validateAgentExecutionCheckpoint(value: unknown): asserts value 
   ) {
     throw new Error("Agent checkpoint counters or token budget are invalid.");
   }
+  const boundedArrays = [
+    [item.previousResults, 40, "previousResults"],
+    [item.toolActionIds, 40, "toolActionIds"],
+    [item.seenActions, 1000, "seenActions"],
+    [item.actionAttempts, 1000, "actionAttempts"],
+    [item.seenPlannerContexts, 100, "seenPlannerContexts"],
+    [item.actionSequence, 1000, "actionSequence"],
+    [item.executionSnapshot.observations, 12, "observations"],
+    [item.executionSnapshot.completedStepIds, 100, "completedStepIds"],
+    [item.taskState.changedFiles, 500, "changedFiles"],
+  ] as const;
+  for (const [array, limit, label] of boundedArrays) {
+    if (!Array.isArray(array) || array.length > limit) {
+      throw new Error(`Agent checkpoint ${label} exceeds its safety limit.`);
+    }
+  }
+  if (
+    item.toolActionIds.some((id) => typeof id !== "string" || id.length === 0 || id.length > 128) ||
+    new Set(item.toolActionIds).size !== item.toolActionIds.length
+  ) {
+    throw new Error("Agent checkpoint tool-action identifiers are invalid.");
+  }
+  const recordedToolActionIds = new Set(
+    item.previousResults
+      .map((result) => result && typeof result === "object" ? result.toolCallId : undefined)
+      .filter((id): id is string => typeof id === "string"),
+  );
+  if (item.toolActionIds.some((id) => !recordedToolActionIds.has(id))) {
+    throw new Error("Agent checkpoint tool-action journal references do not match tool history.");
+  }
+  if (item.previousResults.some((result) =>
+    !result || typeof result !== "object" ||
+    !Number.isSafeInteger(result.iteration) || result.iteration < 0 ||
+    typeof result.tool !== "string" || result.tool.length === 0 || result.tool.length > 128 ||
+    typeof result.input !== "string" || result.input.length > 100_000 ||
+    !result.result || typeof result.result !== "object" ||
+    typeof result.result.success !== "boolean" ||
+    typeof result.result.output !== "string" || result.result.output.length > 100_000 ||
+    (result.toolCallId !== undefined && (typeof result.toolCallId !== "string" || result.toolCallId.length > 128))
+  )) {
+    throw new Error("Agent checkpoint tool history is malformed or exceeds safety limits.");
+  }
+  if (
+    item.seenActions.some((value) => typeof value !== "string" || value.length > 1800) ||
+    item.seenPlannerContexts.some((value) => typeof value !== "string" || value.length > 5000) ||
+    item.actionSequence.some((value) => typeof value !== "string" || value.length > 1800) ||
+    item.actionAttempts.some((entry) => !Array.isArray(entry) || entry.length !== 2 ||
+      typeof entry[0] !== "string" || entry[0].length > 1800 ||
+      !Number.isSafeInteger(entry[1]) || entry[1] < 0)
+  ) {
+    throw new Error("Agent checkpoint planner/action history is malformed.");
+  }
   if (
     item.executionSnapshot.intent.agentJobId !== item.jobId ||
     item.executionSnapshot.plan.agentJobId !== item.jobId ||
