@@ -563,6 +563,12 @@ test("active ChatJob and Builder progress restore after page reload with reconne
   await page.reload();
   await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "Отменить выполнение задачи" })).toBeVisible({ timeout: 10_000 });
+
+  await page.context().setOffline(true);
+  await expect(page.locator("body")).toContainText("Связь с задачей временно недоступна", { timeout: 10_000 });
+  await page.context().setOffline(false);
+  await expect(page.locator("body")).toContainText("Соединение восстановлено", { timeout: 15_000 });
+
   const restoredJob = await page.request.get("/api/chat/jobs/" + encodeURIComponent(jobId));
   expect(restoredJob.ok()).toBeTruthy();
   const restored = await restoredJob.json();
