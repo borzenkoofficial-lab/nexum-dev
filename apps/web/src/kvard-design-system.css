@@ -363,6 +363,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-home-project-open { display: inline-flex; align-items: center; gap: 9px; margin-left: auto; color: var(--kv-text-tertiary); font-size: 11px; }
 .kv-home-project-open b { color: var(--kv-action); font-size: 15px; font-weight: 500; }
 .kv-home-empty { display: flex; align-items: center; gap: 15px; }
+.kv-home-empty.kv-surface--padding-lg { padding: 22px; }
 .kv-home-empty > div { min-width: 0; }
 .kv-home-empty strong { color: var(--kv-text); font-size: 12px; font-weight: 650; }
 .kv-home-empty p { margin: 4px 0 0; color: var(--kv-text-secondary); font-size: 11px; }
@@ -642,7 +643,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .kv-home-project-details strong { font-size: 13px; }
 .kv-home-project-row { min-height: 76px; }
 .kv-home-content { padding-top: 44px; }
-.kv-home-create-section { padding: 25px 26px 21px; }
 .kv-home-section-title h2 { font-size: 19px; }
 
 /* AI Agents: readable control plane instead of compressed metadata. */
@@ -737,7 +737,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .kv-agents-profile-actions button { flex: 0 0 auto; }
 }
 @media (max-width: 680px) {
-  .kv-home-create-section { padding: 18px 14px 15px; }
   .kv-home-content { padding-top: 28px; }
   .kv-home-project-row { min-height: 68px; }
   .kv-agents-page { padding: 24px 14px calc(36px + env(safe-area-inset-bottom)); }
