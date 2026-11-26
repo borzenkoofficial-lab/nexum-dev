@@ -351,6 +351,8 @@ Verification boundary: GitHub source and diff review only. No local execution or
 - [x] Keep dynamic statuses, save/refresh actions, file controls and agent state in their existing owners and slots.
 - [x] Keep the compact project bar in one row on mobile and retain responsive panel-action stacking.
 - [x] Avoid nested semantic header landmarks in the Builder top bar.
+- [x] Add UI Kit coverage for the `h3` content-level heading variant.
+- [x] Add mobile wrapping for Code actions and visible keyboard focus for the project return action.
 - [x] Keep all changes in `main`; no admin UI, APIs or business logic changed.
 - [ ] Run focused UI tests, typecheck, lint and build against the final HEAD.
 - [ ] Verify desktop/tablet/mobile, light/dark, keyboard focus and heading outline in a real browser.
