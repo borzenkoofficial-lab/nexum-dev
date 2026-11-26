@@ -689,3 +689,15 @@ The Business Agents user-facing screen receives a focused interaction-consistenc
 - No admin UI, styles, routes, APIs, permissions or business logic were changed.
 
 Verification boundary: source and diff review only. CI, typecheck, lint, tests, build and browser visual/keyboard QA remain unconfirmed for this change.
+
+
+## 26. Integration catalog truthfulness
+
+- Connector cards use the shared `KvardStatusBadge` primitive for consistent status semantics.
+- A connector absent from the current configured list is labelled `Не настроено`, not presented as a live connection check.
+- The page explicitly identifies itself as a reference catalog while server-side OAuth/API setup is unavailable.
+- The existing details modal remains informational and its disabled action stays disabled; no credentials, OAuth flow, API request, or synthetic connection state is introduced.
+- Existing connector data, modal callback, routing and future connected-state contract remain unchanged.
+- No administrative UI, styles, routes, APIs, permissions or business logic were changed.
+
+Verification boundary: source and diff review only. CI, typecheck, tests, lint, build and browser visual/keyboard QA must be checked against the final HEAD; none are claimed as passing.
