@@ -5,6 +5,7 @@ import { KvardButton } from "./KvardButton.ts";
 import { KvardField } from "./KvardField.ts";
 import { KvardStatusBadge } from "./KvardStatusBadge.ts";
 import { KvardTabs } from "./KvardTabs.ts";
+import { KvardSegmentedControl } from "./KvardSegmentedControl.ts";
 
 type ElementShape = { type: unknown; props: Record<string, unknown> };
 
@@ -153,4 +154,30 @@ test("KvardTabs moves focus and selection with wrapping arrow-key navigation", (
   assert.equal(prevented, true);
   assert.deepEqual(selected, ["agents"]);
   assert.deepEqual(focused, ["agents"]);
+});
+
+
+test("KvardSegmentedControl exposes a labelled toggle group with controlled pressed state", () => {
+  const selected: string[] = [];
+  const control = KvardSegmentedControl({
+    ariaLabel: "Размер предпросмотра",
+    value: "tablet",
+    onChange: value => selected.push(value),
+    items: [
+      { id: "desktop", label: "Компьютер" },
+      { id: "tablet", label: "Планшет" },
+      { id: "mobile", label: "Телефон", disabled: true },
+    ],
+  });
+  const props = propsOf(control);
+  const [desktop, tablet, mobile] = childrenOf(props);
+
+  assert.equal(props.role, "group");
+  assert.equal(props["aria-label"], "Размер предпросмотра");
+  assert.equal(props.className, "kv-segmented");
+  assert.equal(propsOf(desktop)["aria-pressed"], false);
+  assert.equal(propsOf(tablet)["aria-pressed"], true);
+  assert.equal(propsOf(mobile).disabled, true);
+  (propsOf(desktop).onClick as () => void)();
+  assert.deepEqual(selected, ["desktop"]);
 });
