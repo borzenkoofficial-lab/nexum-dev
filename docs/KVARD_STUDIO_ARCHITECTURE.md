@@ -22,6 +22,9 @@
 - Основная точка входа: `apps/web/src/main.tsx`.
 - Весь пользовательский workspace находится в крупном `apps/web/src/App.tsx` (около 93 KB на момент аудита); компонент `WorkspaceApp` содержит состояние проектов, Builder, preview, AI, задачи и навигацию.
 - `AuthGate` находится в `apps/web/src/auth/AuthGate.tsx` и проверяет сессию через same-origin `/api/auth/me`; login/register также используют относительные `/api` URL и cookie credentials.
+- API session cookie в `apps/api/auth.ts`: HttpOnly, Path=/, SameSite=Lax, Secure в production; Domain явно не задан (host-only). MFA challenge cookie ограничена Path=/api/auth/admin-mfa и SameSite=Strict.
+- В `apps/api/server.ts` CORS разрешает origin из `NEXUM_CORS_ORIGINS` в production и включает credentials. Это пригодная основа для отдельного Studio origin при явном allowlist и `fetch(..., { credentials: "include" })`; не нужно автоматически расширять cookie Domain.
+- Явная CSRF-защита для всех state-changing routes в рамках этого read-only аудита не подтверждена; её покрытие нужно проверить до публичного cross-origin запуска.
 - Backend — отдельное приложение `apps/api`.
 - Vite dev proxy направляет `/api` на локальный API.
 - Текущий Vercel deployment собирает только `apps/web` через root `vercel.json`.
