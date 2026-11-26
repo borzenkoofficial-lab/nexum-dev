@@ -1,4 +1,6 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { lstat, readFile, readdir } from "node:fs/promises";
+import { relative, resolve, sep } from "node:path";
 import type { AgentIntent, AgentPlan, AgentToolResult, AgentExecutionPlan, ProductPlan } from "./types.js";
 import type { AdaptiveTokenBudgetSnapshot } from "./tokenBudget.js";
 import type { AgentExecutionSnapshot } from "./executionState.js";
@@ -189,4 +191,56 @@ export function decryptAgentExecutionCheckpoint(envelope: EncryptedAgentCheckpoi
     checkpoint.createdAt !== envelope.createdAt
   ) throw new Error("Encrypted Agent checkpoint metadata does not match its payload.");
   return checkpoint;
+}
+
+
+const FINGERPRINT_EXCLUDED_DIRS = new Set([".git", ".nexum", "node_modules", "dist", "coverage", ".cache"]);
+const MAX_FINGERPRINT_FILES = 5000;
+const MAX_FINGERPRINT_BYTES = 100 * 1024 * 1024;
+
+/**
+ * Computes a content fingerprint of the project tree without persisting file
+ * contents. Secret environment files and private key material are excluded.
+ * Symlinks are deliberately ignored so the walk cannot escape the project.
+ */
+export async function computeProjectRevisionFingerprint(projectRoot: string): Promise<string> {
+  const root = resolve(projectRoot);
+  const files: Array<{ path: string; size: number; digest: string }> = [];
+  let totalBytes = 0;
+
+  const walk = async (directory: string): Promise<void> => {
+    const entries = await readdir(directory, { withFileTypes: true });
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      if (entry.isDirectory() && FINGERPRINT_EXCLUDED_DIRS.has(entry.name)) continue;
+      if (/^\.env(?:\.|$)/i.test(entry.name) || /\.(?:pem|key|p12|pfx)$/i.test(entry.name)) continue;
+      const absolute = resolve(directory, entry.name);
+      const details = await lstat(absolute);
+      if (details.isSymbolicLink()) continue;
+      if (details.isDirectory()) {
+        await walk(absolute);
+        continue;
+      }
+      if (!details.isFile()) continue;
+      if (files.length >= MAX_FINGERPRINT_FILES) throw new Error("Project revision fingerprint exceeds the 5000 file limit.");
+      totalBytes += details.size;
+      if (totalBytes > MAX_FINGERPRINT_BYTES) throw new Error("Project revision fingerprint exceeds the 100 MB limit.");
+      const content = await readFile(absolute);
+      const after = await lstat(absolute);
+      if (!after.isFile() || after.size !== details.size || after.mtimeMs !== details.mtimeMs) {
+        throw new Error("Project changed while its revision fingerprint was being calculated.");
+      }
+      files.push({
+        path: relative(root, absolute).split(sep).join("/"),
+        size: details.size,
+        digest: createHash("sha256").update(content).digest("hex"),
+      });
+    }
+  };
+
+  await walk(root);
+  files.sort((a, b) => a.path.localeCompare(b.path));
+  const tree = createHash("sha256");
+  for (const file of files) tree.update(file.path).update("\0").update(String(file.size)).update("\0").update(file.digest).update("\n");
+  return `sha256:${tree.digest("hex")}`;
 }
