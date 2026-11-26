@@ -103,3 +103,33 @@
 - Existing token source: `apps/web/src/kvard-design-system.css`.
 - Initial migration targets: `AgentsPage.tsx`, `BusinessAgentsPage.tsx` and their existing styles.
 - This is the first UI Kit increment, not a mandate to replace every button or input across the product.
+
+
+## Task 4 — shared accessible tabs
+
+- [x] Add KvardTabs test cases for tablist semantics, tab/panel link IDs, selected/roving tabindex state, disabled items and accessible badge naming.
+- [x] Add keyboard-navigation coverage for ArrowRight wrapping and skipping disabled items.
+- [x] Implement the controlled KvardTabs primitive with click and ArrowLeft/ArrowRight/Home/End navigation.
+- [x] Export the primitive and its prop/item types from the shared UI barrel.
+- [x] Add semantic-token styling, visible focus states and mobile horizontal overflow.
+- [x] Replace the five local Business Agents tabs with the shared primitive.
+- [x] Connect each active panel using role=tabpanel, aria-labelledby, stable IDs and keyboard focusability.
+- [x] Remove superseded .kv-business-tabs rules from the page stylesheet.
+- [ ] Run focused UI Kit tests, Web typecheck, lint and build on the final commit.
+- [ ] Inspect keyboard interaction and panel behavior in a real browser; no visual/browser QA is claimed yet.
+
+### Task 4 implementation commits
+
+- Tests first: 3f7ac5a (workflow was cancelled before its test job executed).
+- Component: 7b1ab0f.
+- Shared export: 854c2b9.
+- Shared token-based styling: 9db2032.
+- Business Agents integration: d9745a4.
+- Local style cleanup: 0c46078.
+- Test fixture typing: 435741b.
+
+### Verification state
+
+- The latest CI run at plan update is pending; earlier runs were cancelled by subsequent commits before their jobs executed.
+- The Vercel status for the latest implementation commit has not completed.
+- The new tab implementation has not yet been confirmed by a completed CI run or browser visual QA. Do not mark the increment fully verified until both applicable checks are complete.
