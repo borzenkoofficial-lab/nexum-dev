@@ -616,3 +616,17 @@ The user-facing sections now share `KvardPageHeader` for consistent semantic str
 - No API calls, data flow, permissions, routing, admin components or admin styles were changed.
 
 Verification boundary: component tests cover heading semantics, accessible name/description associations, action slot classes and section-level heading selection. CI, typecheck, lint, build and browser visual QA remain to be checked against the final commit.
+
+## 21. Workspace and internal section heading consistency
+
+The shared header contract now extends beyond page tops into the main user-facing workspace and operational sections.
+
+- Workspace home: the create-project and recent-project section titles use `KvardPageHeader` with explicit `h2` semantics.
+- AI Agents: task profiles, saved agents and runtime sections use the same heading slots, preserving their existing eyebrow labels, descriptions and real action/count content.
+- Business Agents: agent library, knowledge, teams, approvals and usage sections use section-level headings; the agent count remains a real data value in the action slot.
+- Integrations: provider/service group headings use the shared structure and stable accessible title IDs.
+- Diagnostics: job history and event-log panel headings use the shared structure; the existing event filter remains a real action control.
+- Consumer layout classes remain in place. CSS selectors that depended on a direct action child were updated to target the shared action slot instead.
+- No panel data, API behavior, actions, event filters, route behavior or business logic changed. Admin UI and admin files remain excluded.
+
+Verification boundary: source and diff review only. CI, typecheck, lint, build, browser screenshots and manual keyboard/responsive QA must be checked against the final HEAD; none are claimed as passing.
