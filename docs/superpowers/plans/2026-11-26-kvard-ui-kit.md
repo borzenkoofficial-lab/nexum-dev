@@ -339,3 +339,21 @@ Verification boundary: no local test/build execution or browser session is avail
 - [ ] Confirm final GitHub Actions and deployment statuses.
 
 Verification boundary: GitHub source and diff review only. No local execution or browser session is available in this workflow; CI/build and visual QA are not claimed as passing.
+
+## Task 12 — Builder project and panel heading hierarchy
+
+**Purpose:** Establish a clear project → tool → panel-content hierarchy across the Builder while preserving all existing workflows and controls.
+
+- [x] Promote the active project name to the Builder page-level `h1` using the shared heading primitive.
+- [x] Preserve the return-to-workspace action and KVARD mark in the project header.
+- [x] Standardize Chat, Preview, Files, AI Agent and Code panel titles as `h2` headings.
+- [x] Demote Chat and Preview empty-state prompts to `h3` to preserve heading order.
+- [x] Keep dynamic statuses, save/refresh actions, file controls and agent state in their existing owners and slots.
+- [x] Keep the compact project bar in one row on mobile and retain responsive panel-action stacking.
+- [x] Avoid nested semantic header landmarks in the Builder top bar.
+- [x] Keep all changes in `main`; no admin UI, APIs or business logic changed.
+- [ ] Run focused UI tests, typecheck, lint and build against the final HEAD.
+- [ ] Verify desktop/tablet/mobile, light/dark, keyboard focus and heading outline in a real browser.
+- [ ] Confirm final GitHub Actions and deployment status.
+
+Verification boundary: GitHub source/diff review only. No local test/build or browser session is available in this workflow; no successful verification is claimed.
