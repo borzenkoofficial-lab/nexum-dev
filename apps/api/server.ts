@@ -40,6 +40,7 @@ import { serverRuntime } from "./runtime/runtime.js";
 import { disposeAllSandboxSessions, releaseSandboxSession } from "./sandbox/runner.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
+import { createChatJobEventsHandler } from "./chatJobEvents.js";
 import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
 import { agentProfilesUseDatabase, createAgentProfile, deleteAgentProfile, listAgentProfiles } from "./agent/profileStore.js";
 import { agentDefinitionsUseDatabase, createAgentDefinition, deleteAgentDefinition, listAgentDefinitions, updateAgentDefinition, type AgentDefinition, type AgentDefinitionInput, type AgentDefinitionPatch } from "./agent/agentDefinitionStore.js";
@@ -1868,6 +1869,11 @@ app.get("/api/chat/jobs", async (req, res) => {
   const active = jobs.filter((job) => job.status === "queued" || job.status === "running");
   return res.json({ success: true, jobs: active });
 });
+
+app.get("/api/chat/jobs/:id/events", createChatJobEventsHandler({
+  getUserId: (request) => getAuthUser(request).id,
+  getJob: (id, userId) => loadChatJob(id, userId, getChatJob, true),
+}));
 
 app.get("/api/chat/jobs/:id", async (req, res) => {
   await cleanupChatJobs();
