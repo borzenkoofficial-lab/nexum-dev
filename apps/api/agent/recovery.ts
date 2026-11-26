@@ -287,6 +287,9 @@ export function assessAgentCheckpointRecovery(input: {
   ) {
     return result("inspect_before_resume", "checkpoint_revision_mismatch");
   }
+  if (input.toolActions.some((action) => typeof action.actionId !== "string" || !action.actionId.trim())) {
+    return result("manual_review_required", "checkpoint_state_invalid");
+  }
   if (input.toolActions.some((action) => action.status === "started")) {
     return result("inspect_before_resume", "checkpoint_action_outcome_unknown");
   }
