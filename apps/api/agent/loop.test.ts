@@ -939,3 +939,39 @@ test("AgentLoop stops when a tool result cannot be durably finalized", async () 
   );
   assert.equal(toolExecutions, 1);
 });
+
+
+test("AgentLoop emits encrypted-checkpoint payloads only at safe iteration boundaries", async () => {
+  const snapshots: Array<{ iteration: number; previousResults: number; phase: string }> = [];
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["fake"],
+    plan: (_task, previousResults) => previousResults.length === 0
+      ? { tool: "fake", input: "read-only" }
+      : null,
+    executeTool: async () => ({ success: true, output: "observed result" }),
+  };
+  const writer = async (state: Parameters<NonNullable<ConstructorParameters<typeof AgentLoop>[9]>>[0]) => {
+    snapshots.push({
+      iteration: state.iteration,
+      previousResults: state.previousResults.length,
+      phase: state.phase,
+    });
+  };
+  const result = await new AgentLoop(
+    runtime,
+    gateway,
+    4,
+    undefined,
+    undefined,
+    undefined,
+    { agentRunId: "job-checkpoint-test", projectId: "project-checkpoint-test" },
+    undefined,
+    undefined,
+    writer,
+  ).run("Inspect current state");
+  assert.equal(result.success, true);
+  assert.ok(snapshots.length >= 2);
+  assert.equal(snapshots[0]?.previousResults, 0);
+  assert.equal(snapshots[1]?.previousResults, 1);
+  assert.equal(snapshots[1]?.iteration, 2);
+});
