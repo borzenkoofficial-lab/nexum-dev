@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  acquireProjectLock,
+  heartbeatProjectLock,
+  releaseProjectLock,
   cancelChatJob,
   createChatJob,
   getChatJob,
@@ -104,4 +107,25 @@ test("concurrent memory-store decisions resolve a pending request only once", as
   assert.equal([approved, rejected].filter(Boolean).length, 1);
   const final = await getChatJob(jobId, "owner-f");
   assert.ok(final?.pendingApproval?.status === "approved" || final?.pendingApproval?.status === "rejected");
+});
+
+
+test("project lock admits one concurrent Agent Run and enforces owner-only heartbeat and release", async () => {
+  const projectId = "project-lock-concurrency-test";
+  const contenders = await Promise.all([
+    acquireProjectLock(projectId, "owner-lock-a", "job-lock-a"),
+    acquireProjectLock(projectId, "owner-lock-b", "job-lock-b"),
+  ]);
+  assert.equal(contenders.filter(Boolean).length, 1);
+  const ownerJobId = contenders[0] ? "job-lock-a" : "job-lock-b";
+  const otherJobId = ownerJobId === "job-lock-a" ? "job-lock-b" : "job-lock-a";
+  assert.equal(await heartbeatProjectLock(projectId, ownerJobId), true);
+  assert.equal(await heartbeatProjectLock(projectId, otherJobId), false);
+
+  await releaseProjectLock(projectId, otherJobId);
+  assert.equal(await acquireProjectLock(projectId, "owner-lock-c", "job-lock-c"), false);
+
+  await releaseProjectLock(projectId, ownerJobId);
+  assert.equal(await acquireProjectLock(projectId, "owner-lock-c", "job-lock-c"), true);
+  await releaseProjectLock(projectId, "job-lock-c");
 });
