@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { KvardPageHeader } from "./ui/index.ts";
 import { KvardSegmentedControl } from "./ui/KvardSegmentedControl.ts";
 
 type DiagnosticEvent = {
@@ -108,16 +109,18 @@ export function DiagnosticsPage() {
 
   return (
     <section className="diagnostics-page">
-      <header className="diagnostics-hero">
-        <div>
-          <h1>Диагностика</h1>
-          <p>История заданий, события Runtime и ошибки инструментов.</p>
-        </div>
-        <div className="diagnostics-actions">
+      <KvardPageHeader
+        className="diagnostics-hero"
+        title="Диагностика"
+        titleId="kv-diagnostics-page-title"
+        description="История заданий, события Runtime и ошибки инструментов."
+        descriptionId="kv-diagnostics-page-description"
+        actionsClassName="diagnostics-actions"
+        actions={<>
           <button type="button" onClick={() => void load()} disabled={loading}>{loading ? "Обновляю…" : "Обновить"}</button>
           <button type="button" onClick={exportDiagnostics}>Экспорт JSON</button>
-        </div>
-      </header>
+        </>}
+      />
 
       <div className="diagnostics-stats">
         <div><span>Задания</span><strong>{jobs.length}</strong><small>последние задания</small></div>
