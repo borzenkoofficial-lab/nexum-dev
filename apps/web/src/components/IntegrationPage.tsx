@@ -49,9 +49,7 @@ export function IntegrationPage({ connectedConnectors, onToggleConnector }: Inte
 
       {groups.map((group) => (
         <section className="integration-section" key={group.title}>
-          <div className="integration-section-heading">
-            <div><h2>{group.title}</h2><p>{group.description}</p></div>
-          </div>
+          <KvardPageHeader className="integration-section-heading" headingLevel="h2" title={group.title} description={group.description} titleId={`kv-integration-group-${group.title === "Провайдеры моделей" ? "providers" : "services"}`} />
           <div className="external-grid">
             {group.items.map((connector) => {
               const connected = connectedConnectors.includes(connector.name);
