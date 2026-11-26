@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { assessChatJobRecovery } from "./recovery.js";
 
-test("read-only completed activity is classified as safe to restart, never auto-resume", () => {
+test("running job with completed read-only events still requires a durable checkpoint before retry", () => {
   const assessment = assessChatJobRecovery({
+    status: "running",
     events: [
       { type: "tool-start", tool: "listFiles", iteration: 1 },
       { type: "tool-success", tool: "listFiles", iteration: 1 },
@@ -11,7 +12,8 @@ test("read-only completed activity is classified as safe to restart, never auto-
       { type: "tool-success", tool: "readFile", iteration: 2 },
     ],
   }, 123);
-  assert.equal(assessment.disposition, "safe_to_restart");
+  assert.equal(assessment.disposition, "inspect_before_retry");
+  assert.equal(assessment.reason, "execution_checkpoint_not_durable");
   assert.equal(assessment.automaticResumeAllowed, false);
   assert.deepEqual(assessment.startedTools, ["listFiles", "readFile"]);
   assert.deepEqual(assessment.completedTools, ["listFiles", "readFile"]);
@@ -73,5 +75,5 @@ test("running job without durable tool evidence is not considered safe to restar
 test("queued job with no execution activity can safely be started", () => {
   const assessment = assessChatJobRecovery({ status: "queued", events: [], steps: [] });
   assert.equal(assessment.disposition, "safe_to_restart");
-  assert.equal(assessment.reason, "read_only_progress_only");
+  assert.equal(assessment.reason, "queued_before_execution");
 });
