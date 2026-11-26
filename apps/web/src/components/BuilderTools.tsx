@@ -195,7 +195,7 @@ export function BuilderTools(p: Props) {
             {selected ? fileLoading ? <p role="status">Открываем файл…</p>
               : errorType === "file" ? <KvardEmptyState title="Не удалось открыть файл" description="Повторите загрузку, чтобы продолжить редактирование." action={<button type="button" onClick={() => setFileReloadKey((value) => value + 1)}>Повторить загрузку</button>} />
               : <>
-                <div className="nx-file-head"><b>{selected}</b><button type="button" disabled={!dirty || fileLoading || saving}>{saving ? "Сохранение…" : dirty ? "Сохранить изменения" : "Сохранено"}</button></div>
+                <div className="nx-file-head"><b>{selected}</b><button type="button" disabled={!dirty || fileLoading || saving} onClick={() => void save()}>{saving ? "Сохранение…" : fileLoading ? "Загрузка…" : dirty ? "Сохранить изменения" : "Сохранено"}</button></div>
                 <textarea aria-label={"Содержимое файла " + selected} spellCheck={false} disabled={fileLoading} value={content} onChange={(event) => setContent(event.target.value)} />
               </>
               : errorType === "list" ? <KvardEmptyState title="Не удалось загрузить файлы" description="Проверьте соединение и повторите загрузку." action={<button type="button" onClick={() => void loadFiles()}>Повторить</button>} />
