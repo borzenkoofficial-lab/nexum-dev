@@ -743,7 +743,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .kv-agents-header { gap: 14px; }
   .kv-agents-header .kv-page-header__actions > button { width: 100%; }
   .kv-agents-section-head { flex-wrap: wrap; align-items: flex-start; }
-  .kv-agents-section-head > button { width: 100%; }
+  .kv-agents-section-head .kv-page-header__actions > button { width: 100%; }
   .kv-agents-form { gap: 14px; padding: 15px; }
   .kv-agents-form .kv-agents-launchbar { grid-template-columns: 1fr; gap: 12px; }
   .kv-agents-form input, .kv-agents-form textarea, .kv-agents-form select,
