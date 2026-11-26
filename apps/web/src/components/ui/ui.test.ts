@@ -323,3 +323,33 @@ test("KvardEmptyState exposes a labelled section, description and real action sl
   assert.match(markup, /Создайте первого агента/);
   assert.match(markup, /Создать агента/);
 });
+
+
+test("KvardSurface exposes semantic element, variant, padding and consumer classes", async () => {
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { KvardSurface } = await import("./KvardSurface.ts");
+  const markup = renderToStaticMarkup(createElement(KvardSurface, {
+    as: "section",
+    variant: "raised",
+    padding: "lg",
+    className: "kv-home-create-section",
+    "aria-label": "Создание проекта",
+    children: "Содержимое",
+  }));
+
+  assert.match(markup, /^<section/);
+  assert.match(markup, /class="kv-surface kv-surface--raised kv-surface--padding-lg kv-home-create-section"/);
+  assert.match(markup, /aria-label="Создание проекта"/);
+  assert.match(markup, /Содержимое/);
+});
+
+test("KvardSurface defaults to a neutral div surface without implicit interaction semantics", async () => {
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { KvardSurface } = await import("./KvardSurface.ts");
+  const markup = renderToStaticMarkup(createElement(KvardSurface, {
+    children: "Карточка",
+  }));
+
+  assert.match(markup, /^<div class="kv-surface kv-surface--default kv-surface--padding-md">/);
+  assert.doesNotMatch(markup, /role="button"|tabindex=/i);
+});
