@@ -222,7 +222,7 @@ export async function computeProjectRevisionFingerprint(projectRoot: string): Pr
     entries.sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
       if (entry.isDirectory() && FINGERPRINT_EXCLUDED_DIRS.has(entry.name)) continue;
-      if (/^\.env(?:\.|$)/i.test(entry.name) || /\.(?:pem|key|p12|pfx)$/i.test(entry.name)) continue;
+      if (isSensitiveFingerprintPath(entry.name)) continue;
       const absolute = resolve(directory, entry.name);
       const details = await lstat(absolute);
       if (details.isSymbolicLink()) continue;
