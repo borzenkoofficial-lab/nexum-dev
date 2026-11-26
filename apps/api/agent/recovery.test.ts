@@ -77,3 +77,49 @@ test("queued job with no execution activity can safely be started", () => {
   assert.equal(assessment.disposition, "safe_to_restart");
   assert.equal(assessment.reason, "queued_before_execution");
 });
+
+test("durable journal records an unfinished write even when UI events are missing", () => {
+  const assessment = assessChatJobRecovery({
+    status: "running",
+    events: [],
+    steps: [],
+    toolActions: [{
+      actionId: "action-unfinished-write",
+      tool: "writeFile",
+      risk: "WRITE",
+      status: "started",
+    }],
+  });
+  assert.equal(assessment.disposition, "inspect_before_retry");
+  assert.equal(assessment.reason, "tool_outcome_unknown");
+  assert.deepEqual(assessment.startedActionIds, ["action-unfinished-write"]);
+  assert.deepEqual(assessment.completedActionIds, []);
+  assert.deepEqual(assessment.sideEffectActionIds, ["action-unfinished-write"]);
+});
+
+test("durable journal records completed side effects even if UI snapshots were lost", () => {
+  const assessment = assessChatJobRecovery({
+    status: "running",
+    events: [],
+    steps: [],
+    toolActions: [{
+      actionId: "action-completed-command",
+      tool: "runCommand",
+      risk: "EXECUTE",
+      status: "succeeded",
+    }],
+  });
+  assert.equal(assessment.disposition, "inspect_before_retry");
+  assert.equal(assessment.reason, "side_effect_may_have_started");
+  assert.deepEqual(assessment.completedActionIds, ["action-completed-command"]);
+  assert.deepEqual(assessment.sideEffectActionIds, ["action-completed-command"]);
+});
+
+test("durable journal rejects malformed or unknown action metadata", () => {
+  const assessment = assessChatJobRecovery({
+    status: "running",
+    toolActions: [{ actionId: "bad-action", tool: "unknown", risk: "UNKNOWN", status: "started" }],
+  });
+  assert.equal(assessment.disposition, "manual_review_required");
+  assert.equal(assessment.reason, "unrecognized_tool_activity");
+});
