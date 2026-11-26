@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import "./BusinessAgentsPage.css";
 import "../kvard-ui-kit.css";
-import { KvardButton, KvardDialog, KvardField, KvardStatusBadge, KvardTabs } from "./ui/index.ts";
+import { KvardAlert, KvardButton, KvardDialog, KvardEmptyState, KvardField, KvardStatusBadge, KvardTabs } from "./ui/index.ts";
 import { KvardMark } from "./KvardMark.ts";
 
 type Organization = { id: string; name: string; role: string };
@@ -299,8 +299,8 @@ export function BusinessAgentsPage() {
         </div>
       </header>
 
-      {error && <div className="kv-business-alert is-error" role="alert">{error}<button type="button" onClick={() => setError("")}>×</button></div>}
-      {notice && <div className="kv-business-alert" role="status">{notice}<button type="button" onClick={() => setNotice("")}>×</button></div>}
+      {error && <KvardAlert tone="danger" className="kv-business-alert is-error" onDismiss={() => setError("")}>{error}</KvardAlert>}
+      {notice && <KvardAlert tone="success" className="kv-business-alert" onDismiss={() => setNotice("")}>{notice}</KvardAlert>}
 
       <div className="kv-business-metrics">
         <article><span>Всего агентов</span><strong>{agents.length}</strong><small>В этом пространстве</small></article>
@@ -334,7 +334,7 @@ export function BusinessAgentsPage() {
               <button type="button" key={agent.id} className={selectedAgentId===agent.id?"kv-business-agent is-selected":"kv-business-agent"} onClick={() => { setSelectedAgentId(agent.id); setActiveRun(null); setRunEvents([]); }}>
                 <KvardMark size={36} /><span className="kv-business-agent-copy"><strong>{agent.name}</strong><small>{agent.description || "Без описания"}</small><small>{agent.provider} · {agent.model}</small></span><KvardStatusBadge tone={statusTone(agent.status)} label={statusLabel(agent.status)} />
               </button>
-            )) : <div className="kv-business-empty"><strong>Пока нет бизнес-агентов</strong><p>Создайте первого агента под конкретную функцию бизнеса.</p><KvardButton variant="primary" size="md" type="button" onClick={() => { resetCreateForm(); setShowCreate(true); }}>Создать первого агента</KvardButton></div>}
+            )) : <KvardEmptyState className="kv-business-empty" title="Пока нет бизнес-агентов" description="Создайте первого агента под конкретную функцию бизнеса." action={<KvardButton variant="primary" size="md" type="button" onClick={() => { resetCreateForm(); setShowCreate(true); }}>Создать первого агента</KvardButton>} />}
           </div>
           <div className="kv-business-detail">
             {selectedAgent ? <>
@@ -358,7 +358,7 @@ export function BusinessAgentsPage() {
       {tab === "teams" && <div className="kv-business-section-card"><div className="kv-business-section-head"><div><h2>Команды агентов</h2><p>Объединяйте опубликованных агентов в последовательные процессы.</p></div></div><form className="kv-business-team-form" onSubmit={createTeam}><label>Название команды<input value={teamName} onChange={event=>setTeamName(event.target.value)} placeholder="Например, Обработка заявок" required /></label><fieldset><legend>Последовательность агентов</legend>{agents.filter(agent=>agent.status==="published").map(agent=><label key={agent.id} className="kv-business-check"><input type="checkbox" checked={teamAgentIds.includes(agent.id)} onChange={event=>setTeamAgentIds(ids=>event.target.checked?[...ids,agent.id]:ids.filter(id=>id!==agent.id))}/>{agent.name}</label>)}</fieldset><KvardButton variant="primary" type="submit" loading={saving} disabled={!teamAgentIds.length}>Создать команду</KvardButton></form><div className="kv-business-source-list">{workforces.map(team=><article key={team.id}><div><strong>{team.name}</strong><small>{team.description||"Команда бизнес-агентов"}</small></div><KvardStatusBadge tone="success" label="Сохранена" /></article>)}{!workforces.length&&<p className="kv-business-muted">Команды ещё не созданы.</p>}</div></div>}</section>
 
       <section id="kv-business-panel-approvals" className="kv-tabs__panel" role="tabpanel" aria-labelledby="kv-business-tab-approvals" tabIndex={0} hidden={tab !== "approvals"}>
-      {tab === "approvals" && <div className="kv-business-section-card"><div className="kv-business-section-head"><div><h2>Ожидают согласования</h2><p>Решения по действиям, которые требуют участия человека.</p></div></div><div className="kv-business-approval-list">{approvals.map(item=><article key={item.id}><div><strong>{item.action_summary||"Запрос на согласование"}</strong><small>Запуск {item.run_id??"—"} · {item.created_at?new Date(item.created_at).toLocaleString("ru-RU"):""}</small></div><div><KvardButton variant="secondary" type="button" disabled={saving} onClick={()=>void decideApproval(item.id,"reject")}>Отклонить</KvardButton><KvardButton variant="primary" type="button" disabled={saving} onClick={()=>void decideApproval(item.id,"approve")}>Одобрить</KvardButton></div></article>)}{!approvals.length&&<div className="kv-business-empty"><strong>Нет ожидающих решений</strong><p>Запросы на согласование появятся здесь.</p></div>}</div></div>}</section>
+      {tab === "approvals" && <div className="kv-business-section-card"><div className="kv-business-section-head"><div><h2>Ожидают согласования</h2><p>Решения по действиям, которые требуют участия человека.</p></div></div><div className="kv-business-approval-list">{approvals.map(item=><article key={item.id}><div><strong>{item.action_summary||"Запрос на согласование"}</strong><small>Запуск {item.run_id??"—"} · {item.created_at?new Date(item.created_at).toLocaleString("ru-RU"):""}</small></div><div><KvardButton variant="secondary" type="button" disabled={saving} onClick={()=>void decideApproval(item.id,"reject")}>Отклонить</KvardButton><KvardButton variant="primary" type="button" disabled={saving} onClick={()=>void decideApproval(item.id,"approve")}>Одобрить</KvardButton></div></article>)}{!approvals.length&&<KvardEmptyState className="kv-business-empty" title="Нет ожидающих решений" description="Запросы на согласование появятся здесь." />}</div></div>}</section>
 
       <section id="kv-business-panel-usage" className="kv-tabs__panel" role="tabpanel" aria-labelledby="kv-business-tab-usage" tabIndex={0} hidden={tab !== "usage"}>
       {tab === "usage" && <div className="kv-business-section-card"><div className="kv-business-section-head"><div><h2>Использование и лимиты</h2><p>Квоты текущего тарифного плана организации.</p></div></div><pre className="kv-business-usage">{usage?JSON.stringify(usage,null,2):"Данные использования пока недоступны."}</pre></div>}</section>
