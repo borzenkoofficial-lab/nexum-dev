@@ -219,3 +219,38 @@ Additional integration commits:
 - Design-system update: `c2faa24`.
 
 Latest verification remains pending; previous Actions runs for this work were cancelled before jobs executed. No passing test/build claim is made.
+
+
+## Task 7 — shared feedback and empty states
+
+**Purpose:** Standardize inline alerts, global toast presentation and empty-state composition while keeping state and actions owned by existing pages.
+
+- [x] Add focused rendering tests for alert severity/live-region semantics, toast announcement semantics, and labelled empty-state structure.
+- [x] Implement `KvardAlert` with semantic tones, accessible live announcements and optional explicit dismissal.
+- [x] Implement `KvardToast` as a presentational atomic status region; no timers, queues or implicit state.
+- [x] Implement `KvardEmptyState` with a labelled region, title, optional description and optional real action slot.
+- [x] Export all three components and prop types from the UI kit barrel.
+- [x] Add shared semantic-token styling.
+- [x] Migrate Workspace global notice, Business Agents error/success feedback and empty agents/approvals states, plus Agents retryable errors, success feedback and empty saved-agents state.
+- [x] Preserve page-owned state, retry and dismiss callbacks, data conditions, API paths and consumer classes.
+- [x] Document component semantics and non-goals.
+- [ ] Run focused UI Kit tests, Web typecheck, lint and build on the final commit.
+- [ ] Inspect toast placement, alert wrapping and empty-state layouts at desktop/mobile breakpoints.
+- [ ] Verify screen-reader announcement behavior and keyboard operation in a real browser.
+
+### Task 7 implementation commits
+
+- Tests first: `0d85cbe`.
+- KvardAlert: `4def632`.
+- KvardToast: `0252bb0`.
+- KvardEmptyState: `6d19e82`.
+- UI exports: `f486039`.
+- Shared styles: `c18737d`.
+- Workspace toast integration: `374ec32`.
+- Business Agents integration: `74f4e1b`.
+- Agents integration: `5286fcc`, `fa38628`.
+- Design-system documentation: `94d364c`.
+
+### Verification boundary
+
+The final implementation is committed to `main`. Previous Actions runs were cancelled by subsequent commits before jobs completed; the current documentation commit has a pending run and must be checked against the exact latest HEAD. No tests, typecheck, lint, build, browser visual QA or screen-reader QA are claimed as passing. No administrative files were changed.
