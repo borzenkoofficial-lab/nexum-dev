@@ -553,6 +553,27 @@ test("active ChatJob and Builder progress restore after page reload with reconne
   expect(jobId).toBeTruthy();
   await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
 
+  // A second Agent Run may be created, but the project lock must reject it
+  // before it can modify the same project concurrently.
+  const competingResponse = await page.request.post("/api/chat", {
+    data: {
+      message: "Проверь package.json, не изменяя файлы.",
+      projectId: runtimeWorkspaceId,
+    },
+  });
+  expect(competingResponse.status()).toBe(202);
+  const competingData = await competingResponse.json();
+  expect(competingData.jobId).toBeTruthy();
+  await expect.poll(async () => {
+    const response = await page.request.get("/api/chat/jobs/" + encodeURIComponent(competingData.jobId));
+    if (!response.ok()) return "missing";
+    const data = await response.json();
+    return data.job?.status;
+  }, { timeout: 15_000 }).toBe("failed");
+  const competingJobResponse = await page.request.get("/api/chat/jobs/" + encodeURIComponent(competingData.jobId));
+  const competingJob = await competingJobResponse.json();
+  expect(competingJob.job?.error).toContain("already being modified");
+
   const activeJobsResponse = await page.request.get("/api/chat/jobs");
   expect(activeJobsResponse.ok()).toBeTruthy();
   const activeJobs = await activeJobsResponse.json();
