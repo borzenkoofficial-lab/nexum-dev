@@ -275,16 +275,24 @@ async function persistChatJob(job: ChatJob): Promise<void> {
 }
 
 function throwIfAgentAborted(signal?: AbortSignal): void {
-  if (signal?.aborted) throw new DOMException("Agent task cancelled by user.", "AbortError");
+  if (signal?.aborted) {
+    throw signal.reason instanceof Error
+      ? signal.reason
+      : new DOMException("Agent task cancelled by user.", "AbortError");
+  }
 }
 
-function createAgentCancellationBridge(jobId: string, userId: string, parentSignal?: AbortSignal): { signal: AbortSignal; stop: () => void } {
+function createAgentCancellationBridge(
+  jobId: string,
+  userId: string,
+  parentSignal?: AbortSignal,
+): { signal: AbortSignal; stop: () => void; abort: (reason?: string, errorName?: string) => void } {
   const controller = new AbortController();
   let pollTimer: ReturnType<typeof setInterval> | undefined;
 
-  const abort = () => {
+  const abort = (reason = "Agent task cancelled", errorName = "AbortError") => {
     if (!controller.signal.aborted) {
-      controller.abort(new DOMException("Agent task cancelled", "AbortError"));
+      controller.abort(new DOMException(reason, errorName));
     }
   };
 
@@ -307,6 +315,7 @@ function createAgentCancellationBridge(jobId: string, userId: string, parentSign
 
   return {
     signal: controller.signal,
+    abort,
     stop: () => {
       if (pollTimer) clearInterval(pollTimer);
       pollTimer = undefined;
@@ -404,7 +413,16 @@ async function runChatJob(
       return;
     }
     lockHeartbeat = setInterval(() => {
-      void heartbeatProjectLock(project.id, jobId).catch((error) => console.error("[Nexum] project lock heartbeat failed", error));
+      void heartbeatProjectLock(project.id, jobId)
+        .then((stillOwner) => {
+          if (!stillOwner) {
+            cancellationBridge.abort(
+              "Project lock ownership was lost. This Agent Run was stopped to prevent concurrent project changes.",
+              "ProjectLockLostError",
+            );
+          }
+        })
+        .catch((error) => console.error("[Nexum] project lock heartbeat failed", error));
     }, 60_000);
     lockHeartbeatResourceId = serverRuntime.registerResource("timer", () => { if (lockHeartbeat) clearInterval(lockHeartbeat); lockHeartbeat = undefined; }, { projectId: project.id, taskId: runtimeTask.id, operation: "project-lock-heartbeat" });
     lockedProjectId = project.id;
@@ -702,6 +720,18 @@ ${attachment.content.slice(0, 80_000)}`);
     await flushReplyPersistence().catch((persistenceError) => {
       console.error("[Nexum] streamed reply flush failed", { jobId, persistenceError });
     });
+    if (error instanceof Error && error.name === "ProjectLockLostError") {
+      job.status = "failed";
+      job.stage = "error";
+      job.error = error.message;
+      job.updatedAt = Date.now();
+      await waitForChatJobPersistence(jobId);
+      const failed = await failChatJob(jobId, userId, { stage: "error", error: job.error });
+      syncTerminalChatJobCache(failed);
+      void agentHistory.record({ type: "job-lock-lost", jobId, projectId, status: "failed", message: job.error });
+      serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: job.error });
+      return;
+    }
     if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) {
       job.status = "cancelled";
       job.stage = "cancelled";
