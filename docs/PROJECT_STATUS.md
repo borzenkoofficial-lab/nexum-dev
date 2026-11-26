@@ -380,3 +380,17 @@ NEXUM.DEV — браузерная платформа для создания и
 - Extended Playwright coverage: open the same project in a second tab, cancel the job in the first tab, and assert the second tab displays the canonical cancellation result. This test remains pending execution in CI.
 - Cross-tab messaging is an optimization only. Server-side ChatJob persistence and authenticated REST/SSE remain the source of truth; browsers without BroadcastChannel retain normal SSE/reload recovery.
 - Changes are on `main`. No production deployment, migration, secret change, or paid provider request.
+
+
+## ChatJob concurrency and browser-session recovery — 2026-11-26
+
+- Confirmed that the existing PostgreSQL `agent_project_locks` table is the canonical per-project write lock; no parallel lock mechanism was introduced.
+- Added store tests for concurrent lock acquisition, owner-only heartbeat/release, and recovery of orphaned queued/running jobs.
+- Extended the Builder E2E scenario to submit a second job against the same project while the first is held at a deterministic checkpoint. The competing job must fail with the existing project-lock conflict, while the first remains active.
+- Extended the same E2E scenario to reopen a fresh browser context with the saved authenticated session state and verify that the active job is restored without relying on in-memory Builder state. This simulates a browser session restart with a still-valid login; it does not automate the identity provider's interactive login flow.
+- Fixed a cancellation/acquisition race: project lock ownership is recorded immediately after successful acquisition, before checking the abort signal, so the lifecycle cleanup releases the lock even if cancellation arrives at that exact point.
+- Lock heartbeat now stops the Agent if the database confirms that the job no longer owns the project lock. Lock-loss is persisted as a failed job with an explicit reason, not misreported as a user cancellation.
+- Startup recovery now marks both queued and running jobs as failed when their execution process has restarted, and releases their project locks. This prevents orphaned queued jobs from appearing active indefinitely.
+- Browser/session recovery across API process restarts requires PostgreSQL-backed ChatJob persistence. The in-memory fallback is process-local and cannot survive an API restart. Terminal history remains subject to the existing 30-minute cleanup window.
+- Current startup stale-job recovery assumes one API execution owner for the ChatJob domain. Before horizontal multi-instance execution, replace global startup recovery with per-worker ownership/lease fencing so one instance cannot mark another live instance's jobs stale.
+- Changes are on `main`; tests have been added but their CI execution is not yet confirmed. No production deployment, migration, secret change, or paid provider call.
