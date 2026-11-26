@@ -719,160 +719,174 @@ function WorkspaceApp() {
     if (!chatJobId) return;
 
     let cancelled = false;
-    let timer: number | undefined;
+    let terminalHandled = false;
     const activeJobId = chatJobId;
+    const source = new EventSource(`/api/chat/jobs/${encodeURIComponent(activeJobId)}/events`);
 
-    async function pollJob() {
-      try {
-        const response = await nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(activeJobId)}`);
-        const data = response.ok
-          ? await response.json() as {
-              success?: boolean;
-              job?: {
-                status?: "queued" | "running" | "completed" | "failed" | "cancelled";
-                projectId?: string;
-                pendingApproval?: AgentApprovalView;
-                stage?: string;
-                reply?: string | null;
-                steps?: Array<{ iteration: number; tool: string; success: boolean }>;
-                events?: Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>;
-                currentMessage?: string | null;
-                problems?: Array<{ message: string; source?: string }>;
-                error?: string | null;
-                productPlan?: {
-                  goal?: string;
-                  productType?: string;
-                  pages?: string[];
-                  components?: string[];
-                  acceptanceCriteria?: string[];
-                } | null;
-              };
-              error?: string;
-            }
-          : null;
+    type ChatJobSnapshot = {
+      status?: "queued" | "running" | "completed" | "failed" | "cancelled";
+      projectId?: string;
+      pendingApproval?: AgentApprovalView;
+      stage?: string;
+      reply?: string | null;
+      steps?: Array<{ iteration: number; tool: string; success: boolean }>;
+      events?: Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>;
+      currentMessage?: string | null;
+      problems?: Array<{ message: string; source?: string }>;
+      error?: string | null;
+      productPlan?: {
+        goal?: string;
+        productType?: string;
+        pages?: string[];
+        components?: string[];
+        acceptanceCriteria?: string[];
+      } | null;
+    };
 
-        if (cancelled || chatJobIdRef.current !== activeJobId) return;
-
-        if (!response.ok) {
-          throw new Error(data?.error || `Chat job API: HTTP ${response.status}`);
-        }
-
-        const status = data?.job?.status;
-        if (typeof data?.job?.reply === "string" && data.job.reply.length > 0) {
-          setReply(data.job.reply);
-          upsertAssistantReply(activeJobId, data.job.reply);
-        }
-        if (data?.job?.pendingApproval?.status === "pending") {
-          setPendingApproval(data.job.pendingApproval);
-          setPendingApprovalProjectId(data.job.projectId ?? activeПроектId);
-        } else {
-          setPendingApproval(null);
-          setPendingApprovalProjectId(null);
-        }
-        if (status === "completed") {
-          setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "completed" } }));
-          setActivitySteps(data?.job?.steps ?? []);
-          setActivityEvents(data?.job?.events ?? []);
-          setCurrentActivity(data?.job?.currentMessage ?? "Готово.");
-          pushOSEvent("success", "Build completed", "Agent завершил задачу. Preview готовится.");
-          setProblems(data?.job?.problems ?? []);
-          if (data?.job?.productPlan) setProductPlan({
-            goal: data.job.productPlan.goal ?? "",
-            productType: data.job.productPlan.productType ?? "Product",
-            pages: data.job.productPlan.pages ?? [],
-            components: data.job.productPlan.components ?? [],
-            acceptanceCriteria: data.job.productPlan.acceptanceCriteria ?? [],
-          });
-          setReply(data?.job?.reply ?? "");
-          if (data?.job?.reply) upsertAssistantReply(activeJobId, data.job.reply);
-          setRightTab("preview");
-          
-          setProjectMode("preview");
-
-          // The agent can finish immediately after the build while the filesystem
-          // and preview status endpoint are still settling. Wait briefly for the
-          // production bundle, then force a cache-busted iframe reload.
-          let previewReady = false;
-          for (let attempt = 0; attempt < 12; attempt += 1) {
-            try {
-              const previewResponse = await nexumRuntime.network.fetch(
-                `/api/projects/${encodeURIComponent(activeПроектId)}/preview/status?ts=${Date.now()}`,
-                { cache: "no-store" },
-              );
-              if (previewResponse.ok) {
-                const previewData = await previewResponse.json() as { online?: boolean };
-                if (previewData.online) {
-                  previewReady = true;
-                  break;
-                }
-              }
-            } catch {
-              // The next attempt can succeed while the build output settles.
-            }
-            await new Promise((resolve) => window.setTimeout(resolve, 500));
-          }
-
-          setПредпросмотрOnline(previewReady);
-          setПредпросмотрKey((key) => key + 1);
-          setАгентStage("completed");
-          clearAuthoritativeChatJobIfOwned(activeJobId);
-              return;
-        }
-
-        if (status === "cancelled") {
-          setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "cancelled" } }));
-          setCurrentActivity(data?.job?.error ?? "Agent отменён.");
-          setАгентStage("error");
-          clearAuthoritativeChatJobIfOwned(activeJobId);
-            return;
-        }
-
-        if (status === "failed") {
-          setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
-          setActivitySteps(data?.job?.steps ?? []);
-          setActivityEvents(data?.job?.events ?? []);
-          setProblems(data?.job?.problems ?? []);
-          setCurrentActivity(data?.job?.error || data?.job?.currentMessage || "ИИ-агент завершил работу с ошибкой.");
-          if (data?.job?.productPlan) setProductPlan({
-            goal: data.job.productPlan.goal ?? "",
-            productType: data.job.productPlan.productType ?? "Product",
-            pages: data.job.productPlan.pages ?? [],
-            components: data.job.productPlan.components ?? [],
-            acceptanceCriteria: data.job.productPlan.acceptanceCriteria ?? [],
-          });
-          throw new Error(data?.job?.error || "ИИ-агент завершил работу с ошибкой");
-        }
-
-        setActivitySteps(data?.job?.steps ?? []);
-        setActivityEvents(data?.job?.events ?? []);
-        setCurrentActivity(data?.job?.currentMessage ?? "ИИ выполняет задачу…");
-        setProblems(data?.job?.problems ?? []);
-        if (data?.job?.productPlan) setProductPlan({
-          goal: data.job.productPlan.goal ?? "",
-          productType: data.job.productPlan.productType ?? "Product",
-          pages: data.job.productPlan.pages ?? [],
-          components: data.job.productPlan.components ?? [],
-          acceptanceCriteria: data.job.productPlan.acceptanceCriteria ?? [],
-        });
-        setАгентStage((data?.job?.stage as typeof agentStage) ?? (status === "running" ? "running" : "thinking"));
-        timer = window.setTimeout(pollJob, 900);
-      } catch (error) {
-        if (cancelled) return;
-        console.error("[Nexum] Chat job polling failed:", error);
-        setApiError(error instanceof Error ? error.message : "Ошибка получения статуса задачи чата");
-        setАгентStage("error");
-        pushOSEvent("error", "Agent error", error instanceof Error ? error.message : "Не удалось получить статус задачи");
-        clearAuthoritativeChatJobIfOwned(activeJobId);
+    async function applyJob(job: ChatJobSnapshot) {
+      if (cancelled || chatJobIdRef.current !== activeJobId) return;
+      const status = job.status;
+      if (typeof job.reply === "string" && job.reply.length > 0) {
+        setReply(job.reply);
+        upsertAssistantReply(activeJobId, job.reply);
       }
+      if (job.pendingApproval?.status === "pending") {
+        setPendingApproval(job.pendingApproval);
+        setPendingApprovalProjectId(job.projectId ?? activeПроектId);
+      } else {
+        setPendingApproval(null);
+        setPendingApprovalProjectId(null);
+      }
+
+      if (status === "completed") {
+        if (terminalHandled) return;
+        terminalHandled = true;
+        setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "completed" } }));
+        setActivitySteps(job.steps ?? []);
+        setActivityEvents(job.events ?? []);
+        setCurrentActivity(job.currentMessage ?? "Готово.");
+        pushOSEvent("success", "Build completed", "Agent завершил задачу. Preview готовится.");
+        setProblems(job.problems ?? []);
+        if (job.productPlan) setProductPlan({
+          goal: job.productPlan.goal ?? "",
+          productType: job.productPlan.productType ?? "Product",
+          pages: job.productPlan.pages ?? [],
+          components: job.productPlan.components ?? [],
+          acceptanceCriteria: job.productPlan.acceptanceCriteria ?? [],
+        });
+        setReply(job.reply ?? "");
+        if (job.reply) upsertAssistantReply(activeJobId, job.reply);
+        setRightTab("preview");
+        setProjectMode("preview");
+
+        let previewReady = false;
+        for (let attempt = 0; attempt < 12; attempt += 1) {
+          if (cancelled) return;
+          try {
+            const previewResponse = await nexumRuntime.network.fetch(
+              `/api/projects/${encodeURIComponent(activeПроектId)}/preview/status?ts=${Date.now()}`,
+              { cache: "no-store" },
+            );
+            if (previewResponse.ok) {
+              const previewData = await previewResponse.json() as { online?: boolean };
+              if (previewData.online) {
+                previewReady = true;
+                break;
+              }
+            }
+          } catch {
+            // Continue briefly while the generated preview becomes available.
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 500));
+        }
+        if (cancelled) return;
+        setПредпросмотрOnline(previewReady);
+        setПредпросмотрKey((key) => key + 1);
+        setАгентStage("completed");
+        clearAuthoritativeChatJobIfOwned(activeJobId);
+        source.close();
+        return;
+      }
+
+      if (status === "cancelled") {
+        if (terminalHandled) return;
+        terminalHandled = true;
+        setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "cancelled" } }));
+        setCurrentActivity(job.error ?? "Agent отменён.");
+        setАгентStage("error");
+        clearAuthoritativeChatJobIfOwned(activeJobId);
+        source.close();
+        return;
+      }
+
+      if (status === "failed") {
+        if (terminalHandled) return;
+        terminalHandled = true;
+        setProjectTaskMeta((items) => ({ ...items, [activeПроектId]: { ...(items[activeПроектId] ?? { task: lastMessage || "Последняя задача", timestamp: Date.now() }), status: "failed" } }));
+        setActivitySteps(job.steps ?? []);
+        setActivityEvents(job.events ?? []);
+        setProblems(job.problems ?? []);
+        setCurrentActivity(job.error || job.currentMessage || "ИИ-агент завершил работу с ошибкой.");
+        if (job.productPlan) setProductPlan({
+          goal: job.productPlan.goal ?? "",
+          productType: job.productPlan.productType ?? "Product",
+          pages: job.productPlan.pages ?? [],
+          components: job.productPlan.components ?? [],
+          acceptanceCriteria: job.productPlan.acceptanceCriteria ?? [],
+        });
+        setApiError(job.error || "ИИ-агент завершил работу с ошибкой");
+        setАгентStage("error");
+        pushOSEvent("error", "Agent error", job.error || "Не удалось выполнить задачу");
+        clearAuthoritativeChatJobIfOwned(activeJobId);
+        source.close();
+        return;
+      }
+
+      setActivitySteps(job.steps ?? []);
+      setActivityEvents(job.events ?? []);
+      setCurrentActivity(job.currentMessage ?? "ИИ выполняет задачу…");
+      setProblems(job.problems ?? []);
+      if (job.productPlan) setProductPlan({
+        goal: job.productPlan.goal ?? "",
+        productType: job.productPlan.productType ?? "Product",
+        pages: job.productPlan.pages ?? [],
+        components: job.productPlan.components ?? [],
+        acceptanceCriteria: job.productPlan.acceptanceCriteria ?? [],
+      });
+      setАгентStage((job.stage as typeof agentStage) ?? (status === "running" ? "running" : "thinking"));
     }
 
-    void pollJob();
+    source.addEventListener("job", (event) => {
+      if (cancelled) return;
+      try {
+        const job = JSON.parse((event as MessageEvent<string>).data) as ChatJobSnapshot;
+        void applyJob(job);
+      } catch (error) {
+        console.error("[Nexum] Invalid ChatJob SSE event", error);
+      }
+    });
+    source.addEventListener("unavailable", () => {
+      if (cancelled || terminalHandled) return;
+      setCurrentActivity("Связь с задачей временно недоступна. Восстанавливаю соединение…");
+    });
+    source.onerror = () => {
+      if (cancelled || terminalHandled) return;
+      // EventSource retries automatically. Fetch a single snapshot to ensure the UI
+      // remains current while the stream reconnects; this is not periodic polling.
+      void nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(activeJobId)}`)
+        .then(async (response) => {
+          if (!response.ok || cancelled) return;
+          const data = await response.json() as { job?: ChatJobSnapshot };
+          if (data.job) await applyJob(data.job);
+        })
+        .catch(() => undefined);
+    };
+
     return () => {
       cancelled = true;
-      if (timer !== undefined) window.clearTimeout(timer);
+      source.close();
     };
   }, [chatJobId]);
-
   async function connectAIKey() {
     if (!aiApiKey.trim()) return;
     setAiApiKeyLoading(true);
