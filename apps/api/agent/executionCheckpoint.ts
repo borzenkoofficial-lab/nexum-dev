@@ -6,6 +6,7 @@ import type { AdaptiveTokenBudgetSnapshot } from "./tokenBudget.js";
 import type { AgentExecutionSnapshot } from "./executionState.js";
 import type { AgentPhase } from "./types.js";
 import type { AgentTaskState } from "./taskState.js";
+import { restoreAdaptiveTokenBudget, type AdaptiveTokenBudget } from "./tokenBudget.js";
 
 export const AGENT_EXECUTION_CHECKPOINT_VERSION = 1 as const;
 const KEY_ENV = "KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY";
@@ -276,4 +277,37 @@ export async function computeProjectRevisionFingerprint(projectRoot: string): Pr
   const tree = createHash("sha256");
   for (const file of files) tree.update(file.path).update("\0").update(String(file.size)).update("\0").update(file.digest).update("\n");
   return `sha256:${tree.digest("hex")}`;
+}
+
+
+export interface HydratedAgentCheckpoint {
+  checkpoint: AgentExecutionCheckpoint;
+  adaptiveBudget: AdaptiveTokenBudget;
+  task: string;
+  builderTask: boolean;
+  repairRequested: boolean;
+  forceCompletionNextIteration: boolean;
+  remotePlannerRateLimited: boolean;
+  productPlannerCreated: boolean;
+}
+
+/** Rehydrates validated planner/runtime continuation data without executing or replaying tools. */
+export function hydrateAgentExecutionCheckpoint(value: unknown): HydratedAgentCheckpoint {
+  validateAgentExecutionCheckpoint(value);
+  const checkpoint = structuredClone(value);
+  if (!checkpoint.resumeState) throw new Error("Agent checkpoint continuation state is incomplete.");
+  const adaptiveBudget = restoreAdaptiveTokenBudget(checkpoint.resumeState.task, checkpoint.tokenBudget, {
+    legacyHardCap: checkpoint.resumeState.builderTask ? 30_000 : 18_000,
+    builderLifecycle: checkpoint.resumeState.builderTask,
+  });
+  return {
+    checkpoint,
+    adaptiveBudget,
+    task: checkpoint.resumeState.task,
+    builderTask: checkpoint.resumeState.builderTask,
+    repairRequested: checkpoint.resumeState.repairRequested,
+    forceCompletionNextIteration: checkpoint.resumeState.forceCompletionNextIteration,
+    remotePlannerRateLimited: checkpoint.resumeState.remotePlannerRateLimited,
+    productPlannerCreated: checkpoint.resumeState.productPlannerCreated,
+  };
 }
