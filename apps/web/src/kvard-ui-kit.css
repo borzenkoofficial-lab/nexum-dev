@@ -339,3 +339,39 @@
     white-space: nowrap;
   }
 }
+
+
+/* Shared page and section heading structure. */
+.kv-page-header {
+  min-width: 0;
+}
+.kv-page-header__content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.kv-page-header__eyebrow {
+  display: block;
+}
+.kv-page-header__title {
+  overflow-wrap: anywhere;
+}
+.kv-page-header__description {
+  max-width: 700px;
+}
+.kv-page-header__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+@media (max-width: 680px) {
+  .kv-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .kv-page-header__actions {
+    width: 100%;
+  }
+}
