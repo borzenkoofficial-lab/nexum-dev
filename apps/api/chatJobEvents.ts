@@ -80,7 +80,7 @@ export function createChatJobEventsHandler({
         try {
           const latest = await getJob(jobId, userId);
           if (!latest) {
-            response.write("event: unavailable\ndata: {\\"error\\":\\"Chat job expired or unavailable\\"}\n\n");
+            response.write(`event: unavailable\ndata: ${JSON.stringify({ error: "Chat job expired or unavailable" })}\n\n`);
             response.end();
             break;
           }
@@ -95,7 +95,7 @@ export function createChatJobEventsHandler({
           }
         } catch (error) {
           console.error("[Nexum] ChatJob SSE poll failed", { jobId, error });
-          response.write("event: unavailable\ndata: {\\"error\\":\\"Chat job status unavailable\\"}\n\n");
+          response.write(`event: unavailable\ndata: ${JSON.stringify({ error: "Chat job status unavailable" })}\n\n`);
           response.end();
           break;
         }
