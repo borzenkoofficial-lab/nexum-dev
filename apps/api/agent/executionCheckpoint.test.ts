@@ -95,6 +95,14 @@ function fixture(): AgentExecutionCheckpoint {
     seenPlannerContexts: [],
     actionSequence: [],
     toolActionIds: ["action-1"],
+    resumeState: {
+      task: "Inspect and update the project",
+      builderTask: true,
+      repairRequested: false,
+      forceCompletionNextIteration: false,
+      remotePlannerRateLimited: false,
+      productPlannerCreated: true,
+    },
     sandboxRevisionFingerprint: "sha256:project-revision",
   };
 }
@@ -186,5 +194,25 @@ test("project revision fingerprint excludes credential files and never follows s
   } finally {
     await rm(root, { recursive: true, force: true });
     await rm(outside, { recursive: true, force: true });
+  }
+});
+
+
+test("Agent execution checkpoints reject malformed loop continuation state", () => {
+  const previous = process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
+  process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY = randomBytes(32).toString("base64");
+  try {
+    const invalid = {
+      ...fixture(),
+      resumeState: {
+        ...fixture().resumeState!,
+        task: "",
+        forceCompletionNextIteration: "yes",
+      },
+    };
+    assert.throws(() => encryptAgentExecutionCheckpoint(invalid as unknown as AgentExecutionCheckpoint), /loop-control state is invalid/);
+  } finally {
+    if (previous === undefined) delete process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
+    else process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY = previous;
   }
 });
