@@ -394,3 +394,17 @@ NEXUM.DEV — браузерная платформа для создания и
 - Browser/session recovery across API process restarts requires PostgreSQL-backed ChatJob persistence. The in-memory fallback is process-local and cannot survive an API restart. Terminal history remains subject to the existing 30-minute cleanup window.
 - Current startup stale-job recovery assumes one API execution owner for the ChatJob domain. Before horizontal multi-instance execution, replace global startup recovery with per-worker ownership/lease fencing so one instance cannot mark another live instance's jobs stale.
 - Changes are on `main`; tests have been added but their CI execution is not yet confirmed. No production deployment, migration, secret change, or paid provider call.
+
+## Agent Run recovery — conservative restart assessment (2026-11-26)
+
+- Added `apps/api/agent/recovery.ts` with a deterministic recovery classifier based on persisted tool events and pending approvals.
+- Restart recovery now persists `recoveryAssessment` into the ChatJob payload for both the in-memory fallback and PostgreSQL storage.
+- Classifications:
+  - `safe_to_restart`: only recognized, completed READ operations are present (or no tool activity is recorded). This means a fresh run may be considered after user intent is retained; it does **not** mean the original AgentLoop can resume.
+  - `inspect_before_retry`: a WRITE/EXECUTE operation may have run, or a tool start has no recorded terminal result. Inspect the project/sandbox before retrying.
+  - `manual_review_required`: a pending approval was interrupted or tool activity is unrecognized.
+- `automaticResumeAllowed` is explicitly `false` for every classification. No automatic replay or provider call is started after recovery.
+- Added deterministic tests for read-only activity, write/execute activity, unmatched tool starts, interrupted approvals, and unknown tools. Added the recovery test file to the API test script.
+- Important implementation finding: the current `AgentLoop.runInternal` keeps critical continuation state in process memory, including `previousResults`, planner-context fingerprints, action-attempt tracking, token budget, and phase-local control flags. Persisted ChatJob snapshots and the execution plan do not contain enough information to continue the exact loop safely. Reconstructing only from the visible steps would risk repeating writes or commands.
+- Therefore this change is a safety boundary, not yet durable execution. The next implementation phase must introduce a versioned execution journal/checkpoint written around each tool invocation, stable action IDs, durable tool results, and explicit idempotency/reconciliation policy for side-effecting tools. A checkpoint may only be marked resumable after its required state is durably committed.
+- No production migration, deployment, secret change, or live/paid provider request was performed. CI and local typecheck/test results remain unverified for these commits.
