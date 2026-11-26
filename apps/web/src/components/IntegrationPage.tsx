@@ -1,3 +1,5 @@
+import { KvardPageHeader } from "./ui/index.ts";
+
 type IntegrationPageProps = {
   connectedConnectors: string[];
   onToggleConnector: (name: string) => void;
@@ -37,12 +39,13 @@ export function IntegrationPage({ connectedConnectors, onToggleConnector }: Inte
 
   return (
     <section className="integrations-page">
-      <header className="integrations-hero">
-        <div>
-          <h1>Интеграции</h1>
-          <p>Провайдеры моделей и внешние сервисы, которые могут использовать проекты и агенты.</p>
-        </div>
-      </header>
+      <KvardPageHeader
+        className="integrations-hero"
+        title="Интеграции"
+        titleId="kv-integrations-page-title"
+        description="Провайдеры моделей и внешние сервисы, которые могут использовать проекты и агенты."
+        descriptionId="kv-integrations-page-description"
+      />
 
       {groups.map((group) => (
         <section className="integration-section" key={group.title}>
