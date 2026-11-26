@@ -786,3 +786,15 @@ Verification boundary: implementation and focused tests added; test execution, t
 - All existing actions, settings state, connector states, diagnostics data, export behavior and journal content remain unchanged. No server or admin surface was modified.
 - Responsive layouts collapse cleanly for tablet and mobile.
 - Scope is presentation-only CSS.
+
+
+## 35. Workspace landing — product-first composition
+
+- Rebalanced the desktop home into a clear two-column workspace: primary creation canvas on the left, recent project context on the right.
+- Kept the heading and project count grounded in the existing project collection; no demo metrics or invented project activity.
+- Elevated the prompt composer with visible focus treatment, calmer surface depth and clearer primary action.
+- Refined starter cards into a consistent quick-start system while preserving their existing prompt-fill behavior.
+- Converted the recent-project area into a compact contextual rail; project rows still open the same real projects.
+- Preserved the existing empty state, navigation, callbacks, project data and all mobile interactions.
+- Tablet/mobile layouts return to a single-column reading order with touch-sized controls.
+- Presentation-only CSS. No app behavior, backend, API, database or admin surface changed.

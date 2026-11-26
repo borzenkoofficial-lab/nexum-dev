@@ -563,3 +563,19 @@ Verification boundary: source-level CSS review only; browser visual QA is not cl
 - [ ] Run browser visual QA across the full user-facing navigation.
 
 Verification boundary: source-level review only; no live browser visual QA is claimed.
+
+
+## Task 25 — Workspace landing composition
+
+**Purpose:** Make the first screen communicate the KVARD product structure immediately and create a clear focal point for starting work.
+
+- [x] Recompose the desktop workspace into a creation canvas and recent-project rail.
+- [x] Strengthen prompt composer focus and primary action hierarchy.
+- [x] Refine quick-start cards without changing their prompt-fill behavior.
+- [x] Make recent projects visually distinct while preserving real project navigation.
+- [x] Preserve existing empty states and real project count.
+- [x] Add tablet/mobile single-column composition and touch refinements.
+- [x] Keep the change presentation-only and outside admin/backend/API scope.
+- [ ] Inspect the full application in a real browser at desktop, tablet and mobile widths.
+
+Verification boundary: CSS source review only; browser visual QA is not claimed.
