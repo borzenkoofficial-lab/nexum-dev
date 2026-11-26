@@ -7,6 +7,7 @@ import { test } from "node:test";
 import {
   computeProjectRevisionFingerprint,
   hydrateAgentExecutionCheckpoint,
+  restoreAgentLoopState,
   decryptAgentExecutionCheckpoint,
   encryptAgentExecutionCheckpoint,
   type AgentExecutionCheckpoint,
