@@ -254,3 +254,35 @@ Latest verification remains pending; previous Actions runs for this work were ca
 ### Verification boundary
 
 The final implementation is committed to `main`. Previous Actions runs were cancelled by subsequent commits before jobs completed; the current documentation commit has a pending run and must be checked against the exact latest HEAD. No tests, typecheck, lint, build, browser visual QA or screen-reader QA are claimed as passing. No administrative files were changed.
+
+
+## Task 8 — shared surfaces across Workspace and Builder
+
+**Purpose:** Consolidate reusable card/panel/container presentation without moving domain state or changing user workflows.
+
+- [x] Add rendering tests for semantic element selection, variants, spacing and absence of implicit interactive semantics.
+- [x] Implement `KvardSurface` with `div` / `section` / `article` elements.
+- [x] Add default, subtle, raised and outline variants with none/sm/md/lg spacing.
+- [x] Export component and public prop types.
+- [x] Add token-driven border, radius, background, shadow and spacing styles.
+- [x] Migrate Workspace create-project surface, recent-project list and empty-project surface.
+- [x] Migrate Builder chat, preview, files, agent and code surfaces.
+- [x] Remove superseded duplicate surface styling while preserving local layout and responsive rules.
+- [x] Document the shared surface contract.
+- [ ] Run focused UI Kit tests, Web typecheck, lint and build on the final commit.
+- [ ] Verify light/dark surfaces, responsive padding and panel overflow in a real browser.
+- [ ] Complete keyboard and accessibility regression checks for the affected Builder screens.
+
+### Task 8 implementation commits
+
+- Tests first: `7326dda`.
+- KvardSurface primitive: `658f6ba`.
+- UI exports: `6d5c218`.
+- Shared surface styling: `63b59aa`, `a8c5609`.
+- Workspace migration: `4f02e13`, `7089161`, `cce1458`.
+- Builder migrations: `c92d11e`, `ad1a214`, `2c88216`.
+- Design-system documentation: `5e63032`.
+
+### Verification boundary
+
+The changes are committed to `main`. The final GitHub Actions run must be checked against the final documentation commit; previous runs were cancelled by subsequent commits and did not complete jobs. No tests, typecheck, lint, build, browser visual QA or manual keyboard QA are claimed as passing. No administrative files were changed.
