@@ -370,3 +370,13 @@ NEXUM.DEV — браузерная платформа для создания и
 - REST snapshot fallback is single-flight: repeated EventSource errors cannot create overlapping recovery requests. Native EventSource reconnect remains responsible for resuming the stream; the REST request is only a one-shot state reconciliation.
 - Extended the active-job reload E2E scenario to take the browser context offline, assert the reconnecting state, restore network access, and assert the stream recovery state before cancelling the job.
 - Code and E2E changes are on `main`; CI/E2E execution is not yet confirmed. The only visible commit status is the Vercel build-rate-limit failure. No production deployment, migrations, secrets or paid AI calls.
+
+
+## Builder multi-tab ChatJob synchronization — 2026-11-26
+
+- Added best-effort BroadcastChannel notification for terminal ChatJob transitions. A tab with the same active job receives the notification, then fetches the authenticated REST snapshot; it never trusts cross-tab message contents as authoritative state.
+- User cancellation publishes the terminal transition before the initiating tab clears its active-job reference. SSE-observed completion/failure/cancellation also publishes once, with duplicate terminal notifications guarded.
+- Builder ignores out-of-order snapshots with an older `updatedAt` value, preventing delayed responses from rolling the visible task state backwards.
+- Extended Playwright coverage: open the same project in a second tab, cancel the job in the first tab, and assert the second tab displays the canonical cancellation result. This test remains pending execution in CI.
+- Cross-tab messaging is an optimization only. Server-side ChatJob persistence and authenticated REST/SSE remain the source of truth; browsers without BroadcastChannel retain normal SSE/reload recovery.
+- Changes are on `main`. No production deployment, migration, secret change, or paid provider request.
