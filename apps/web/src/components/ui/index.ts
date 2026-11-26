@@ -18,3 +18,6 @@ export { KvardToast } from "./KvardToast.ts";
 export type { KvardToastProps } from "./KvardToast.ts";
 export { KvardEmptyState } from "./KvardEmptyState.ts";
 export type { KvardEmptyStateProps } from "./KvardEmptyState.ts";
+
+export { KvardSurface } from "./KvardSurface.ts";
+export type { KvardSurfaceElement, KvardSurfacePadding, KvardSurfaceProps, KvardSurfaceVariant } from "./KvardSurface.ts";
