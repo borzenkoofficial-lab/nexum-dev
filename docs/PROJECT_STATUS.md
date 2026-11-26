@@ -453,3 +453,14 @@ NEXUM.DEV — браузерная платформа для создания и
 - The result is deliberately named `checkpoint_compatible`, not `safe_to_resume`; `automaticResumeAllowed` remains false. This is a prerequisite gate only, not a restored AgentLoop or automatic resume implementation.
 - Regression tests cover matching state, changed project revision, post-checkpoint actions, unfinished actions, pending approval, and ownership substitution.
 - Verification: tests have been added but have not yet been executed. GitHub Actions status must be checked for the latest commit before treating this work as verified.
+
+
+## Durable Agent Execution — journal/checkpoint commit integrity and fingerprint hardening (2026-11-26)
+
+- Checkpoint persistence now verifies that the checkpoint's action ID set is an exact match for the ChatJob's durable tool-action journal. Duplicate/malformed IDs, missing journal rows, extra journal rows, and any non-terminal action status reject the checkpoint.
+- PostgreSQL checkpoint writes use a transaction and lock the owning running ChatJob row while comparing the journal and inserting the encrypted envelope. Tool-action starts acquire the same ChatJob row lock, preventing a new action from racing between journal validation and checkpoint commit. Journal rows are read with a shared lock; an in-flight finalization causes the checkpoint to fail closed and can be retried at the next safe iteration boundary.
+- The in-memory store applies the same exact-set and terminal-status checks. It remains process-local and is not cross-process durable.
+- Project fingerprint exclusions now cover common credential/config files (.npmrc, .pypirc, .netrc, .git-credentials, Docker auth config, credential/service-account JSON, SSH private-key names, and key/certificate containers) plus common local secret directories. Symlinks remain excluded and are never followed.
+- Added regression coverage for journal/checkpoint mismatch, unfinished tool actions, credential-file changes, and symlink traversal.
+- Automatic restore remains disabled. No code path rehydrates a checkpoint into a new AgentLoop, and no side-effecting tool is replayed. A matching checkpoint is not yet a resumable execution until sandbox identity, runtime state, planner flags, pending approvals, and provider budget semantics are restored and verified.
+- CI status must be checked on the latest main commit; tests have not been executed locally. No production deployment, production migration, secret update, or live/paid provider request was performed.
