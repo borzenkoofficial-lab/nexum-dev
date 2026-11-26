@@ -121,6 +121,8 @@ export function validateAgentExecutionCheckpoint(value: unknown): asserts value 
     throw new Error("Agent checkpoint is missing required execution state.");
   }
   if (
+    !["micro", "small", "medium", "large"].includes(item.tokenBudget.tier) ||
+    !Number.isSafeInteger(item.tokenBudget.calls) || item.tokenBudget.calls < 0 ||
     ![item.counters.modelTurns, item.counters.aiPlannerCalls, item.counters.productPlannerAttempts,
       item.counters.productReviewAttempts, item.counters.repairAttempts, item.counters.eventId]
       .every((count) => Number.isSafeInteger(count) && count >= 0) ||
