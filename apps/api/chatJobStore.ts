@@ -589,17 +589,21 @@ export async function startChatJobToolAction(
     return actionId;
   }
   await ensureTable();
-  const inserted = await query(
-    `INSERT INTO agent_chat_job_tool_actions
-      (action_id,job_id,user_id,tool_name,risk,input_sha256,status,started_at)
-     SELECT $1,$2,$3,$4,$5,$6,'started',$7
-      WHERE EXISTS (SELECT 1 FROM agent_chat_jobs WHERE id=$2 AND user_id=$3 AND status='running')
-     RETURNING action_id`,
-    [actionId, jobId, userId, tool, policy.risk, inputSha256, startedAt],
-  );
-  if (!inserted.rows.length) {
-    throw new Error("Cannot journal a tool action for a non-running or inaccessible Agent Run.");
-  }
+  await withDatabaseTransaction(async (client) => {
+    // The same job-row lock is used by checkpoint commits. This prevents a new
+    // action from appearing between journal validation and checkpoint insert.
+    const job = await client.query(
+      "SELECT id FROM agent_chat_jobs WHERE id=$1 AND user_id=$2 AND status='running' FOR UPDATE",
+      [jobId, userId],
+    );
+    if (!job.rows.length) {
+      throw new Error("Cannot journal a tool action for a non-running or inaccessible Agent Run.");
+    }
+    await client.query(
+      "INSERT INTO agent_chat_job_tool_actions (action_id,job_id,user_id,tool_name,risk,input_sha256,status,started_at) VALUES ($1,$2,$3,$4,$5,$6,'started',$7)",
+      [actionId, jobId, userId, tool, policy.risk, inputSha256, startedAt],
+    );
+  });
   return actionId;
 }
 
