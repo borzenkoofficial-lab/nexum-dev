@@ -517,12 +517,12 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
     const cutoff = Date.now() - maxRunningMs;
     let recovered = 0;
     for (const [id, job] of memoryJobs) {
-      if (job.status === "running" && job.updatedAt < cutoff) {
+      if ((job.status === "queued" || job.status === "running") && job.updatedAt < cutoff) {
         memoryJobs.set(id, cloneJob({
           ...job,
           status: "failed",
           stage: "error",
-          error: "API process restarted while this Agent Run was active.",
+          error: "API process restarted before this Agent Run finished.",
           updatedAt: Date.now(),
         }));
         if (job.projectId) {
@@ -543,7 +543,7 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
               jsonb_set(payload, '{stage}', '"error"'::jsonb, true),
               '{error}', '"API process restarted while this Agent Run was active."'::jsonb, true
             )
-      WHERE status='running' AND updated_at < $2
+      WHERE status IN ('queued','running') AND updated_at < $2
       RETURNING id`,
     [Date.now(), Date.now() - maxRunningMs],
   );
