@@ -21,3 +21,5 @@ export type { KvardEmptyStateProps } from "./KvardEmptyState.ts";
 
 export { KvardSurface } from "./KvardSurface.ts";
 export type { KvardSurfaceElement, KvardSurfacePadding, KvardSurfaceProps, KvardSurfaceVariant } from "./KvardSurface.ts";
+export { KvardPageHeader } from "./KvardPageHeader.ts";
+export type { KvardPageHeaderProps } from "./KvardPageHeader.ts";
