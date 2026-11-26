@@ -123,3 +123,84 @@ test("durable journal rejects malformed or unknown action metadata", () => {
   assert.equal(assessment.disposition, "manual_review_required");
   assert.equal(assessment.reason, "unrecognized_tool_activity");
 });
+
+
+import { assessAgentCheckpointRecovery } from "./recovery.js";
+
+function checkpointRecoveryFixture() {
+  return {
+    checkpoint: {
+      version: 1,
+      jobId: "job-1",
+      userId: "user-1",
+      projectId: "project-1",
+      sequence: 4,
+      sandboxRevisionFingerprint: "sha256:revision-a",
+      toolActionIds: ["action-1", "action-2"],
+    },
+    job: { id: "job-1", userId: "user-1", projectId: "project-1" },
+    currentSandboxRevisionFingerprint: "sha256:revision-a",
+    toolActions: [
+      { actionId: "action-1", status: "succeeded" },
+      { actionId: "action-2", status: "failed" },
+    ],
+    assessedAt: 456,
+  };
+}
+
+test("checkpoint recovery gate accepts only an exact sandbox and journal match", () => {
+  const assessment = assessAgentCheckpointRecovery(checkpointRecoveryFixture());
+  assert.equal(assessment.disposition, "checkpoint_compatible");
+  assert.equal(assessment.reason, "checkpoint_and_sandbox_match");
+  assert.equal(assessment.automaticResumeAllowed, false);
+  assert.equal(assessment.checkpointSequence, 4);
+  assert.deepEqual(assessment.checkpointActionIds, ["action-1", "action-2"]);
+  assert.deepEqual(assessment.journalActionIds, ["action-1", "action-2"]);
+  assert.equal(assessment.assessedAt, 456);
+});
+
+test("checkpoint recovery refuses a changed project revision", () => {
+  const assessment = assessAgentCheckpointRecovery({
+    ...checkpointRecoveryFixture(),
+    currentSandboxRevisionFingerprint: "sha256:revision-b",
+  });
+  assert.equal(assessment.disposition, "inspect_before_resume");
+  assert.equal(assessment.reason, "checkpoint_revision_mismatch");
+});
+
+test("checkpoint recovery refuses journal actions that happened after the checkpoint", () => {
+  const fixture = checkpointRecoveryFixture();
+  const assessment = assessAgentCheckpointRecovery({
+    ...fixture,
+    toolActions: [...fixture.toolActions, { actionId: "action-after-checkpoint", status: "succeeded" }],
+  });
+  assert.equal(assessment.disposition, "inspect_before_resume");
+  assert.equal(assessment.reason, "checkpoint_action_journal_mismatch");
+});
+
+test("checkpoint recovery refuses unfinished tool actions and pending approvals", () => {
+  const fixture = checkpointRecoveryFixture();
+  const unfinished = assessAgentCheckpointRecovery({
+    ...fixture,
+    toolActions: [...fixture.toolActions, { actionId: "action-in-flight", status: "started" }],
+  });
+  assert.equal(unfinished.disposition, "inspect_before_resume");
+  assert.equal(unfinished.reason, "checkpoint_action_outcome_unknown");
+
+  const approval = assessAgentCheckpointRecovery({
+    ...fixture,
+    job: { ...fixture.job, pendingApproval: { status: "pending" } },
+  });
+  assert.equal(approval.disposition, "manual_review_required");
+  assert.equal(approval.reason, "approval_was_pending");
+});
+
+test("checkpoint recovery fails closed on ownership substitution", () => {
+  const fixture = checkpointRecoveryFixture();
+  const assessment = assessAgentCheckpointRecovery({
+    ...fixture,
+    job: { ...fixture.job, userId: "another-user" },
+  });
+  assert.equal(assessment.disposition, "manual_review_required");
+  assert.equal(assessment.reason, "checkpoint_ownership_mismatch");
+});
