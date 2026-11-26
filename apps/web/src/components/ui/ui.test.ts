@@ -149,7 +149,7 @@ test("KvardTabs moves focus and selection with wrapping arrow-key navigation", (
     preventDefault: () => { prevented = true; },
   };
 
-  (props.onKeyDown as (value: unknown) => void)(event);
+  (props.onKeyDown as unknown as (value: typeof event) => void)(event);
   assert.equal(prevented, true);
   assert.deepEqual(selected, ["agents"]);
   assert.deepEqual(focused, ["agents"]);
