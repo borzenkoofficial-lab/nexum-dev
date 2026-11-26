@@ -1968,6 +1968,7 @@ app.get("/api/chat/jobs/recent", async (req, res) => {
       error: job.error,
       productPlan: job.productPlan,
       recoveryAssessment: job.recoveryAssessment,
+      checkpointRecoveryAssessment: job.checkpointRecoveryAssessment,
       updatedAt: job.updatedAt,
     }));
   return res.json({ success: true, jobs: recent });
