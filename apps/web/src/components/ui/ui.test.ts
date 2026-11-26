@@ -5,6 +5,7 @@ import { KvardButton } from "./KvardButton.ts";
 import { KvardField } from "./KvardField.ts";
 import { KvardStatusBadge } from "./KvardStatusBadge.ts";
 import { KvardTabs } from "./KvardTabs.ts";
+import { KvardPageHeader } from "./KvardPageHeader.ts";
 import { KvardSegmentedControl } from "./KvardSegmentedControl.ts";
 
 type ElementShape = { type: unknown; props: Record<string, unknown> };
@@ -84,6 +85,50 @@ test("KvardStatusBadge exposes a visible label and semantic tone class", () => {
   assert.equal(props.children, "Опубликован");
 });
 
+
+test("KvardPageHeader exposes a named heading, description and action slot", () => {
+  const action = createElement("button", { type: "button" }, "Обновить");
+  const header = KvardPageHeader({
+    className: "diagnostics-hero",
+    eyebrow: "КВАРД / SYSTEM",
+    title: "Диагностика",
+    titleId: "diagnostics-title",
+    description: "История заданий и ошибки Runtime.",
+    descriptionId: "diagnostics-description",
+    actionsClassName: "diagnostics-actions",
+    actions: action,
+  });
+  const props = propsOf(header);
+  const [content, actions] = childrenOf(props);
+  const contentProps = propsOf(content);
+  const [eyebrow, title, description] = childrenOf(contentProps);
+  const actionsProps = propsOf(actions);
+
+  assert.equal(props.className, "kv-page-header diagnostics-hero");
+  assert.equal(props["aria-labelledby"], "diagnostics-title");
+  assert.equal(props["aria-describedby"], "diagnostics-description");
+  assert.equal(eyebrow.type, "span");
+  assert.equal(eyebrow.props.children, "КВАРД / SYSTEM");
+  assert.equal(title.type, "h1");
+  assert.equal(title.props.id, "diagnostics-title");
+  assert.equal(title.props.children, "Диагностика");
+  assert.equal(description.type, "p");
+  assert.equal(description.props.id, "diagnostics-description");
+  assert.equal(actionsProps.className, "kv-page-header__actions diagnostics-actions");
+  assert.equal(childrenOf(actionsProps)[0], action);
+});
+
+test("KvardPageHeader supports section-level heading semantics", () => {
+  const header = KvardPageHeader({
+    title: "Профили задач",
+    headingLevel: "h2",
+    titleId: "profiles-title",
+  });
+  const [content] = childrenOf(propsOf(header));
+  const [title] = childrenOf(propsOf(content));
+  assert.equal(title.type, "h2");
+  assert.equal(title.props.id, "profiles-title");
+});
 
 test("KvardTabs exposes linked tab semantics and an accessible badge label", () => {
   const onChange = () => undefined;
