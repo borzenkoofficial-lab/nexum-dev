@@ -241,6 +241,17 @@ export class AgentLoop {
       : runtime;
   }
 
+  private activeTokenBudget: AdaptiveTokenBudget | undefined;
+
+  /**
+   * Snapshot of the token budget granted to model calls in the latest run, or
+   * undefined if no run created one. Used for metering after success, failure
+   * or cancellation alike; `reserved` is an upper bound of consumed output tokens.
+   */
+  getTokenBudgetSnapshot(): ReturnType<AdaptiveTokenBudget["snapshot"]> | undefined {
+    return this.activeTokenBudget?.snapshot();
+  }
+
   async run(task: string, options?: GatewayGenerateOptions): Promise<AgentLoopResult> {
     try {
       const result = await this.runInternal(task, options);
@@ -365,7 +376,7 @@ export class AgentLoop {
     let productPlannerCreated = false;
     let productPlannerAttempts = 0;
     const builderTask = /создай|сделай|разработай|build|create|make|сайт|приложени|лендинг|dashboard|landing|web app|website|marketplace|crm|поменяй|измени|добавь|удали|исправь/i.test(task);
-    const adaptiveBudget: AdaptiveTokenBudget = createAdaptiveTokenBudget(task, {
+    const adaptiveBudget: AdaptiveTokenBudget = this.activeTokenBudget = createAdaptiveTokenBudget(task, {
       legacyHardCap: builderTask ? 30_000 : DEFAULT_TASK_TOKEN_BUDGET,
       builderLifecycle: builderTask,
     });

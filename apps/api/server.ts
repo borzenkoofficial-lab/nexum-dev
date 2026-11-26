@@ -34,6 +34,7 @@ import { requireAdminAccess } from "./adminAccess.js";
 import { adminRouter } from "./routes/admin.js";
 import { closeDatabase, pingDatabase, query } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
+import { BuilderQuotaError, getBuilderBillingStore } from "./billing/builderBilling.js";
 import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, startChatJobToolAction, finishChatJobToolAction, saveChatJobExecutionCheckpoint, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
@@ -331,7 +332,40 @@ function createAgentCancellationBridge(
   };
 }
 
-async function runChatJob(
+/** AgentLoops that actually started for a job; their token budget is what gets metered. */
+const chatJobMeteredLoops = new Map<string, AgentLoop>();
+
+/**
+ * Settles the Builder billing reservation of a finished job exactly once: a job
+ * whose AgentLoop ran is metered (success, failure and cancellation alike, since
+ * provider cost was incurred); a job that never started an AgentLoop is released.
+ */
+async function finalizeChatJobBilling(jobId: string): Promise<void> {
+  const loop = chatJobMeteredLoops.get(jobId);
+  chatJobMeteredLoops.delete(jobId);
+  try {
+    if (loop) {
+      const snapshot = loop.getTokenBudgetSnapshot();
+      await getBuilderBillingStore().settle(jobId, snapshot?.reserved ?? 0, "token_budget_upper_bound");
+    } else {
+      await getBuilderBillingStore().release(jobId);
+    }
+  } catch (error) {
+    // A missed settlement keeps the reservation open; it is settled at full
+    // reservation once stale, so the failure can only over- and never under-meter.
+    console.error("[Nexum] Builder billing settlement failed", { jobId, error: error instanceof Error ? error.message : String(error) });
+  }
+}
+
+async function runChatJob(...args: Parameters<typeof runChatJobInner>): Promise<void> {
+  try {
+    await runChatJobInner(...args);
+  } finally {
+    await finalizeChatJobBilling(args[0]);
+  }
+}
+
+async function runChatJobInner(
   jobId: string,
   message: string,
   projectId: string | undefined,
@@ -543,7 +577,7 @@ ${attachment.content.slice(0, 80_000)}`);
       } : {},
     );
     let executionCheckpointSequence = 0;
-    const agentLoop = new AgentLoop(
+    const agentLoop: AgentLoop = new AgentLoop(
       agent,
       userGateway,
       undefined,
@@ -653,6 +687,7 @@ ${attachment.content.slice(0, 80_000)}`);
       });
     }
     throwIfAgentAborted(signal);
+    chatJobMeteredLoops.set(jobId, agentLoop);
     const result = await agentLoop.run(agentMessage, {
       ...(signal ? { signal } : {}),
       ...(provider === undefined ? {} : { provider }),
@@ -901,6 +936,15 @@ app.get("/api/diagnostics/session/:sessionId", authMiddleware, (req, res) => {
 app.get("/api/diagnostics/latest", authMiddleware, (req, res) => {
   const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : 100;
   return res.json({ success: true, generatedAt: new Date().toISOString(), events: getLatestDiagnostics(Number.isFinite(limit) ? limit : 100, getAuthUser(req).id) });
+});
+
+app.get("/api/billing/builder", authMiddleware, async (req, res) => {
+  try {
+    return res.json({ success: true, usage: await getBuilderBillingStore().summary(getAuthUser(req).id) });
+  } catch (error) {
+    console.error("[Nexum] Builder billing summary failed", error);
+    return res.status(503).json({ success: false, error: "Billing summary unavailable" });
+  }
 });
 
 app.get("/api/runtime/status", authMiddleware, async (req, res) => {
@@ -1588,6 +1632,8 @@ app.post("/api/chat", async (req, res) => {
       .map((item) => ({ role: item.role as "user" | "assistant", content: String(item.content).slice(0, 900) }))
     : [];
 
+  // Set once a Builder reservation exists and cleared when runChatJob owns it.
+  let undispatchedReservation: string | undefined;
   try {
     // Validate the project before creating the background job so bad project IDs
     // still fail immediately instead of creating a job that can never run.
@@ -1595,6 +1641,17 @@ app.post("/api/chat", async (req, res) => {
 
     await cleanupChatJobs();
     const jobId = randomUUID();
+    // Book the Builder quota before any job state exists; a rejected reservation
+    // means no job is created and no model call is made.
+    try {
+      await getBuilderBillingStore().reserve(getAuthUser(req).id, jobId);
+      undispatchedReservation = jobId;
+    } catch (error) {
+      if (error instanceof BuilderQuotaError) {
+        return res.status(402).json({ success: false, error: error.message, code: error.code });
+      }
+      throw error;
+    }
     const runtimeTask = serverRuntime.createTask({
       projectId: typeof projectId === "string" ? projectId : undefined,
       requestId: getRequestId(req),
@@ -1629,6 +1686,8 @@ app.post("/api/chat", async (req, res) => {
     // platform/proxy 504s while local Ollama or another provider is generating.
     const controller = new AbortController();
     chatJobControllers.set(jobId, controller);
+    // From here runChatJob settles or releases the reservation in all outcomes.
+    undispatchedReservation = undefined;
     void runChatJob(
       jobId,
       message.trim(),
@@ -1651,6 +1710,11 @@ app.post("/api/chat", async (req, res) => {
       status: "queued",
     });
   } catch (error) {
+    if (undispatchedReservation) {
+      await getBuilderBillingStore().release(undispatchedReservation).catch((releaseError) => {
+        console.error("[Nexum] Builder billing release failed", { jobId: undispatchedReservation, error: releaseError instanceof Error ? releaseError.message : String(releaseError) });
+      });
+    }
     return res.status(502).json({
       error: error instanceof Error ? error.message : "Chat job creation failed",
     });
