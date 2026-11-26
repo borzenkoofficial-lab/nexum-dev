@@ -133,3 +133,11 @@
 - The latest CI run at plan update is pending; earlier runs were cancelled by subsequent commits before their jobs executed.
 - The Vercel status for the latest implementation commit has not completed.
 - The new tab implementation has not yet been confirmed by a completed CI run or browser visual QA. Do not mark the increment fully verified until both applicable checks are complete.
+
+
+### Final accessibility correction
+
+- Persistent tabpanel containers now remain in the DOM for all five tabs; inactive panels use the native hidden attribute. This keeps every aria-controls reference valid while only the active panel content is rendered.
+- Commits: 0a6a70d (panel persistence) and 3f0ed2c (knowledge panel markup correction).
+- Latest observed GitHub Actions run: 45794376119, status pending with zero jobs returned. No successful test/build result is claimed.
+- Latest observed Vercel status: failure due to build-rate-limit; preview/browser visual QA is not available for this revision.
