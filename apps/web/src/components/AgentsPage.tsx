@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Project } from "./types";
+import { profileSaveNotice } from "./agentStorage.ts";
 import { KvardAlert, KvardButton, KvardEmptyState, KvardPageHeader, KvardStatusBadge } from "./ui/index.ts";
 import "../kvard-ui-kit.css";
 
@@ -151,9 +152,10 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
       const data = await response.json() as { profile?: Omit<Profile, "custom">; storage?: "database" | "memory"; error?: string };
       if (!response.ok || !data.profile) throw new Error(data.error || `Не удалось сохранить профиль: HTTP ${response.status}`);
       setCustomProfiles((items) => [...items, { ...data.profile!, custom: true }]);
-      setProfileStorage(data.storage ?? profileStorage);
+      const savedStorage = data.storage ?? profileStorage;
+      setProfileStorage(savedStorage);
       setProfileName(""); setProfileDescription(""); setProfilePrompt(""); setFormOpen(false);
-      setNotice(profileStorage === "database" || data.storage === "database" ? "Профиль сохранён в аккаунте." : "Профиль сохранён в памяти сервера.");
+      setNotice(profileSaveNotice(savedStorage));
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Не удалось сохранить профиль.");
     } finally {
