@@ -662,3 +662,17 @@ The Builder's existing desktop split and narrow-screen stacked layout now receiv
 - No admin UI, admin styles, routes, APIs, permissions or business logic were changed.
 
 Verification boundary: source and diff review only. CI is pending for this commit; typecheck, lint, tests, build, browser visual QA and manual device/keyboard QA are not yet confirmed.
+
+
+## 24. Builder loading, empty and error states
+
+The Builder now uses the shared feedback and empty-state primitives for key user-facing operational states.
+
+- Chat task failures use `KvardAlert` with assertive error semantics and retain the existing retry callback.
+- Files distinguishes list loading, list-load failure, file loading, file-load failure, an empty project and the neutral file-selection prompt.
+- File-load failure exposes a retry for that file. Save failure preserves the edited buffer and explicitly tells the user their changes remain in the editor; it does not trigger a destructive reload.
+- Preview's pre-build state and the agent's empty activity history use `KvardEmptyState`.
+- Existing file list, read, save, preview, agent and retry APIs/callbacks remain the source of truth. No synthetic completion or connectivity states were introduced.
+- Existing design tokens are used for the feedback and empty-state presentation. No admin UI, admin styles, routes, APIs, permissions or business logic were changed.
+
+Verification boundary: source and diff review only. CI, typecheck, lint, tests, build and browser/keyboard visual QA must be checked against final HEAD; none are claimed as passing.
