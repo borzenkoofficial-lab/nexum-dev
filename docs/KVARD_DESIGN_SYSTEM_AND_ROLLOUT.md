@@ -28,7 +28,7 @@
 - [x] CI build job on commit `f8311dd`: brand tests, UI Kit tests, API typecheck/tests, Web runtime tests, Web typecheck/build/lint, production Docker build and production-container smoke test all passed.
 - [ ] E2E job for that commit is still running; no E2E pass is claimed yet.
 - [ ] Browser screenshots, clear-space and manual light/dark responsive QA remain open.
-- [ ] Next UI Kit increments: Tabs, Dialog/Modal, Alert, Empty and Loading patterns.
+- [ ] Next UI Kit increments: Dialog/Modal, Alert, Empty and Loading patterns; shared Tabs and Segmented Control primitives are now implemented.
 
 
 ---
@@ -506,3 +506,19 @@ The first shared navigation primitive is implemented for the user-facing Busines
 - Superseded local tab styles were removed from BusinessAgentsPage.css after integration.
 
 Verification boundary: implementation and tests are committed, but the final CI run is pending and browser visual QA has not been completed. Do not describe the component as fully verified until typecheck, focused tests, lint, build and browser keyboard/visual checks complete. No administrative files were included in the implementation commits.
+
+
+## 15. Shared selection primitive — KvardSegmentedControl
+
+The second shared selection primitive standardizes compact mutually exclusive choices. It is intentionally distinct from `KvardTabs`: it does not represent navigation between tab panels and does not claim tab semantics.
+
+- Component: `apps/web/src/components/ui/KvardSegmentedControl.ts`.
+- Public export: `apps/web/src/components/ui/index.ts`.
+- Styling: `apps/web/src/kvard-ui-kit.css`, semantic light/dark tokens only.
+- Semantics: labelled `role="group"` containing native buttons with controlled `aria-pressed` state.
+- Disabled options use native `disabled`; selection remains controlled by the owning screen.
+- Integrations: Diagnostics event filter (All / Errors / Jobs) and Builder preview device size (Desktop / Tablet / Mobile).
+- Existing filter predicates, diagnostic data sources, preview state and iframe behavior are unchanged.
+- Superseded local selected-state styles were removed; Builder's broad tool-button selector explicitly excludes the shared option buttons.
+
+Verification boundary: implementation and focused component tests are committed, but the final CI run and browser visual QA are not yet complete. Do not claim a typecheck/test/build pass until CI reports it. No administrative files are part of this increment.
