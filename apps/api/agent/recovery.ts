@@ -197,3 +197,109 @@ export function assessChatJobRecovery(
     assessedAt,
   };
 }
+
+
+export type AgentCheckpointRecoveryDisposition =
+  | "checkpoint_compatible"
+  | "inspect_before_resume"
+  | "manual_review_required";
+
+export interface AgentCheckpointRecoveryAssessment {
+  version: 1;
+  disposition: AgentCheckpointRecoveryDisposition;
+  automaticResumeAllowed: false;
+  reason:
+    | "checkpoint_and_sandbox_match"
+    | "checkpoint_missing"
+    | "checkpoint_revision_mismatch"
+    | "checkpoint_ownership_mismatch"
+    | "checkpoint_action_journal_mismatch"
+    | "checkpoint_action_outcome_unknown"
+    | "approval_was_pending"
+    | "checkpoint_state_invalid";
+  checkpointSequence?: number;
+  checkpointActionIds: string[];
+  journalActionIds: string[];
+  assessedAt: number;
+}
+
+/**
+ * A checkpoint is eligible for a future resume implementation only when it
+ * represents exactly the durable action journal and the current project tree.
+ * This deliberately does not authorize automatic execution by itself.
+ */
+export function assessAgentCheckpointRecovery(input: {
+  checkpoint?: {
+    version?: unknown;
+    jobId?: unknown;
+    userId?: unknown;
+    projectId?: unknown;
+    sequence?: unknown;
+    sandboxRevisionFingerprint?: unknown;
+    toolActionIds?: unknown;
+  } | null;
+  job: { id: string; userId: string; projectId?: string; pendingApproval?: { status?: unknown } | null };
+  currentSandboxRevisionFingerprint?: string | null;
+  toolActions: Array<{ actionId?: unknown; status?: unknown }>;
+  assessedAt?: number;
+}): AgentCheckpointRecoveryAssessment {
+  const checkpoint = input.checkpoint;
+  const checkpointActionIds = Array.isArray(checkpoint?.toolActionIds)
+    ? checkpoint.toolActionIds.filter((id): id is string => typeof id === "string").sort()
+    : [];
+  const journalActionIds = input.toolActions
+    .map((action) => action.actionId)
+    .filter((id): id is string => typeof id === "string")
+    .sort();
+  const base = {
+    version: 1 as const,
+    automaticResumeAllowed: false as const,
+    ...(Number.isSafeInteger(checkpoint?.sequence) ? { checkpointSequence: checkpoint.sequence as number } : {}),
+    checkpointActionIds,
+    journalActionIds,
+    assessedAt: input.assessedAt ?? Date.now(),
+  };
+  const result = (
+    disposition: AgentCheckpointRecoveryDisposition,
+    reason: AgentCheckpointRecoveryAssessment["reason"],
+  ): AgentCheckpointRecoveryAssessment => ({ ...base, disposition, reason });
+
+  if (input.job.pendingApproval?.status === "pending") {
+    return result("manual_review_required", "approval_was_pending");
+  }
+  if (!checkpoint) return result("inspect_before_resume", "checkpoint_missing");
+  if (
+    checkpoint.version !== 1 ||
+    checkpoint.jobId !== input.job.id ||
+    checkpoint.userId !== input.job.userId ||
+    checkpoint.projectId !== input.job.projectId ||
+    typeof checkpoint.sandboxRevisionFingerprint !== "string" ||
+    !Number.isSafeInteger(checkpoint.sequence) ||
+    (checkpoint.sequence as number) < 1 ||
+    !Array.isArray(checkpoint.toolActionIds) ||
+    checkpointActionIds.length !== checkpoint.toolActionIds.length
+  ) {
+    return result("manual_review_required", "checkpoint_ownership_mismatch");
+  }
+  if (
+    !input.currentSandboxRevisionFingerprint ||
+    checkpoint.sandboxRevisionFingerprint !== input.currentSandboxRevisionFingerprint
+  ) {
+    return result("inspect_before_resume", "checkpoint_revision_mismatch");
+  }
+  if (input.toolActions.some((action) => action.status === "started")) {
+    return result("inspect_before_resume", "checkpoint_action_outcome_unknown");
+  }
+  if (input.toolActions.some((action) => action.status !== "succeeded" && action.status !== "failed")) {
+    return result("manual_review_required", "checkpoint_state_invalid");
+  }
+  if (
+    new Set(checkpointActionIds).size !== checkpointActionIds.length ||
+    new Set(journalActionIds).size !== journalActionIds.length ||
+    checkpointActionIds.length !== journalActionIds.length ||
+    checkpointActionIds.some((id, index) => id !== journalActionIds[index])
+  ) {
+    return result("inspect_before_resume", "checkpoint_action_journal_mismatch");
+  }
+  return result("checkpoint_compatible", "checkpoint_and_sandbox_match");
+}
