@@ -112,3 +112,14 @@ test("ChatJob SSE waits for response drain when the client is backpressured", as
   assert.equal(response.chunks.length, 2);
 });
 
+test("ChatJob SSE rejects malformed route parameters", async () => {
+  const response = new FakeResponse();
+  const handler = createChatJobEventsHandler({
+    getUserId: () => "user-1",
+    getJob: async () => { throw new Error("Should not look up invalid ID"); },
+  });
+  await handler(request(undefined as unknown as string), response as never);
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.writableEnded, true);
+});
+
