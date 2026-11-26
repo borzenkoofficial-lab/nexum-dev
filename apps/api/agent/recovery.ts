@@ -26,6 +26,7 @@ type RecoveryEvent = {
   iteration?: unknown;
 };
 
+type RecoveryStep = { tool?: unknown };
 type RecoveryJobLike = {
   events?: unknown[];
   steps?: unknown[];
@@ -77,6 +78,27 @@ export function assessChatJobRecovery(
       completedTools.add(tool);
       if (riskOrder[risk] > riskOrder.READ) sideEffectMayHaveStarted = true;
     }
+  }
+
+  // Older AgentLoop paths may persist a completed step without a matching
+  // tool-start event. Completed step records are also evidence of side effects.
+  for (const raw of Array.isArray(job.steps) ? job.steps : []) {
+    if (!raw || typeof raw !== "object") continue;
+    const step = raw as RecoveryStep;
+    if (typeof step.tool !== "string" || !step.tool.trim()) {
+      unknownActivity = true;
+      continue;
+    }
+    const tool = step.tool.trim();
+    let risk: ToolRisk;
+    try {
+      risk = getToolSecurityPolicy(tool).risk;
+    } catch {
+      unknownActivity = true;
+      continue;
+    }
+    completedTools.add(tool);
+    if (riskOrder[risk] > riskOrder.READ) sideEffectMayHaveStarted = true;
   }
 
   const unmatchedStart = [...started.keys()].some((key) => !completed.has(key));
