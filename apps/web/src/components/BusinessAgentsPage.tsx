@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import "./BusinessAgentsPage.css";
 import "../kvard-ui-kit.css";
-import { KvardAlert, KvardButton, KvardDialog, KvardEmptyState, KvardField, KvardStatusBadge, KvardTabs } from "./ui/index.ts";
+import { KvardAlert, KvardButton, KvardDialog, KvardEmptyState, KvardField, KvardPageHeader, KvardStatusBadge, KvardTabs } from "./ui/index.ts";
 import { KvardMark } from "./KvardMark.ts";
 
 type Organization = { id: string; name: string; role: string };
@@ -290,14 +290,21 @@ export function BusinessAgentsPage() {
 
   return (
     <section className="kv-business-page">
-      <header className="kv-business-header">
-        <div><span className="kv-business-eyebrow">КВАРД / BUSINESS AI</span><h1>Бизнес-агенты</h1><p>Создавайте AI-сотрудников, подключайте знания и управляйте их работой.</p></div>
-        <div className="kv-business-header-actions">
+      <KvardPageHeader
+        className="kv-business-header"
+        eyebrow="КВАРД / BUSINESS AI"
+        eyebrowClassName="kv-business-eyebrow"
+        title="Бизнес-агенты"
+        titleId="kv-business-page-title"
+        description="Создавайте AI-сотрудников, подключайте знания и управляйте их работой."
+        descriptionId="kv-business-page-description"
+        actionsClassName="kv-business-header-actions"
+        actions={<>
           {organizations.length > 1 && <select aria-label="Рабочее пространство" value={organizationId} onChange={event => setOrganizationId(event.target.value)}>{organizations.map(org => <option key={org.id} value={org.id}>{org.name}</option>)}</select>}
           <KvardButton variant="secondary" size="md" type="button" onClick={() => void refresh()}>Обновить</KvardButton>
           <KvardButton variant="primary" size="md" type="button" onClick={() => { resetCreateForm(); setShowCreate(true); }}>＋ Создать агента</KvardButton>
-        </div>
-      </header>
+        </>}
+      />
 
       {error && <KvardAlert tone="danger" className="kv-business-alert is-error" onDismiss={() => setError("")}>{error}</KvardAlert>}
       {notice && <KvardAlert tone="success" className="kv-business-alert" onDismiss={() => setNotice("")}>{notice}</KvardAlert>}
