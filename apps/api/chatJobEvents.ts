@@ -58,16 +58,19 @@ export function createChatJobEventsHandler({
     const onClose = () => controller.abort();
     response.on("close", onClose);
     let lastUpdatedAt = -1;
+    let lastSnapshot = "";
     let lastHeartbeat = Date.now();
 
     const emitJob = (snapshot: ChatJob) => {
       const serialized = JSON.stringify(snapshot);
       response.write(`id: ${snapshot.updatedAt}\nevent: job\ndata: ${serialized}\n\n`);
       lastUpdatedAt = snapshot.updatedAt;
+      lastSnapshot = serialized;
       lastHeartbeat = Date.now();
     };
 
     try {
+      response.write("retry: 1500\\n\\n");
       emitJob(job);
       if (terminalStatuses.has(job.status)) {
         response.end();
@@ -79,12 +82,13 @@ export function createChatJobEventsHandler({
         if (controller.signal.aborted) break;
         try {
           const latest = await getJob(jobId, userId);
+          if (controller.signal.aborted) break;
           if (!latest) {
             response.write(`event: unavailable\ndata: ${JSON.stringify({ error: "Chat job expired or unavailable" })}\n\n`);
             response.end();
             break;
           }
-          if (latest.updatedAt !== lastUpdatedAt) emitJob(latest);
+          if (JSON.stringify(latest) !== lastSnapshot) emitJob(latest);
           if (terminalStatuses.has(latest.status)) {
             response.end();
             break;
