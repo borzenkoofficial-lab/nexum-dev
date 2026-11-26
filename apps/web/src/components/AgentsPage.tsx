@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Project } from "./types";
-import { KvardAlert, KvardButton, KvardEmptyState, KvardStatusBadge } from "./ui/index.ts";
+import { KvardAlert, KvardButton, KvardEmptyState, KvardPageHeader, KvardStatusBadge } from "./ui/index.ts";
 import "../kvard-ui-kit.css";
 
 type Job = { id: string; status: string; createdAt: number; updatedAt: number; error?: string; problems?: Array<{ message: string; source?: string }> };
@@ -244,10 +244,16 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
 
   return (
     <section className="kv-agents-page">
-      <header className="kv-agents-header">
-        <div><p className="kv-home-eyebrow">КВАРД / AI-АГЕНТЫ</p><h1>Агенты и профили запуска</h1><p>Выбирайте рабочую роль, задавайте собственные инструкции и запускайте её в контексте проекта.</p></div>
-        <button className="kv-agents-refresh" type="button" onClick={() => void load()} disabled={loading}>{loading ? "Обновление…" : "Обновить состояние"}</button>
-      </header>
+      <KvardPageHeader
+        className="kv-agents-header"
+        eyebrow="КВАРД / AI-АГЕНТЫ"
+        eyebrowClassName="kv-home-eyebrow"
+        title="Агенты и профили запуска"
+        titleId="kv-agents-page-title"
+        description="Выбирайте рабочую роль, задавайте собственные инструкции и запускайте её в контексте проекта."
+        descriptionId="kv-agents-page-description"
+        actions={<button className="kv-agents-refresh" type="button" onClick={() => void load()} disabled={loading}>{loading ? "Обновление…" : "Обновить состояние"}</button>}
+      />
 
       <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Как это работает сейчас.</strong> Профили запускают задачи в существующем AI Runtime как инструкции. Сохранённые AI-агенты применяют список разрешённых инструментов и выбранную политику подтверждений. Расписания, триггеры и фоновое выполнение пока не включены.</p></div>
       {notice && <KvardAlert tone="success" className="kv-agents-feedback">{notice}</KvardAlert>}
