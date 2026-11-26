@@ -3,8 +3,8 @@
 .nx-builder *, .nx-builder *::before, .nx-builder *::after { box-sizing: border-box; }
 .nx-builder button, .nx-builder input, .nx-builder textarea, .nx-builder select { font: inherit; }
 .nx-builder-header { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); flex: 0 0 56px; min-height: 56px; padding: 8px 14px; border-bottom: 1px solid var(--nx-border); background: var(--nx-surface); }
-.nx-builder-project, .nx-builder-nav button, .nx-builder-header-actions button { border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface); padding: 7px 10px; }
-.nx-builder-project { display: flex; align-items: center; gap: 9px; width: max-content; max-width: 280px; border: 0; text-align: left; }
+.nx-builder-nav button, .nx-builder-header-actions button { border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-surface); padding: 7px 10px; }
+.nx-builder-project { display: flex; align-items: center; gap: 9px; width: max-content; max-width: min(360px, 100%); min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
 .nx-builder-project-copy { display: grid; gap: 2px; min-width: 0; }
 .nx-builder-project-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .nx-builder-project-copy small, .nx-builder-status { color: var(--nx-muted); font-size: 11px; }
@@ -16,11 +16,11 @@
 .nx-builder-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .nx-chat, .nx-tool, .nx-code { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: var(--nx-surface); }
 .nx-chat-head, .nx-tool-head, .nx-code > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; padding: 10px 16px; border-bottom: 1px solid var(--nx-border); }
-.nx-chat-head > div, .nx-tool-head > div, .nx-code > header > div { display: grid; gap: 4px; }
+.nx-chat-head .kv-page-header__content, .nx-tool-head .kv-page-header__content, .nx-code-head .kv-page-header__content { display: grid; gap: 4px; }
 .nx-chat-head span, .nx-tool-head span, .nx-code small, .nx-chat footer { color: var(--nx-muted); font-size: 11px; }
 .nx-chat-scroll { flex: 1; min-height: 0; overflow: auto; padding: 20px; }
 .nx-chat-empty { width: min(600px, 100%); margin: 8vh auto 24px; text-align: center; }
-.nx-chat-empty h1 { font-size: clamp(24px, 4vw, 36px); font-weight: 600; }
+.nx-chat-empty h3 { font-size: clamp(24px, 4vw, 36px); font-weight: 600; }
 .nx-chat-empty p { color: var(--nx-muted); line-height: 1.6; }
 .nx-suggestions, .nx-composer-row, .nx-composer-left, .nx-composer-right, .nx-tool-actions, .nx-device-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .nx-suggestions { justify-content: center; margin-top: 20px; }
