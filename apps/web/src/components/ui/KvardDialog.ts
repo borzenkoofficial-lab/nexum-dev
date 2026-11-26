@@ -1,5 +1,9 @@
-import { useEffect, useRef } from "react";
-import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
+import { createElement, useEffect, useRef } from "react";
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  ReactNode,
+} from "react";
 
 export interface KvardDialogProps {
   open: boolean;
@@ -105,29 +109,31 @@ export function KvardDialog({
 
   if (!open) return null;
 
-  return (
-    <div
-      className={backdropClassName}
-      role="presentation"
-      onMouseDown={(event) => {
+  return createElement(
+    "div",
+    {
+      className: backdropClassName,
+      role: "presentation",
+      onMouseDown: (event: ReactMouseEvent<HTMLDivElement>) => {
         if (closeOnBackdrop && event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div
-        ref={dialogRef}
-        className={dialogClassName}
-        role="dialog"
-        aria-modal="true"
-        aria-label={ariaLabel}
-        aria-labelledby={ariaLabelledBy}
-        aria-describedby={ariaDescribedBy}
-        tabIndex={-1}
-        onKeyDown={(event: ReactKeyboardEvent<HTMLDivElement>) => {
+      },
+    },
+    createElement(
+      "div",
+      {
+        ref: dialogRef,
+        className: dialogClassName,
+        role: "dialog",
+        "aria-modal": true,
+        "aria-label": ariaLabel,
+        "aria-labelledby": ariaLabelledBy,
+        "aria-describedby": ariaDescribedBy,
+        tabIndex: -1,
+        onKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => {
           handleKvardDialogKeyDown(event.nativeEvent, event.currentTarget, onClose, closeOnEscape);
-        }}
-      >
-        {children}
-      </div>
-    </div>
+        },
+      },
+      children,
+    ),
   );
 }

@@ -22,9 +22,17 @@ ENV HOST=0.0.0.0
 COPY --from=build /app/apps/api/package*.json ./apps/api/
 COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
+# TypeScript compilation does not copy SQL migration assets.
+COPY --from=build /app/apps/api/db/migrations ./apps/api/dist/db/migrations
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/scripts/start-production.sh ./scripts/start-production.sh
+
+RUN chmod 755 /app/scripts/start-production.sh \
+    && mkdir -p /app/runtime \
+    && chown node:node /app/runtime
+
+USER node
 
 EXPOSE 3001
-
-CMD ["node", "apps/api/dist/server.js"]
+CMD ["/app/scripts/start-production.sh"]
