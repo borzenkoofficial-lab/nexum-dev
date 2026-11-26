@@ -137,6 +137,14 @@ function checkpointRecoveryFixture() {
       sequence: 4,
       sandboxRevisionFingerprint: "sha256:revision-a",
       toolActionIds: ["action-1", "action-2"],
+      resumeState: {
+        task: "Continue the original task",
+        builderTask: true,
+        repairRequested: false,
+        forceCompletionNextIteration: false,
+        remotePlannerRateLimited: false,
+        productPlannerCreated: true,
+      },
     },
     job: { id: "job-1", userId: "user-1", projectId: "project-1" },
     currentSandboxRevisionFingerprint: "sha256:revision-a",
@@ -212,6 +220,16 @@ test("checkpoint recovery rejects malformed journal entries instead of dropping 
     ...fixture,
     toolActions: [...fixture.toolActions, { status: "succeeded" }],
   });
+  assert.equal(assessment.disposition, "manual_review_required");
+  assert.equal(assessment.reason, "checkpoint_state_invalid");
+});
+
+
+test("checkpoint recovery rejects snapshots without complete loop-control state", () => {
+  const fixture = checkpointRecoveryFixture();
+  const checkpoint = { ...fixture.checkpoint } as Record<string, unknown>;
+  delete checkpoint.resumeState;
+  const assessment = assessAgentCheckpointRecovery({ ...fixture, checkpoint });
   assert.equal(assessment.disposition, "manual_review_required");
   assert.equal(assessment.reason, "checkpoint_state_invalid");
 });
