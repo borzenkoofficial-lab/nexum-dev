@@ -364,6 +364,7 @@ function WorkspaceApp() {
     void loadПроектs(preferred);
   }, []);
   useEffect(() => {
+    if (projectsLoading) return;
     let cancelled = false;
     async function restoreActiveAgentJob() {
       try {
@@ -385,7 +386,7 @@ function WorkspaceApp() {
     }
     void restoreActiveAgentJob();
     return () => { cancelled = true; };
-  }, [activeПроектId]);
+  }, [activeПроектId, projectsLoading]);
 
   useEffect(() => {
     async function loadAIConfig() {
