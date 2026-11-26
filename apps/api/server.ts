@@ -1867,7 +1867,17 @@ app.get("/api/chat/jobs", async (req, res) => {
   const userId = getAuthUser(req).id;
   const jobs = await listChatJobs(userId, 50);
   const active = jobs.filter((job) => job.status === "queued" || job.status === "running");
-  return res.json({ success: true, jobs: active });
+  return res.json({
+    success: true,
+    jobs: active.map((job) => ({
+      id: job.id,
+      projectId: job.projectId,
+      status: job.status,
+      stage: job.stage,
+      currentMessage: job.currentMessage,
+      updatedAt: job.updatedAt,
+    })),
+  });
 });
 
 app.get("/api/chat/jobs/:id/events", createChatJobEventsHandler({
