@@ -712,3 +712,12 @@ Verification boundary: source and diff review only. CI, typecheck, tests, lint, 
 - No diagnostics data sources, retry handlers, export behavior, API paths or admin surfaces were changed.
 
 Verification boundary: source and test additions reviewed; test execution, typecheck, lint, build and browser QA remain unconfirmed on the final HEAD.
+
+
+## 28. AI Agent profile persistence feedback
+
+- Profile-save confirmation now distinguishes the three supported storage states: database, server memory and unknown.
+- The UI no longer claims server-memory persistence when the API omits the storage field and no previous storage state is known.
+- The resolved storage value is used consistently for both state and user feedback.
+- Focused test coverage verifies each storage message.
+- Agent profile API payload, persistence implementation, save flow and other agent workflows are unchanged.
