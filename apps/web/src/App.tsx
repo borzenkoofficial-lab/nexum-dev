@@ -393,6 +393,11 @@ function WorkspaceApp() {
             events?: Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>;
             problems?: Array<{ message: string; source?: string }>;
             error?: string; updatedAt?: number;
+            recoveryAssessment?: {
+              disposition: "safe_to_restart" | "inspect_before_retry" | "manual_review_required";
+              reason: string;
+              automaticResumeAllowed: false;
+            };
             productPlan?: { goal?: string; productType?: string; pages?: string[]; components?: string[]; acceptanceCriteria?: string[] };
           }> };
           const completedJob = (recentData.jobs ?? []).find((item) => item.projectId === activeПроектId);
@@ -404,7 +409,17 @@ function WorkspaceApp() {
           setActivitySteps(completedJob.steps ?? []);
           setActivityEvents(completedJob.events ?? []);
           setProblems(completedJob.problems ?? []);
-          setCurrentActivity(completedJob.error ?? completedJob.currentMessage ?? (completedJob.status === "completed" ? "Последняя задача завершена." : "Последняя задача завершилась."));
+          const recoveryMessage = completedJob.recoveryAssessment?.disposition === "safe_to_restart"
+            ? "Сбой прервал задачу до зафиксированных операций изменения. Её можно запустить заново."
+            : completedJob.recoveryAssessment?.disposition === "inspect_before_retry"
+              ? "Задача прервана после возможного изменения проекта или незавершённой команды. Сначала проверьте текущее состояние проекта; автоматический повтор отключён."
+              : completedJob.recoveryAssessment?.disposition === "manual_review_required"
+                ? "Задача прервана во время подтверждения или неизвестного действия. Перед повтором требуется ручная проверка."
+                : "";
+          setCurrentActivity([
+            completedJob.error ?? completedJob.currentMessage ?? (completedJob.status === "completed" ? "Последняя задача завершена." : "Последняя задача завершилась."),
+            recoveryMessage,
+          ].filter(Boolean).join(" "));
           setАгентStage(completedJob.status === "completed" ? "completed" : "error");
           if (completedJob.productPlan) setProductPlan({
             goal: completedJob.productPlan.goal ?? "",
