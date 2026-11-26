@@ -123,6 +123,18 @@ test("KvardTabs exposes linked tab semantics and an accessible badge label", () 
   assert.equal(usageProps.tabIndex, -1);
 });
 
+test("KvardTabs accepts a consumer class without replacing its shared class", () => {
+  const tabs = KvardTabs({
+    id: "builder",
+    className: "nx-builder-nav",
+    ariaLabel: "Инструменты проекта",
+    value: "preview",
+    onChange: () => undefined,
+    items: [{ id: "preview", label: "Предпросмотр" }],
+  });
+  assert.equal(propsOf(tabs).className, "kv-tabs nx-builder-nav");
+});
+
 test("KvardTabs moves focus and selection with wrapping arrow-key navigation", () => {
   const selected: string[] = [];
   const focused: string[] = [];
