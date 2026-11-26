@@ -270,7 +270,7 @@
 .kv-surface--default { box-shadow: none; }
 .kv-surface--subtle { background: var(--kv-surface-subtle); }
 .kv-surface--raised { background: var(--kv-surface-raised); box-shadow: var(--kv-shadow-panel); }
-.kv-surface--outline { border-style: dashed; background: var(--kv-surface); }
+.kv-surface--outline { border-color: var(--kv-border-strong); border-style: dashed; background: var(--kv-surface); }
 .kv-surface--padding-none { padding: 0; }
 .kv-surface--padding-sm { padding: 12px; }
 .kv-surface--padding-md { padding: 16px; }
