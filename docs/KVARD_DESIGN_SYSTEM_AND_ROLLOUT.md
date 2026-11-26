@@ -701,3 +701,14 @@ Verification boundary: source and diff review only. CI, typecheck, lint, tests, 
 - No administrative UI, styles, routes, APIs, permissions or business logic were changed.
 
 Verification boundary: source and diff review only. CI, typecheck, tests, lint, build and browser visual/keyboard QA must be checked against the final HEAD; none are claimed as passing.
+
+
+## 27. Diagnostics toast semantics
+
+- Diagnostics feedback now uses the shared `KvardToast` live-region primitive.
+- The previous toast container had an `onClick` dismissal handler but was not a keyboard-operable control; its shared toast styling also disables pointer events. The ineffective click handler was removed rather than inventing an interactive affordance.
+- The message remains a polite, atomic status announcement and keeps the existing notice state, API error text and export-success message.
+- A focused UI test covers the toast live-region contract and absence of an implicit click action.
+- No diagnostics data sources, retry handlers, export behavior, API paths or admin surfaces were changed.
+
+Verification boundary: source and test additions reviewed; test execution, typecheck, lint, build and browser QA remain unconfirmed on the final HEAD.
