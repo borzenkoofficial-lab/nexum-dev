@@ -286,3 +286,22 @@ The final implementation is committed to `main`. Previous Actions runs were canc
 ### Verification boundary
 
 The changes are committed to `main`. The final GitHub Actions run must be checked against the final documentation commit; previous runs were cancelled by subsequent commits and did not complete jobs. No tests, typecheck, lint, build, browser visual QA or manual keyboard QA are claimed as passing. No administrative files were changed.
+
+
+## Task 9 — Builder navigation and responsive project header
+
+**Purpose:** Replace Builder's one-off tool navigation with the existing accessible tab primitive and stabilize the header layout on narrow screens without changing project behavior.
+
+- [x] Extend KvardTabs with an optional consumer class while preserving the shared base class.
+- [x] Add a focused test for the shared + consumer class contract.
+- [x] Migrate BuilderShell tool navigation to KvardTabs with linked tabpanel semantics.
+- [x] Add responsive horizontal scrolling, touch target sizing and visible panel focus styling for narrow screens.
+- [x] Preserve existing tool selection callbacks, status display, project actions and content ownership.
+- [x] Document the implementation and verification boundary.
+- [ ] Run focused UI Kit tests, Web typecheck, lint and build on the final commit.
+- [ ] Verify desktop/tablet/mobile layouts and keyboard navigation in a real browser.
+- [ ] Confirm the final CI run and ensure no administrative files changed.
+
+Implementation commits: `e6fdbaa`, `c68b307`, `10d577d`, `080efd5`, followed by the final test and documentation commits.
+
+Verification boundary: no local test/build execution is available in this GitHub-only session. CI and Vercel must be checked against the final HEAD; no passing checks or browser QA are claimed.
