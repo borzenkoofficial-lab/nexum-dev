@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentStage } from "./types";
+import { KvardSegmentedControl } from "./ui/KvardSegmentedControl.ts";
 
 interface Props {
   tab: "preview" | "files" | "agent";
@@ -129,10 +130,17 @@ export function BuilderTools(p: Props) {
         </div>
         {p.previewOnline ? (
           <>
-            <div className="nx-device-tabs" role="group" aria-label="Размер предпросмотра">
-              {(["desktop", "tablet", "mobile"] as const).map((value) => (
-                <button key={value} type="button" className={device === value ? "selected" : ""} aria-pressed={device === value} onClick={() => setDevice(value)}>{deviceLabels[value]}</button>
-              ))}
+            <div className="nx-device-tabs">
+              <KvardSegmentedControl
+                ariaLabel="Размер предпросмотра"
+                value={device}
+                onChange={value => setDevice(value as typeof device)}
+                items={[
+                  { id: "desktop", label: deviceLabels.desktop },
+                  { id: "tablet", label: deviceLabels.tablet },
+                  { id: "mobile", label: deviceLabels.mobile },
+                ]}
+              />
             </div>
             <div className={"nx-preview " + device}>
               <div className="nx-browser"><span aria-hidden="true">● ● ●</span><small>preview / {p.projectName}</small><b>ДОСТУПЕН</b></div>
