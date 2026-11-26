@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Project } from "./types";
-import { KvardButton, KvardStatusBadge } from "./ui/index.ts";
+import { KvardAlert, KvardButton, KvardStatusBadge } from "./ui/index.ts";
 import "../kvard-ui-kit.css";
 
 type Job = { id: string; status: string; createdAt: number; updatedAt: number; error?: string; problems?: Array<{ message: string; source?: string }> };
@@ -251,7 +251,7 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
 
       <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Как это работает сейчас.</strong> Профили запускают задачи в существующем AI Runtime как инструкции. Сохранённые AI-агенты применяют список разрешённых инструментов и выбранную политику подтверждений. Расписания, триггеры и фоновое выполнение пока не включены.</p></div>
       {notice && <p className="kv-agents-feedback" role="status">{notice}</p>}
-      {loadError && <div className="kv-agents-error" role="alert">{loadError} <button type="button" onClick={() => void load()}>Повторить</button></div>}
+      {loadError && <KvardAlert tone="danger" className="kv-agents-error">{loadError} <button type="button" onClick={() => void load()}>Повторить</button></KvardAlert>}
 
       <section className="kv-agents-profiles" aria-labelledby="kv-agents-profiles-title">
         <div className="kv-agents-section-head"><div><span>БИБЛИОТЕКА</span><h2 id="kv-agents-profiles-title">Профили задач</h2><p>Готовые роли и ваши собственные инструкции для агента.</p></div><KvardButton variant="primary" size="md" type="button" onClick={() => { setFormOpen((value) => !value); setFormError(""); }}>＋ Создать профиль</KvardButton></div>
@@ -266,7 +266,7 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
 
         <div className="kv-agents-launchbar"><label htmlFor="kv-agent-project">Проект для запуска</label><select id="kv-agent-project" value={selectedProject} onChange={(event) => setSelectedProject(event.target.value)} disabled={!projects.some((item) => item.status === "active")}><option value="">Выберите проект</option>{projects.filter((item) => item.status === "active").map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><span>{selectedProject ? "Инструкция откроется в Studio и останется доступной для редактирования до запуска." : "Сначала создайте или выберите проект."}</span></div>
 
-        {profileLoadError && <div className="kv-agents-error" role="alert">{profileLoadError} <button type="button" onClick={() => void loadProfiles()}>Повторить</button></div>}
+        {profileLoadError && <KvardAlert tone="danger" className="kv-agents-error">{profileLoadError} <button type="button" onClick={() => void loadProfiles()}>Повторить</button></KvardAlert>}
         {profileStorage === "memory" && <p className="kv-agents-storage-warning" role="status">База данных не подключена: пользовательские профили хранятся в памяти сервера и будут потеряны после его перезапуска.</p>}
         {profileStorage === "database" && <p className="kv-agents-storage-ok">Пользовательские профили сохраняются в базе данных аккаунта.</p>}
         {profileStorage === "unknown" && profilesLoading && <p className="kv-agents-empty">Проверяю хранилище профилей…</p>}
@@ -291,7 +291,7 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
         </div>
         {agentsStorage === "memory" && <p className="kv-agents-storage-warning">База данных не подключена: агенты будут потеряны после перезапуска сервера.</p>}
         {agentsStorage === "database" && <p className="kv-agents-storage-ok">Конфигурации агентов хранятся в базе данных аккаунта.</p>}
-        {agentsError && <div className="kv-agents-error" role="alert">{agentsError} <button type="button" onClick={() => void loadAgents()}>Повторить</button></div>}
+        {agentsError && <KvardAlert tone="danger" className="kv-agents-error">{agentsError} <button type="button" onClick={() => void loadAgents()}>Повторить</button></KvardAlert>}
         {agentFormOpen && <form className="kv-agents-form" onSubmit={(event) => { event.preventDefault(); void saveAgent(); }}>
           <div className="kv-agents-form-head"><div><strong>{editingAgentId ? "Настройки агента" : "Новый AI-агент"}</strong><small>Системная инструкция, модель и разрешённые инструменты</small></div><button type="button" aria-label="Закрыть форму" onClick={() => setAgentFormOpen(false)}>×</button></div>
           <label>Название<input value={agentName} onChange={(event) => setAgentName(event.target.value)} maxLength={48} required placeholder="Например, Агент отдела продаж" /></label>
