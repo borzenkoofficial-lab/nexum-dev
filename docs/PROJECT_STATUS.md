@@ -476,3 +476,12 @@ NEXUM.DEV — браузерная платформа для создания и
 - Regression coverage now includes continuation-state capture and validation, stale recovery with a matching persisted checkpoint, and explicit rejection of incomplete continuation state.
 - Remaining work before real restore: hydrate every AgentLoop mutable variable and AdaptiveTokenBudget from a validated checkpoint; reconcile runtime task/approval state and Sandbox availability; acquire project lock before any continuation; prove idempotent no-replay semantics; add process-restart E2E coverage. Automatic resume remains disabled.
 - CI for the consolidated latest commit must pass before this batch is considered verified. No production deployment, production migration, secret update, or live/paid provider request was performed.
+
+
+## Durable Agent Execution — CI type fix and token-budget restore primitive (2026-11-26)
+
+- Fixed API TypeScript narrowing in checkpoint recovery assessment (checkpointSequence now requires a non-null checkpoint before reading its sequence).
+- Added a validated AdaptiveTokenBudget restore primitive. It recreates the task tier and hard cap, verifies checkpoint tier/cap/reserved/remaining/call-count compatibility, and restores consumed capacity without increasing it. Added tests for round-trip capacity and malformed/incompatible snapshots.
+- Checkpoint validation now also validates token-budget tier and call counter.
+- This is a prerequisite primitive only: AgentLoop does not yet hydrate from checkpoint, so no task automatically resumes. A compatible stale checkpoint remains diagnostic; stale jobs still fail safely.
+- CI for prior HEAD b6cfc484bbf76d6fe4cfe12c169891aa23e0d702 failed at API typecheck with TS18049 in recovery assessment; the fix is committed after that run. CI for the new consolidated commits must be checked before calling this batch verified. No local test run was available. No production deployment/migration, secrets change, or live/paid provider request.
