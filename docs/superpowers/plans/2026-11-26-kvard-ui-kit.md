@@ -496,3 +496,20 @@ Verification boundary: source changes and focused tests added; successful test/b
 - [ ] Run visual browser QA at desktop, tablet and mobile widths.
 
 Verification boundary: source and diff review only; browser visual QA is not claimed.
+
+
+## Task 21 — AI Agents library card layout
+
+**Purpose:** Improve scanning and action clarity in the user-facing AI Agents library without changing agent or profile behavior.
+
+- [x] Convert the shared profile/agent inventory container to a responsive two-column card grid on wide screens.
+- [x] Give cards a clear identity, metadata, description and action hierarchy.
+- [x] Separate primary launch/configuration actions from neutral pause/delete actions.
+- [x] Improve Runtime table and event-stream spacing using existing tokens.
+- [x] Preserve all content, callbacks, state, APIs and destructive-action confirmation behavior.
+- [x] Collapse the card grid to one column at narrower widths and retain mobile action sizing.
+- [x] Keep scope to user-facing presentation; no backend, business logic or admin changes.
+- [ ] Review final diff and validate card wrapping at desktop/tablet/mobile widths.
+- [ ] Run browser visual and keyboard QA.
+
+Verification boundary: source and diff review only; browser visual QA is not claimed.

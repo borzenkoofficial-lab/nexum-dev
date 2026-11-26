@@ -742,3 +742,14 @@ Verification boundary: implementation and focused tests added; test execution, t
 - Recent-project rows receive more deliberate spacing and surface treatment while retaining their existing project-open callbacks.
 - Desktop and mobile layouts use the existing semantic light/dark design tokens. No new palette, API, project state, business logic or admin surface was introduced.
 - Scope is presentation-only: BuilderHome markup and kvard-design-system styles.
+
+
+## 31. AI Agents library card layout
+
+- The user-facing profile and agent inventories now use responsive configuration cards instead of one continuous dense row list.
+- Each card has a stable identity area, readable role/status metadata, clearer description spacing and a separated action rail.
+- Primary launch/configuration actions remain visually distinct from pause/delete actions; destructive affordances remain neutral until hover and use semantic danger tokens.
+- The Runtime table and event stream receive slightly more generous row spacing and consistent surface elevation.
+- Existing profile/agent content, state, callbacks, APIs, confirmation behavior and runtime data are unchanged. No admin UI or admin styles are included.
+- The card layout uses existing semantic tokens and collapses to a single column on narrower screens.
+- Scope is presentation-only: kvard-design-system styles.

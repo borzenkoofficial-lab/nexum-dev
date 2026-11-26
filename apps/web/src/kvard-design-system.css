@@ -1184,3 +1184,169 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .kv-home-project-count { display: none; }
   .kv-home-composer-footer > span { display: none; }
 }
+
+
+/* AI Agents library — convert dense inventory rows into clear, responsive configuration cards. */
+.kv-agents-profiles,
+.kv-agents-runtime {
+  margin-top: 34px;
+}
+.kv-agents-profile-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 12px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.kv-agents-profile {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  align-items: start;
+  gap: 12px 13px;
+  min-width: 0;
+  min-height: 164px;
+  padding: 17px;
+  border: 1px solid var(--kv-border);
+  border-bottom: 1px solid var(--kv-border);
+  border-radius: var(--kv-radius-panel);
+  background: var(--kv-surface);
+  box-shadow: var(--kv-shadow-panel);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.kv-agents-profile:hover {
+  border-color: var(--kv-border-strong);
+  box-shadow: var(--kv-shadow-popover);
+}
+.kv-agents-profile-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--kv-action-soft);
+  color: var(--kv-action);
+}
+.kv-agents-profile-meta {
+  gap: 7px;
+  flex-wrap: wrap;
+  font-size: 10px;
+}
+.kv-agents-profile-meta b {
+  padding: 3px 6px;
+  border: 1px solid var(--kv-border);
+  border-radius: 5px;
+  background: var(--kv-surface-subtle);
+  color: var(--kv-text-secondary);
+  font-size: 9px;
+  letter-spacing: .04em;
+}
+.kv-agents-profile h3 {
+  margin-top: 7px;
+  font-size: 15px;
+  letter-spacing: -.02em;
+}
+.kv-agents-profile p {
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.kv-agents-profile-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--kv-border);
+}
+.kv-agents-profile-actions button {
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.kv-agents-profile-actions .kv-agents-delete {
+  min-height: 36px;
+  padding-inline: 10px;
+  border: 1px solid var(--kv-border);
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-surface);
+  color: var(--kv-text-secondary);
+  font-size: 11px;
+}
+.kv-agents-profile-actions .kv-agents-delete:hover {
+  border-color: var(--kv-border-strong);
+  background: var(--kv-surface-subtle);
+  color: var(--kv-text);
+}
+.kv-agents-profile-actions .kv-agents-delete[aria-label^="Удалить"] {
+  color: var(--kv-text-tertiary);
+}
+.kv-agents-profile-actions .kv-agents-delete[aria-label^="Удалить"]:hover {
+  border-color: var(--kv-danger);
+  background: var(--kv-danger-soft);
+  color: var(--kv-danger);
+}
+.kv-agents-runtime-grid {
+  gap: 16px;
+}
+.kv-agents-runtime-main,
+.kv-agents-events {
+  box-shadow: var(--kv-shadow-panel);
+}
+.kv-agents-table-head {
+  min-height: 42px;
+  font-size: 9px;
+}
+.kv-agents-job-row {
+  min-height: 68px;
+  padding: 13px 16px;
+}
+.kv-agents-job-row small {
+  font-size: 10px;
+}
+.kv-agents-events-head {
+  min-height: 48px;
+}
+.kv-agents-event {
+  padding: 13px 14px;
+}
+.kv-agents-event strong {
+  font-size: 11px;
+}
+.kv-agents-event small {
+  font-size: 10px;
+}
+.kv-agents-runtime-footer {
+  margin-top: 11px;
+  font-size: 10px;
+}
+@media (max-width: 1100px) {
+  .kv-agents-profile-list {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 680px) {
+  .kv-agents-profiles,
+  .kv-agents-runtime {
+    margin-top: 28px;
+  }
+  .kv-agents-profile {
+    min-height: 0;
+    padding: 14px;
+  }
+  .kv-agents-profile-actions {
+    gap: 7px;
+  }
+  .kv-agents-profile-actions .kv-agents-use,
+  .kv-agents-profile-actions .kv-agents-delete {
+    min-height: 42px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kv-agents-profile {
+    transition: none;
+  }
+}
