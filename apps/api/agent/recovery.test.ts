@@ -227,8 +227,7 @@ test("checkpoint recovery rejects malformed journal entries instead of dropping 
 
 test("checkpoint recovery rejects snapshots without complete loop-control state", () => {
   const fixture = checkpointRecoveryFixture();
-  const checkpoint = { ...fixture.checkpoint } as Record<string, unknown>;
-  delete checkpoint.resumeState;
+  const checkpoint = { ...fixture.checkpoint, resumeState: undefined };
   const assessment = assessAgentCheckpointRecovery({ ...fixture, checkpoint });
   assert.equal(assessment.disposition, "manual_review_required");
   assert.equal(assessment.reason, "checkpoint_state_invalid");
