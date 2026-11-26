@@ -569,13 +569,17 @@ test("active ChatJob and Builder progress restore after page reload with reconne
   await page.context().setOffline(false);
   await expect(page.locator("body")).toContainText("Соединение восстановлено", { timeout: 15_000 });
 
+  const secondTab = await page.context().newPage();
+  await secondTab.goto(page.url());
+  await expect(secondTab.getByLabel("Опишите задачу")).toBeVisible({ timeout: 15_000 });
+  await expect(secondTab.getByRole("button", { name: "Отменить выполнение задачи" })).toBeVisible({ timeout: 10_000 });
+
   const restoredJob = await page.request.get("/api/chat/jobs/" + encodeURIComponent(jobId));
   expect(restoredJob.ok()).toBeTruthy();
   const restored = await restoredJob.json();
   expect(["queued", "running"]).toContain(restored.job?.status);
 
-  const cancel = await page.request.post("/api/chat/jobs/" + encodeURIComponent(jobId) + "/cancel");
-  expect(cancel.ok()).toBeTruthy();
+  await page.getByRole("button", { name: "Отменить выполнение задачи" }).click();
   await expect.poll(async () => {
     const response = await page.request.get("/api/chat/jobs/" + encodeURIComponent(jobId));
     if (!response.ok()) return "missing";
@@ -591,4 +595,6 @@ test("active ChatJob and Builder progress restore after page reload with reconne
   await page.reload();
   await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 15_000 });
   await expect(page.locator("body")).toContainText("Agent task cancelled by user.", { timeout: 10_000 });
+  await expect(secondTab.locator("body")).toContainText("Agent task cancelled by user.", { timeout: 10_000 });
+  await secondTab.close();
 });
