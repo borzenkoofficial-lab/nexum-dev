@@ -408,3 +408,19 @@ NEXUM.DEV — браузерная платформа для создания и
 - Important implementation finding: the current `AgentLoop.runInternal` keeps critical continuation state in process memory, including `previousResults`, planner-context fingerprints, action-attempt tracking, token budget, and phase-local control flags. Persisted ChatJob snapshots and the execution plan do not contain enough information to continue the exact loop safely. Reconstructing only from the visible steps would risk repeating writes or commands.
 - Therefore this change is a safety boundary, not yet durable execution. The next implementation phase must introduce a versioned execution journal/checkpoint written around each tool invocation, stable action IDs, durable tool results, and explicit idempotency/reconciliation policy for side-effecting tools. A checkpoint may only be marked resumable after its required state is durably committed.
 - A GitHub Actions run exposed an existing TypeScript listener mismatch in the cancellation bridge; the parent AbortSignal handler now uses a zero-argument wrapper and removes that exact listener. Earlier rapid-push CI runs were cancelled; the consolidated run for the latest commit must still be checked. No production migration, deployment, secret change, or live/paid provider request was performed.
+
+## Durable Agent Execution — tool action journal (2026-11-26)
+
+- Added `agent_chat_job_tool_actions`, an application-managed PostgreSQL table created by the existing ChatJob store bootstrap. This does not require or apply a production migration in this development step.
+- Every `AgentLoop` tool invocation in the server ChatJob path now passes through an awaited journal wrapper:
+  1. resolve the tool's registered risk policy;
+  2. commit a `started` action record before calling the tool;
+  3. execute the tool;
+  4. commit `succeeded` or `failed` plus a SHA-256 digest of the result before returning control to the AgentLoop.
+- If the intent record cannot be committed, the tool is not executed. If the result cannot be finalized, the AgentLoop stops and the journal remains `started`, so recovery treats the outcome as unknown.
+- The journal stores action UUID, job/user scope, tool name, risk class, input digest, lifecycle status, timestamps, result success flag, and result digest. It deliberately does not store raw tool input/output, file contents, prompts, or credentials.
+- Restart recovery now consults this journal in addition to best-effort ChatJob events and steps. Unfinished actions are classified as unknown outcomes; completed WRITE/EXECUTE/DESTRUCTIVE actions still require project inspection. All running jobs remain non-resumable until a full durable execution checkpoint exists.
+- Added tests for journal ordering, exactly-once finalization, owner scoping, fail-closed behavior, and recovery from missing UI events.
+- This is a durable action ledger, **not yet a resumable execution engine**: it does not persist the full planner context or tool result payloads needed to reconstruct `previousResults`, token budgets, action-attempt maps, and phase state. No tool is replayed automatically.
+- PostgreSQL is required for cross-process durability. The in-memory fallback is process-local and is only suitable for development.
+- No production migration, deployment, secret change, or live/paid provider request was performed. CI and local typecheck/test results must be verified before treating this work as complete.
