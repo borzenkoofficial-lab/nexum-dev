@@ -27,6 +27,7 @@ import { OSAppWindow } from "./components/OSAppWindow";
 import type { AIProviderInfo, AIProviderStatus, AgentStage as АгентStage, Project as Проект } from "./components/types";
 import { diagnosticsEvent, getDiagnosticsSessionId, startDiagnostics } from "./diagnostics";
 import { nexumRuntime } from "./runtime";
+import { conversationForProject, readProjectConversation, shouldPersistProjectConversation, type ProjectConversationMessage } from "./components/projectConversation";
 // UI controls persist locally; server-side credentials remain outside the client bundle.
 
 function ConnectorModal({ name, onClose }: { name: string; onClose: () => void }) {
@@ -189,8 +190,8 @@ function WorkspaceApp() {
   const localAITestEnabled = true;
   const [localAIConfigured, setLocalAIConfigured] = useState(false);
   const [localAIKeyLoading, setLocalAIKeyLoading] = useState(false);
-  const [conversation, setConversation] = useState<Array<{ id: string; role: "user" | "assistant"; content: string; timestamp: number; attachments?: string[] }>>([]);
-  const conversationПроектRef = useRef<string | null>(null);
+  const [conversation, setConversation] = useState<ProjectConversationMessage[]>([]);
+  const [conversationProjectId, setConversationProjectId] = useState<string | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<Array<{ id: string; name: string; type: string; size: number; file: File }>>([]);
   const [uiSettings, setUiSettings] = useState(() => {
     try {
@@ -257,18 +258,15 @@ function WorkspaceApp() {
   }, []);
 
   useEffect(() => {
-    conversationПроектRef.current = null;
-    try {
-      const saved = JSON.parse(localStorage.getItem(`nexum:conversation:${activeПроектId}`) || "[]");
-      setConversation(Array.isArray(saved) ? saved.slice(-100) : []);
-    } catch { setConversation([]); }
-    conversationПроектRef.current = activeПроектId;
+    setConversationProjectId(null);
+    setConversation(readProjectConversation(activeПроектId, localStorage));
+    setConversationProjectId(activeПроектId);
   }, [activeПроектId]);
 
   useEffect(() => {
-    if (conversationПроектRef.current !== activeПроектId) return;
+    if (!shouldPersistProjectConversation(activeПроектId, conversationProjectId)) return;
     try { localStorage.setItem(`nexum:conversation:${activeПроектId}`, JSON.stringify(conversation.slice(-100))); } catch {}
-  }, [activeПроектId, conversation]);
+  }, [activeПроектId, conversationProjectId, conversation]);
 
   async function serializeAttachments(files: File[]) {
     const results: Array<{ name: string; type: string; size: number; content?: string; data?: string }> = [];
@@ -760,7 +758,13 @@ function WorkspaceApp() {
       const serializedAttachments = await serializeAttachments(pendingAttachments.map((item) => item.file));
       setConversation((items) => [...items, { id: `user-${Date.now()}`, role: "user", content: task.trim(), timestamp: Date.now(), attachments: serializedAttachments.map((item) => item.name) }]);
       setPendingAttachments([]);
-      const chatContext = conversation
+      const targetConversation = conversationForProject(
+        targetПроектId,
+        conversationProjectId,
+        conversation,
+        localStorage,
+      );
+      const chatContext = targetConversation
         .slice(-8)
         .map((item) => ({ role: item.role, content: item.content.slice(0, 900) }))
         .filter((item) => item.content.trim());

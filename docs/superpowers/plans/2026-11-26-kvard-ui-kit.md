@@ -463,3 +463,19 @@ Verification boundary: source and test additions reviewed; no successful test/bu
 - [ ] Confirm final GitHub Actions and deployment status.
 
 Verification boundary: source and test changes reviewed; no successful test/build or browser visual QA is claimed.
+
+
+## Task 19 — Project-scoped conversation integrity
+
+**Purpose:** Keep Builder conversation history and first-task context isolated to the project selected by the user across project switches and project creation.
+
+- [x] Gate local conversation writes on the project ID whose history has completed loading.
+- [x] Resolve outgoing chat context against the requested target project; a newly created project starts with no inherited conversation.
+- [x] Preserve the existing local-storage key format, retention limit, chat API contract and server job lifecycle.
+- [x] Add focused tests for the persistence guard, project-switch isolation and new-project context.
+- [x] Keep all changes on `main`; no admin UI or admin files included.
+- [ ] Run focused UI tests, typecheck, lint and build against final HEAD.
+- [ ] Verify project switching, first-task context, job completion and return navigation in a real browser.
+- [ ] Confirm final GitHub Actions and deployment status.
+
+Verification boundary: source changes and focused tests added; successful test/build or browser QA is not yet claimed.

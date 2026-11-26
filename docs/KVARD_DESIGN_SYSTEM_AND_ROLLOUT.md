@@ -721,3 +721,14 @@ Verification boundary: source and test additions reviewed; test execution, typec
 - The resolved storage value is used consistently for both state and user feedback.
 - Focused test coverage verifies each storage message.
 - Agent profile API payload, persistence implementation, save flow and other agent workflows are unchanged.
+
+
+## 29. Project-scoped conversation integrity
+
+- Conversation persistence is gated by the project ID whose history has finished loading. During a project switch, the previous project in-memory messages cannot be written under the newly active project storage key.
+- A task submitted for a different project resolves context from that target project stored conversation rather than reusing the currently rendered project state. A newly created project therefore starts with an empty conversation context.
+- The existing local-storage key format, 100-message retention limit, chat API payload shape, server job lifecycle and project APIs remain unchanged.
+- Focused tests cover the persistence gate, project-switch isolation and first-task context for a new project.
+- No admin UI, admin styles, routes, APIs, permissions or business logic were changed.
+
+Verification boundary: implementation and focused tests added; test execution, typecheck, lint, build, browser QA and deployment status must be checked against final HEAD before being described as passing.
