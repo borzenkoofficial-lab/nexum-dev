@@ -141,3 +141,33 @@
 - Commits: 0a6a70d (panel persistence) and 3f0ed2c (knowledge panel markup correction).
 - Latest observed GitHub Actions run: 45794376119, status pending with zero jobs returned. No successful test/build result is claimed.
 - Latest observed Vercel status: failure due to build-rate-limit; preview/browser visual QA is not available for this revision.
+
+
+## Task 5 — shared segmented controls
+
+**Purpose:** Standardize compact, mutually exclusive user-facing choices without misusing tab semantics.
+
+- [x] Add focused tests for group labeling, controlled pressed state, disabled items and selection callbacks.
+- [x] Implement `KvardSegmentedControl` with native buttons, `role="group"`, and `aria-pressed`.
+- [x] Export the component and public prop/item types from the UI barrel.
+- [x] Add token-based light/dark styling and visible keyboard focus.
+- [x] Integrate the diagnostics event filter without changing filter predicates or data sources.
+- [x] Integrate the Builder preview device selector without changing preview sizing state or iframe behavior.
+- [x] Remove superseded local selected-state styles and prevent legacy Builder button rules from overriding the shared control.
+- [ ] Run focused UI Kit tests, Web typecheck, lint and build on the final commit.
+- [ ] Inspect the two integrations in a real browser at desktop and mobile widths; no visual QA is claimed yet.
+
+### Task 5 implementation commits
+
+- Tests first: `bcaef33`.
+- Component: `a44f366`.
+- Shared export: `6df2406`.
+- Token-based styling: `5022258`.
+- Diagnostics integration: `c549707`.
+- Builder preview integration: `12166a1`.
+- Diagnostics style cleanup: `b09f46d`.
+- Builder style cleanup: `729e914`.
+
+### Verification boundary
+
+The implementation is committed to `main`. The test-first commit was not executed in a completed CI run before subsequent commits, so a red/green TDD cycle is not claimed. Final focused tests, typecheck, lint and build remain pending CI. No browser screenshots or preview QA are available for this revision.
