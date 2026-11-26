@@ -362,3 +362,11 @@ NEXUM.DEV — браузерная платформа для создания и
 - Added authenticated `GET /api/chat/jobs/recent` returning up to 20 recent terminal jobs for the current user, scoped to a specific project by the client. The response is a minimal projection containing the completed reply, execution steps/events, problems, error and product plan; no credentials or internal provider secrets are exposed.
 - Builder reload recovery now restores the latest terminal job for the active project when no active queued/running job exists, including the assistant reply and execution summary. Active jobs continue to use the SSE endpoint and existing active-job list route.
 - Validation pending CI and E2E. No production deployment, migration, secrets or paid AI calls.
+
+
+## ChatJob SSE reconnect hardening — 2026-11-26
+
+- Builder now exposes a visible recovery state when the EventSource connection errors and a restored state when the stream reopens.
+- REST snapshot fallback is single-flight: repeated EventSource errors cannot create overlapping recovery requests. Native EventSource reconnect remains responsible for resuming the stream; the REST request is only a one-shot state reconciliation.
+- Extended the active-job reload E2E scenario to take the browser context offline, assert the reconnecting state, restore network access, and assert the stream recovery state before cancelling the job.
+- Code and E2E changes are on `main`; CI/E2E execution is not yet confirmed. The only visible commit status is the Vercel build-rate-limit failure. No production deployment, migrations, secrets or paid AI calls.
