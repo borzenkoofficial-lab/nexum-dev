@@ -303,7 +303,7 @@ NEXUM.DEV — браузерная платформа для создания и
 - После первой видимой дельты Gateway не переключается молча на fallback provider: частичный ответ не смешивается с ответом другой модели.
 - `AgentLoop` передаёт callback только финализатору. Planner JSON и внутренние tool-call payloads не показываются в чате; явный finalResponse от planner публикуется только после Completion Gate.
 - `runChatJob` дописывает deltas в `ChatJob.reply`, сохраняет изменения с throttling 350 ms и делает финальный flush до завершения/ошибки/отмены.
-- Web Builder upsert-ит стабильное assistant message по ChatJob ID, обновляя его при каждом poll. Это incremental final-answer rendering поверх текущего ChatJob polling; отдельная SSE подписка для ChatJob пока не нужна.
+- Web Builder upsert-ит стабильное assistant message по ChatJob ID. Теперь обновления ChatJob приходят через отдельный авторизованный SSE stream; polling браузера каждые 900 ms убран.
 - Для задач разработки внутренние операции остаются в AI Activity/progress events. Финальное детерминированное резюме после Completion Gate появляется после завершения работы; внутренний planner/coder token stream намеренно не раскрывается.
 - Полный [NEXUM CI #45720403975](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/45720403975) на commit `c1d861ba3b7e9613b6a2badbca78f526e34c6606` — **SUCCESS**: API tests 317/317, Web brand/UI kit tests 8/8, Web runtime tests 5/5, AI stream parser 10/10, API/Web typecheck, API/Web builds, Web lint, production Docker image build, container smoke test и Runtime Phase 2.5 E2E.
 - Отдельный [КВАРД AI Provider Contract #45719682728](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/45719682728) — **SUCCESS**; gateway streaming callback tests included.
@@ -316,3 +316,17 @@ NEXUM.DEV — браузерная платформа для создания и
 3. Продумать безопасное потоковое отображение структурированных coder/reviewer результатов только если появится отдельный пользовательский UX; не раскрывать planner JSON и tool arguments.
 
 **Следующий этап:** проверить потоковое поведение на реальных провайдерах только после отдельного согласования тестовых credentials/лимитов; затем можно улучшить latency ChatJob updates и добавить метрики. До такого согласования live/paid provider calls не выполнять.
+## КВАРД — ChatJob SSE updates (2026-11-26)
+
+**Статус: IMPLEMENTED — подтверждение CI ожидается на последнем коммите.** Browser polling заменён на server-sent events для ChatJob состояния.
+
+- Новый модуль `apps/api/chatJobEvents.ts`: авторизованный SSE handler, owner-check, initial snapshot, snapshots при изменении persisted job, heartbeat, retry directive, безопасный terminal/unavailable, abort при disconnect и backpressure.
+- Endpoint `GET /api/chat/jobs/:id/events` смонтирован за существующим auth middleware и chat rate limiter; GET snapshot остаётся recovery fallback и используется при восстановлении EventSource.
+- Browser Builder теперь слушает native EventSource. Автоматический reconnect, one-shot snapshot при reconnect errors, закрытие на terminal statuses; completion продолжает ждать Preview readiness.
+- Server-side poll к ChatJob store/cache 500 ms (только сервер), browser polling 900 ms удалён. Stream coalesces snapshots, не обещает durable event-log replay; при reconnect отправляется актуальный snapshot.
+- Tests: unauthorized/missing ownership (404), malformed ID (400), initial terminal snapshot, changed queued/running/completed snapshots, disconnect cleanup, and response backpressure. Included in API test script.
+- Последний CI run, который подтверждал typecheck и тесты перед документационным обновлением: [NEXUM CI #45740728242](https://github.com/borzenkoofficial-lab/nexum-dev/actions/runs/45740728242), commit `cae93f6abd64f0ab433f8f6ddb0209ca188af6851`; проверка продолжается. Earlier attempts exposed and fixed compile issues (SSE error payload escaping and Express route param narrowing); failures are not counted as success.
+- Live/paid provider requests, production secrets, database migrations, deployment and Vercel actions were not used.
+
+**Следующий технический этап:** дождаться полного NEXUM CI/E2E, устранить обнаруженные дефекты, затем измерить event latency и проверить reconnect/refresh сценарии. Не выполнять live provider calls без согласования credentials/limits.
+
