@@ -1,17 +1,7 @@
 /* КВАРД foundation — neutral structural layer. Global reset and visual tokens live in kvard-design-system.css. */
-:root {
-  --nx-bg: #f5f5f5;
-  --nx-surface: #fff;
-  --nx-surface-muted: #f0f0f0;
-  --nx-border: #d8d8d8;
-  --nx-text: #202020;
-  --nx-muted: #707070;
-  --nx-radius: 8px;
-  --nx-space: 16px;
-}
 button { color: inherit; cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .55; }
-:focus-visible { outline: 2px solid #555; outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--kv-focus); outline-offset: 2px; }
 .app { display: flex; min-height: 100dvh; background: var(--nx-bg); }
 .main { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 100dvh; overflow: auto; background: var(--nx-bg); }
 .nexum-os-runtime { position: relative; }
