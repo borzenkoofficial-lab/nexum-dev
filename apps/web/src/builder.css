@@ -142,8 +142,8 @@
 .nx-model-pop button.selected { background: var(--nx-surface-muted); }
 .nx-model-pop hr { width: 100%; border: 0; border-top: 1px solid var(--nx-border); }
 .nx-files aside small, .nx-code-body aside small { color: var(--nx-muted); font-size: 9px; }
-.nx-code > header > div:last-child { display: flex; align-items: center; gap: 8px; }
-.nx-code > header > div:last-child > span { color: var(--nx-muted); font-size: 10px; }
+.nx-code-head-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.nx-code-head-actions > span { color: var(--nx-muted); font-size: 10px; }
 .nx-code-file span { color: var(--nx-muted); font-size: 10px; }
 
 .nx-agent-state { padding: 5px 7px; border: 1px solid var(--nx-border); border-radius: 4px; color: var(--nx-muted); font-size: 10px; }
