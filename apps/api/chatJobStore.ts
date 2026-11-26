@@ -551,6 +551,9 @@ export async function cleanupChatJobs(ttlMs = 30 * 60 * 1000): Promise<void> {
         for (const [actionId, action] of memoryToolActions) {
           if (action.jobId === id) memoryToolActions.delete(actionId);
         }
+        for (const key of memoryExecutionCheckpoints.keys()) {
+          if (key.startsWith(`${id}:`)) memoryExecutionCheckpoints.delete(key);
+        }
       }
     }
     return;
