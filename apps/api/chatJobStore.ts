@@ -1,4 +1,4 @@
-import { query } from "./db.js";
+import { query, withDatabaseTransaction } from "./db.js";
 import { createHash, randomUUID } from "node:crypto";
 import { getToolSecurityPolicy, type ToolRisk } from "./agent/toolPolicy.js";
 import { assessChatJobRecovery, type ChatJobRecoveryAssessment } from "./agent/recovery.js";
@@ -736,32 +736,53 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
  * callers must establish a safe boundary and a trustworthy sandbox revision.
  */
 export async function saveChatJobExecutionCheckpoint(checkpoint: AgentExecutionCheckpoint): Promise<void> {
+  const actionIds = checkpoint.toolActionIds;
+  if (new Set(actionIds).size !== actionIds.length || actionIds.some((id) => typeof id !== "string" || !id.trim())) {
+    throw new Error("Agent checkpoint contains duplicate or malformed tool action IDs.");
+  }
   const envelope = encryptAgentExecutionCheckpoint(checkpoint);
   if (!databaseAvailable()) {
     const job = memoryJobs.get(checkpoint.jobId);
     if (!job || job.userId !== checkpoint.userId || job.projectId !== checkpoint.projectId || job.status !== "running") {
       throw new Error("Cannot checkpoint a non-running or inaccessible Agent Run.");
     }
-    const key = `${checkpoint.jobId}:${checkpoint.sequence}`;
+    const actions = [...memoryToolActions.values()]
+      .filter((action) => action.jobId === checkpoint.jobId && action.userId === checkpoint.userId)
+      .sort((a, b) => a.actionId.localeCompare(b.actionId));
+    const expected = [...actionIds].sort();
+    if (actions.length !== expected.length ||
+        actions.some((action, index) => action.actionId !== expected[index]) ||
+        actions.some((action) => action.status !== "succeeded" && action.status !== "failed")) {
+      throw new Error("Agent checkpoint does not match the fully committed tool action journal.");
+    }
+    const key = checkpoint.jobId + ":" + checkpoint.sequence;
     if (memoryExecutionCheckpoints.has(key)) throw new Error("Agent checkpoint sequence already exists.");
     memoryExecutionCheckpoints.set(key, envelope);
     return;
   }
   await ensureTable();
-  const inserted = await query(
-    `INSERT INTO agent_chat_job_execution_checkpoints
-      (job_id,user_id,project_id,sequence,created_at,envelope)
-     SELECT $1,$2,$3,$4,$5,$6::jsonb
-      WHERE EXISTS (
-        SELECT 1 FROM agent_chat_jobs
-         WHERE id=$1 AND user_id=$2 AND project_id=$3 AND status='running'
-      )
-     RETURNING sequence`,
-    [checkpoint.jobId, checkpoint.userId, checkpoint.projectId, checkpoint.sequence, checkpoint.createdAt, JSON.stringify(envelope)],
-  );
-  if (!inserted.rows.length) {
-    throw new Error("Cannot checkpoint a non-running or inaccessible Agent Run.");
-  }
+  await withDatabaseTransaction(async (client) => {
+    const job = await client.query(
+      "SELECT id FROM agent_chat_jobs WHERE id=$1 AND user_id=$2 AND project_id=$3 AND status='running' FOR UPDATE",
+      [checkpoint.jobId, checkpoint.userId, checkpoint.projectId],
+    );
+    if (!job.rows.length) throw new Error("Cannot checkpoint a non-running or inaccessible Agent Run.");
+    const journal = await client.query(
+      "SELECT action_id,status FROM agent_chat_job_tool_actions WHERE job_id=$1 AND user_id=$2 ORDER BY action_id ASC FOR SHARE",
+      [checkpoint.jobId, checkpoint.userId],
+    );
+    const actualIds = journal.rows.map((row) => String(row.action_id));
+    const expectedIds = [...actionIds].sort();
+    if (actualIds.length !== expectedIds.length ||
+        actualIds.some((id, index) => id !== expectedIds[index]) ||
+        journal.rows.some((row) => row.status !== "succeeded" && row.status !== "failed")) {
+      throw new Error("Agent checkpoint does not match the fully committed tool action journal.");
+    }
+    await client.query(
+      "INSERT INTO agent_chat_job_execution_checkpoints (job_id,user_id,project_id,sequence,created_at,envelope) VALUES ($1,$2,$3,$4,$5,$6::jsonb)",
+      [checkpoint.jobId, checkpoint.userId, checkpoint.projectId, checkpoint.sequence, checkpoint.createdAt, JSON.stringify(envelope)],
+    );
+  });
 }
 
 export async function getLatestChatJobExecutionCheckpoint(
