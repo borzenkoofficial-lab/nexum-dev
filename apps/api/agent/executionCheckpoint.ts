@@ -194,9 +194,18 @@ export function decryptAgentExecutionCheckpoint(envelope: EncryptedAgentCheckpoi
 }
 
 
-const FINGERPRINT_EXCLUDED_DIRS = new Set([".git", ".nexum", "node_modules", "dist", "coverage", ".cache"]);
+const FINGERPRINT_EXCLUDED_DIRS = new Set([".git", ".nexum", "node_modules", "dist", "coverage", ".cache", ".next", ".turbo", ".vercel", ".terraform", ".ssh", ".aws", ".azure"]);
 const MAX_FINGERPRINT_FILES = 5000;
+
 const MAX_FINGERPRINT_BYTES = 100 * 1024 * 1024;
+
+function isSensitiveFingerprintPath(name: string): boolean {
+  return /^\\.env(?:\\.|$)/i.test(name) ||
+    /^(?:\\.npmrc|\\.pypirc|\\.netrc|\\.git-credentials|\\.dockerconfigjson)$/i.test(name) ||
+    /^(?:credentials|service-account)(?:[-_.].*)?\\.json$/i.test(name) ||
+    /^(?:id_rsa|id_ed25519|id_ecdsa)(?:\\..*)?$/i.test(name) ||
+    /\\.(?:pem|key|p12|pfx|keystore)$/i.test(name);
+}
 
 /**
  * Computes a content fingerprint of the project tree without persisting file
