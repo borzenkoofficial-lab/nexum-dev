@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import type { AIProviderInfo, AIProviderStatus, AgentStage } from "./types";
 import { KvardMark } from "./KvardMark.ts";
-import { KvardPageHeader, KvardSurface } from "./ui/index.ts";
+import { KvardAlert, KvardPageHeader, KvardSurface } from "./ui/index.ts";
 
 interface Props {
   message: string;
@@ -80,7 +80,7 @@ export function BuilderChat(p: Props) {
           </div>
         )}
         {p.reply && !p.messages.length && <div className="nx-live-reply">{p.reply}</div>}
-        {p.apiError && <div className="nx-error" role="alert"><span>{p.apiError}</span><button type="button" onClick={p.onRetry}>Повторить задачу</button></div>}
+        {p.apiError && <KvardAlert tone="danger" title="Не удалось выполнить задачу" className="nx-chat-error">{p.apiError}<button type="button" onClick={p.onRetry}>Повторить задачу</button></KvardAlert>}
       </div>
 
       <form className="nx-composer" onSubmit={(event) => { event.preventDefault(); send(); }}>
