@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { AIProviderInfo, AIProviderStatus, AgentStage } from "./types";
 import { KvardMark } from "./KvardMark.ts";
+import { KvardSurface } from "./ui/index.ts";
 
 interface Props {
   message: string;
@@ -43,7 +44,7 @@ export function BuilderChat(p: Props) {
   }
 
   return (
-    <section className="nx-chat" aria-label="Чат разработки">
+    <KvardSurface as="section" className="nx-chat" variant="raised" padding="none" aria-label="Чат разработки">
       <div className="nx-chat-head">
         <div><span>РАЗРАБОТКА</span><strong>Задача для AI-агента</strong></div>
         <button type="button" onClick={p.onOpenAgent} aria-label="Открыть ход выполнения задачи">
@@ -133,6 +134,6 @@ export function BuilderChat(p: Props) {
         </div>
       </form>
       <footer><span>Enter — отправить · Shift + Enter — новая строка</span><button type="button" onClick={() => p.onQuickTask("Покажи статус Git")}>Статус Git</button></footer>
-    </section>
+    </KvardSurface>
   );
 }
