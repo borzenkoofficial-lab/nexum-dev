@@ -656,12 +656,13 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
     for (const [id, job] of memoryJobs) {
       if ((job.status === "queued" || job.status === "running") && job.updatedAt < cutoff) {
         const updatedAt = Date.now();
+        const toolActions = await listChatJobToolActions(id, job.userId);
         memoryJobs.set(id, cloneJob({
           ...job,
           status: "failed",
           stage: "error",
           error: recoveryError,
-          recoveryAssessment: assessChatJobRecovery(job, updatedAt),
+          recoveryAssessment: assessChatJobRecovery({ ...job, toolActions }, updatedAt),
           updatedAt,
         }));
         if (job.projectId) {
@@ -684,7 +685,8 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
   for (const row of staleJobs.rows) {
     const job = decode(row);
     const updatedAt = Date.now();
-    const assessment = assessChatJobRecovery(job, updatedAt);
+    const toolActions = await listChatJobToolActions(job.id, job.userId);
+    const assessment = assessChatJobRecovery({ ...job, toolActions }, updatedAt);
     const updated = await query(
       `UPDATE agent_chat_jobs
           SET status='failed',
