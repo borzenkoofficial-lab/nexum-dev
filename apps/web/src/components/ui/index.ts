@@ -4,3 +4,5 @@ export { KvardField } from "./KvardField.ts";
 export type { KvardFieldProps } from "./KvardField.ts";
 export { KvardStatusBadge } from "./KvardStatusBadge.ts";
 export type { KvardStatusBadgeProps, KvardStatusTone } from "./KvardStatusBadge.ts";
+export { KvardTabs } from "./KvardTabs.ts";
+export type { KvardTabsProps, KvardTabItem } from "./KvardTabs.ts";
