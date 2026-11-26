@@ -981,3 +981,22 @@ test("AgentLoop emits encrypted-checkpoint payloads only at safe iteration bound
   assert.equal(snapshots[0]?.builderTask, false);
   assert.equal(snapshots[0]?.repairRequested, false);
 });
+
+test("planner completion without a planned action reaches a bounded gate failure instead of a plan-DAG crash", async () => {
+  const executed: string[] = [];
+  const runtime: AgentRuntime = {
+    getAvailableTools: () => ["listFiles"],
+    plan: () => ({ tool: "", input: "", done: true, finalResponse: "Структура проекта проверена, изменения не требуются." }),
+    executeTool: async (tool) => {
+      executed.push(tool);
+      return { success: true, output: "package.json\nsrc/App.tsx" };
+    },
+  };
+  const result = await new AgentLoop(runtime, gateway, 4).run("Проверь структуру проекта и ничего не изменяй.");
+  // The mandatory inspection is not planner-selected work, so the completion gate
+  // must still refuse COMPLETED. What must not happen is a crash on the plan DAG.
+  assert.equal(executed[0], "listFiles");
+  assert.doesNotMatch(result.error ?? "", /Plan step dependency is not satisfied/);
+  assert.equal(result.success, false);
+  assert.equal(result.finalState, "FAILED");
+});

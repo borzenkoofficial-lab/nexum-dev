@@ -819,6 +819,10 @@ function WorkspaceApp() {
     let cancelled = false;
     let terminalHandled = false;
     let reconnecting = false;
+    // True from the moment the stream reports a lost connection until a fresh
+    // server snapshot proves the job is reachable again. Kept separate from the
+    // displayed text so a recovery snapshot cannot silently erase the notice.
+    let connectionLost = false;
     let snapshotRecoveryInFlight = false;
     let lastAppliedUpdatedAt = 0;
     const activeJobId = chatJobId;
@@ -956,7 +960,13 @@ function WorkspaceApp() {
 
       setActivitySteps(job.steps ?? []);
       setActivityEvents(job.events ?? []);
-      setCurrentActivity(job.currentMessage ?? "ИИ выполняет задачу…");
+      if (connectionLost) {
+        connectionLost = false;
+        reconnecting = false;
+        setCurrentActivity("Соединение восстановлено. Продолжаю получать обновления…");
+      } else {
+        setCurrentActivity(job.currentMessage ?? "ИИ выполняет задачу…");
+      }
       setProblems(job.problems ?? []);
       if (job.productPlan) setProductPlan({
         goal: job.productPlan.goal ?? "",
@@ -992,11 +1002,13 @@ function WorkspaceApp() {
     });
     source.addEventListener("unavailable", () => {
       if (cancelled || terminalHandled) return;
+      connectionLost = true;
       setCurrentActivity("Связь с задачей временно недоступна. Восстанавливаю соединение…");
     });
     source.onopen = () => {
       if (cancelled || terminalHandled || !reconnecting) return;
       reconnecting = false;
+      connectionLost = false;
       setCurrentActivity((current) =>
         current.includes("Связь с задачей временно недоступна")
           ? "Соединение восстановлено. Продолжаю получать обновления…"
@@ -1006,14 +1018,20 @@ function WorkspaceApp() {
     source.onerror = () => {
       if (cancelled || terminalHandled) return;
       reconnecting = true;
+      connectionLost = true;
       setCurrentActivity((current) =>
         current.includes("Связь с задачей временно недоступна")
           ? current
           : "Связь с задачей временно недоступна. Восстанавливаю соединение…",
       );
-      // EventSource retries automatically. Recover one snapshot while reconnecting,
-      // but never start overlapping REST requests on repeated error notifications.
-      if (snapshotRecoveryInFlight) return;
+      // EventSource retries automatically. Recover one snapshot while reconnecting.
+      recoverSnapshot();
+    };
+
+    // Recover one canonical snapshot, never overlapping REST requests on repeated
+    // error/online notifications. A failed request keeps the "connection lost" notice.
+    function recoverSnapshot() {
+      if (snapshotRecoveryInFlight || cancelled || terminalHandled) return;
       snapshotRecoveryInFlight = true;
       void nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(activeJobId)}`)
         .then(async (response) => {
@@ -1025,10 +1043,27 @@ function WorkspaceApp() {
         .finally(() => {
           snapshotRecoveryInFlight = false;
         });
+    }
+
+    // Browsers can keep a dead stream open for a long time without firing onerror,
+    // so the OS-level connectivity signal is surfaced to the user as well.
+    const onBrowserOffline = () => {
+      if (cancelled || terminalHandled) return;
+      connectionLost = true;
+      reconnecting = true;
+      setCurrentActivity("Связь с задачей временно недоступна. Восстанавливаю соединение…");
     };
+    const onBrowserOnline = () => {
+      if (cancelled || terminalHandled || !connectionLost) return;
+      recoverSnapshot();
+    };
+    window.addEventListener("offline", onBrowserOffline);
+    window.addEventListener("online", onBrowserOnline);
 
     return () => {
       cancelled = true;
+      window.removeEventListener("offline", onBrowserOffline);
+      window.removeEventListener("online", onBrowserOnline);
       source.close();
       channel?.close();
     };

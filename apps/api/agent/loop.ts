@@ -1078,6 +1078,16 @@ export class AgentLoop {
         }
 
         setAgentState("VALIDATING", "agent.validation.started", "Проверяю результат перед completion gate.");
+        // A read-only task can legitimately reach validation with only the mandatory
+        // inspection: mark the unused action steps SKIPPED (not COMPLETED) so the plan
+        // DAG stays consistent. The completion gate still reads completedStepIds, so a
+        // skipped execute step never counts as executed work.
+        for (const id of ["execute", "observe"] as const) {
+          const planStep = executionSnapshot.plan.steps.find((item) => item.id === id);
+          if (planStep && (planStep.status === "PENDING" || planStep.status === "READY")) {
+            markPlanStepSkipped(executionSnapshot.plan, id, "No project action was required before validation.");
+          }
+        }
         markStepRunning("validate");
         if (builderTask && productPlan && this.runtime.reviewProduct && productReviewAttempts < MAX_PRODUCT_REVIEW_CALLS) {
           productReviewAttempts += 1;
