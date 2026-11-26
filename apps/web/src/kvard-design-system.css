@@ -188,6 +188,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .nx-builder-project .kv-page-header__title { margin: 0; color: var(--kv-text); font-size: 13px; font-weight: 650; letter-spacing: -.02em; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nx-builder-project .kv-page-header__actions > button { min-height: 32px; padding: 6px 10px; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-control); background: var(--kv-surface); color: var(--kv-text-secondary); font-size: 11px; white-space: nowrap; }
 .nx-builder-project .kv-page-header__actions > button:hover { background: var(--kv-surface-subtle); color: var(--kv-text); }
+.nx-builder-project .kv-page-header__actions > button:focus-visible { outline: 2px solid var(--kv-focus); outline-offset: 2px; }
 .nx-builder-nav { padding: 4px; border: 1px solid var(--kv-border); border-radius: 10px; background: var(--kv-surface-subtle); }
 .nx-builder-nav button { min-height: 32px; padding: 6px 12px; border: 0; border-radius: 7px; background: transparent; color: var(--kv-text-secondary); }
 .nx-builder-nav button.active { background: var(--kv-surface); color: var(--kv-action); box-shadow: 0 1px 3px rgba(20,20,35,.09); }
