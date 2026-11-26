@@ -539,3 +539,10 @@ The shared dialog primitive centralizes modal semantics and keyboard focus behav
 - No API, authentication, permission, or domain logic was changed.
 
 Verification boundary: focused tests are authored for accessible markup, Escape propagation, and focus wrapping. The final GitHub Actions run for commit `4a3a65c` is pending; no test, typecheck, lint, or build pass is claimed. Browser visual and manual keyboard QA remain open. No administrative files were included.
+
+
+Additional user-facing integrations:
+
+- Business Agents — Create AI Employee modal uses the shared dialog frame with its existing form state, validation, API submit path, and close control preserved. The agent-name field receives initial focus.
+- Workspace — Application Manager switcher uses the shared dialog frame. Its existing project/window selection and close-project callbacks remain unchanged. Backdrop dismissal now occurs only when clicking the backdrop itself, not when clicking inside the switcher.
+- Both integrations retain their existing consumer-specific CSS classes; no admin surfaces were changed.
