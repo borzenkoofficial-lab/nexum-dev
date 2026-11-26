@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { AgentStage } from "./types";
 import { KvardMark } from "./KvardMark.ts";
+import { KvardTabs } from "./ui/index.ts";
 
 type Tool = "preview" | "agent" | "files" | "code";
 
@@ -51,19 +52,14 @@ export function BuilderShell({
           </span>
         </button>
 
-        <nav className="nx-builder-nav" aria-label="Инструменты проекта">
-          {tools.map((tool) => (
-            <button
-              key={tool.id}
-              type="button"
-              className={activeTool === tool.id ? "active" : ""}
-              aria-current={activeTool === tool.id ? "page" : undefined}
-              onClick={() => onToolChange(tool.id)}
-            >
-              {tool.label}
-            </button>
-          ))}
-        </nav>
+        <KvardTabs
+          id="kv-builder-tools"
+          className="nx-builder-nav"
+          ariaLabel="Инструменты проекта"
+          value={activeTool}
+          onChange={(value) => onToolChange(value as Tool)}
+          items={tools.map((tool) => ({ id: tool.id, label: tool.label }))}
+        />
 
         <div className="nx-builder-header-actions">
           <span className={"nx-builder-status " + (building ? "building" : agentStage === "error" ? "error" : previewOnline ? "live" : completed ? "done" : "")} role="status" aria-live="polite">
@@ -74,7 +70,7 @@ export function BuilderShell({
           <button className="nx-builder-open" type="button" onClick={onOpenPreview}>Открыть предпросмотр ↗</button>
         </div>
       </header>
-      <div className="nx-builder-body">{children}</div>
+      <div className="nx-builder-body" role="tabpanel" id={`kv-builder-tools-panel-${activeTool}`} aria-labelledby={`kv-builder-tools-tab-${activeTool}`} tabIndex={0}>{children}</div>
     </section>
   );
 }
