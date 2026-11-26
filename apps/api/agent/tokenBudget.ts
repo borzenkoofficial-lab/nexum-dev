@@ -37,7 +37,7 @@ export class AdaptiveTokenBudget {
   readonly tier: keyof typeof LIMITS;
   readonly hardCap: number;
 
-  constructor(task: string, options: AdaptiveTokenBudgetOptions = {}) {
+  private constructor(task: string, options: AdaptiveTokenBudgetOptions = {}, restored?: AdaptiveTokenBudgetSnapshot) {
     this.tier = classifyTask(task);
     const requestedCap = options.legacyHardCap ?? Number.MAX_SAFE_INTEGER;
     this.hardCap = options.builderLifecycle
