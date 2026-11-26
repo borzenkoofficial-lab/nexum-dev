@@ -378,3 +378,21 @@ Verification boundary: GitHub source/diff review only. No local test/build or br
 - [ ] Confirm final GitHub Actions and deployment status.
 
 Verification boundary: GitHub source/diff review only. CI is pending; no successful test/build or browser visual QA is claimed.
+
+
+## Task 14 — Builder loading, empty and error states
+
+**Purpose:** Make the Builder's operational states explicit, accessible and safe without fabricating progress or changing API behavior.
+
+- [x] Use the shared alert primitive for Chat task errors while preserving the existing retry callback.
+- [x] Distinguish file-list loading/failure, file loading/failure, no files and file-selection guidance.
+- [x] Add a targeted retry for file-read failures.
+- [x] Preserve unsaved editor content after save failures and explain that the buffer remains available.
+- [x] Use shared empty states for pre-build Preview and an empty agent activity history.
+- [x] Keep existing API calls, callbacks, status sources and agent execution behavior unchanged.
+- [x] Keep all changes in `main`; no admin UI or admin files included.
+- [ ] Run UI tests, typecheck, lint and build against final HEAD.
+- [ ] Verify loading/error/empty states, retry behavior, light/dark and keyboard focus in a real browser.
+- [ ] Confirm final GitHub Actions and deployment status.
+
+Verification boundary: GitHub source/diff review only. No successful tests/build or browser visual QA is claimed.
