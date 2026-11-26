@@ -809,7 +809,9 @@ function WorkspaceApp() {
         lastAppliedUpdatedAt = job.updatedAt;
       }
       const status = job.status;
-      if (shouldBroadcast && (status === "completed" || status === "failed" || status === "cancelled")) {
+      const isTerminal = status === "completed" || status === "failed" || status === "cancelled";
+      if (isTerminal && terminalHandled) return;
+      if (shouldBroadcast && isTerminal) {
         broadcastChatJobTerminal(activeJobId, job.projectId ?? activeПроектId, status);
       }
       if (typeof job.reply === "string" && job.reply.length > 0) {
