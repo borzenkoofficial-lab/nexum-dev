@@ -553,6 +553,13 @@ test("active ChatJob and Builder progress restore after page reload with reconne
   expect(jobId).toBeTruthy();
   await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
 
+  const activeJobsResponse = await page.request.get("/api/chat/jobs");
+  expect(activeJobsResponse.ok()).toBeTruthy();
+  const activeJobs = await activeJobsResponse.json();
+  const listedJob = activeJobs.jobs.find((job: any) => job.id === jobId);
+  expect(listedJob?.projectId).toBe(runtimeWorkspaceId);
+  expect(listedJob?.stage).toBeTruthy();
+
   await page.reload();
   await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "Отменить выполнение задачи" })).toBeVisible({ timeout: 10_000 });
