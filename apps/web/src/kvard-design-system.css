@@ -1495,3 +1495,594 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
     border-radius: 2px;
   }
 }
+
+
+/* KVARD Studio — product-first visual pass. The split workspace is the primary product canvas. */
+.nx-builder {
+  background:
+    radial-gradient(ellipse at 48% -18%, var(--kv-action-soft), transparent 42%),
+    var(--kv-canvas);
+}
+.nx-builder-header {
+  min-height: 68px;
+  padding: 9px 20px;
+  gap: 18px;
+  box-shadow: 0 1px 0 var(--kv-border);
+}
+.nx-builder-project .kv-page-header__eyebrow {
+  gap: 7px;
+  margin-bottom: 2px;
+  font-size: 9px;
+  letter-spacing: .14em;
+}
+.nx-builder-project .kv-page-header__eyebrow svg {
+  width: 19px;
+  height: 19px;
+}
+.nx-builder-project .kv-page-header__title {
+  font-size: 14px;
+  letter-spacing: -.025em;
+}
+.nx-builder-project .kv-page-header__actions > button {
+  min-height: 34px;
+  padding-inline: 12px;
+}
+.nx-builder-nav {
+  gap: 3px;
+  padding: 4px;
+  border-radius: 11px;
+}
+.nx-builder-nav button {
+  min-height: 36px;
+  padding-inline: 14px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.nx-builder-header-actions {
+  gap: 8px;
+}
+.nx-builder-header-actions .nx-builder-status {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--kv-border);
+  border-radius: 999px;
+  background: var(--kv-surface-subtle);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.nx-builder-header-actions .nx-builder-status.live,
+.nx-builder-header-actions .nx-builder-status.done {
+  border-color: var(--kv-success-soft);
+  background: var(--kv-success-soft);
+}
+.nx-builder-header-actions .nx-builder-status.building {
+  border-color: var(--kv-action-soft);
+  background: var(--kv-action-soft);
+}
+.nx-builder-header-actions .nx-builder-status.error {
+  border-color: var(--kv-danger-soft);
+  background: var(--kv-danger-soft);
+}
+.nx-builder-header-actions button {
+  min-height: 36px;
+  padding: 7px 11px;
+  font-size: 11px;
+  font-weight: 550;
+}
+.nx-builder-header-actions .nx-builder-open {
+  padding-inline: 14px;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--kv-action) 18%, transparent);
+}
+.nx-builder-body {
+  gap: 14px;
+  padding: 16px;
+  background: transparent;
+}
+.nx-builder-grid {
+  grid-template-columns: minmax(360px, .92fr) minmax(440px, 1.08fr);
+  gap: 14px;
+}
+.nx-builder-grid > .nx-chat,
+.nx-builder-grid > .nx-tool,
+.nx-builder-grid > .nx-code {
+  border: 1px solid var(--kv-border);
+  border-radius: 15px;
+  background: var(--kv-surface);
+  box-shadow: var(--kv-shadow-panel);
+}
+.nx-chat,
+.nx-tool,
+.nx-code {
+  border-radius: 15px;
+}
+.nx-chat-head,
+.nx-tool-head,
+.nx-code > header {
+  min-height: 66px;
+  padding: 13px 18px;
+  border-bottom-color: var(--kv-border);
+  background: var(--kv-surface);
+}
+.nx-chat-head .kv-page-header__eyebrow,
+.nx-tool-head .kv-page-header__eyebrow,
+.nx-code-head .kv-page-header__eyebrow {
+  font-size: 9px;
+  letter-spacing: .14em;
+}
+.nx-chat-head .kv-page-header__title,
+.nx-tool-head .kv-page-header__title,
+.nx-code-head .kv-page-header__title {
+  font-size: 14px;
+  letter-spacing: -.02em;
+}
+.nx-chat-head button,
+.nx-tool-head button,
+.nx-tool-actions button,
+.nx-code button {
+  min-height: 34px;
+  padding: 7px 11px;
+  font-size: 11px;
+}
+.nx-chat-scroll {
+  padding: 22px clamp(18px, 3vw, 32px);
+  background:
+    radial-gradient(ellipse at 50% 2%, var(--kv-surface-subtle), transparent 58%),
+    var(--kv-surface);
+}
+.nx-chat-empty {
+  display: grid;
+  justify-items: center;
+  width: min(560px, 100%);
+  margin: clamp(34px, 8vh, 84px) auto 34px;
+}
+.nx-chat-mark {
+  width: 58px;
+  height: 58px;
+  margin-bottom: 22px;
+  padding: 10px;
+  border: 1px solid var(--kv-border);
+  border-radius: 18px;
+  background: var(--kv-surface);
+  box-shadow: var(--kv-shadow-panel);
+}
+.nx-chat-empty h3 {
+  max-width: 420px;
+  margin: 0;
+  font-size: clamp(25px, 2.6vw, 34px);
+  font-weight: 680;
+  letter-spacing: -.06em;
+  line-height: 1.12;
+}
+.nx-chat-empty p {
+  max-width: 440px;
+  margin: 13px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.nx-suggestions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  gap: 8px;
+  margin-top: 26px;
+  counter-reset: suggestion;
+}
+.nx-suggestions button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  min-height: 90px;
+  padding: 12px;
+  border: 1px solid var(--kv-border);
+  border-radius: 11px;
+  background: var(--kv-surface);
+  color: var(--kv-text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: left;
+  counter-increment: suggestion;
+}
+.nx-suggestions button::before {
+  color: var(--kv-action);
+  content: "0" counter(suggestion);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: .1em;
+}
+.nx-suggestions button span {
+  align-self: flex-end;
+  color: var(--kv-text-tertiary);
+  font-size: 14px;
+}
+.nx-suggestions button:hover {
+  transform: translateY(-2px);
+  border-color: var(--kv-action);
+  background: var(--kv-surface-hover);
+  color: var(--kv-text);
+  box-shadow: var(--kv-shadow-panel);
+}
+.nx-composer {
+  width: min(760px, calc(100% - 40px));
+  margin: 0 auto 14px;
+  padding: 12px;
+  border-color: var(--kv-border-strong);
+  border-radius: 14px;
+  background: var(--kv-surface);
+  box-shadow: 0 5px 20px rgba(20, 20, 35, .06), 0 1px 3px rgba(20, 20, 35, .05);
+}
+.nx-composer textarea {
+  min-height: 116px;
+  padding: 10px 11px 14px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.nx-composer-row {
+  gap: 10px;
+  padding: 10px 2px 1px;
+}
+.nx-composer-left {
+  gap: 8px;
+}
+.nx-composer button {
+  min-height: 36px;
+  padding: 7px 10px;
+  font-size: 11px;
+}
+.nx-composer .nx-model > button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1px 9px;
+  min-height: 38px;
+  padding: 5px 10px;
+  text-align: left;
+}
+.nx-composer .nx-model > button b {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-composer .nx-model > button small {
+  grid-column: 1;
+  color: var(--kv-text-tertiary);
+  font-size: 9px;
+}
+.nx-composer .nx-model > button span {
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+.nx-composer .nx-send {
+  width: 40px;
+  min-height: 40px;
+  border-radius: 11px;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--kv-action) 20%, transparent);
+}
+.nx-chat footer {
+  min-height: 38px;
+  padding: 7px 18px;
+  font-size: 10px;
+}
+.nx-chat footer button {
+  color: var(--kv-text-secondary);
+  font-size: 10px;
+}
+.nx-messages {
+  gap: 14px;
+}
+.nx-messages article {
+  padding: 15px 16px;
+  border-radius: 13px;
+  box-shadow: 0 1px 2px rgba(20, 20, 35, .025);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.nx-messages article small {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .02em;
+}
+.nx-messages article.user {
+  border-color: var(--kv-action-soft);
+  border-radius: 13px 13px 4px 13px;
+  background: var(--kv-action-soft);
+}
+.nx-messages article:not(.user) {
+  border-radius: 4px 13px 13px 13px;
+}
+.nx-live-reply {
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--kv-surface-subtle);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.nx-tool {
+  background: var(--kv-surface);
+}
+.nx-tool-head .kv-page-header__description {
+  font-size: 11px;
+}
+.nx-device-tabs {
+  justify-content: center;
+  padding: 12px 16px 0;
+}
+.nx-preview {
+  margin: 14px;
+  border-radius: 12px;
+  box-shadow: 0 3px 16px rgba(20, 20, 35, .06);
+}
+.nx-browser {
+  min-height: 42px;
+  padding: 8px 12px;
+}
+.nx-browser > span {
+  display: inline-flex;
+  gap: 4px;
+  color: var(--kv-text-tertiary);
+  font-size: 8px;
+  letter-spacing: 2px;
+}
+.nx-browser small {
+  flex: 1;
+  padding: 4px 12px;
+  border: 1px solid var(--kv-border);
+  border-radius: 6px;
+  background: var(--kv-surface);
+  color: var(--kv-text-tertiary);
+  font-size: 10px;
+}
+.nx-browser b {
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: var(--kv-success-soft);
+  color: var(--kv-success);
+  font-size: 8px;
+  letter-spacing: .06em;
+}
+.nx-preview iframe {
+  background: #fff;
+}
+.nx-preview-empty {
+  min-height: 360px;
+  background:
+    radial-gradient(ellipse at 50% 40%, var(--kv-action-soft), transparent 55%),
+    var(--kv-surface);
+}
+.nx-preview-empty .kv-empty-state {
+  max-width: 460px;
+}
+.nx-preview-empty .kv-empty-state__title {
+  font-size: 19px;
+  letter-spacing: -.035em;
+}
+.nx-preview-empty .kv-empty-state__description {
+  font-size: 12px;
+  line-height: 1.65;
+}
+.nx-agent {
+  gap: 14px;
+  padding: 0 16px 18px;
+  background: var(--kv-canvas);
+}
+.nx-agent > .nx-run,
+.nx-agent > .nx-agent-list,
+.nx-agent > .nx-problems,
+.nx-agent > .nx-plan,
+.nx-agent > .nx-events {
+  border-radius: 12px;
+  background: var(--kv-surface);
+  box-shadow: var(--kv-shadow-panel);
+}
+.nx-agent > .nx-run {
+  gap: 11px;
+  padding: 17px;
+}
+.nx-run strong {
+  font-size: 13px;
+  line-height: 1.55;
+}
+.nx-run > span {
+  font-size: 10px;
+}
+.nx-progress {
+  gap: 5px;
+  height: 5px;
+}
+.nx-progress > i {
+  height: 5px;
+  border-radius: 99px;
+}
+.nx-agent-list {
+  gap: 0;
+  padding: 4px 15px;
+}
+.nx-agent-list > div {
+  min-height: 48px;
+  align-items: center;
+  padding: 9px 0;
+  font-size: 12px;
+}
+.nx-agent-list > div b {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border: 1px solid var(--kv-border);
+  border-radius: 7px;
+  color: var(--kv-text-tertiary);
+  font-size: 9px;
+}
+.nx-agent-list > div.done b {
+  border-color: var(--kv-success-soft);
+  background: var(--kv-success-soft);
+  color: var(--kv-success);
+}
+.nx-agent-list > div.active b {
+  border-color: var(--kv-action-soft);
+  background: var(--kv-action-soft);
+  color: var(--kv-action);
+}
+.nx-agent-list > div small {
+  color: var(--kv-text-tertiary);
+  font-size: 9px;
+}
+.nx-plan,
+.nx-problems,
+.nx-events {
+  padding: 16px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.nx-plan > small {
+  color: var(--kv-action);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: .12em;
+}
+.nx-events > div {
+  padding-block: 9px;
+  font-size: 11px;
+}
+.nx-files,
+.nx-code-body {
+  background: var(--kv-surface);
+}
+.nx-files aside,
+.nx-code-body aside {
+  gap: 5px;
+  padding: 14px 10px;
+  background: var(--kv-canvas);
+}
+.nx-files aside > button,
+.nx-code-body aside > button {
+  min-height: 34px;
+  padding: 8px 9px;
+  border-radius: 7px;
+  font-size: 10px;
+}
+.nx-files aside > button.selected,
+.nx-code-body aside > button.selected {
+  border-color: var(--kv-action-soft);
+  background: var(--kv-action-soft);
+  color: var(--kv-action);
+  font-weight: 650;
+}
+.nx-file-head,
+.nx-code-file {
+  min-height: 48px;
+  padding: 10px 14px;
+  background: var(--kv-surface);
+}
+.nx-file-head b,
+.nx-code-file b {
+  font-size: 11px;
+}
+.nx-files textarea,
+.nx-code-body textarea {
+  padding: 18px;
+  background: var(--kv-surface);
+  color: var(--kv-text);
+  font-size: 12px;
+  line-height: 1.75;
+}
+.nx-tool-actions button,
+.nx-code-head-actions button {
+  min-height: 34px;
+  padding-inline: 11px;
+}
+@media (max-width: 1100px) {
+  .nx-builder-header {
+    gap: 10px;
+    padding-inline: 14px;
+  }
+  .nx-builder-header-actions {
+    gap: 5px;
+  }
+  .nx-builder-header-actions button {
+    padding-inline: 8px;
+  }
+  .nx-builder-grid {
+    grid-template-columns: minmax(300px, .9fr) minmax(340px, 1.1fr);
+  }
+}
+@media (max-width: 900px) {
+  .nx-builder-header {
+    padding: 10px 12px;
+  }
+  .nx-builder-header-actions .nx-builder-status {
+    display: none;
+  }
+  .nx-builder-body {
+    padding: 12px;
+  }
+}
+@media (max-width: 760px) {
+  .nx-builder-body {
+    padding: 10px;
+  }
+  .nx-builder-grid {
+    gap: 10px;
+    grid-template-rows: minmax(360px, 1fr) minmax(340px, .9fr);
+  }
+  .nx-chat,
+  .nx-tool,
+  .nx-code {
+    border-radius: 12px;
+  }
+  .nx-chat-scroll {
+    padding: 18px 14px;
+  }
+  .nx-chat-empty {
+    margin: 30px auto 24px;
+  }
+  .nx-chat-mark {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 16px;
+  }
+  .nx-chat-empty h3 {
+    font-size: 26px;
+  }
+  .nx-chat-empty p {
+    font-size: 12px;
+  }
+  .nx-suggestions {
+    grid-template-columns: 1fr;
+    gap: 7px;
+    margin-top: 20px;
+  }
+  .nx-suggestions button {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 48px;
+    gap: 10px;
+    padding: 9px 11px;
+  }
+  .nx-suggestions button::before {
+    flex: 0 0 auto;
+  }
+  .nx-suggestions button span {
+    margin-left: auto;
+  }
+  .nx-composer {
+    width: calc(100% - 20px);
+    margin-bottom: 10px;
+  }
+  .nx-composer textarea {
+    min-height: 88px;
+    font-size: 16px;
+  }
+  .nx-agent {
+    padding-inline: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-suggestions button {
+    transition: none;
+  }
+}

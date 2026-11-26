@@ -529,3 +529,21 @@ Verification boundary: source and diff review only; browser visual QA is not cla
 - [ ] Run keyboard and responsive visual QA.
 
 Verification boundary: source and diff review only; browser visual QA is not claimed.
+
+
+## Task 23 — KVARD Studio visual product pass
+
+**Purpose:** Make the main project workspace visibly read as a polished product, not a collection of unstyled functional panels.
+
+- [x] Strengthen global project chrome and status treatment.
+- [x] Frame chat and working surface as balanced product panels.
+- [x] Give the empty chat state a stronger visual anchor and make existing quick prompts easier to scan.
+- [x] Refine conversation bubbles, composer and model selector.
+- [x] Refine the real preview frame and device selector.
+- [x] Improve agent progress, plan, events, files and code visual hierarchy.
+- [x] Preserve existing data, callbacks, routes, API contracts, runtime behavior and admin exclusion.
+- [x] Add responsive and reduced-motion refinements.
+- [ ] Review CSS selector interactions and final diff.
+- [ ] Run a real browser visual pass on desktop and mobile.
+
+Verification boundary: source-level CSS review only; browser visual QA is not claimed.

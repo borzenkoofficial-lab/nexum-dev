@@ -763,3 +763,15 @@ Verification boundary: implementation and focused tests added; test execution, t
 - Mobile navigation retains its existing responsive grid and receives a compact active indicator.
 - All navigation labels, project data, loading states, actions, route callbacks and disabled states are unchanged.
 - Scope is presentation-only and excludes administrative navigation and all admin surfaces.
+
+
+## 33. KVARD Studio visual product pass
+
+- The project Builder is treated as the primary product canvas: stronger separation between global project chrome, task conversation and working surface.
+- The split workspace receives balanced panel framing, restrained depth and a quieter canvas treatment.
+- The empty chat state now has a stronger brand anchor and the existing quick prompts are presented as structured action cards. They still only populate the existing task composer.
+- Conversation messages, composer controls and model selection receive clearer hierarchy and spacing.
+- Preview receives a browser-like frame treatment while retaining the real project iframe and existing device-size control.
+- Agent progress, plan, events, files and code surfaces receive consistent spacing, typography and semantic status emphasis.
+- Responsive layouts collapse the prompt cards and preserve existing mobile split behavior.
+- Only CSS presentation changed; no API, project state, callbacks, agent stages, preview URLs, data or admin surfaces changed.
