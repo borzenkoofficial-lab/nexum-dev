@@ -181,3 +181,87 @@ test("KvardSegmentedControl exposes a labelled toggle group with controlled pres
   (propsOf(desktop).onClick as () => void)();
   assert.deepEqual(selected, ["desktop"]);
 });
+
+
+test("KvardDialog renders an accessible modal frame with stable naming", async () => {
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { KvardDialog } = await import("./KvardDialog.ts");
+  const markup = renderToStaticMarkup(createElement(KvardDialog, {
+    open: true,
+    onClose: () => undefined,
+    ariaLabelledBy: "dialog-title",
+    ariaDescribedBy: "dialog-description",
+    backdropClassName: "test-backdrop",
+    dialogClassName: "test-dialog",
+    children: createElement("div", null,
+      createElement("h2", { id: "dialog-title" }, "Заголовок"),
+      createElement("p", { id: "dialog-description" }, "Описание"),
+    ),
+  }));
+
+  assert.match(markup, /class="[^"]*test-backdrop/);
+  assert.match(markup, /role="dialog"/);
+  assert.match(markup, /aria-modal="true"/);
+  assert.match(markup, /aria-labelledby="dialog-title"/);
+  assert.match(markup, /aria-describedby="dialog-description"/);
+  assert.match(markup, /tabindex="-1"/);
+});
+
+test("KvardDialog closes on Escape and prevents the key from reaching page shortcuts", async () => {
+  const { handleKvardDialogKeyDown } = await import("./KvardDialog.ts");
+  let closed = 0;
+  let prevented = 0;
+  let stopped = 0;
+  const event = {
+    key: "Escape",
+    preventDefault: () => { prevented += 1; },
+    stopPropagation: () => { stopped += 1; },
+  } as unknown as KeyboardEvent;
+
+  handleKvardDialogKeyDown(event, {} as HTMLElement, () => { closed += 1; });
+  assert.equal(closed, 1);
+  assert.equal(prevented, 1);
+  assert.equal(stopped, 1);
+});
+
+test("KvardDialog traps Tab focus at both ends of the dialog", async () => {
+  const { handleKvardDialogKeyDown } = await import("./KvardDialog.ts");
+  const focused: string[] = [];
+  const makeFocusable = (name: string) => ({
+    hidden: false,
+    hasAttribute: () => false,
+    getAttribute: () => null,
+    closest: () => null,
+    focus: () => focused.push(name),
+  });
+  const first = makeFocusable("first");
+  const last = makeFocusable("last");
+  const dialog = {
+    querySelectorAll: () => [first, last],
+    focus: () => focused.push("dialog"),
+  } as unknown as HTMLElement;
+
+  const backwards = {
+    key: "Tab",
+    shiftKey: true,
+    currentTarget: dialog,
+    relatedTarget: null,
+    preventDefault: () => undefined,
+    stopPropagation: () => undefined,
+  } as unknown as KeyboardEvent;
+  Object.defineProperty(dialog, "ownerDocument", { value: { activeElement: first } });
+  handleKvardDialogKeyDown(backwards, dialog, () => undefined);
+  assert.deepEqual(focused, ["last"]);
+
+  focused.length = 0;
+  const forwards = {
+    key: "Tab",
+    shiftKey: false,
+    currentTarget: dialog,
+    preventDefault: () => undefined,
+    stopPropagation: () => undefined,
+  } as unknown as KeyboardEvent;
+  Object.defineProperty(dialog, "ownerDocument", { value: { activeElement: last } });
+  handleKvardDialogKeyDown(forwards, dialog, () => undefined);
+  assert.deepEqual(focused, ["first"]);
+});
