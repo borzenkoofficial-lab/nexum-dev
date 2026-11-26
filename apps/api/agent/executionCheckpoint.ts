@@ -53,8 +53,9 @@ export interface EncryptedAgentCheckpoint {
 function checkpointKey(): Buffer {
   const encoded = process.env[KEY_ENV]?.trim();
   if (!encoded) throw new Error(`${KEY_ENV} is not configured; durable Agent checkpoints are disabled.`);
+  if (!/^[A-Za-z0-9+/]{43}=$/.test(encoded)) throw new Error(`${KEY_ENV} must be a base64-encoded 32-byte key.`);
   const key = Buffer.from(encoded, "base64");
-  if (key.length !== 32) throw new Error(`${KEY_ENV} must be a base64-encoded 32-byte key.`);
+  if (key.length !== 32 || key.toString("base64") !== encoded) throw new Error(`${KEY_ENV} must be a base64-encoded 32-byte key.`);
   return key;
 }
 
@@ -78,11 +79,33 @@ export function validateAgentExecutionCheckpoint(value: unknown): asserts value 
   }
   if (!Number.isSafeInteger(item.sequence) || (item.sequence ?? 0) < 1) throw new Error("Agent checkpoint sequence is invalid.");
   if (!Number.isSafeInteger(item.iteration) || (item.iteration ?? -1) < 0) throw new Error("Agent checkpoint iteration is invalid.");
-  if (!Number.isFinite(item.createdAt) || !Array.isArray(item.previousResults) || !Array.isArray(item.toolActionIds)) {
+  if (
+    !Number.isFinite(item.createdAt) ||
+    !["analyze", "plan", "implement", "validate", "repair", "verify", "finish"].includes(String(item.phase)) ||
+    !Array.isArray(item.previousResults) ||
+    !Array.isArray(item.toolActionIds) ||
+    !Array.isArray(item.seenActions) ||
+    !Array.isArray(item.actionAttempts) ||
+    !Array.isArray(item.seenPlannerContexts) ||
+    !Array.isArray(item.actionSequence)
+  ) {
     throw new Error("Agent checkpoint execution state is incomplete.");
   }
   if (!item.intent || !item.executionPlan || !item.counters || !item.tokenBudget) {
     throw new Error("Agent checkpoint is missing required execution state.");
+  }
+  if (
+    ![item.counters.modelTurns, item.counters.aiPlannerCalls, item.counters.productPlannerAttempts,
+      item.counters.productReviewAttempts, item.counters.repairAttempts, item.counters.eventId]
+      .every((count) => Number.isSafeInteger(count) && count >= 0) ||
+    !Number.isSafeInteger(item.tokenBudget.hardCap) ||
+    !Number.isSafeInteger(item.tokenBudget.reserved) ||
+    item.tokenBudget.hardCap < 0 ||
+    item.tokenBudget.reserved < 0 ||
+    item.tokenBudget.reserved > item.tokenBudget.hardCap ||
+    item.tokenBudget.remaining !== item.tokenBudget.hardCap - item.tokenBudget.reserved
+  ) {
+    throw new Error("Agent checkpoint counters or token budget are invalid.");
   }
   if (item.executionPlan.agentJobId !== item.jobId || item.intent.agentJobId !== item.jobId || item.intent.projectId !== item.projectId) {
     throw new Error("Agent checkpoint ownership does not match its execution state.");
@@ -115,11 +138,17 @@ export function decryptAgentExecutionCheckpoint(envelope: EncryptedAgentCheckpoi
   if (envelope.algorithm !== "aes-256-gcm" || envelope.version !== AGENT_EXECUTION_CHECKPOINT_VERSION) {
     throw new Error("Unsupported encrypted Agent checkpoint envelope.");
   }
-  const decipher = createDecipheriv("aes-256-gcm", checkpointKey(), Buffer.from(envelope.iv, "base64"));
+  const iv = Buffer.from(envelope.iv, "base64");
+  const authTag = Buffer.from(envelope.authTag, "base64");
+  const ciphertext = Buffer.from(envelope.ciphertext, "base64");
+  if (iv.length !== 12 || authTag.length !== 16 || ciphertext.length === 0) {
+    throw new Error("Encrypted Agent checkpoint envelope is malformed.");
+  }
+  const decipher = createDecipheriv("aes-256-gcm", checkpointKey(), iv);
   decipher.setAAD(associatedData(envelope));
-  decipher.setAuthTag(Buffer.from(envelope.authTag, "base64"));
+  decipher.setAuthTag(authTag);
   const plaintext = Buffer.concat([
-    decipher.update(Buffer.from(envelope.ciphertext, "base64")),
+    decipher.update(ciphertext),
     decipher.final(),
   ]);
   if (plaintext.length > MAX_CHECKPOINT_BYTES) throw new Error("Decrypted Agent checkpoint exceeds the maximum payload size.");
