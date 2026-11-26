@@ -377,9 +377,12 @@ function WorkspaceApp() {
           if (!recentResponse.ok || cancelled) return;
           const recentData = await recentResponse.json() as { jobs?: Array<{
             id: string; projectId?: string; status?: "completed" | "failed" | "cancelled";
-            stage?: string; currentMessage?: string; reply?: string; steps?: unknown[];
-            events?: unknown[]; problems?: Array<{ message: string; source?: string }>;
-            error?: string; productPlan?: { goal?: string; productType?: string; pages?: string[]; components?: string[]; acceptanceCriteria?: string[] };
+            stage?: string; currentMessage?: string; reply?: string;
+            steps?: Array<{ iteration: number; tool: string; success: boolean }>;
+            events?: Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>;
+            problems?: Array<{ message: string; source?: string }>;
+            error?: string; updatedAt?: number;
+            productPlan?: { goal?: string; productType?: string; pages?: string[]; components?: string[]; acceptanceCriteria?: string[] };
           }> };
           const completedJob = (recentData.jobs ?? []).find((item) => item.projectId === activeПроектId);
           if (!completedJob || cancelled) return;
