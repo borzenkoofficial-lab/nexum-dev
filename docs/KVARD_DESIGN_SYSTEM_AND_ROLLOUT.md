@@ -522,3 +522,20 @@ The second shared selection primitive standardizes compact mutually exclusive ch
 - Superseded local selected-state styles were removed; Builder's broad tool-button selector explicitly excludes the shared option buttons.
 
 Verification boundary: implementation and focused component tests are committed, but the final CI run and browser visual QA are not yet complete. Do not claim a typecheck/test/build pass until CI reports it. No administrative files are part of this increment.
+
+
+## 16. Shared dialog primitive — KvardDialog
+
+The shared dialog primitive centralizes modal semantics and keyboard focus behavior while leaving visual composition to each user-facing surface.
+
+- Component: `apps/web/src/components/ui/KvardDialog.ts`.
+- Public export: `apps/web/src/components/ui/index.ts`.
+- Accessible naming: supports `aria-label` or `aria-labelledby`, optional `aria-describedby`, `role="dialog"`, and `aria-modal="true"`.
+- Keyboard behavior: Escape closes by default and stops propagation to page-level shortcuts; Tab and Shift+Tab are trapped within enabled, visible focusable descendants.
+- Focus lifecycle: initial focus prefers an explicit `autofocus` element, otherwise the first focusable descendant; focus returns to the previously active element on close.
+- Backdrop behavior: closes only when the pointer event originates on the backdrop itself; can be disabled per instance.
+- Integrations: New Project modal and Command Palette. Their existing form state, project creation callback, command filtering, keyboard selection, and action callbacks remain owned by their original components.
+- The component does not create a portal, lock document scrolling, or impose consumer-specific dimensions/z-index. Existing modal and palette CSS continues to own their visual layout.
+- No API, authentication, permission, or domain logic was changed.
+
+Verification boundary: focused tests are authored for accessible markup, Escape propagation, and focus wrapping. The final GitHub Actions run for commit `4a3a65c` is pending; no test, typecheck, lint, or build pass is claimed. Browser visual and manual keyboard QA remain open. No administrative files were included.
