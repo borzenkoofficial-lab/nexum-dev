@@ -541,3 +541,32 @@ test("responsive workspace, agents and Studio layouts stay within supported view
   expect(studioLayout.bodyWidth, `Studio body overflow: ${JSON.stringify(studioLayout)}`).toBeLessThanOrEqual(390);
   await testInfo.attach("studio-390.png", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
 });
+
+
+test("active ChatJob and Builder progress restore after page reload with reconnect", async ({ page }) => {
+  await setAgentFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, runtimeWorkspaceId);
+  const input = page.getByLabel("Опишите задачу");
+  await input.fill("Проверь структуру проекта и ничего не изменяй.");
+  await page.getByRole("button", { name: "Отправить задачу AI-агенту КВАРД" }).click();
+  await page.waitForFunction(() => Boolean((window as any).__NEXUM_E2E_LAST_JOB_ID__), undefined, { timeout: 10_000 });
+  const jobId = await page.evaluate(() => (window as any).__NEXUM_E2E_LAST_JOB_ID__);
+  expect(jobId).toBeTruthy();
+  await waitForFailurePhase(page, "PLANNER_CHECKPOINT", "consumed");
+
+  await page.reload();
+  await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "Отменить выполнение задачи" })).toBeVisible({ timeout: 10_000 });
+  const restoredJob = await page.request.get("/api/chat/jobs/" + encodeURIComponent(jobId));
+  expect(restoredJob.ok()).toBeTruthy();
+  const restored = await restoredJob.json();
+  expect(["queued", "running"]).toContain(restored.job?.status);
+
+  const cancel = await page.request.post("/api/chat/jobs/" + encodeURIComponent(jobId) + "/cancel");
+  expect(cancel.ok()).toBeTruthy();
+  await expect.poll(async () => {
+    const response = await page.request.get("/api/chat/jobs/" + encodeURIComponent(jobId));
+    if (!response.ok()) return "missing";
+    const data = await response.json();
+    return data.job?.status;
+  }, { timeout: 10_000 }).toBe("cancelled");
+});
