@@ -641,6 +641,16 @@ function WorkspaceApp() {
       const response = await nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
       const data = await response.json().catch(() => ({})) as { success?: boolean; job?: { status?: string; error?: string } };
       if (!response.ok || !data.success) throw new Error(data.job?.error || `Cancel API: HTTP ${response.status}`);
+      // Cancellation can race with normal completion. Only publish/clear a job
+      // when the server confirms the canonical terminal status is "cancelled".
+      if (data.job?.status !== "cancelled") {
+        if (data.job?.status === "completed" || data.job?.status === "failed") {
+          setCurrentActivity(data.job.status === "completed"
+            ? "Задача успела завершиться до отмены."
+            : data.job.error || "Задача завершилась с ошибкой до отмены.");
+        }
+        return;
+      }
       broadcastChatJobTerminal(jobId, activeПроектId, "cancelled");
       setАгентStage("error");
       setCurrentActivity("Agent отменён пользователем.");
