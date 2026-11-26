@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
+import { KvardDialog } from "./ui/index.ts";
 
 interface NewProjectModalProps {
   open: boolean;
@@ -23,15 +24,6 @@ const PROJECT_TYPES = [
 ] as const;
 
 export function NewProjectModal({ open, name, description, loading, error, onNameChange, onDescriptionChange, onClose, onSubmit }: NewProjectModalProps) {
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { event.preventDefault(); onClose(); }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
-
   if (!open) return null;
 
   return <ProjectCreationForm name={name} description={description} loading={loading} error={error} onNameChange={onNameChange} onDescriptionChange={onDescriptionChange} onClose={onClose} onSubmit={onSubmit} />;
@@ -52,48 +44,53 @@ function ProjectCreationForm({ name, description, loading, error, onNameChange, 
   }
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div className="modal new-project-modal" role="dialog" aria-modal="true" aria-labelledby="new-project-title" aria-describedby="new-project-description">
-        <div className="modal-header">
-          <div>
-            <span className="eyebrow">НОВЫЙ ПРОЕКТ</span>
-            <h2 id="new-project-title">Создать проект</h2>
-            <p id="new-project-description" className="modal-intro">Сначала задайте направление. После создания откроется отдельное рабочее пространство проекта.</p>
-          </div>
-          <button className="icon-button" type="button" aria-label="Закрыть" onClick={onClose}>×</button>
+    <KvardDialog
+      open
+      onClose={onClose}
+      ariaLabelledBy="new-project-title"
+      ariaDescribedBy="new-project-description"
+      backdropClassName="modal-backdrop kv-dialog-backdrop"
+      dialogClassName="modal new-project-modal kv-dialog"
+    >
+      <div className="modal-header">
+        <div>
+          <span className="eyebrow">НОВЫЙ ПРОЕКТ</span>
+          <h2 id="new-project-title">Создать проект</h2>
+          <p id="new-project-description" className="modal-intro">Сначала задайте направление. После создания откроется отдельное рабочее пространство проекта.</p>
+        </div>
+        <button className="icon-button" type="button" aria-label="Закрыть" onClick={onClose}>×</button>
+      </div>
+
+      <form onSubmit={submit}>
+        <label htmlFor="project-name">Название проекта</label>
+        <input id="project-name" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Например: сайт строительной компании" autoFocus maxLength={64} required />
+
+        <label className="project-description-label" htmlFor="project-description">Что хотите создать?</label>
+        <textarea id="project-description" name="description" value={description} onChange={(event) => onDescriptionChange(event.target.value)} placeholder="Например: сайт компании с услугами, портфолио, формой заявки и адаптацией под телефон…" maxLength={500} rows={4} />
+
+        <div className="project-type-label">Тип проекта</div>
+        <div className="project-type-grid">
+          {PROJECT_TYPES.map((item) => (
+            <label key={item.id} className="project-type-card">
+              <input type="radio" name="type" value={item.label} checked={item.id === selectedId} onChange={() => setSelectedId(item.id)} />
+              <span><strong>{item.label}</strong><small>{item.hint}</small></span>
+            </label>
+          ))}
         </div>
 
-        <form onSubmit={submit}>
-          <label htmlFor="project-name">Название проекта</label>
-          <input id="project-name" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Например: сайт строительной компании" autoFocus maxLength={64} required />
+        {error && <div className="project-creation-error" role="alert">{error}</div>}
 
-          <label className="project-description-label" htmlFor="project-description">Что хотите создать?</label>
-          <textarea id="project-description" name="description" value={description} onChange={(event) => onDescriptionChange(event.target.value)} placeholder="Например: сайт компании с услугами, портфолио, формой заявки и адаптацией под телефон…" maxLength={500} rows={4} />
+        <div className="modal-summary">
+          <span>После создания</span>
+          <strong>{selected.label} — откроется рабочее пространство проекта</strong>
+          <small>Название, тип и описание сохранятся в «Обзоре», а чат будет работать только с этим проектом.</small>
+        </div>
 
-          <div className="project-type-label">Тип проекта</div>
-          <div className="project-type-grid">
-            {PROJECT_TYPES.map((item) => (
-              <label key={item.id} className="project-type-card">
-                <input type="radio" name="type" value={item.label} checked={item.id === selectedId} onChange={() => setSelectedId(item.id)} />
-                <span><strong>{item.label}</strong><small>{item.hint}</small></span>
-              </label>
-            ))}
-          </div>
-
-          {error && <div className="project-creation-error" role="alert">{error}</div>}
-
-          <div className="modal-summary">
-            <span>После создания</span>
-            <strong>{selected.label} — откроется рабочее пространство проекта</strong>
-            <small>Название, тип и описание сохранятся в «Обзоре», а чат будет работать только с этим проектом.</small>
-          </div>
-
-          <div className="modal-actions">
-            <button className="cancel-button" type="button" onClick={onClose}>Отмена</button>
-            <button className="create-button" type="submit" disabled={loading || !name.trim()}>{loading ? "Создаю проект…" : "Создать и открыть"}</button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="modal-actions">
+          <button className="cancel-button" type="button" onClick={onClose}>Отмена</button>
+          <button className="create-button" type="submit" disabled={loading || !name.trim()}>{loading ? "Создаю проект…" : "Создать и открыть"}</button>
+        </div>
+      </form>
+    </KvardDialog>
   );
 }
