@@ -543,7 +543,7 @@ test("responsive workspace, agents and Studio layouts stay within supported view
 });
 
 
-test("active ChatJob and Builder progress restore after page reload with reconnect", async ({ page }) => {
+test("active ChatJob restores after browser session reopen, reconnects and synchronizes tabs", async ({ page, browser }) => {
   await setAgentFailure(page, "enable", "PLANNER_CHECKPOINT", undefined, runtimeWorkspaceId);
   const input = page.getByLabel("Опишите задачу");
   await input.fill("Проверь структуру проекта и ничего не изменяй.");
@@ -595,6 +595,15 @@ test("active ChatJob and Builder progress restore after page reload with reconne
   await expect(secondTab.getByLabel("Опишите задачу")).toBeVisible({ timeout: 15_000 });
   await expect(secondTab.getByRole("button", { name: "Отменить выполнение задачи" })).toBeVisible({ timeout: 10_000 });
 
+  // Simulate closing the browser window and reopening an authenticated session.
+  // The new context receives the saved session state, but no in-memory Builder state.
+  const savedSession = await page.context().storageState();
+  const reopenedContext = await browser.newContext({ storageState: savedSession });
+  const reopenedPage = await reopenedContext.newPage();
+  await reopenedPage.goto(page.url());
+  await expect(reopenedPage.getByLabel("Опишите задачу")).toBeVisible({ timeout: 15_000 });
+  await expect(reopenedPage.getByRole("button", { name: "Отменить выполнение задачи" })).toBeVisible({ timeout: 10_000 });
+
   const restoredJob = await page.request.get("/api/chat/jobs/" + encodeURIComponent(jobId));
   expect(restoredJob.ok()).toBeTruthy();
   const restored = await restoredJob.json();
@@ -617,5 +626,7 @@ test("active ChatJob and Builder progress restore after page reload with reconne
   await expect(page.getByLabel("Опишите задачу")).toBeVisible({ timeout: 15_000 });
   await expect(page.locator("body")).toContainText("Agent task cancelled by user.", { timeout: 10_000 });
   await expect(secondTab.locator("body")).toContainText("Agent task cancelled by user.", { timeout: 10_000 });
+  await expect(reopenedPage.locator("body")).toContainText("Agent task cancelled by user.", { timeout: 10_000 });
   await secondTab.close();
+  await reopenedContext.close();
 });
