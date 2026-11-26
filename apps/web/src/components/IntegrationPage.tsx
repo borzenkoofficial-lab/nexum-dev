@@ -1,4 +1,4 @@
-import { KvardPageHeader } from "./ui/index.ts";
+import { KvardPageHeader, KvardStatusBadge } from "./ui/index.ts";
 
 type IntegrationPageProps = {
   connectedConnectors: string[];
@@ -25,9 +25,10 @@ const services: Connector[] = [
 
 function Status({ connected }: { connected: boolean }) {
   return (
-    <span className={"integration-status " + (connected ? "connected" : "neutral")}>
-      <i />{connected ? "Подключено" : "Не подключено"}
-    </span>
+    <KvardStatusBadge
+      tone={connected ? "success" : "neutral"}
+      label={connected ? "Подключено" : "Не настроено"}
+    />
   );
 }
 
@@ -70,7 +71,7 @@ export function IntegrationPage({ connectedConnectors, onToggleConnector }: Inte
           </div>
         </section>
       ))}
-      <p className="integration-note">Подключение станет доступно после настройки серверной интеграции. Состояние каждого сервиса отображается по фактическим данным.</p>
+      <p className="integration-note">Каталог пока справочный: серверное подключение через OAuth/API ещё не реализовано. Кнопка «Подробнее» показывает ограничение и не запускает фиктивную авторизацию.</p>
     </section>
   );
 }
