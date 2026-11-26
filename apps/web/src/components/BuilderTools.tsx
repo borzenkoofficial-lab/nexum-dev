@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentStage } from "./types";
-import { KvardSegmentedControl, KvardSurface } from "./ui/index.ts";
+import { KvardPageHeader, KvardSegmentedControl, KvardSurface } from "./ui/index.ts";
 
 interface Props {
   tab: "preview" | "files" | "agent";
@@ -121,13 +121,19 @@ export function BuilderTools(p: Props) {
   if (p.tab === "preview") {
     return (
       <KvardSurface as="section" className="nx-tool" variant="raised" padding="none" aria-label="Предпросмотр приложения">
-        <div className="nx-tool-head">
-          <div><span>ПРЕДПРОСМОТР</span><strong>{p.previewOnline ? "Приложение доступно" : "Ожидает первую сборку"}</strong></div>
-          <div className="nx-tool-actions">
+        <KvardPageHeader
+          className="nx-tool-head"
+          headingLevel="h2"
+          eyebrow="ПРЕДПРОСМОТР"
+          title="Предпросмотр приложения"
+          titleId="kv-builder-preview-title"
+          description={p.previewOnline ? "Приложение доступно" : "Ожидает первую сборку"}
+          descriptionId="kv-builder-preview-status"
+          actions={<div className="nx-tool-actions">
             <button type="button" onClick={p.onRefresh}>↻ Обновить</button>
             <button type="button" onClick={() => window.open("/api/preview/" + encodeURIComponent(p.projectId) + "/index.html", "_blank", "noopener,noreferrer")}>Открыть ↗</button>
-          </div>
-        </div>
+          </div>}
+        />
         {p.previewOnline ? (
           <>
             <div className="nx-device-tabs">
@@ -149,7 +155,7 @@ export function BuilderTools(p: Props) {
           </>
         ) : (
           <div className="nx-preview-empty">
-            <div><span>PREVIEW</span><h2>Здесь появится ваше приложение</h2><p>Отправьте задачу в чате, чтобы начать разработку.</p><button type="button" onClick={p.onOpenAgent}>Открыть AI-агента</button></div>
+            <div><span>PREVIEW</span><h3>Здесь появится ваше приложение</h3><p>Отправьте задачу в чате, чтобы начать разработку.</p><button type="button" onClick={p.onOpenAgent}>Открыть AI-агента</button></div>
           </div>
         )}
       </KvardSurface>
@@ -159,10 +165,14 @@ export function BuilderTools(p: Props) {
   if (p.tab === "files") {
     return (
       <KvardSurface as="section" className="nx-tool" variant="raised" padding="none" aria-label="Файлы проекта">
-        <div className="nx-tool-head">
-          <div><span>ФАЙЛЫ</span><strong>Исходный код проекта</strong></div>
-          <button type="button" onClick={() => void loadFiles()} disabled={loading}>{loading ? "Загрузка…" : "Обновить"}</button>
-        </div>
+        <KvardPageHeader
+          className="nx-tool-head"
+          headingLevel="h2"
+          eyebrow="ФАЙЛЫ"
+          title="Исходный код проекта"
+          titleId="kv-builder-files-title"
+          actions={<button type="button" onClick={() => void loadFiles()} disabled={loading}>{loading ? "Загрузка…" : "Обновить"}</button>}
+        />
         <div className="nx-files">
           <aside aria-label="Список файлов">
             {loading && !files.length ? <p role="status">Загрузка файлов…</p>
@@ -198,10 +208,14 @@ export function BuilderTools(p: Props) {
 
   return (
     <KvardSurface as="section" className="nx-tool nx-agent" variant="raised" padding="none" aria-label="Ход выполнения AI-агента">
-      <div className="nx-tool-head">
-        <div><span>AI-АГЕНТ</span><strong>{live ? "Выполняет задачу" : p.stage === "completed" ? "Задача выполнена" : p.stage === "error" ? "Задача остановлена с ошибкой" : "Готов к работе"}</strong></div>
-        <span className={"nx-agent-state " + (live ? "live" : p.stage === "error" ? "error" : p.stage === "completed" ? "done" : "")} role="status" aria-live="polite">{live ? "Работает" : p.stage === "error" ? "Ошибка" : p.stage === "completed" ? "Завершено" : "Ожидание"}</span>
-      </div>
+      <KvardPageHeader
+        className="nx-tool-head"
+        headingLevel="h2"
+        eyebrow="AI-АГЕНТ"
+        title={live ? "Выполняет задачу" : p.stage === "completed" ? "Задача выполнена" : p.stage === "error" ? "Задача остановлена с ошибкой" : "Готов к работе"}
+        titleId="kv-builder-agent-title"
+        actions={<span className={"nx-agent-state " + (live ? "live" : p.stage === "error" ? "error" : p.stage === "completed" ? "done" : "")} role="status" aria-live="polite">{live ? "Работает" : p.stage === "error" ? "Ошибка" : p.stage === "completed" ? "Завершено" : "Ожидание"}</span>}
+      />
 
       <div className="nx-run">
         <strong>{p.currentActivity || "Опишите задачу в чате, чтобы запустить агента."}</strong>
