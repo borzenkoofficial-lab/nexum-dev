@@ -10,6 +10,9 @@ import {
   getChatJob,
   requestChatJobApproval,
   resolveChatJobApproval,
+  startChatJobToolAction,
+  finishChatJobToolAction,
+  listChatJobToolActions,
   type ChatJob,
   type ChatJobApproval,
 } from "./chatJobStore.js";
@@ -165,4 +168,36 @@ test("API restart recovery fails orphaned queued and running jobs and releases t
   assert.equal(await acquireProjectLock("restart-project-queued", "restart-owner", "restart-next-queued"), true);
   await releaseProjectLock("restart-project-running", "restart-next-running");
   await releaseProjectLock("restart-project-queued", "restart-next-queued");
+});
+
+test("tool action journal commits intent before execution and finalizes exactly once", async () => {
+  const jobId = "tool-action-journal-job";
+  await createChatJob(makeJob(jobId, "journal-owner"));
+  const actionId = await startChatJobToolAction(jobId, "journal-owner", "writeFile", JSON.stringify({ path: "src/app.ts", content: "x" }));
+  const started = await listChatJobToolActions(jobId, "journal-owner");
+  assert.equal(started.length, 1);
+  assert.equal(started[0].actionId, actionId);
+  assert.equal(started[0].status, "started");
+  assert.equal(started[0].risk, "WRITE");
+  assert.match(started[0].inputSha256, /^[a-f0-9]{64}$/);
+
+  await finishChatJobToolAction(jobId, "journal-owner", actionId, { success: true, output: "written" });
+  const completed = await listChatJobToolActions(jobId, "journal-owner");
+  assert.equal(completed[0].status, "succeeded");
+  assert.equal(completed[0].resultSuccess, true);
+  assert.match(completed[0].resultSha256 ?? "", /^[a-f0-9]{64}$/);
+  await assert.rejects(
+    finishChatJobToolAction(jobId, "journal-owner", actionId, { success: true, output: "duplicate" }),
+    /missing, foreign, or already finalized/,
+  );
+  assert.equal((await listChatJobToolActions(jobId, "foreign-owner")).length, 0);
+});
+
+test("tool action journal fails closed for a job that is not running", async () => {
+  const jobId = "tool-action-journal-queued";
+  await createChatJob({ ...makeJob(jobId, "journal-owner"), status: "queued" });
+  await assert.rejects(
+    startChatJobToolAction(jobId, "journal-owner", "listFiles", "."),
+    /non-running or inaccessible/,
+  );
 });
