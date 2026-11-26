@@ -725,10 +725,15 @@ ${attachment.content.slice(0, 80_000)}`);
     await flushReplyPersistence().catch((persistenceError) => {
       console.error("[Nexum] streamed reply flush failed", { jobId, persistenceError });
     });
-    if (error instanceof Error && error.name === "ProjectLockLostError") {
+    const lockLostError = error instanceof Error && error.name === "ProjectLockLostError"
+      ? error
+      : signal.reason instanceof Error && signal.reason.name === "ProjectLockLostError"
+        ? signal.reason
+        : null;
+    if (lockLostError) {
       job.status = "failed";
       job.stage = "error";
-      job.error = error.message;
+      job.error = lockLostError.message;
       job.updatedAt = Date.now();
       await waitForChatJobPersistence(jobId);
       const failed = await failChatJob(jobId, userId, { stage: "error", error: job.error });
