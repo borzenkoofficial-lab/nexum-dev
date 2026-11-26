@@ -193,7 +193,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .nx-builder-header-actions .nx-builder-open { border-color: var(--kv-action); background: var(--kv-action); color: var(--kv-on-action); }
 .nx-builder-body { gap: 12px; padding: 12px; background: var(--kv-canvas); }
 .nx-builder-grid { display: grid; grid-template-columns: minmax(320px, .95fr) minmax(420px, 1.05fr); gap: 12px; flex: 1; min-width: 0; min-height: 0; }
-.nx-chat, .nx-tool, .nx-code { overflow: hidden; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-panel); background: var(--kv-surface); box-shadow: var(--kv-shadow-panel); }
+.nx-chat, .nx-tool, .nx-code { overflow: hidden; }
 .nx-chat-head, .nx-tool-head, .nx-code > header { min-height: 58px; padding: 12px 16px; border-color: var(--kv-border); background: var(--kv-surface); }
 .nx-chat-head span, .nx-tool-head span, .nx-code small { color: var(--kv-action); font-size: 10px; font-weight: 700; letter-spacing: .1em; }
 .nx-chat-head strong, .nx-tool-head strong { color: var(--kv-text); font-size: 13px; font-weight: 650; }
