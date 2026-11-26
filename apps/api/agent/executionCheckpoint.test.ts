@@ -170,8 +170,7 @@ test("project revision fingerprint excludes credential files and never follows s
   try {
     await mkdir(join(root, "src"), { recursive: true });
     await writeFile(join(root, "src", "index.ts"), "export const safe = true;");
-    await writeFile(join(root, ".npmrc"), "
-//registry.example/:_authToken=secret-one");
+    await writeFile(join(root, ".npmrc"), "//registry.example/:_authToken=secret-one");
     await writeFile(join(root, "credentials.json"), "{\"token\":\"secret-one\"}");
     await writeFile(join(root, "service-account-prod.json"), "{\"private_key\":\"secret-one\"}");
     await writeFile(join(root, "id_ed25519"), "PRIVATE KEY ONE");
