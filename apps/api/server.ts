@@ -633,7 +633,7 @@ ${attachment.content.slice(0, 80_000)}`);
     });
     await flushReplyPersistence();
 
-    if (signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
+    throwIfAgentAborted(signal);
     const persistedAfterRun = await getChatJob(jobId, userId);
     if (persistedAfterRun?.status === "cancelled") throw new DOMException("Agent task cancelled", "AbortError");
     job.updatedAt = Date.now();
@@ -699,7 +699,8 @@ ${attachment.content.slice(0, 80_000)}`);
       } catch { return ""; }
     }).filter(Boolean), result.steps.filter((step) => !step.success).map((step) => `${step.tool}: ${step.input.slice(0, 300)}`).slice(-20));
     await stateManager.markCompleted(message.slice(0, 240));
-    if (signal?.aborted || (await getChatJob(jobId, userId))?.status === "cancelled") {
+    throwIfAgentAborted(signal);
+    if ((await getChatJob(jobId, userId))?.status === "cancelled") {
       throw new DOMException("Agent task cancelled", "AbortError");
     }
     const completed = await completeChatJob(jobId, userId, {
