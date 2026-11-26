@@ -762,6 +762,8 @@ function WorkspaceApp() {
 
     let cancelled = false;
     let terminalHandled = false;
+    let reconnecting = false;
+    let snapshotRecoveryInFlight = false;
     const activeJobId = chatJobId;
     const source = new EventSource(`/api/chat/jobs/${encodeURIComponent(activeJobId)}/events`);
 
@@ -911,17 +913,37 @@ function WorkspaceApp() {
       if (cancelled || terminalHandled) return;
       setCurrentActivity("Связь с задачей временно недоступна. Восстанавливаю соединение…");
     });
+    source.onopen = () => {
+      if (cancelled || terminalHandled || !reconnecting) return;
+      reconnecting = false;
+      setCurrentActivity((current) =>
+        current.includes("Связь с задачей временно недоступна")
+          ? "Соединение восстановлено. Продолжаю получать обновления…"
+          : current,
+      );
+    };
     source.onerror = () => {
       if (cancelled || terminalHandled) return;
-      // EventSource retries automatically. Fetch a single snapshot to ensure the UI
-      // remains current while the stream reconnects; this is not periodic polling.
+      reconnecting = true;
+      setCurrentActivity((current) =>
+        current.includes("Связь с задачей временно недоступна")
+          ? current
+          : "Связь с задачей временно недоступна. Восстанавливаю соединение…",
+      );
+      // EventSource retries automatically. Recover one snapshot while reconnecting,
+      // but never start overlapping REST requests on repeated error notifications.
+      if (snapshotRecoveryInFlight) return;
+      snapshotRecoveryInFlight = true;
       void nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(activeJobId)}`)
         .then(async (response) => {
           if (!response.ok || cancelled) return;
           const data = await response.json() as { job?: ChatJobSnapshot };
           if (data.job) await applyJob(data.job);
         })
-        .catch(() => undefined);
+        .catch(() => undefined)
+        .finally(() => {
+          snapshotRecoveryInFlight = false;
+        });
     };
 
     return () => {
