@@ -66,3 +66,287 @@
   .nexum-window-status { font-size: 9px; }
   .nexum-welcome-footer { gap: 10px; flex-wrap: wrap; }
 }
+
+
+/* KVARD welcome — a composed workspace entry, not a generic registration form. */
+.nexum-welcome-scene {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: clamp(34px, 6vw, 88px);
+  row-gap: 0;
+  padding: clamp(18px, 2.8vw, 34px) clamp(20px, 5vw, 72px) 20px;
+  background:
+    radial-gradient(ellipse at 17% 47%, color-mix(in srgb, var(--kv-action-soft) 38%, transparent), transparent 38%),
+    var(--kv-canvas);
+}
+.nexum-welcome-nav {
+  grid-column: 1 / -1;
+  width: min(1440px, 100%);
+  padding: 14px 0 17px;
+  border-color: var(--kv-border);
+}
+.nexum-brand { gap: 10px; color: var(--kv-text); }
+.nexum-brand b { font-size: 14px; letter-spacing: .09em; }
+.nexum-brand em { padding-left: 9px; border-left: 1px solid var(--kv-border); font-size: 10px; letter-spacing: .12em; }
+.nexum-os-session { font-size: 10px; letter-spacing: .1em; }
+.nexum-os-session b { color: var(--kv-text-secondary); font-variant-numeric: tabular-nums; }
+.nexum-boot-sequence {
+  grid-column: 1;
+  grid-row: 2;
+  grid-template-columns: minmax(150px, .58fr) minmax(0, 1fr);
+  align-content: center;
+  gap: 18px clamp(24px, 3vw, 46px);
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 24px 0;
+}
+.nexum-sequence-core {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  min-height: 210px;
+  border: 1px solid color-mix(in srgb, var(--kv-action) 15%, var(--kv-border));
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--kv-action-soft) 58%, transparent), transparent 67%),
+    color-mix(in srgb, var(--kv-surface) 86%, transparent);
+  box-shadow: var(--kv-shadow-panel);
+}
+.nexum-sequence-mark { width: clamp(76px, 8vw, 112px); height: auto; }
+.nexum-sequence-copy { align-self: end; min-width: 0; }
+.nexum-sequence-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 9px;
+  border: 1px solid var(--kv-border);
+  border-radius: 999px;
+  background: var(--kv-surface);
+  color: var(--kv-text-secondary);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .13em;
+}
+.nexum-sequence-copy h1 {
+  margin: 12px 0 8px;
+  color: var(--kv-text);
+  font-size: clamp(34px, 4.4vw, 58px);
+  font-weight: 650;
+  letter-spacing: -.065em;
+  line-height: 1.02;
+}
+.nexum-sequence-copy p {
+  max-width: 440px;
+  margin: 0;
+  color: var(--kv-text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.nexum-boot-console {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  overflow: hidden;
+  border-color: var(--kv-border);
+  border-radius: var(--kv-radius-panel);
+  background: color-mix(in srgb, var(--kv-surface) 92%, transparent);
+  box-shadow: var(--kv-shadow-panel);
+}
+.nexum-console-head { padding: 12px 15px; color: var(--kv-text-tertiary); font-size: 9px; font-weight: 700; letter-spacing: .1em; }
+.nexum-console-head b { color: var(--kv-text); font-variant-numeric: tabular-nums; }
+.nexum-console-lines { gap: 0; padding: 5px 15px 13px; }
+.nexum-console-lines > div { align-items: center; min-height: 31px; border-bottom: 1px solid var(--kv-border); color: var(--kv-text-secondary); font-size: 10px; letter-spacing: .025em; }
+.nexum-console-lines > div:last-child { border-bottom: 0; }
+.nexum-console-lines b { color: var(--kv-text-tertiary); font-size: 9px; letter-spacing: .04em; }
+.nexum-console-lines > div.online b { color: var(--kv-success); }
+.nexum-auth-window {
+  grid-column: 2;
+  grid-row: 2;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-color: var(--kv-border);
+  border-radius: var(--kv-radius-large);
+  background: var(--kv-surface);
+  box-shadow: 0 24px 80px color-mix(in srgb, var(--kv-shadow-color, #172033) 12%, transparent), var(--kv-shadow-panel);
+}
+.nexum-window-chrome {
+  min-height: 42px;
+  padding: 10px 16px;
+  background: var(--kv-surface-subtle);
+  color: var(--kv-text-tertiary);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: .08em;
+}
+.nexum-window-dots { gap: 5px; }
+.nexum-window-dots i { width: 7px; height: 7px; border: 0; background: var(--kv-border-strong); }
+.nexum-window-status { color: var(--kv-success); font-size: 9px; font-weight: 700; letter-spacing: .06em; }
+.nexum-window-status .nx-live-dot { background: var(--kv-success); border: 0; box-shadow: 0 0 0 3px var(--kv-success-soft); }
+.nexum-auth-content { gap: 20px; padding: clamp(22px, 2.6vw, 32px); }
+.nexum-auth-intro .nexum-card-kicker { color: var(--kv-action); font-size: 9px; font-weight: 750; letter-spacing: .14em; }
+.nexum-auth-intro h2 { margin: 9px 0 7px; color: var(--kv-text); font-size: clamp(21px, 2vw, 25px); font-weight: 650; letter-spacing: -.045em; }
+.nexum-auth-intro p { margin: 0; color: var(--kv-text-secondary); font-size: 12px; line-height: 1.65; }
+.nexum-auth-content form { gap: 14px; }
+.nexum-auth-content label { gap: 7px; color: var(--kv-text-secondary); font-size: 11px; font-weight: 650; }
+.nexum-auth-content input {
+  min-height: 46px;
+  padding: 11px 13px;
+  border-color: var(--kv-border-strong);
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-surface);
+  color: var(--kv-text);
+  font-size: 13px;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.nexum-auth-content input::placeholder { color: var(--kv-text-tertiary); }
+.nexum-auth-content input:focus-visible { outline: 2px solid var(--kv-focus); outline-offset: 1px; border-color: var(--kv-focus); }
+.nexum-enter {
+  min-height: 48px;
+  margin-top: 3px;
+  padding: 0 15px;
+  border-color: var(--kv-action);
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-action);
+  color: var(--kv-on-action);
+  font-size: 13px;
+  font-weight: 700;
+  transition: background-color 140ms ease, transform 140ms ease;
+}
+.nexum-enter:hover:not(:disabled) { background: var(--kv-action-hover); }
+.nexum-enter:active:not(:disabled) { transform: translateY(1px); }
+.nexum-enter:disabled { opacity: .72; }
+.nexum-auth-switch {
+  padding-top: 15px;
+  border-top: 1px solid var(--kv-border);
+  color: var(--kv-text-tertiary);
+  font-size: 11px;
+}
+.nexum-auth-switch button {
+  padding: 7px 9px;
+  border-color: transparent;
+  border-radius: 8px;
+  background: var(--kv-action-soft);
+  color: var(--kv-action);
+  font-size: 11px;
+  font-weight: 700;
+}
+.nexum-auth-note {
+  padding: 10px 12px;
+  border: 1px solid var(--kv-info-soft);
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-info-soft);
+  color: var(--kv-text-secondary);
+  font-size: 11px;
+}
+.nexum-auth-error {
+  border-color: color-mix(in srgb, var(--kv-danger) 35%, var(--kv-border));
+  border-radius: var(--kv-radius-control);
+  background: var(--kv-danger-soft);
+  color: var(--kv-danger);
+  line-height: 1.5;
+}
+.nexum-skip-intro {
+  grid-column: 2;
+  grid-row: 3;
+  justify-self: center;
+  margin: 14px 0 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--kv-text-tertiary);
+  font-size: 10px;
+}
+.nexum-skip-intro:hover { color: var(--kv-text); }
+.nexum-welcome kbd { border-color: var(--kv-border); border-radius: 5px; background: var(--kv-surface-subtle); color: var(--kv-text-secondary); }
+.nexum-welcome-footer {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  width: min(1440px, 100%);
+  margin-top: 14px;
+  border-color: var(--kv-border);
+  color: var(--kv-text-tertiary);
+  font-size: 9px;
+  letter-spacing: .08em;
+}
+.nexum-post-auth-boot {
+  display: flex;
+  background:
+    radial-gradient(ellipse at 50% 45%, color-mix(in srgb, var(--kv-action-soft) 42%, transparent), transparent 42%),
+    var(--kv-canvas);
+}
+.nexum-boot-center {
+  width: min(460px, 100%);
+  padding: 34px;
+  border: 1px solid var(--kv-border);
+  border-radius: var(--kv-radius-large);
+  background: var(--kv-surface);
+  box-shadow: var(--kv-shadow-panel);
+}
+.nexum-boot-word { color: var(--kv-text); font-size: 17px; letter-spacing: .12em; }
+.nexum-boot-word span { margin-left: 4px; color: var(--kv-text-tertiary); font-size: 9px; letter-spacing: .12em; }
+.nexum-boot-center p { color: var(--kv-text-secondary); }
+.nexum-boot-center .nexum-boot-status { color: var(--kv-text-tertiary); font-weight: 700; }
+.nexum-boot-center .nexum-boot-progress { overflow: hidden; border-radius: 999px; background: var(--kv-surface-subtle); }
+.nexum-boot-center .nexum-boot-progress i { border-radius: inherit; transition: width 100ms linear; }
+@media (max-width: 980px) {
+  .nexum-welcome-scene {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
+    column-gap: 26px;
+    padding-inline: 24px;
+  }
+  .nexum-boot-sequence { grid-template-columns: 120px minmax(0, 1fr); gap: 16px; }
+  .nexum-sequence-core { min-height: 170px; }
+  .nexum-console-lines { padding-inline: 12px; }
+}
+@media (max-width: 760px) {
+  .nexum-welcome-scene {
+    display: flex;
+    min-height: 100dvh;
+    padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  .nexum-welcome-nav { flex: 0 0 auto; padding: 8px 0 13px; }
+  .nexum-os-session { font-size: 0; gap: 7px; }
+  .nexum-os-session b { font-size: 9px; }
+  .nexum-boot-sequence {
+    display: grid;
+    grid-template-columns: 68px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px 16px;
+    padding: 25px 0 18px;
+  }
+  .nexum-sequence-core {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    min-height: 88px;
+    border-radius: 18px;
+  }
+  .nexum-sequence-mark { width: 58px; }
+  .nexum-sequence-copy { grid-column: 2; }
+  .nexum-sequence-copy h1 { margin: 7px 0 5px; font-size: clamp(28px, 8vw, 38px); }
+  .nexum-sequence-copy p { font-size: 12px; line-height: 1.5; }
+  .nexum-boot-console { grid-column: 2; grid-row: 2; }
+  .nexum-console-head { padding: 9px 11px; font-size: 8px; }
+  .nexum-console-lines { padding: 3px 11px 8px; }
+  .nexum-console-lines > div { min-height: 25px; font-size: 8px; }
+  .nexum-console-lines b { font-size: 8px; }
+  .nexum-auth-window { flex: 0 0 auto; max-width: 520px; }
+  .nexum-auth-content { gap: 16px; padding: 19px; }
+  .nexum-auth-content form { gap: 11px; }
+  .nexum-auth-content input { min-height: 44px; }
+  .nexum-welcome-footer { margin-top: auto; }
+  .nexum-skip-intro { margin: 9px 0 0; }
+}
+@media (max-width: 390px) {
+  .nexum-welcome-scene { padding-inline: 12px; }
+  .nexum-auth-content { padding: 16px; }
+  .nexum-window-chrome { gap: 7px; padding-inline: 11px; font-size: 8px; }
+  .nexum-window-status { font-size: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nexum-auth-content input,
+  .nexum-enter { transition: none; }
+  .nexum-enter:active:not(:disabled) { transform: none; }
+}
