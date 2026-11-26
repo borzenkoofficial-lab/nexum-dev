@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
+import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import {
+  computeProjectRevisionFingerprint,
   decryptAgentExecutionCheckpoint,
   encryptAgentExecutionCheckpoint,
   type AgentExecutionCheckpoint,
@@ -133,5 +137,28 @@ test("Agent execution checkpoints reject ciphertext tampering and metadata subst
   } finally {
     if (previous === undefined) delete process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
     else process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY = previous;
+  }
+});
+
+
+test("project revision fingerprint tracks source changes but excludes runtime and secret files", async () => {
+  const root = await mkdtemp(join(tmpdir(), "kvard-checkpoint-fingerprint-"));
+  try {
+    await mkdir(join(root, "src"), { recursive: true });
+    await mkdir(join(root, "node_modules", "pkg"), { recursive: true });
+    await mkdir(join(root, ".nexum"), { recursive: true });
+    await writeFile(join(root, "src", "App.tsx"), "export const App = 1;");
+    await writeFile(join(root, ".env"), "SECRET=first");
+    await writeFile(join(root, "node_modules", "pkg", "index.js"), "ignored");
+    await writeFile(join(root, ".nexum", "agent-state.json"), "ignored");
+    const initial = await computeProjectRevisionFingerprint(root);
+    await writeFile(join(root, ".env"), "SECRET=second");
+    await writeFile(join(root, "node_modules", "pkg", "index.js"), "ignored changed");
+    await writeFile(join(root, ".nexum", "agent-state.json"), "ignored changed");
+    assert.equal(await computeProjectRevisionFingerprint(root), initial);
+    await writeFile(join(root, "src", "App.tsx"), "export const App = 2;");
+    assert.notEqual(await computeProjectRevisionFingerprint(root), initial);
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
