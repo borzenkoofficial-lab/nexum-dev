@@ -375,7 +375,7 @@ NEXUM.DEV — браузерная платформа для создания и
 ## Builder multi-tab ChatJob synchronization — 2026-11-26
 
 - Added best-effort BroadcastChannel notification for terminal ChatJob transitions. A tab with the same active job receives the notification, then fetches the authenticated REST snapshot; it never trusts cross-tab message contents as authoritative state.
-- User cancellation publishes the terminal transition before the initiating tab clears its active-job reference. SSE-observed completion/failure/cancellation also publishes once, with duplicate terminal notifications guarded.
+- User cancellation publishes the terminal transition before the initiating tab clears its active-job reference, but only when the server confirms the canonical status is `cancelled`; a race with completion/failure no longer makes the UI report a false cancellation. SSE-observed completion/failure/cancellation also publishes once, with duplicate terminal notifications guarded.
 - Builder ignores out-of-order snapshots with an older `updatedAt` value, preventing delayed responses from rolling the visible task state backwards.
 - Extended Playwright coverage: open the same project in a second tab, cancel the job in the first tab, and assert the second tab displays the canonical cancellation result. This test remains pending execution in CI.
 - Cross-tab messaging is an optimization only. Server-side ChatJob persistence and authenticated REST/SSE remain the source of truth; browsers without BroadcastChannel retain normal SSE/reload recovery.
