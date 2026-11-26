@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -160,5 +160,32 @@ test("project revision fingerprint tracks source changes but excludes runtime an
     assert.notEqual(await computeProjectRevisionFingerprint(root), initial);
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+
+test("project revision fingerprint excludes credential files and never follows symlinks", async () => {
+  const root = await mkdtemp(join(tmpdir(), "kvard-checkpoint-secrets-"));
+  const outside = await mkdtemp(join(tmpdir(), "kvard-checkpoint-outside-"));
+  try {
+    await mkdir(join(root, "src"), { recursive: true });
+    await writeFile(join(root, "src", "index.ts"), "export const safe = true;");
+    await writeFile(join(root, ".npmrc"), "
+//registry.example/:_authToken=secret-one");
+    await writeFile(join(root, "credentials.json"), "{\"token\":\"secret-one\"}");
+    await writeFile(join(root, "service-account-prod.json"), "{\"private_key\":\"secret-one\"}");
+    await writeFile(join(root, "id_ed25519"), "PRIVATE KEY ONE");
+    await writeFile(join(outside, "outside-secret.txt"), "outside-one");
+    await symlink(outside, join(root, "linked-outside"), "dir");
+    const initial = await computeProjectRevisionFingerprint(root);
+    await writeFile(join(root, ".npmrc"), "//registry.example/:_authToken=secret-two");
+    await writeFile(join(root, "credentials.json"), "{\"token\":\"secret-two\"}");
+    await writeFile(join(root, "service-account-prod.json"), "{\"private_key\":\"secret-two\"}");
+    await writeFile(join(root, "id_ed25519"), "PRIVATE KEY TWO");
+    await writeFile(join(outside, "outside-secret.txt"), "outside-two");
+    assert.equal(await computeProjectRevisionFingerprint(root), initial);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(outside, { recursive: true, force: true });
   }
 });
