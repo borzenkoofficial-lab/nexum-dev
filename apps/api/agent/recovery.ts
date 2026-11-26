@@ -237,6 +237,14 @@ export function assessAgentCheckpointRecovery(input: {
     sequence?: unknown;
     sandboxRevisionFingerprint?: unknown;
     toolActionIds?: unknown;
+    resumeState?: {
+      task?: unknown;
+      builderTask?: unknown;
+      repairRequested?: unknown;
+      forceCompletionNextIteration?: unknown;
+      remotePlannerRateLimited?: unknown;
+      productPlannerCreated?: unknown;
+    } | null;
   } | null;
   job: { id: string; userId: string; projectId?: string; pendingApproval?: { status?: unknown } | null };
   currentSandboxRevisionFingerprint?: string | null;
@@ -280,6 +288,18 @@ export function assessAgentCheckpointRecovery(input: {
     checkpointActionIds.length !== checkpoint.toolActionIds.length
   ) {
     return result("manual_review_required", "checkpoint_ownership_mismatch");
+  }
+  const resumeState = checkpoint.resumeState;
+  if (
+    !resumeState ||
+    typeof resumeState.task !== "string" || resumeState.task.length === 0 || resumeState.task.length > 100_000 ||
+    typeof resumeState.builderTask !== "boolean" ||
+    typeof resumeState.repairRequested !== "boolean" ||
+    typeof resumeState.forceCompletionNextIteration !== "boolean" ||
+    typeof resumeState.remotePlannerRateLimited !== "boolean" ||
+    typeof resumeState.productPlannerCreated !== "boolean"
+  ) {
+    return result("manual_review_required", "checkpoint_state_invalid");
   }
   if (
     !input.currentSandboxRevisionFingerprint ||
