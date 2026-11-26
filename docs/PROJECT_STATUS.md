@@ -425,3 +425,13 @@ NEXUM.DEV — браузерная платформа для создания и
 - This is a durable action ledger, **not yet a resumable execution engine**: it does not persist the full planner context or tool result payloads needed to reconstruct `previousResults`, token budgets, action-attempt maps, and phase state. No tool is replayed automatically.
 - PostgreSQL is required for cross-process durability. The in-memory fallback is process-local and is only suitable for development.
 - No production migration, deployment, secret change, or live/paid provider request was performed. CI and local typecheck/test results must be verified before treating this work as complete.
+
+## Durable Agent Execution — encrypted checkpoint foundation (2026-11-26)
+
+- Added `agent/executionCheckpoint.ts` with a versioned `AgentExecutionCheckpoint` payload. It models the state required for a later restore: phase/iteration, Intent, execution plan, Product Plan, full observed tool results, pending plan, planner/repair counters, adaptive token-budget snapshot, action-attempt and loop-detection state, durable tool action IDs, and a sandbox revision fingerprint.
+- Checkpoint payloads use AES-256-GCM with authenticated metadata (`version`, job, user, project, sequence). The key is a dedicated `KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY`, base64-encoded 32-byte value. Missing/malformed keys fail closed; there is no plaintext fallback. Payload size is capped at 2 MiB.
+- Added `agent_chat_job_execution_checkpoints` with `(job_id, sequence)` uniqueness, user/project scope, and JSONB envelope storage. Store writes require the ChatJob to belong to the same user/project and remain `running`; reads are owner-scoped and return the latest sequence.
+- Added crypto and store tests for encryption round-trip, tampering/metadata substitution, missing keys, ownership, and duplicate sequence rejection. The API test script includes the new crypto tests.
+- **This is currently an encrypted checkpoint contract and persistence layer, not yet a live AgentLoop checkpoint writer or restore path.** No code currently emits these snapshots at safe execution boundaries, computes a trusted sandbox revision fingerprint, or resumes from them. Therefore the recovery classifier must continue to deny automatic resume. No action replay is enabled.
+- PostgreSQL is required for cross-process checkpoint durability; the memory fallback remains process-local. Production bootstrap/migration has not been run and the new environment key has not been configured.
+- CI/local verification is pending. No production deployment, production migration, secret change, or live/paid provider request was performed.
