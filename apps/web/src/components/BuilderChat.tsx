@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AIProviderInfo, AIProviderStatus, AgentStage } from "./types";
 import { KvardMark } from "./KvardMark.ts";
 import { KvardAlert, KvardPageHeader, KvardSurface } from "./ui/index.ts";
@@ -17,6 +17,9 @@ interface Props {
   aiStatus: AIProviderStatus | null;
   projectName: string;
   jobId: string | null;
+  currentActivity: string;
+  activityEvents: Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>;
+  activitySteps: Array<{ iteration: number; tool: string; success: boolean }>;
   onMessageChange: (value: string) => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -32,6 +35,20 @@ interface Props {
 export function BuilderChat(p: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [modelOpen, setModelOpen] = useState(false);
+  const [typedActivity, setTypedActivity] = useState("");
+  const [showAllActivity, setShowAllActivity] = useState(false);
+  useEffect(() => {
+    const target = p.currentActivity || "";
+    if (!target) { setTypedActivity(""); return; }
+    let index = 0;
+    setTypedActivity("");
+    const timer = window.setInterval(() => {
+      index = Math.min(index + 2, target.length);
+      setTypedActivity(target.slice(0, index));
+      if (index >= target.length) window.clearInterval(timer);
+    }, 14);
+    return () => window.clearInterval(timer);
+  }, [p.currentActivity]);
   const busy = Boolean(p.stage && !["completed", "error"].includes(p.stage));
   const selected = p.providers.find((item) => item.id === p.provider);
   const models = p.models.length ? p.models : [p.model];
@@ -60,8 +77,8 @@ export function BuilderChat(p: Props) {
         {p.messages.length === 0 ? (
           <div className="nx-chat-empty">
             <KvardMark size={48} className="nx-chat-mark" />
-            <h3>С чего начнём?</h3>
-            <p>Опишите изменение или новый продукт. КВАРД изучит задачу, составит план и выполнит работу в текущем проекте.</p>
+            <h3>Что создадим сегодня?</h3>
+            <p>Опишите идею — KVARD превратит её в работающий продукт. От первого экрана до готового приложения.</p>
             <div className="nx-suggestions" aria-label="Примеры задач">
               {["Создать новый интерфейс", "Добавить функцию", "Найти и исправить ошибку"].map((value) => (
                 <button key={value} type="button" onClick={() => p.onMessageChange(value)}>{value}<span aria-hidden="true">↗</span></button>
@@ -78,6 +95,16 @@ export function BuilderChat(p: Props) {
               </article>
             ))}
           </div>
+        )}
+        {busy && (
+          <section className="nx-agent-progress" aria-live="polite" aria-label="Ход выполнения задачи">
+            <div className="nx-agent-progress-top"><span className="nx-agent-orbit"><i /></span><div><strong>KVARD работает над задачей</strong><small>{p.activitySteps.length ? `${p.activitySteps.length} действий выполнено` : "Анализирует запрос и готовит изменения"}</small></div><span className="nx-agent-live">LIVE</span></div>
+            <p className="nx-agent-current"><span>{typedActivity || "Подготавливаю рабочее пространство…"}</span><i aria-hidden="true" /></p>
+            {p.activityEvents.length > 0 && <div className="nx-agent-events">
+              {(showAllActivity ? p.activityEvents : p.activityEvents.slice(-4)).map((event) => <div className="nx-agent-event" key={event.id}><span className="nx-agent-event-dot" /><div><small>{event.tool || event.type || "AGENT"}</small><span>{event.message}</span></div></div>)}
+              {p.activityEvents.length > 4 && <button type="button" onClick={() => setShowAllActivity((value) => !value)}>{showAllActivity ? "Свернуть историю" : `Показать все события · ${p.activityEvents.length}`}</button>}
+            </div>}
+          </section>
         )}
         {p.reply && !p.messages.length && <div className="nx-live-reply">{p.reply}</div>}
         {p.apiError && <KvardAlert tone="danger" title="Не удалось выполнить задачу" className="nx-chat-error">{p.apiError}<button type="button" onClick={p.onRetry}>Повторить задачу</button></KvardAlert>}
