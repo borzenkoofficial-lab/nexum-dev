@@ -153,6 +153,8 @@ test("API restart recovery fails orphaned queued and running jobs and releases t
     const job = await getChatJob(id, "restart-owner");
     assert.equal(job?.status, "failed");
     assert.match(job?.error ?? "", /API process restarted/);
+    assert.equal(job?.recoveryAssessment?.disposition, "safe_to_restart");
+    assert.equal(job?.recoveryAssessment?.automaticResumeAllowed, false);
   }
   assert.equal(await acquireProjectLock("restart-project-running", "restart-owner", "restart-next-running"), true);
   assert.equal(await acquireProjectLock("restart-project-queued", "restart-owner", "restart-next-queued"), true);
