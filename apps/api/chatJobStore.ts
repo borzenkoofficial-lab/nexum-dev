@@ -1,5 +1,6 @@
 import { query } from "./db.js";
 import type { ToolRisk } from "./agent/toolPolicy.js";
+import { assessChatJobRecovery, type ChatJobRecoveryAssessment } from "./agent/recovery.js";
 
 export type ChatJobStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 export type ChatJobStage = "queued" | "analyzing" | "planning" | "reading" | "editing" | "building" | "testing" | "awaiting_approval" | "completed" | "cancelled" | "error";
@@ -53,6 +54,7 @@ export interface ChatJob {
   runtimeTaskId?: string;
   requestId?: string;
   pendingApproval?: ChatJobApproval;
+  recoveryAssessment?: ChatJobRecoveryAssessment;
 }
 
 let initialized: Promise<void> | null = null;
@@ -513,17 +515,20 @@ export async function cleanupChatJobs(ttlMs = 30 * 60 * 1000): Promise<void> {
 
 
 export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promise<number> {
+  const cutoff = Date.now() - maxRunningMs;
+  const recoveryError = "API process restarted before this Agent Run finished.";
   if (!databaseAvailable()) {
-    const cutoff = Date.now() - maxRunningMs;
     let recovered = 0;
     for (const [id, job] of memoryJobs) {
       if ((job.status === "queued" || job.status === "running") && job.updatedAt < cutoff) {
+        const updatedAt = Date.now();
         memoryJobs.set(id, cloneJob({
           ...job,
           status: "failed",
           stage: "error",
-          error: "API process restarted before this Agent Run finished.",
-          updatedAt: Date.now(),
+          error: recoveryError,
+          recoveryAssessment: assessChatJobRecovery(job, updatedAt),
+          updatedAt,
         }));
         if (job.projectId) {
           const lock = memoryLocks.get(job.projectId);
@@ -541,13 +546,21 @@ export async function recoverStaleChatJobs(maxRunningMs = 10 * 60 * 1000): Promi
             updated_at=$1,
             payload=jsonb_set(
               jsonb_set(payload, '{stage}', '"error"'::jsonb, true),
-              '{error}', '"API process restarted before this Agent Run finished."'::jsonb, true
+              '{error}', to_jsonb($3::text), true
             )
       WHERE status IN ('queued','running') AND updated_at < $2
-      RETURNING id`,
-    [Date.now(), Date.now() - maxRunningMs],
+      RETURNING *`,
+    [Date.now(), cutoff, recoveryError],
   );
   for (const row of recovered.rows) {
+    const job = decode(row);
+    const assessment = assessChatJobRecovery(job, Date.now());
+    await query(
+      `UPDATE agent_chat_jobs
+          SET payload=jsonb_set(payload, '{recoveryAssessment}', $2::jsonb, true)
+        WHERE id=$1 AND status='failed'`,
+      [row.id, JSON.stringify(assessment)],
+    );
     await query(`DELETE FROM agent_project_locks WHERE job_id=$1`, [row.id]);
   }
   return recovered.rows.length;
