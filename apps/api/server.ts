@@ -538,6 +538,7 @@ ${attachment.content.slice(0, 80_000)}`);
         },
       } : {},
     );
+    let executionCheckpointSequence = 0;
     const agentLoop = new AgentLoop(
       agent,
       userGateway,
@@ -627,8 +628,7 @@ ${attachment.content.slice(0, 80_000)}`);
       isAgentExecutionCheckpointEncryptionConfigured()
         ? async (state) => {
             const sandboxRevisionFingerprint = await computeProjectRevisionFingerprint(project.path);
-            const previous = await getLatestChatJobExecutionCheckpoint(jobId, userId);
-            const sequence = (previous?.sequence ?? 0) + 1;
+            const sequence = ++executionCheckpointSequence;
             await saveChatJobExecutionCheckpoint({
               version: 1,
               jobId,
