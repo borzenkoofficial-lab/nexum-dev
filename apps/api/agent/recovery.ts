@@ -1,0 +1,113 @@
+import { getToolSecurityPolicy, type ToolRisk } from "./toolPolicy.js";
+
+export type ChatJobRecoveryDisposition =
+  | "safe_to_restart"
+  | "inspect_before_retry"
+  | "manual_review_required";
+
+export interface ChatJobRecoveryAssessment {
+  version: 1;
+  disposition: ChatJobRecoveryDisposition;
+  automaticResumeAllowed: false;
+  reason:
+    | "read_only_progress_only"
+    | "side_effect_may_have_started"
+    | "tool_outcome_unknown"
+    | "approval_was_pending"
+    | "unrecognized_tool_activity";
+  startedTools: string[];
+  completedTools: string[];
+  assessedAt: number;
+}
+
+type RecoveryEvent = {
+  type?: unknown;
+  tool?: unknown;
+  iteration?: unknown;
+};
+
+type RecoveryJobLike = {
+  events?: unknown[];
+  steps?: unknown[];
+  pendingApproval?: { status?: unknown } | null;
+};
+
+const riskOrder: Record<ToolRisk, number> = {
+  READ: 0,
+  WRITE: 1,
+  EXECUTE: 2,
+  DESTRUCTIVE: 3,
+};
+
+export function assessChatJobRecovery(
+  job: RecoveryJobLike,
+  assessedAt = Date.now(),
+): ChatJobRecoveryAssessment {
+  const events = Array.isArray(job.events) ? job.events : [];
+  const started = new Map<string, string>();
+  const completed = new Set<string>();
+  const startedTools = new Set<string>();
+  const completedTools = new Set<string>();
+  let unknownActivity = false;
+  let sideEffectMayHaveStarted = false;
+
+  for (const raw of events) {
+    if (!raw || typeof raw !== "object") continue;
+    const event = raw as RecoveryEvent;
+    if (event.type !== "tool-start" && event.type !== "tool-success" && event.type !== "tool-error") continue;
+    if (typeof event.tool !== "string" || !event.tool.trim()) {
+      unknownActivity = true;
+      continue;
+    }
+    const tool = event.tool.trim();
+    let risk: ToolRisk;
+    try {
+      risk = getToolSecurityPolicy(tool).risk;
+    } catch {
+      unknownActivity = true;
+      continue;
+    }
+    const key = `${typeof event.iteration === "number" ? event.iteration : "?"}:${tool}`;
+    if (event.type === "tool-start") {
+      started.set(key, tool);
+      startedTools.add(tool);
+      if (riskOrder[risk] > riskOrder.READ) sideEffectMayHaveStarted = true;
+    } else {
+      completed.add(key);
+      completedTools.add(tool);
+      if (riskOrder[risk] > riskOrder.READ) sideEffectMayHaveStarted = true;
+    }
+  }
+
+  const unmatchedStart = [...started.keys()].some((key) => !completed.has(key));
+  const pendingApproval = job.pendingApproval?.status === "pending";
+  let disposition: ChatJobRecoveryDisposition;
+  let reason: ChatJobRecoveryAssessment["reason"];
+
+  if (pendingApproval) {
+    disposition = "manual_review_required";
+    reason = "approval_was_pending";
+  } else if (unknownActivity) {
+    disposition = "manual_review_required";
+    reason = "unrecognized_tool_activity";
+  } else if (unmatchedStart) {
+    disposition = "inspect_before_retry";
+    reason = "tool_outcome_unknown";
+  } else if (sideEffectMayHaveStarted) {
+    disposition = "inspect_before_retry";
+    reason = "side_effect_may_have_started";
+  } else {
+    disposition = "safe_to_restart";
+    reason = "read_only_progress_only";
+  }
+
+  return {
+    version: 1,
+    disposition,
+    automaticResumeAllowed: false,
+    reason,
+    startedTools: [...startedTools].sort(),
+    completedTools: [...completedTools].sort(),
+    assessedAt,
+  };
+}
