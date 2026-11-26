@@ -343,3 +343,8 @@ NEXUM.DEV — браузерная платформа для создания и
 
 - Added Playwright E2E scenario to hold a ChatJob at a deterministic planner checkpoint, reload Builder while the job remains active, verify restored active job/cancel affordance and API status, then cancel and verify terminal state.
 - E2E validation is pending CI. This specifically tests browser reload + active task restoration, not offline reconnect timing or recovery of already-terminal jobs. No production deploy or paid provider call.
+
+## Active ChatJob recovery race fix — 2026-11-26
+
+- Recovery now waits for project-list loading to finish before selecting a queued/running job for the current project. This prevents a transient initial project ID from causing the wrong active task to be restored after reload.
+- Effect dependencies include project-loading state so recovery retries after projects resolve. No deployment or paid provider requests.
