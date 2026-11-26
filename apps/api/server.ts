@@ -16,6 +16,7 @@ import { createApprovalPreview } from "./agent/approval.js";
 import { waitForChatJobApproval } from "./agent/approvalWaiter.js";
 import { getToolSecurityPolicy } from "./agent/toolPolicy.js";
 import { AgentLoop, type AgentEvent } from "./agent/loop.js";
+import { computeProjectRevisionFingerprint, isAgentExecutionCheckpointEncryptionConfigured } from "./agent/executionCheckpoint.js";
 import type { ProductPlan } from "./agent/types.js";
 import { ProjectManager, ProjectManagerError } from "./projects/projectManager.js";
 import { mkdir, readFile, stat, readdir, writeFile, rm } from "node:fs/promises";
@@ -33,7 +34,7 @@ import { requireAdminAccess } from "./adminAccess.js";
 import { adminRouter } from "./routes/admin.js";
 import { closeDatabase, pingDatabase, query } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
-import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, startChatJobToolAction, finishChatJobToolAction, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
+import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, startChatJobToolAction, finishChatJobToolAction, saveChatJobExecutionCheckpoint, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
@@ -623,6 +624,23 @@ ${attachment.content.slice(0, 80_000)}`);
         start: (tool, input) => startChatJobToolAction(jobId, userId, tool, input),
         finish: (actionId, result) => finishChatJobToolAction(jobId, userId, actionId, result),
       },
+      isAgentExecutionCheckpointEncryptionConfigured()
+        ? async (state) => {
+            const sandboxRevisionFingerprint = await computeProjectRevisionFingerprint(project.path);
+            const previous = await getLatestChatJobExecutionCheckpoint(jobId, userId);
+            const sequence = (previous?.sequence ?? 0) + 1;
+            await saveChatJobExecutionCheckpoint({
+              version: 1,
+              jobId,
+              userId,
+              projectId: project.id,
+              sequence,
+              createdAt: Date.now(),
+              ...state,
+              sandboxRevisionFingerprint,
+            });
+          }
+        : undefined,
     );
     if (process.env.NODE_ENV !== "production" && Number(process.env.NEXUM_E2E_AGENT_DELAY_MS || 0) > 0) {
       await new Promise<void>((resolve, reject) => {
