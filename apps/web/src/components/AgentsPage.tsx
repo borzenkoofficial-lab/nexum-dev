@@ -260,7 +260,7 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
       {loadError && <KvardAlert tone="danger" className="kv-agents-error">{loadError} <button type="button" onClick={() => void load()}>Повторить</button></KvardAlert>}
 
       <section className="kv-agents-profiles" aria-labelledby="kv-agents-profiles-title">
-        <div className="kv-agents-section-head"><div><span>БИБЛИОТЕКА</span><h2 id="kv-agents-profiles-title">Профили задач</h2><p>Готовые роли и ваши собственные инструкции для агента.</p></div><KvardButton variant="primary" size="md" type="button" onClick={() => { setFormOpen((value) => !value); setFormError(""); }}>＋ Создать профиль</KvardButton></div>
+        <KvardPageHeader className="kv-agents-section-head" headingLevel="h2" eyebrow="БИБЛИОТЕКА" title="Профили задач" titleId="kv-agents-profiles-title" description="Готовые роли и ваши собственные инструкции для агента." actions={<KvardButton variant="primary" size="md" type="button" onClick={() => { setFormOpen((value) => !value); setFormError(""); }}>＋ Создать профиль</KvardButton>} />
         {formOpen && <form className="kv-agents-form" onSubmit={(event) => { event.preventDefault(); void saveProfile(); }}>
           <div className="kv-agents-form-head"><div><strong>Новый профиль запуска</strong><small>Сохранение выполняется через сервер API. Режим хранения указан под библиотекой.</small></div><button type="button" aria-label="Закрыть форму" onClick={() => setFormOpen(false)}>×</button></div>
           <label>Название профиля<input value={profileName} onChange={(event) => setProfileName(event.target.value)} maxLength={48} placeholder="Например, Аналитик бизнес-процессов" required /></label>
@@ -288,7 +288,7 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
       </section>
 
       <section className="kv-agents-profiles" aria-labelledby="kv-agent-definitions-title">
-        <div className="kv-agents-section-head"><div><span>AGENT CONTROL</span><h2 id="kv-agent-definitions-title">Мои AI-агенты</h2><p>Постоянные конфигурации с отдельными инструкциями и списком разрешённых инструментов.</p></div><KvardButton variant="primary" size="md" type="button" onClick={() => openAgentForm()}>＋ Создать агента</KvardButton></div>
+        <KvardPageHeader className="kv-agents-section-head" headingLevel="h2" eyebrow="AGENT CONTROL" title="Мои AI-агенты" titleId="kv-agent-definitions-title" description="Постоянные конфигурации с отдельными инструкциями и списком разрешённых инструментов." actions={<KvardButton variant="primary" size="md" type="button" onClick={() => openAgentForm()}>＋ Создать агента</KvardButton>} />
         <div className="kv-agents-notice" role="note"><span aria-hidden="true">i</span><p><strong>Безопасный запуск.</strong> Политика «каждое действие» запрашивает подтверждение перед любым инструментом. Политика «изменения и команды» автоматически разрешает чтение и просит подтверждение перед записью файлов или запуском команд. Автономный режим ограничен чтением. Решение действует один раз; запрос истекает через 10 минут. Расписания и триггеры пока не включены.</p></div>
         <div className="kv-agents-launchbar">
           <label htmlFor="kv-agent-task">Задача для выбранного агента</label>
@@ -317,7 +317,7 @@ export function AgentsPage({ projects, onUseProfile, onUseAgent, onCreateProject
       </section>
 
       <section className="kv-agents-runtime" aria-labelledby="kv-agents-runtime-title">
-        <div className="kv-agents-section-head"><div><span>RUNTIME</span><h2 id="kv-agents-runtime-title">Выполнение задач</h2><p>Состояние заданий, которое возвращает сервер.</p></div><div className="kv-agents-live-count"><strong>{activeJobs.length}</strong><span>активных</span></div></div>
+        <KvardPageHeader className="kv-agents-section-head" headingLevel="h2" eyebrow="RUNTIME" title="Выполнение задач" titleId="kv-agents-runtime-title" description="Состояние заданий, которое возвращает сервер." actions={<div className="kv-agents-live-count"><strong>{activeJobs.length}</strong><span>активных</span></div>} />
         <div className="kv-agents-runtime-grid">
           <div className="kv-agents-runtime-main">
             <div className="kv-agents-table-head"><span>ИДЕНТИФИКАТОР</span><span>СТАТУС</span><span>ОБНОВЛЕНО</span></div>
