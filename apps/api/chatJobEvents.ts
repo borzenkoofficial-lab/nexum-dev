@@ -10,6 +10,21 @@ type ChatJobEventHandlerDependencies = {
 
 const terminalStatuses = new Set(["completed", "failed", "cancelled"]);
 
+function writeChunk(response: Response, chunk: string, signal: AbortSignal): Promise<void> {
+  if (response.write(chunk)) return Promise.resolve();
+  return new Promise((resolve) => {
+    const cleanup = () => {
+      response.removeListener("drain", onDrain);
+      signal.removeEventListener("abort", onAbort);
+    };
+    const onDrain = () => { cleanup(); resolve(); };
+    const onAbort = () => { cleanup(); resolve(); };
+    response.on("drain", onDrain);
+    signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) onAbort();
+  });
+}
+
 function wait(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
     if (signal.aborted) return resolve();
@@ -60,16 +75,16 @@ export function createChatJobEventsHandler({
     let lastSnapshot = "";
     let lastHeartbeat = Date.now();
 
-    const emitJob = (snapshot: ChatJob) => {
+    const emitJob = async (snapshot: ChatJob) => {
       const serialized = JSON.stringify(snapshot);
-      response.write(`id: ${snapshot.updatedAt}\nevent: job\ndata: ${serialized}\n\n`);
+      await writeChunk(response, `id: ${snapshot.updatedAt}\nevent: job\ndata: ${serialized}\n\n`, controller.signal);
       lastSnapshot = serialized;
       lastHeartbeat = Date.now();
     };
 
     try {
-      response.write("retry: 1500\n\n");
-      emitJob(job);
+      await writeChunk(response, "retry: 1500\n\n", controller.signal);
+      await emitJob(job);
       if (terminalStatuses.has(job.status)) {
         response.end();
         return;
@@ -82,22 +97,22 @@ export function createChatJobEventsHandler({
           const latest = await getJob(jobId, userId);
           if (controller.signal.aborted) break;
           if (!latest) {
-            response.write(`event: unavailable\ndata: ${JSON.stringify({ error: "Chat job expired or unavailable" })}\n\n`);
+            await writeChunk(response, `event: unavailable\ndata: ${JSON.stringify({ error: "Chat job expired or unavailable" })}\n\n`, controller.signal);
             response.end();
             break;
           }
-          if (JSON.stringify(latest) !== lastSnapshot) emitJob(latest);
+          if (JSON.stringify(latest) !== lastSnapshot) await emitJob(latest);
           if (terminalStatuses.has(latest.status)) {
             response.end();
             break;
           }
           if (Date.now() - lastHeartbeat >= heartbeatIntervalMs) {
-            response.write(": heartbeat\n\n");
+            await writeChunk(response, ": heartbeat\n\n", controller.signal);
             lastHeartbeat = Date.now();
           }
         } catch (error) {
           console.error("[Nexum] ChatJob SSE poll failed", { jobId, error });
-          response.write(`event: unavailable\ndata: ${JSON.stringify({ error: "Chat job status unavailable" })}\n\n`);
+          await writeChunk(response, `event: unavailable\ndata: ${JSON.stringify({ error: "Chat job status unavailable" })}\n\n`, controller.signal);
           response.end();
           break;
         }
