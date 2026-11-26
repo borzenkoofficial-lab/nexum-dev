@@ -238,6 +238,7 @@ test("KvardDialog traps Tab focus at both ends of the dialog", async () => {
   const last = makeFocusable("last");
   const dialog = {
     querySelectorAll: () => [first, last],
+    contains: () => true,
     focus: () => focused.push("dialog"),
   } as unknown as HTMLElement;
 
