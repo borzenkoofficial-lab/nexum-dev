@@ -8,3 +8,6 @@ export { KvardTabs } from "./KvardTabs.ts";
 export type { KvardTabsProps, KvardTabItem } from "./KvardTabs.ts";
 export { KvardSegmentedControl } from "./KvardSegmentedControl.ts";
 export type { KvardSegmentedControlProps, KvardSegmentedControlItem } from "./KvardSegmentedControl.ts";
+
+export { KvardDialog, handleKvardDialogKeyDown } from "./KvardDialog.ts";
+export type { KvardDialogProps } from "./KvardDialog.ts";
