@@ -464,3 +464,15 @@ NEXUM.DEV — браузерная платформа для создания и
 - Added regression coverage for journal/checkpoint mismatch, unfinished tool actions, credential-file changes, and symlink traversal.
 - Automatic restore remains disabled. No code path rehydrates a checkpoint into a new AgentLoop, and no side-effecting tool is replayed. A matching checkpoint is not yet a resumable execution until sandbox identity, runtime state, planner flags, pending approvals, and provider budget semantics are restored and verified.
 - CI status must be checked on the latest main commit; tests have not been executed locally. No production deployment, production migration, secret update, or live/paid provider request was performed.
+
+
+## Durable Agent Execution — continuation-state completeness and stale recovery assessment (2026-11-26)
+
+- Safe-boundary checkpoints now also persist the original task string and the mutable AgentLoop control flags that influence the next iteration: Builder-task classification, repair-task mode, forced completion, remote-planner rate-limit fallback, and Product Plan creation state. These complement the existing phase, iteration, counters, planner history, tool results, task verification state, and token-budget snapshot.
+- The checkpoint validator checks the shape and bounds of the continuation state. Older checkpoint payloads without this optional state remain decryptable for diagnostics, but the recovery compatibility gate rejects them as incomplete; they are not eligible for future restoration.
+- Startup stale-job recovery now loads the latest owner-scoped encrypted checkpoint and durable tool journal, resolves the user's project through ProjectManager, and fingerprints the same `project.path` used to construct `NexumAgent` and its filesystem-backed tools. It stores a separate `checkpointRecoveryAssessment` alongside the existing side-effect recovery assessment.
+- Checkpoint assessments are exposed through the authenticated recent-job projection and Builder restores the assessment as user-visible activity. A `checkpoint_compatible` result means the persisted state matches the project and journal only; it does not enable automatic resume. Stale jobs still terminate as failed, and no tool action is replayed.
+- If project resolution, fingerprinting, or checkpoint decryption fails, the assessment fails closed and cannot be considered compatible. A pending approval remains manual-review-only.
+- Regression coverage now includes continuation-state capture and validation, stale recovery with a matching persisted checkpoint, and explicit rejection of incomplete continuation state.
+- Remaining work before real restore: hydrate every AgentLoop mutable variable and AdaptiveTokenBudget from a validated checkpoint; reconcile runtime task/approval state and Sandbox availability; acquire project lock before any continuation; prove idempotent no-replay semantics; add process-restart E2E coverage. Automatic resume remains disabled.
+- CI for the consolidated latest commit must pass before this batch is considered verified. No production deployment, production migration, secret update, or live/paid provider request was performed.
