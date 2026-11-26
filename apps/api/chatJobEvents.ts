@@ -70,7 +70,7 @@ export function createChatJobEventsHandler({
     };
 
     try {
-      response.write("retry: 1500\\n\\n");
+      response.write("retry: 1500\n\n");
       emitJob(job);
       if (terminalStatuses.has(job.status)) {
         response.end();
