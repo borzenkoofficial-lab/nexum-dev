@@ -149,13 +149,18 @@ test("API restart recovery fails orphaned queued and running jobs and releases t
 
   const recovered = await recoverStaleChatJobs(5_000);
   assert.ok(recovered >= 2);
-  for (const id of [runningId, queuedId]) {
-    const job = await getChatJob(id, "restart-owner");
-    assert.equal(job?.status, "failed");
-    assert.match(job?.error ?? "", /API process restarted/);
-    assert.equal(job?.recoveryAssessment?.disposition, "safe_to_restart");
-    assert.equal(job?.recoveryAssessment?.automaticResumeAllowed, false);
-  }
+  const recoveredRunning = await getChatJob(runningId, "restart-owner");
+  assert.equal(recoveredRunning?.status, "failed");
+  assert.match(recoveredRunning?.error ?? "", /API process restarted/);
+  assert.equal(recoveredRunning?.recoveryAssessment?.disposition, "inspect_before_retry");
+  assert.equal(recoveredRunning?.recoveryAssessment?.reason, "execution_evidence_missing");
+  assert.equal(recoveredRunning?.recoveryAssessment?.automaticResumeAllowed, false);
+
+  const recoveredQueued = await getChatJob(queuedId, "restart-owner");
+  assert.equal(recoveredQueued?.status, "failed");
+  assert.match(recoveredQueued?.error ?? "", /API process restarted/);
+  assert.equal(recoveredQueued?.recoveryAssessment?.disposition, "safe_to_restart");
+  assert.equal(recoveredQueued?.recoveryAssessment?.automaticResumeAllowed, false);
   assert.equal(await acquireProjectLock("restart-project-running", "restart-owner", "restart-next-running"), true);
   assert.equal(await acquireProjectLock("restart-project-queued", "restart-owner", "restart-next-queued"), true);
   await releaseProjectLock("restart-project-running", "restart-next-running");
