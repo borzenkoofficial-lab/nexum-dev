@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import {
   computeProjectRevisionFingerprint,
+  hydrateAgentExecutionCheckpoint,
   decryptAgentExecutionCheckpoint,
   encryptAgentExecutionCheckpoint,
   type AgentExecutionCheckpoint,
@@ -215,4 +216,23 @@ test("Agent execution checkpoints reject malformed loop continuation state", () 
     if (previous === undefined) delete process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
     else process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY = previous;
   }
+});
+
+
+test("checkpoint hydration validates continuation and restores token budget without replay", () => {
+  const state = fixture();
+  const hydrated = hydrateAgentExecutionCheckpoint(state);
+  assert.equal(hydrated.task, state.resumeState?.task);
+  assert.equal(hydrated.builderTask, true);
+  assert.deepEqual(hydrated.adaptiveBudget.snapshot(), state.tokenBudget);
+  assert.equal(hydrated.adaptiveBudget.reserve("coder", 1_000), 1_000);
+  assert.equal(hydrated.adaptiveBudget.snapshot().reserved, state.tokenBudget.reserved + 1_000);
+  assert.deepEqual(hydrated.checkpoint.previousResults, state.previousResults);
+  assert.deepEqual(hydrated.checkpoint.toolActionIds, state.toolActionIds);
+});
+
+test("checkpoint hydration rejects missing continuation state and budget mismatch", () => {
+  const state = fixture();
+  assert.throws(() => hydrateAgentExecutionCheckpoint({ ...state, resumeState: undefined }), /incomplete/);
+  assert.throws(() => hydrateAgentExecutionCheckpoint({ ...state, tokenBudget: { ...state.tokenBudget, remaining: 1 } }), /invalid/);
 });
