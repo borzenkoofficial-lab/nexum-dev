@@ -33,8 +33,9 @@ test("adaptive token budget restores reserved usage without granting new capacit
   original.reserve("coder", 2_000);
   const restored = restoreAdaptiveTokenBudget("Создай сайт ресторана", original.snapshot(), { legacyHardCap: 30_000, builderLifecycle: true });
   assert.deepEqual(restored.snapshot(), original.snapshot());
-  assert.equal(restored.reserve("coder", 5_000), 5_000);
-  assert.equal(restored.snapshot().reserved, original.snapshot().reserved + 5_000);
+  // A restored budget keeps the per-role cap: asking for more than the coder cap grants only the cap.
+  assert.equal(restored.reserve("coder", 5_000), 4_000);
+  assert.equal(restored.snapshot().reserved, original.snapshot().reserved + 4_000);
 });
 
 test("adaptive token budget restore rejects incompatible or malformed snapshots", () => {

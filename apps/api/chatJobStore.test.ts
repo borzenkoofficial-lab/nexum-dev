@@ -6,6 +6,7 @@ import {
   releaseProjectLock,
   recoverStaleChatJobs,
   cancelChatJob,
+  claimChatJob,
   createChatJob,
   getChatJob,
   requestChatJobApproval,
@@ -364,6 +365,13 @@ test("execution checkpoint storage fails closed without an encryption key", asyn
       createdAt: 2,
       phase: "analyze",
       iteration: 0,
+      executionSnapshot: {
+        intent,
+        state: "EXECUTING" as const,
+        plan: { planId: "plan-no-key", taskId: intent.taskId, agentJobId: jobId, goal: intent.objective, steps: [], acceptanceCriteria: [], risks: [], createdAt: 1 },
+        observations: [], completedStepIds: [], repairAttempts: 0, startedAt: 1, updatedAt: 2,
+      },
+      taskState: { phase: "analyze" as const, goal: intent.objective, startedAt: 1, changeVersion: 0, changedFiles: [], verified: { build: false, tests: false, staticValidation: false, domain: false, review: false }, verifiedAtChangeVersion: { build: -1, tests: -1, staticValidation: -1, domain: -1, review: -1, reviewAttempted: -1 } },
       intent,
       executionPlan: {
         planId: "plan-no-key",
@@ -383,6 +391,14 @@ test("execution checkpoint storage fails closed without an encryption key", asyn
       seenPlannerContexts: [],
       actionSequence: [],
       toolActionIds: [],
+      resumeState: {
+        task: "Inspect",
+        builderTask: false,
+        repairRequested: false,
+        forceCompletionNextIteration: false,
+        remotePlannerRateLimited: false,
+        productPlannerCreated: false,
+      },
       sandboxRevisionFingerprint: "sha256:revision",
     }), /durable Agent checkpoints are disabled/);
   } finally {
@@ -422,7 +438,11 @@ test("execution checkpoint refuses a journal mismatch or an unfinished tool acti
     await assert.rejects(saveChatJobExecutionCheckpoint(checkpoint), /fully committed tool action journal/);
     await finishChatJobToolAction(jobId, userId, actionId, { success: true, output: "done" });
     await assert.rejects(saveChatJobExecutionCheckpoint({ ...checkpoint, toolActionIds: [] }), /fully committed tool action journal/);
-    await saveChatJobExecutionCheckpoint({ ...checkpoint, toolActionIds: [actionId] });
+    await saveChatJobExecutionCheckpoint({
+      ...checkpoint,
+      previousResults: [{ iteration: 1, tool: "writeFile", input: "{\"path\":\"src/App.tsx\"}", result: { success: true, output: "done" }, toolCallId: actionId }],
+      toolActionIds: [actionId],
+    });
   } finally {
     if (previousKey === undefined) delete process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY;
     else process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY = previousKey;

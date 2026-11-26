@@ -169,6 +169,14 @@ export type AgentExecutionCheckpointWriter = (
   >,
 ) => Promise<void>;
 
+/** Raised when the durable tool-action journal cannot record an intent or result. */
+export class AgentToolJournalError extends Error {
+  constructor(readonly operation: "start" | "finish", cause: unknown) {
+    super(cause instanceof Error ? cause.message : `Tool journal ${operation} failed.`, { cause });
+    this.name = "AgentToolJournalError";
+  }
+}
+
 export class AgentLoop {
   private readonly runtime: AgentRuntime;
   private lastExecutionSnapshot?: AgentExecutionSnapshot;
@@ -192,20 +200,34 @@ export class AgentLoop {
               return async (tool: string, input: string, signal?: AbortSignal) => {
                 // The intent record must be committed before the external/project
                 // operation begins. If it cannot be committed, fail closed.
-                const actionId = await toolJournal.start(tool, input);
+                let actionId: string;
+                try {
+                  actionId = await toolJournal.start(tool, input);
+                } catch (error) {
+                  throw new AgentToolJournalError("start", error);
+                }
                 let result: Awaited<ReturnType<AgentRuntime["executeTool"]>>;
                 try {
                   result = await target.executeTool(tool, input, signal);
                 } catch (error) {
-                  await toolJournal.finish(actionId, {
-                    success: false,
-                    output: error instanceof Error ? error.message : "Tool execution failed with an unknown error.",
-                  });
+                  try {
+                    await toolJournal.finish(actionId, {
+                      success: false,
+                      output: error instanceof Error ? error.message : "Tool execution failed with an unknown error.",
+                    });
+                  } catch (journalError) {
+                    throw new AgentToolJournalError("finish", journalError);
+                  }
                   throw error;
                 }
                 // A failed journal finalization leaves the action in "started";
-                // recovery will correctly treat its outcome as unknown.
-                await toolJournal.finish(actionId, result);
+                // recovery will correctly treat its outcome as unknown. The loop must
+                // stop instead of continuing on an undurable result.
+                try {
+                  await toolJournal.finish(actionId, result);
+                } catch (error) {
+                  throw new AgentToolJournalError("finish", error);
+                }
                 return {
                   ...result,
                   metadata: { ...(result.metadata ?? {}), journalActionId: actionId },
@@ -1367,6 +1389,9 @@ export class AgentLoop {
         result = await this.runtime.executeTool(plan.tool, plan.input, options?.signal);
       } catch (error) {
         if (isAbortError(error) || options?.signal?.aborted) throw new DOMException("Agent task cancelled", "AbortError");
+        // Durable journaling failures are infrastructure faults, not tool results:
+        // fail closed so the task never proceeds on an action whose record is unknown.
+        if (error instanceof AgentToolJournalError) throw error.cause;
         const normalized = toNexumError(error, "TOOL_ERROR", "Инструмент агента завершился с ошибкой.");
         result = { success: false, output: normalized.userSafeMessage };
       }

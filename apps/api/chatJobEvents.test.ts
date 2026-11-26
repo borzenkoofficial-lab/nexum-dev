@@ -130,11 +130,19 @@ test("ChatJob SSE reconnect starts with the latest persisted snapshot", async ()
   const handler = createChatJobEventsHandler({
     getUserId: () => "user-1",
     getJob: async () => job("running", 99, "latest persisted progress"),
+    pollIntervalMs: 5,
   });
-  await handler(request(), response as never);
+  // A running job keeps the stream open until the client disconnects, so the
+  // handler must not be awaited before the close event is emitted.
+  const streaming = handler(request(), response as never);
+  for (let attempt = 0; attempt < 100 && !response.chunks.some((chunk) => chunk.includes("event: job")); attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
   const initial = response.chunks.find((chunk) => chunk.includes("event: job"));
   assert.match(initial ?? "", /"updatedAt":99/);
   assert.match(initial ?? "", /"reply":"latest persisted progress"/);
   assert.equal(response.writableEnded, false);
   response.emit("close");
+  await streaming;
+  assert.equal(response.writableEnded, true);
 });

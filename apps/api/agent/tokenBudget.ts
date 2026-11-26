@@ -55,6 +55,10 @@ export class AdaptiveTokenBudget {
     }
   }
 
+  static create(task: string, options: AdaptiveTokenBudgetOptions = {}): AdaptiveTokenBudget {
+    return new AdaptiveTokenBudget(task, options);
+  }
+
   static restore(task: string, snapshot: AdaptiveTokenBudgetSnapshot, options: AdaptiveTokenBudgetOptions = {}): AdaptiveTokenBudget {
     return new AdaptiveTokenBudget(task, options, snapshot);
   }
@@ -82,7 +86,7 @@ export class AdaptiveTokenBudget {
 }
 
 export function createAdaptiveTokenBudget(task: string, options?: AdaptiveTokenBudgetOptions): AdaptiveTokenBudget {
-  return new AdaptiveTokenBudget(task, options);
+  return AdaptiveTokenBudget.create(task, options);
 }
 
 export function restoreAdaptiveTokenBudget(task: string, snapshot: AdaptiveTokenBudgetSnapshot, options?: AdaptiveTokenBudgetOptions): AdaptiveTokenBudget {

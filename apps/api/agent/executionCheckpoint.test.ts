@@ -91,7 +91,8 @@ function fixture(): AgentExecutionCheckpoint {
       repairAttempts: 0,
       eventId: 3,
     },
-    tokenBudget: { tier: "small", hardCap: 7000, reserved: 1000, remaining: 6000, calls: 1 },
+    // Builder tasks always run with the 30k builder-lifecycle cap (see AgentLoop and tokenBudget.ts).
+    tokenBudget: { tier: "small", hardCap: 30000, reserved: 1000, remaining: 29000, calls: 1 },
     seenActions: [],
     actionAttempts: [],
     seenPlannerContexts: [],
