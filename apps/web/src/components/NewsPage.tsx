@@ -1,3 +1,5 @@
+import { KvardPageHeader } from "./ui/index.ts";
+
 const chapters = [
   {eyebrow:"FOUNDATION",version:"01",title:"КВАРД. С нуля.",date:"25 сентября 2026",lead:"Первый рабочий контур будущего продукта.",body:"Проект начинается с базовой среды: workspace, проекты, навигация и первый путь от идеи к результату.",tags:["Project Home","Workspace","Foundation"],variant:"home"},
   {eyebrow:"BUILDER",version:"02",title:"От чата к Builder.",date:"25–27 сентября 2026",lead:"Чат становится интерфейсом создания.",body:"Появляется главный сценарий КВАРД: описать продукт, построить его, открыть Preview и продолжить итерацию.",tags:["Chat Builder","Preview","Iterate"],variant:"builder"},
@@ -18,12 +20,13 @@ const chapters = [
 export function NewsPage() {
   return (
     <section className="news-page" aria-label="Журнал КВАРД">
-      <header className="news-hero">
-        <div>
-          <h1>Журнал КВАРД</h1>
-          <p>Хронология разработки и ключевые изменения продукта.</p>
-        </div>
-      </header>
+      <KvardPageHeader
+        className="news-hero"
+        title="Журнал КВАРД"
+        titleId="kv-news-page-title"
+        description="Хронология разработки и ключевые изменения продукта."
+        descriptionId="kv-news-page-description"
+      />
 
       <div className="news-journal-list">
         {chapters.map((chapter) => (
