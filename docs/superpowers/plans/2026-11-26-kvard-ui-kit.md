@@ -547,3 +547,19 @@ Verification boundary: source and diff review only; browser visual QA is not cla
 - [ ] Run a real browser visual pass on desktop and mobile.
 
 Verification boundary: source-level CSS review only; browser visual QA is not claimed.
+
+
+## Task 24 — Secondary product surfaces visual system
+
+**Purpose:** Make the supporting user-facing sections feel like one coherent product rather than unrelated utility pages.
+
+- [x] Refine Settings into a responsive control-center layout with grouped cards and section navigation.
+- [x] Build a consistent visual system for the provider/service catalog without implying unimplemented OAuth connections.
+- [x] Give Diagnostics a readable operational console hierarchy with data-bound metric cards and event timeline.
+- [x] Give the Journal an editorial timeline and consistent typographic hierarchy.
+- [x] Preserve all settings and connector actions, diagnostics fetching/export, and journal content.
+- [x] Exclude admin surfaces and backend/domain behavior.
+- [ ] Review responsive CSS and check selector collisions.
+- [ ] Run browser visual QA across the full user-facing navigation.
+
+Verification boundary: source-level review only; no live browser visual QA is claimed.

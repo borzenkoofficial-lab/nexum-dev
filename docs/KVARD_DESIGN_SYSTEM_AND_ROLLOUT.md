@@ -775,3 +775,14 @@ Verification boundary: implementation and focused tests added; test execution, t
 - Agent progress, plan, events, files and code surfaces receive consistent spacing, typography and semantic status emphasis.
 - Responsive layouts collapse the prompt cards and preserve existing mobile split behavior.
 - Only CSS presentation changed; no API, project state, callbacks, agent stages, preview URLs, data or admin surfaces changed.
+
+
+## 34. Secondary product surfaces — settings, integrations, diagnostics and journal
+
+- Settings now has a stable control-center layout: sticky section index on desktop, grouped setting cards, consistent controls, API status and responsive mobile navigation.
+- Integrations catalog uses a consistent provider-card system with category, truthful connection state, clear action placement and an explicit catalog limitation note.
+- Diagnostics uses a compact metric strip, two-column operational layout, selectable job history and readable event timeline. All displayed values remain bound to the existing server data.
+- Journal uses an editorial timeline with numbered chapters, readable dates, headlines, leads and restrained topic tags.
+- All existing actions, settings state, connector states, diagnostics data, export behavior and journal content remain unchanged. No server or admin surface was modified.
+- Responsive layouts collapse cleanly for tablet and mobile.
+- Scope is presentation-only CSS.
