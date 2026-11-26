@@ -444,3 +444,12 @@ NEXUM.DEV — браузерная платформа для создания и
 - Added tests for project fingerprint content sensitivity/exclusions and for AgentLoop emitting snapshots only at safe iteration boundaries.
 - **Automatic restore/resume is still disabled.** The stored state is now sufficient to begin implementing a restore path, but it is not yet rehydrated into a new AgentLoop. A matching fingerprint alone is not sufficient to resume: recovery must also reconcile every durable tool action, approval state, provider/token budget, project ownership and sandbox availability. No WRITE/EXECUTE/DESTRUCTIVE action is replayed.
 - No production secret was configured, no production migration/deploy was performed, and no live or paid provider request was made. CI/typecheck/test verification remains pending.
+
+## Durable Agent Execution — checkpoint recovery compatibility gate (2026-11-26)
+
+- Added `assessAgentCheckpointRecovery` in `apps/api/agent/recovery.ts`.
+- A checkpoint is considered compatible only when its version and ownership match the job, the current project revision fingerprint is identical, the durable tool-action journal contains exactly the same action IDs, and every journal action has a terminal outcome.
+- A pending approval requires manual review. An unfinished action or an action recorded after the checkpoint blocks resume and requires project inspection. Malformed or substituted ownership metadata fails closed.
+- The result is deliberately named `checkpoint_compatible`, not `safe_to_resume`; `automaticResumeAllowed` remains false. This is a prerequisite gate only, not a restored AgentLoop or automatic resume implementation.
+- Regression tests cover matching state, changed project revision, post-checkpoint actions, unfinished actions, pending approval, and ownership substitution.
+- Verification: tests have been added but have not yet been executed. GitHub Actions status must be checked for the latest commit before treating this work as verified.
