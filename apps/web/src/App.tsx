@@ -960,12 +960,15 @@ function WorkspaceApp() {
 
       setActivitySteps(job.steps ?? []);
       setActivityEvents(job.events ?? []);
-      if (connectionLost) {
+      // While the browser reports it is offline, a late event from a stale stream
+      // must not claim the connection is back: keep the notice until it truly is.
+      const browserOffline = typeof navigator !== "undefined" && navigator.onLine === false;
+      if (!connectionLost) {
+        setCurrentActivity(job.currentMessage ?? "ИИ выполняет задачу…");
+      } else if (!browserOffline) {
         connectionLost = false;
         reconnecting = false;
         setCurrentActivity("Соединение восстановлено. Продолжаю получать обновления…");
-      } else {
-        setCurrentActivity(job.currentMessage ?? "ИИ выполняет задачу…");
       }
       setProblems(job.problems ?? []);
       if (job.productPlan) setProductPlan({
@@ -1007,6 +1010,7 @@ function WorkspaceApp() {
     });
     source.onopen = () => {
       if (cancelled || terminalHandled || !reconnecting) return;
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
       reconnecting = false;
       connectionLost = false;
       setCurrentActivity((current) =>

@@ -41,17 +41,23 @@ jobs:
           echo "prompt_file=$prompt_file" >> "$GITHUB_OUTPUT"
           echo "Selected hourly role: $role (UTC hour $hour)"
 
-      - name: Require API secret
+      - name: Check API secret
+        id: secret
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          # Without the secret the hourly run is skipped instead of failing every hour,
+          # so a red scheduled run never hides a real CI failure on main.
           if [ -z "$OPENAI_API_KEY" ]; then
-            echo "::error::Set repository secret OPENAI_API_KEY to enable hourly Codex runs."
-            exit 1
+            echo "::notice::OPENAI_API_KEY is not set; hourly Codex run skipped."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run Codex for selected role
         id: codex
+        if: steps.secret.outputs.enabled == 'true'
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
@@ -62,6 +68,7 @@ jobs:
           output-file: codex-report.txt
 
       - name: Export reviewable patch
+        if: steps.secret.outputs.enabled == 'true'
         shell: bash
         run: |
           # Include newly-created files in the patch, but never include the report itself.
@@ -79,6 +86,7 @@ jobs:
           cat codex-report.txt >> hourly-run.txt || true
 
       - name: Upload patch and report
+        if: steps.secret.outputs.enabled == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: hourly-codex-output
