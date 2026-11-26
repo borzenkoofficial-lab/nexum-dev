@@ -997,3 +997,146 @@ input, textarea, select { max-width: 100%; border: 1px solid var(--nx-border); b
     animation-duration: .01ms !important;
   }
 }
+
+
+/* Shared KVARD overlays and notification surfaces — one system across the workspace. */
+.modal-backdrop.kv-dialog-backdrop,
+.kv-dialog-backdrop {
+  z-index: 120;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: color-mix(in srgb, #10131b 42%, transparent);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+.kv-dialog {
+  position: relative;
+  min-width: 0;
+  max-width: calc(100vw - 32px);
+  max-height: min(88dvh, 820px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--kv-border-strong);
+  border-radius: var(--kv-radius-large);
+  background: var(--kv-surface);
+  color: var(--kv-text);
+  box-shadow: 0 28px 90px rgb(10 14 24 / 24%), 0 4px 16px rgb(10 14 24 / 9%);
+  outline: none;
+  scrollbar-gutter: stable;
+}
+.kv-dialog :focus-visible {
+  outline: 2px solid var(--kv-focus);
+  outline-offset: 3px;
+}
+.nexum-os-event-center {
+  top: max(76px, calc(env(safe-area-inset-top) + 64px));
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 110;
+  gap: 9px;
+  width: min(370px, calc(100vw - 32px));
+}
+.nexum-os-event {
+  gap: 8px;
+  padding: 13px 14px;
+  border: 1px solid var(--kv-border);
+  border-radius: var(--kv-radius-panel);
+  background: var(--kv-surface);
+  color: var(--kv-text);
+  box-shadow: var(--kv-shadow-popover);
+  font-size: 12px;
+  line-height: 1.5;
+  animation: kv-notice-enter 180ms ease-out both;
+}
+.nexum-os-event-head {
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--kv-text);
+  font-size: 11px;
+}
+.nexum-os-event-head strong { min-width: 0; font-size: 11px; font-weight: 680; }
+.nexum-os-event-head button {
+  display: grid;
+  flex: 0 0 28px;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--kv-text-tertiary);
+  font-size: 17px;
+  line-height: 1;
+}
+.nexum-os-event-head button:hover {
+  border-color: var(--kv-border);
+  background: var(--kv-surface-subtle);
+  color: var(--kv-text);
+}
+.nexum-os-event-head button:focus-visible {
+  outline: 2px solid var(--kv-focus);
+  outline-offset: 2px;
+}
+.nexum-os-event > span { color: var(--kv-text-secondary); line-height: 1.55; }
+.nexum-os-event-dot {
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  margin: 0;
+  border: 0;
+  background: var(--kv-info);
+}
+.nexum-os-event-success { border-left: 3px solid var(--kv-success); }
+.nexum-os-event-success .nexum-os-event-dot { background: var(--kv-success); }
+.nexum-os-event-error { border-left: 3px solid var(--kv-danger); }
+.nexum-os-event-error .nexum-os-event-dot { background: var(--kv-danger); }
+.nexum-os-event-info { border-left: 3px solid var(--kv-info); }
+.nexum-os-event-info .nexum-os-event-dot { background: var(--kv-info); }
+.kv-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: min(380px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border: 1px solid var(--kv-border);
+  border-radius: var(--kv-radius-panel);
+  background: var(--kv-surface);
+  color: var(--kv-text);
+  box-shadow: var(--kv-shadow-popover);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.kv-toast--success { border-left: 3px solid var(--kv-success); }
+.kv-toast--warning { border-left: 3px solid var(--kv-warning); }
+.kv-toast--danger { border-left: 3px solid var(--kv-danger); }
+.kv-toast--info { border-left: 3px solid var(--kv-info); }
+@keyframes kv-notice-enter {
+  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@media (max-width: 600px) {
+  .modal-backdrop.kv-dialog-backdrop,
+  .kv-dialog-backdrop {
+    place-items: end center;
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
+      max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  }
+  .kv-dialog {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px);
+    border-radius: 16px;
+  }
+  .nexum-os-event-center {
+    top: max(12px, env(safe-area-inset-top));
+    right: max(10px, env(safe-area-inset-right));
+    width: min(390px, calc(100vw - 20px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nexum-os-event { animation: none; }
+}

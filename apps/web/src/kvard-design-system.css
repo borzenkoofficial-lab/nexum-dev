@@ -4015,3 +4015,62 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .sidebar .new-project, .sidebar .nav-item, .kv-home-starter, .kv-home-project-row { transition: none; }
   .sidebar .new-project:hover, .kv-home-starter:hover { transform: none; }
 }
+
+
+/* Integration catalog — consistent card rhythm, clear connection state and keyboard affordance. */
+.integrations-page { color: var(--kv-text); }
+.integration-section + .integration-section { padding-top: 3px; }
+.external-card {
+  position: relative;
+  min-height: 218px;
+  padding: 20px;
+  border-color: var(--kv-border);
+  border-radius: var(--kv-radius-large);
+  background: var(--kv-surface);
+  box-shadow: var(--kv-shadow-panel);
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+.external-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--kv-border-strong);
+  background: var(--kv-surface);
+  box-shadow: var(--kv-shadow-popover);
+}
+.external-card:focus-within {
+  border-color: var(--kv-focus);
+  box-shadow: 0 0 0 3px var(--kv-action-soft), var(--kv-shadow-panel);
+}
+.external-card-top { min-height: 25px; }
+.external-category { letter-spacing: .08em; }
+.external-card h3 { margin-top: 21px; font-size: 17px; }
+.external-card p { max-width: 360px; line-height: 1.65; }
+.external-card > button {
+  min-height: 38px;
+  border-radius: var(--kv-radius-control);
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+.external-card > button:focus-visible {
+  outline: 2px solid var(--kv-focus);
+  outline-offset: 3px;
+}
+.external-card.is-connected {
+  border-color: color-mix(in srgb, var(--kv-success) 28%, var(--kv-border));
+}
+.integration-note {
+  border-color: var(--kv-border);
+  border-radius: var(--kv-radius-panel);
+  background: var(--kv-surface-subtle);
+  color: var(--kv-text-secondary);
+}
+@media (max-width: 980px) {
+  .external-card { min-height: 206px; }
+}
+@media (max-width: 760px) {
+  .external-card { min-height: 0; padding: 17px; }
+  .external-card h3 { margin-top: 15px; }
+  .external-card p { margin-bottom: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .external-card, .external-card > button { transition: none; }
+  .external-card:hover { transform: none; }
+}
