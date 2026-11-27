@@ -216,3 +216,25 @@ test("16. Builder quotas are enforced per user and reported through the billing 
   assert.equal(otherUsage.tasksUsed, 0, "usage is per user");
   assert.equal((await new Client("198.51.100.32").request("GET", "/api/billing/builder")).status, 401);
 });
+
+test("two users can run the Agent in their own projects with the same id at the same time", { skip }, async () => {
+  const first = new Client("198.51.100.40");
+  const second = new Client("198.51.100.41");
+  await register(first, "lock-a");
+  await register(second, "lock-b");
+  // Every user has a default project "nexum"; ids are only unique per user.
+  const [jobA, jobB] = await Promise.all([first, second].map(async (client) => {
+    const response = await client.request("POST", "/api/chat", { message: "Проверь структуру проекта", projectId: "nexum" }, { "Idempotency-Key": `lock-${randomUUID()}` });
+    assert.equal(response.status, 202, JSON.stringify(response.json));
+    return { client, jobId: response.json.jobId as string };
+  }));
+  for (const { client, jobId } of [jobA!, jobB!]) {
+    let job: any;
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      job = (await client.request("GET", `/api/chat/jobs/${jobId}`)).json.job;
+      if (!["queued", "running"].includes(job.status)) break;
+      await new Promise((resolveWait) => setTimeout(resolveWait, 250));
+    }
+    assert.doesNotMatch(String(job.error ?? ""), /already being modified/, "a different user's project must not hold this project's lock");
+  }
+});

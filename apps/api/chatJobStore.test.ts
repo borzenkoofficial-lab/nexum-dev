@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   acquireProjectLock,
+  projectLockKey,
   heartbeatProjectLock,
   releaseProjectLock,
   recoverStaleChatJobs,
@@ -151,8 +152,8 @@ test("API restart recovery fails orphaned queued and running jobs and releases t
     updatedAt: staleAt,
     projectId: "restart-project-queued",
   });
-  await acquireProjectLock("restart-project-running", "restart-owner", runningId);
-  await acquireProjectLock("restart-project-queued", "restart-owner", queuedId);
+  await acquireProjectLock(projectLockKey("restart-owner", "restart-project-running"), "restart-owner", runningId);
+  await acquireProjectLock(projectLockKey("restart-owner", "restart-project-queued"), "restart-owner", queuedId);
 
   const recovered = await recoverStaleChatJobs(5_000);
   assert.ok(recovered >= 2);
@@ -168,10 +169,10 @@ test("API restart recovery fails orphaned queued and running jobs and releases t
   assert.match(recoveredQueued?.error ?? "", /API process restarted/);
   assert.equal(recoveredQueued?.recoveryAssessment?.disposition, "safe_to_restart");
   assert.equal(recoveredQueued?.recoveryAssessment?.automaticResumeAllowed, false);
-  assert.equal(await acquireProjectLock("restart-project-running", "restart-owner", "restart-next-running"), true);
-  assert.equal(await acquireProjectLock("restart-project-queued", "restart-owner", "restart-next-queued"), true);
-  await releaseProjectLock("restart-project-running", "restart-next-running");
-  await releaseProjectLock("restart-project-queued", "restart-next-queued");
+  assert.equal(await acquireProjectLock(projectLockKey("restart-owner", "restart-project-running"), "restart-owner", "restart-next-running"), true);
+  assert.equal(await acquireProjectLock(projectLockKey("restart-owner", "restart-project-queued"), "restart-owner", "restart-next-queued"), true);
+  await releaseProjectLock(projectLockKey("restart-owner", "restart-project-running"), "restart-next-running");
+  await releaseProjectLock(projectLockKey("restart-owner", "restart-project-queued"), "restart-next-queued");
 });
 
 test("tool action journal commits intent before execution and finalizes exactly once", async () => {
@@ -448,3 +449,15 @@ test("execution checkpoint refuses a journal mismatch or an unfinished tool acti
     else process.env.KVARD_AGENT_CHECKPOINT_ENCRYPTION_KEY = previousKey;
   }
 });
+
+test("project locks are per user: the same project id of two users never blocks each other", async () => {
+  const a = projectLockKey("lock-user-a", "nexum");
+  const b = projectLockKey("lock-user-b", "nexum");
+  assert.notEqual(a, b);
+  assert.equal(await acquireProjectLock(a, "lock-user-a", "lock-job-a"), true);
+  assert.equal(await acquireProjectLock(b, "lock-user-b", "lock-job-b"), true, "another user's project with the same id must be lockable");
+  assert.equal(await acquireProjectLock(a, "lock-user-a", "lock-job-a2"), false, "the same user's project stays exclusive");
+  await releaseProjectLock(a, "lock-job-a");
+  await releaseProjectLock(b, "lock-job-b");
+});
+

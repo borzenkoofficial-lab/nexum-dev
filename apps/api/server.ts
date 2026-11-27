@@ -40,7 +40,7 @@ import { JobUsageMeter } from "./billing/usageMeter.js";
 import { resolveKeyVerificationProvider, type KeyVerificationProvider } from "./ai/keyProviderResolution.js";
 import { createUserCredentialStore } from "./ai/userCredentials.js";
 import { getIdempotencyStore, parseIdempotencyKey } from "./chatIdempotency.js";
-import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, startChatJobToolAction, finishChatJobToolAction, saveChatJobExecutionCheckpoint, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
+import { acquireProjectLock, projectLockKey, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, startChatJobToolAction, finishChatJobToolAction, saveChatJobExecutionCheckpoint, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
@@ -499,10 +499,11 @@ async function runChatJobInner(
     throwIfAgentAborted(signal);
     const project = await getProjectManager(userId).getActiveProject(projectId);
     throwIfAgentAborted(signal);
-    const lockAcquired = await acquireProjectLock(project.id, userId, jobId);
+    const lockKey = projectLockKey(userId, project.id);
+    const lockAcquired = await acquireProjectLock(lockKey, userId, jobId);
     // Record ownership before checking cancellation: if cancellation races with
     // lock acquisition, the finally block must still release the acquired lock.
-    if (lockAcquired) lockedProjectId = project.id;
+    if (lockAcquired) lockedProjectId = lockKey;
     throwIfAgentAborted(signal);
     if (!lockAcquired) {
       job.status = "failed";
@@ -516,7 +517,7 @@ async function runChatJobInner(
       return;
     }
     lockHeartbeat = setInterval(() => {
-      void heartbeatProjectLock(project.id, jobId)
+      void heartbeatProjectLock(lockKey, jobId)
         .then((stillOwner) => {
           if (!stillOwner) {
             cancellationBridge.abort(

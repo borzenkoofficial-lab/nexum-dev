@@ -160,6 +160,15 @@ function decode(row: any): ChatJob {
 }
 
 
+/**
+ * Project locks are per user: project ids are only unique within one user's
+ * workspace (every user has e.g. the default "nexum" project), so the lock key
+ * must include the owner or users would block each other's unrelated projects.
+ */
+export function projectLockKey(userId: string, projectId: string): string {
+  return `${userId}/${projectId}`;
+}
+
 export async function acquireProjectLock(projectId: string, userId: string, jobId: string, ttlMs = 15 * 60 * 1000): Promise<boolean> {
   if (!databaseAvailable()) {
     const now = Date.now();
@@ -457,8 +466,9 @@ export async function cancelChatJob(id: string, userId: string, message = "Agent
     });
     memoryJobs.set(id, next);
     if (next.projectId) {
-      const lock = memoryLocks.get(next.projectId);
-      if (lock?.jobId === id) memoryLocks.delete(next.projectId);
+      const key = projectLockKey(next.userId, next.projectId);
+      const lock = memoryLocks.get(key);
+      if (lock?.jobId === id) memoryLocks.delete(key);
     }
     return cloneJob(next);
   }
@@ -715,8 +725,9 @@ export async function recoverStaleChatJobs(
           updatedAt,
         }));
         if (job.projectId) {
-          const lock = memoryLocks.get(job.projectId);
-          if (lock?.jobId === id) memoryLocks.delete(job.projectId);
+          const key = projectLockKey(job.userId, job.projectId);
+          const lock = memoryLocks.get(key);
+          if (lock?.jobId === id) memoryLocks.delete(key);
         }
         recovered += 1;
       }
