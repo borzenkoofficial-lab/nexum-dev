@@ -99,9 +99,9 @@ test("a reservation abandoned by a crashed run is settled at full reservation on
   assert.equal(summary.tokensUsed, BUILDER_TASK_TOKEN_RESERVATION * 2);
 });
 
-const databaseUrl = process.env.KVARD_BILLING_TEST_DATABASE_URL;
+const databaseUrl = process.env.KVARD_TEST_DATABASE_URL;
 
-test("PostgreSQL store: concurrent reservations of one user respect the parallel limit", { skip: !databaseUrl && "set KVARD_BILLING_TEST_DATABASE_URL to run against PostgreSQL" }, async () => {
+test("PostgreSQL store: concurrent reservations of one user respect the parallel limit", { skip: !databaseUrl && "set KVARD_TEST_DATABASE_URL to run against PostgreSQL" }, async () => {
   const previous = process.env.NEXUM_DATABASE_URL;
   const previousSsl = process.env.NEXUM_DB_SSL;
   process.env.NEXUM_DATABASE_URL = databaseUrl;

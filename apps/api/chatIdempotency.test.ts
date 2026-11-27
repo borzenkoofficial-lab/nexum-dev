@@ -29,8 +29,8 @@ test("forget only releases the claim of the job that was never created", async (
   assert.equal(await store.claim("u1", "key-00000002", "job-b", 2), "job-b");
 });
 
-const databaseUrl = process.env.KVARD_BILLING_TEST_DATABASE_URL;
-test("PostgreSQL: concurrent claims of one key bind every request to a single job", { skip: !databaseUrl && "set KVARD_BILLING_TEST_DATABASE_URL to run against PostgreSQL" }, async () => {
+const databaseUrl = process.env.KVARD_TEST_DATABASE_URL;
+test("PostgreSQL: concurrent claims of one key bind every request to a single job", { skip: !databaseUrl && "set KVARD_TEST_DATABASE_URL to run against PostgreSQL" }, async () => {
   const previous = process.env.NEXUM_DATABASE_URL;
   const previousSsl = process.env.NEXUM_DB_SSL;
   process.env.NEXUM_DATABASE_URL = databaseUrl;

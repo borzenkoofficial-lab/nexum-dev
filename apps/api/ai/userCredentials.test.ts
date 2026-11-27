@@ -20,8 +20,8 @@ test("memory store returns copies", async () => {
   assert.equal(await store.load("other"), null);
 });
 
-const databaseUrl = process.env.KVARD_BILLING_TEST_DATABASE_URL;
-test("PostgreSQL: the secret is stored encrypted and survives a new store instance", { skip: !databaseUrl && "set KVARD_BILLING_TEST_DATABASE_URL to run against PostgreSQL" }, async () => {
+const databaseUrl = process.env.KVARD_TEST_DATABASE_URL;
+test("PostgreSQL: the secret is stored encrypted and survives a new store instance", { skip: !databaseUrl && "set KVARD_TEST_DATABASE_URL to run against PostgreSQL" }, async () => {
   const previous = process.env.NEXUM_DATABASE_URL;
   const previousSsl = process.env.NEXUM_DB_SSL;
   process.env.NEXUM_DATABASE_URL = databaseUrl;

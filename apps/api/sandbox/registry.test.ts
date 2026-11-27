@@ -97,8 +97,8 @@ test("the reaper deletes orphans of finished tasks and never touches active task
   await resetSandboxRunnerForTests();
 });
 
-const databaseUrl = process.env.KVARD_BILLING_TEST_DATABASE_URL;
-test("PostgreSQL: orphan query respects grace period, release state and one-shot age", { skip: !databaseUrl && "set KVARD_BILLING_TEST_DATABASE_URL to run against PostgreSQL" }, async () => {
+const databaseUrl = process.env.KVARD_TEST_DATABASE_URL;
+test("PostgreSQL: orphan query respects grace period, release state and one-shot age", { skip: !databaseUrl && "set KVARD_TEST_DATABASE_URL to run against PostgreSQL" }, async () => {
   const previous = process.env.NEXUM_DATABASE_URL;
   const previousSsl = process.env.NEXUM_DB_SSL;
   process.env.NEXUM_DATABASE_URL = databaseUrl;

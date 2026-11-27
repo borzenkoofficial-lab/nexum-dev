@@ -111,6 +111,19 @@ jobs:
         run: npm --prefix apps/web run build
       - name: Prepare E2E database
         run: NEXUM_DATABASE_URL=postgresql://nexum:nexum@127.0.0.1:5432/nexum NEXUM_DB_SSL=false npm --prefix apps/api run db:migrate
+      - name: Test API against PostgreSQL
+        # Billing, idempotency, credential and sandbox-registry tests that need a
+        # real database (row locks, ON CONFLICT, the orphan query). They are
+        # skipped without KVARD_TEST_DATABASE_URL, so they must run here.
+        env:
+          KVARD_TEST_DATABASE_URL: postgresql://nexum:nexum@127.0.0.1:5432/nexum
+        run: |
+          set -o pipefail
+          npm --prefix apps/api run test:postgres 2>&1 | tee postgres-tests.log
+          if grep -Eq '^# skipped [1-9]' postgres-tests.log; then
+            echo "::error::PostgreSQL tests were skipped although the database is configured."
+            exit 1
+          fi
       - name: Install E2E
         run: npm install --prefix e2e --no-audit --no-fund
       - name: Install Chromium

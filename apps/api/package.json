@@ -13,6 +13,7 @@
     "build": "tsc",
     "worker": "node dist/agents/worker.js",
     "test:agents": "tsx --test agents/agentService.test.ts agents/tools/toolRegistry.test.ts organizations/organization.test.ts agents/workforce/graphValidator.test.ts agents/memory/knowledgeService.test.ts approvals/approvalService.test.ts agent/builderBootstrap.test.ts agent/tokenBudget.test.ts",
+    "test:postgres": "tsx --test billing/builderBilling.test.ts chatIdempotency.test.ts ai/userCredentials.test.ts sandbox/registry.test.ts",
     "test:queue": "tsx --test agents/agentQueue.integration.test.ts",
     "test:ai-contract": "tsx --test ai/canonical.test.ts ai/sse.test.ts ai/streamRoute.test.ts ai/legacyProviderAdapter.test.ts ai/gateway.test.ts ai/gateway.canonical.test.ts ai/providerConformance.test.ts ai/modelRegistry.test.ts ai/openaiCompatibleAdapter.test.ts ai/providers/openai.test.ts ai/providers/openai.responses.test.ts ai/providers/openrouter.native.test.ts ai/providers/openaiCompatibleProviders.native.test.ts ai/providers/anthropic.native.test.ts ai/providers/openrouter.test.ts ai/providers/orcarouter.test.ts ai/providers/anymodel.test.ts ai/providers/ollama.test.ts ai/providers/mock.test.ts ai/providers/catalogDiscovery.test.ts"
   },
