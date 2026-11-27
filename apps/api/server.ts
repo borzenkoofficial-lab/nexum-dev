@@ -36,6 +36,7 @@ import { adminRouter } from "./routes/admin.js";
 import { closeDatabase, pingDatabase, query } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { BuilderQuotaError, getBuilderBillingStore } from "./billing/builderBilling.js";
+import { JobUsageMeter } from "./billing/usageMeter.js";
 import { resolveKeyVerificationProvider, type KeyVerificationProvider } from "./ai/keyProviderResolution.js";
 import { createUserCredentialStore } from "./ai/userCredentials.js";
 import { getIdempotencyStore, parseIdempotencyKey } from "./chatIdempotency.js";
@@ -388,6 +389,8 @@ function createAgentCancellationBridge(
 
 /** AgentLoops that actually started for a job; their token budget is what gets metered. */
 const chatJobMeteredLoops = new Map<string, AgentLoop>();
+/** Provider-reported usage of every model call made for a job. */
+const chatJobUsageMeters = new Map<string, JobUsageMeter>();
 
 /**
  * Settles the Builder billing reservation of a finished job exactly once: a job
@@ -396,11 +399,13 @@ const chatJobMeteredLoops = new Map<string, AgentLoop>();
  */
 async function finalizeChatJobBilling(jobId: string): Promise<void> {
   const loop = chatJobMeteredLoops.get(jobId);
+  const meter = chatJobUsageMeters.get(jobId);
   chatJobMeteredLoops.delete(jobId);
+  chatJobUsageMeters.delete(jobId);
   try {
     if (loop) {
-      const snapshot = loop.getTokenBudgetSnapshot();
-      await getBuilderBillingStore().settle(jobId, snapshot?.reserved ?? 0, "token_budget_upper_bound");
+      const decision = (meter ?? new JobUsageMeter()).decide(loop.getTokenBudgetSnapshot());
+      await getBuilderBillingStore().settle(jobId, decision.billedTokens, decision.basis, undefined, { inputTokens: decision.inputTokens, outputTokens: decision.outputTokens });
     } else {
       await getBuilderBillingStore().release(jobId);
     }
@@ -743,11 +748,14 @@ ${attachment.content.slice(0, 80_000)}`);
     }
     throwIfAgentAborted(signal);
     chatJobMeteredLoops.set(jobId, agentLoop);
+    const usageMeter = new JobUsageMeter();
+    chatJobUsageMeters.set(jobId, usageMeter);
     const result = await agentLoop.run(agentMessage, {
       ...(signal ? { signal } : {}),
       ...(provider === undefined ? {} : { provider }),
       ...(model === undefined ? {} : { model }),
       onTextDelta: appendReplyDelta,
+      onUsage: usageMeter.record,
     });
     await flushReplyPersistence();
 

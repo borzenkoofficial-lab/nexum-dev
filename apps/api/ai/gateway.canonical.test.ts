@@ -481,3 +481,20 @@ test("gateway does not retry another provider after visible streamed text has be
   assert.equal(fallback.calls, 0);
 });
 
+
+test("onUsage receives provider-reported usage and null for providers that report none", async () => {
+  const native = new NativeFixture();
+  native.response = { content: "ok", provider: "native", model: "m1", usage: { inputTokens: 40, outputTokens: 12 }, usageSource: "provider_reported" };
+  const legacy = new LegacyFixture();
+  const gateway = new AIGateway([native, legacy], "native");
+  const events: unknown[] = [];
+  await gateway.generateWithMetadata("hi", { provider: "native", onUsage: (event) => events.push(event) });
+  await gateway.generateWithMetadata("hi", { provider: "legacy", onUsage: (event) => events.push(event) });
+  native.response = { content: "ok", provider: "native", model: "m1", usage: { inputTokens: 1, outputTokens: 1 }, usageSource: "estimated" };
+  await gateway.generateWithMetadata("hi", { provider: "native", onUsage: (event) => events.push(event) });
+  assert.deepEqual(events, [
+    { provider: "native", model: "m1", usage: { inputTokens: 40, outputTokens: 12 } },
+    { provider: "legacy", model: "legacy-default", usage: null },
+    { provider: "native", model: "m1", usage: null },
+  ], "estimated usage must never be billed as provider-reported");
+});

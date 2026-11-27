@@ -1,4 +1,4 @@
-import type { AIProvider, AIProviderStatus, AIModelCapabilities, AIRequest, AIResponse, AIGenerateOptions, AIModelCatalogEntry } from "./types.js";
+import type { AIProvider, AIProviderStatus, AIModelCapabilities, AIRequest, AIResponse, AIGenerateOptions, AIModelCatalogEntry, AIUsage } from "./types.js";
 import { getRequiredCapabilities, normalizeAIResponse, validateCanonicalRequest } from "./canonical.js";
 import { generateWithLegacyProvider } from "./legacyProviderAdapter.js";
 import { NexumError } from "../core/errors.js";
@@ -12,6 +12,13 @@ function redactProviderError(message: string): string {
     .replace(/((?:api[_-]?key|authorization)\s*[:=]\s*)[^\s,;]+/gi, "$1[REDACTED]");
 }
 
+/** One completed model call. `usage` is null when the provider did not report usage. */
+export interface GatewayUsageEvent {
+  provider: string;
+  model: string;
+  usage: AIUsage | null;
+}
+
 export interface GatewayGenerateOptions {
   provider?: string;
   model?: string;
@@ -20,6 +27,8 @@ export interface GatewayGenerateOptions {
   temperature?: number;
   signal?: AbortSignal;
   onTextDelta?: (delta: string) => void;
+  /** Called after every successful generation with provider-reported usage (never estimated). */
+  onUsage?: (event: GatewayUsageEvent) => void;
 }
 
 export interface GatewayProviderInfo {
@@ -290,7 +299,7 @@ export class AIGateway {
     message: string,
     model: string | undefined,
     options: AIGenerateOptions = {},
-  ): Promise<{ response: string; model: string }> {
+  ): Promise<{ response: string; model: string; usage: AIUsage | null }> {
     const selectedModel = model ?? provider.model;
     if (options.onTextDelta && provider.streamRequest && this.getCapabilities(provider.id, selectedModel).streaming === true) {
       const request: AIRequest = {
@@ -304,6 +313,7 @@ export class AIGateway {
       };
       let response = "";
       let terminal = false;
+      let usage: AIUsage | null = null;
       for await (const event of this.streamRequest(request, { provider: provider.id })) {
         if (terminal) {
           throw new NexumError("PROVIDER_ERROR", "Провайдер отправил события после завершения потока.", {
@@ -314,6 +324,8 @@ export class AIGateway {
         if (event.type === "text_delta") {
           response += event.text;
           if (event.text) options.onTextDelta(event.text);
+        } else if (event.type === "usage") {
+          if (event.source === "provider_reported") usage = event.usage;
         } else if (event.type === "message_end") {
           terminal = true;
         } else if (event.type === "error") {
@@ -334,7 +346,7 @@ export class AIGateway {
           technicalDetails: `Provider ${provider.id} stream ended without message_end`,
         });
       }
-      return { response, model: selectedModel };
+      return { response, model: selectedModel, usage };
     }
     if (provider.generateRequest) {
       const response = await this.generateRequest({
@@ -346,12 +358,14 @@ export class AIGateway {
         ...(options.signal === undefined ? {} : { signal: options.signal }),
       }, { provider: provider.id });
       options.onTextDelta?.(response.content);
-      return { response: response.content, model: response.model };
+      const usage = response.usageSource === "provider_reported" && response.usage ? response.usage : null;
+      return { response: response.content, model: response.model, usage };
     }
     if (provider.generate) {
       const response = await provider.generate(message, model, options);
       options.onTextDelta?.(response);
-      return { response, model: selectedModel };
+      // Legacy text-only providers do not report usage.
+      return { response, model: selectedModel, usage: null };
     }
     throw new NexumError("CONFIG_ERROR", "AI-провайдер не реализует поддерживаемый интерфейс генерации.", {
       retryable: false,
@@ -391,6 +405,7 @@ export class AIGateway {
         ...(normalizedOptions.signal ? { signal: normalizedOptions.signal } : {}),
         ...(onTextDelta ? { onTextDelta } : {}),
       });
+      normalizedOptions.onUsage?.({ provider: provider.id, model: generated.model, usage: generated.usage });
       return {
         response: generated.response,
         provider: provider.id,
@@ -435,6 +450,7 @@ export class AIGateway {
           ...(normalizedOptions.signal ? { signal: normalizedOptions.signal } : {}),
           ...(onTextDelta ? { onTextDelta } : {}),
         });
+        normalizedOptions.onUsage?.({ provider: fallback.id, model: generated.model, usage: generated.usage });
         return {
           response: generated.response,
           provider: fallback.id,

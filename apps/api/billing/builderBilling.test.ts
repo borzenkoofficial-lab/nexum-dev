@@ -118,7 +118,10 @@ test("PostgreSQL store: concurrent reservations of one user respect the parallel
       if (result.status === "rejected") assert.ok(result.reason instanceof BuilderQuotaError && result.reason.code === "PARALLEL_LIMIT");
     }
     const acceptedJob = jobs[results.findIndex((result) => result.status === "fulfilled")]!;
-    assert.equal((await store.settle(acceptedJob, 1234, "token_budget_upper_bound"))?.billedTokens, 1234);
+    const settledRow = await store.settle(acceptedJob, 1234, "provider_reported", undefined, { inputTokens: 9000, outputTokens: 1234 });
+    assert.equal(settledRow?.billedTokens, 1234);
+    assert.equal(settledRow?.meteringBasis, "provider_reported");
+    assert.deepEqual([settledRow?.inputTokens, settledRow?.outputTokens], [9000, 1234], "provider actuals are stored separately from billed tokens");
     assert.equal(await store.settle(acceptedJob, 99, "token_budget_upper_bound"), null);
     const summary = await store.summary(userId);
     assert.equal(summary.tasksUsed, 1);

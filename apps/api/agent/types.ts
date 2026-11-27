@@ -1,3 +1,4 @@
+import type { GatewayGenerateOptions } from "../ai/gateway.js";
 export interface ToolResult {
   success: boolean;
   output: string;
@@ -155,6 +156,8 @@ export interface AgentModelOptions {
   provider?: string;
   model?: string;
   signal?: AbortSignal;
+  /** Forwarded to the AI gateway: provider-reported usage of every model call. */
+  onUsage?: GatewayGenerateOptions["onUsage"];
 }
 
 export interface AgentToolResult {

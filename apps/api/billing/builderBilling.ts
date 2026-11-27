@@ -12,11 +12,11 @@ import { BUILDER_TASK_TOKEN_RESERVATION, getBuilderPlan, resolveDefaultPlanId, t
  *   release  — when the job never ran (e.g. project lock rejected it): the
  *              reservation is returned and does not count against the plan.
  *
- * Metering basis (v1): the AgentLoop adaptive token budget. Every model call is
- * granted maxTokens from that budget, so `reserved` in its snapshot is a hard
- * upper bound of output tokens the task could have consumed. Provider-reported
- * usage is not yet propagated from the AI gateway into the AgentLoop; until it
- * is, billed tokens are this upper bound and `metering_basis` records that.
+ * Metering basis: output tokens reported by the provider for every model call
+ * of the job (`provider_reported`, see billing/usageMeter.ts). When any call
+ * lacks provider usage, or a budgeted call was not observed, the job is billed
+ * at the AgentLoop token-budget upper bound (`token_budget_upper_bound`), which
+ * never under-bills. Provider input/output actuals are stored separately.
  *
  * Every transition is idempotent: settle/release only act on a `reserved` row,
  * so retries, duplicate terminal events or races can never double-charge.
@@ -44,6 +44,9 @@ export interface LedgerEntry {
   reservedTokens: number;
   billedTokens: number;
   meteringBasis: MeteringBasis | null;
+  /** Provider-reported actuals, when known (cost analysis; not what is billed). */
+  inputTokens: number | null;
+  outputTokens: number | null;
   createdAt: number;
   settledAt: number | null;
 }
@@ -87,9 +90,15 @@ function clampBilled(reserved: number, metered: number): number {
   return Math.min(reserved, Math.floor(metered));
 }
 
+export interface UsageActuals { inputTokens: number | null; outputTokens: number | null }
+
+function cleanActual(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.floor(value) : null;
+}
+
 export interface BuilderBillingStore {
   reserve(userId: string, jobId: string, now?: number): Promise<LedgerEntry>;
-  settle(jobId: string, meteredTokens: number, basis: MeteringBasis, now?: number): Promise<LedgerEntry | null>;
+  settle(jobId: string, meteredTokens: number, basis: MeteringBasis, now?: number, actual?: UsageActuals): Promise<LedgerEntry | null>;
   release(jobId: string, now?: number): Promise<LedgerEntry | null>;
   summary(userId: string, now?: number): Promise<BuilderUsageSummary>;
 }
@@ -145,15 +154,15 @@ export class MemoryBuilderBillingStore implements BuilderBillingStore {
     const period = billingPeriod(now);
     // No await between the check and the insert: atomic within this process.
     enforce(plan, this.aggregate(userId, period.start, now));
-    const entry: LedgerEntry = { jobId, userId, planId: plan.id, periodStart: period.start, status: "reserved", reservedTokens: BUILDER_TASK_TOKEN_RESERVATION, billedTokens: 0, meteringBasis: null, createdAt: now, settledAt: null };
+    const entry: LedgerEntry = { jobId, userId, planId: plan.id, periodStart: period.start, status: "reserved", reservedTokens: BUILDER_TASK_TOKEN_RESERVATION, billedTokens: 0, meteringBasis: null, inputTokens: null, outputTokens: null, createdAt: now, settledAt: null };
     this.ledger.set(jobId, entry);
     return { ...entry };
   }
 
-  async settle(jobId: string, meteredTokens: number, basis: MeteringBasis, now = Date.now()): Promise<LedgerEntry | null> {
+  async settle(jobId: string, meteredTokens: number, basis: MeteringBasis, now = Date.now(), actual?: UsageActuals): Promise<LedgerEntry | null> {
     const entry = this.ledger.get(jobId);
     if (!entry || entry.status !== "reserved") return null;
-    Object.assign(entry, { status: "settled", billedTokens: clampBilled(entry.reservedTokens, meteredTokens), meteringBasis: basis, settledAt: now });
+    Object.assign(entry, { status: "settled", billedTokens: clampBilled(entry.reservedTokens, meteredTokens), meteringBasis: basis, inputTokens: cleanActual(actual?.inputTokens), outputTokens: cleanActual(actual?.outputTokens), settledAt: now });
     return { ...entry };
   }
 
@@ -173,12 +182,15 @@ export class MemoryBuilderBillingStore implements BuilderBillingStore {
 type LedgerRow = {
   job_id: string; user_id: string; plan_id: string; period_start: Date; status: LedgerStatus;
   reserved_tokens: number; billed_tokens: number; metering_basis: MeteringBasis | null; created_at: Date; settled_at: Date | null;
+  input_tokens: number | string | null; output_tokens: number | string | null;
 };
 
 function fromRow(row: LedgerRow): LedgerEntry {
   return {
     jobId: row.job_id, userId: row.user_id, planId: row.plan_id, periodStart: new Date(row.period_start).getTime(), status: row.status,
     reservedTokens: Number(row.reserved_tokens), billedTokens: Number(row.billed_tokens), meteringBasis: row.metering_basis,
+    inputTokens: row.input_tokens === null || row.input_tokens === undefined ? null : Number(row.input_tokens),
+    outputTokens: row.output_tokens === null || row.output_tokens === undefined ? null : Number(row.output_tokens),
     createdAt: new Date(row.created_at).getTime(), settledAt: row.settled_at ? new Date(row.settled_at).getTime() : null,
   };
 }
@@ -221,13 +233,14 @@ export class PostgresBuilderBillingStore implements BuilderBillingStore {
     });
   }
 
-  async settle(jobId: string, meteredTokens: number, basis: MeteringBasis): Promise<LedgerEntry | null> {
+  async settle(jobId: string, meteredTokens: number, basis: MeteringBasis, _now?: number, actual?: UsageActuals): Promise<LedgerEntry | null> {
     const metered = Number.isFinite(meteredTokens) && meteredTokens >= 0 ? Math.floor(meteredTokens) : null;
     const result = await query<LedgerRow>(
       `UPDATE builder_usage_ledger
-       SET status = 'settled', billed_tokens = LEAST(reserved_tokens, COALESCE($2::bigint, reserved_tokens)), metering_basis = $3, settled_at = NOW()
+       SET status = 'settled', billed_tokens = LEAST(reserved_tokens, COALESCE($2::bigint, reserved_tokens)), metering_basis = $3,
+           input_tokens = $4, output_tokens = $5, settled_at = NOW()
        WHERE job_id = $1 AND status = 'reserved' RETURNING *`,
-      [jobId, metered, basis],
+      [jobId, metered, basis, cleanActual(actual?.inputTokens), cleanActual(actual?.outputTokens)],
     );
     return result.rows[0] ? fromRow(result.rows[0]) : null;
   }
