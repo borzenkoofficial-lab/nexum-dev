@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentStage } from "./types";
 import { KvardAlert, KvardEmptyState, KvardPageHeader, KvardSegmentedControl, KvardSurface } from "./ui/index.ts";
+import { JobChanges } from "./JobChanges";
 
 interface Props {
   tab: "preview" | "files" | "agent";
@@ -10,6 +11,8 @@ interface Props {
   previewKey: number;
   stage: AgentStage;
   jobId: string | null;
+  /** Job whose file changes are shown: the running job or the last finished one. */
+  changesJobId?: string | null;
   activitySteps: Array<{ iteration: number; tool: string; success: boolean }>;
   activityEvents: Array<{ id: number; timestamp: number; iteration: number; type: string; tool?: string; message: string }>;
   currentActivity: string;
@@ -246,6 +249,8 @@ export function BuilderTools(p: Props) {
           </div>
         ))}
       </div>
+
+      <JobChanges key={p.changesJobId ?? "no-job"} jobId={p.changesJobId ?? null} stage={p.stage} eventCount={p.activityEvents.length} />
 
       {p.problems.length > 0 && (
         <div className="nx-problems" role="alert">

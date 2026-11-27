@@ -340,6 +340,14 @@ test("E2E-19 real Builder acceptance creates, builds and previews a requested pr
   const tools = (job.steps ?? []).map((step: any) => step.tool);
   expect(tools).toContain("listFiles");
   expect(tools).toContain("scaffoldProject");
+
+  // Critical path 9: the files the job created/changed are reviewable as a diff
+  // against its pre-task snapshot.
+  const diffResponse = await page.request.get(`/api/chat/jobs/${encodeURIComponent(jobId)}/diff`);
+  expect(diffResponse.ok()).toBeTruthy();
+  const diff = (await diffResponse.json()).diff;
+  expect(diff.totals.files).toBeGreaterThan(0);
+  expect(diff.files.some((file: any) => file.status === "added" && file.hunks.length > 0)).toBeTruthy();
   expect(tools.filter((tool: string) => tool === "writeFile").length).toBeGreaterThanOrEqual(2);
   expect(tools).toContain("runCommand");
   expect(tools.filter((tool: string) => tool === "runCommand").length).toBeGreaterThanOrEqual(2);

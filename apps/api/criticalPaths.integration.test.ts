@@ -141,7 +141,7 @@ test("1-2. registration issues a secure session; logout revokes it server-side; 
   assert.equal((await new Client("198.51.100.12").request("POST", "/api/auth/register", { email: account.email, name: "dup", password: "another-password" })).status, 409);
 });
 
-test("3, 15. a user's project, files, git, preview and jobs are invisible to another user", { skip }, async () => {
+test("3, 9, 15. a user's project, files, git, preview, jobs and job diffs are invisible to another user", { skip }, async () => {
   const owner = new Client("198.51.100.20");
   const intruder = new Client("198.51.100.21");
   await register(owner, "owner");
@@ -182,6 +182,18 @@ test("3, 15. a user's project, files, git, preview and jobs are invisible to ano
     assert.equal(response.status, 404, `${method} ${path} must not reveal another user's job`);
   }
   assert.equal((await owner.request("GET", `/api/chat/jobs/${jobId}`)).status, 200);
+
+  // 9. The owner can see what the job changed once it has its pre-task snapshot; nobody else can.
+  let diff: Awaited<ReturnType<Client["request"]>> | undefined;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    diff = await owner.request("GET", `/api/chat/jobs/${jobId}/diff`);
+    if (diff.status !== 409) break;
+    await new Promise((resolveWait) => setTimeout(resolveWait, 250));
+  }
+  assert.equal(diff!.status, 200, JSON.stringify(diff!.json));
+  assert.ok(Array.isArray(diff!.json.diff.files));
+  assert.equal((await intruder.request("GET", `/api/chat/jobs/${jobId}/diff`)).status, 404);
+  assert.equal((await owner.request("GET", `/api/projects/${projectId}/checkpoints/missing-checkpoint/diff`)).status, 404);
 });
 
 test("16. Builder quotas are enforced per user and reported through the billing API", { skip }, async () => {

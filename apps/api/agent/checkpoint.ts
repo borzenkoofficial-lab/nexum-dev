@@ -1,6 +1,7 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile, cp, rename } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { randomUUID } from "node:crypto";
+import { diffText, type DiffHunk } from "./textDiff.js";
 
 export interface CheckpointFile {
   path: string;
@@ -84,6 +85,43 @@ function validateCheckpointManifest(value: unknown, projectId: string, checkpoin
   return manifest as ProjectCheckpoint;
 }
 
+export type FileChangeStatus = "added" | "modified" | "deleted";
+
+export interface FileChange {
+  path: string;
+  status: FileChangeStatus;
+  binary: boolean;
+  /** Too big or too different to render line by line; counts may be unknown. */
+  omitted: boolean;
+  additions: number;
+  deletions: number;
+  hunks: DiffHunk[];
+}
+
+export interface CheckpointDiff {
+  checkpointId: string;
+  createdAt: string;
+  files: FileChange[];
+  totals: { files: number; additions: number; deletions: number };
+  /** More changed files than MAX_DIFF_FILES; only the first ones are listed. */
+  truncated: boolean;
+}
+
+export const MAX_DIFF_FILES = 200;
+const MAX_DIFF_FILE_BYTES = 256 * 1024;
+
+function looksBinary(buffer: Buffer): boolean {
+  return buffer.subarray(0, 8192).includes(0);
+}
+
+function describeChange(path: string, status: FileChangeStatus, before: Buffer | null, after: Buffer | null): FileChange {
+  const binary = Boolean((before && looksBinary(before)) || (after && looksBinary(after)));
+  const tooBig = (before?.length ?? 0) > MAX_DIFF_FILE_BYTES || (after?.length ?? 0) > MAX_DIFF_FILE_BYTES;
+  if (binary || tooBig) return { path, status, binary, omitted: true, additions: 0, deletions: 0, hunks: [] };
+  const diff = diffText(before?.toString("utf8") ?? "", after?.toString("utf8") ?? "");
+  return { path, status, binary: false, omitted: diff.tooComplex, additions: diff.additions, deletions: diff.deletions, hunks: diff.hunks };
+}
+
 export class CheckpointManager {
   private root(projectPath: string): string {
     return resolve(projectPath, ".nexum", "checkpoints");
@@ -144,6 +182,41 @@ export class CheckpointManager {
       throw error;
     }
   }
+  /** What changed in the project since the checkpoint (snapshot vs current files). Read-only. */
+  async diff(projectId: string, projectPath: string, checkpointId: string): Promise<CheckpointDiff> {
+    if (!/^[a-z0-9-]+$/i.test(checkpointId)) throw new Error("Invalid checkpoint id");
+    const checkpointRoot = resolve(this.root(projectPath), checkpointId);
+    const rawManifest: unknown = JSON.parse(await readFile(resolve(checkpointRoot, "manifest.json"), "utf8"));
+    const checkpoint = validateCheckpointManifest(rawManifest, projectId, checkpointId);
+    const current = await collectFiles(projectPath);
+    const before = new Map(checkpoint.files.map((file) => [file.path, file]));
+    const after = new Map(current.map((file) => [file.path, file]));
+    const paths = [...new Set([...before.keys(), ...after.keys()])].sort();
+    const changes: FileChange[] = [];
+    let truncated = false;
+    for (const path of paths) {
+      assertSafeRelativePath(path);
+      const inBefore = before.has(path);
+      const inAfter = after.has(path);
+      const beforeBytes = inBefore ? await readFile(resolve(checkpointRoot, path)) : null;
+      const afterBytes = inAfter ? await readFile(resolve(projectPath, path)) : null;
+      if (beforeBytes && afterBytes && beforeBytes.equals(afterBytes)) continue;
+      if (changes.length >= MAX_DIFF_FILES) { truncated = true; break; }
+      changes.push(describeChange(path, !inBefore ? "added" : !inAfter ? "deleted" : "modified", beforeBytes, afterBytes));
+    }
+    return {
+      checkpointId,
+      createdAt: checkpoint.createdAt,
+      files: changes,
+      totals: {
+        files: changes.length,
+        additions: changes.reduce((sum, item) => sum + item.additions, 0),
+        deletions: changes.reduce((sum, item) => sum + item.deletions, 0),
+      },
+      truncated,
+    };
+  }
+
   async list(projectId: string, projectPath: string): Promise<ProjectCheckpoint[]> {
     const root = this.root(projectPath);
     const entries = await readdir(root, { withFileTypes: true }).catch(() => []);

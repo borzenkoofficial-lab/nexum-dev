@@ -140,6 +140,9 @@ function WorkspaceApp() {
   const [previewOnline, setПредпросмотрOnline] = useState(false);
   const [previewKey, setПредпросмотрKey] = useState(0);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
+  // The most recent job of the open project, kept after it finishes so its file
+  // changes stay reviewable (chatJobId is cleared when a job reaches a terminal state).
+  const [lastChatJobId, setLastChatJobId] = useState<string | null>(null);
   const [pendingApproval, setPendingApproval] = useState<AgentApprovalView | null>(null);
   const [pendingApprovalProjectId, setPendingApprovalProjectId] = useState<string | null>(null);
   const [approvalActionLoading, setApprovalActionLoading] = useState(false);
@@ -154,6 +157,7 @@ function WorkspaceApp() {
     }
     chatJobIdRef.current = jobId;
     setChatJobId(jobId);
+    if (jobId) setLastChatJobId(jobId);
     if (import.meta.env.VITE_E2E === "true") {
       (window as unknown as { __NEXUM_E2E_ACTIVE_CHAT_JOB_ID__?: string | null }).__NEXUM_E2E_ACTIVE_CHAT_JOB_ID__ = jobId;
     }
@@ -575,6 +579,7 @@ function WorkspaceApp() {
         setAuthoritativeChatJobId(null);
         setАгентStage(null);
       }
+      setLastChatJobId(null);
       setActiveПроектId(projectId);
       setReply("");
       await loadПроектs(projectId);
@@ -1578,7 +1583,7 @@ function WorkspaceApp() {
               />
               <BuilderTools
                 tab={rightTab} projectName={activeПроект?.name ?? "КВАРД"} projectId={activeПроектId}
-                previewOnline={previewOnline} previewKey={previewKey} stage={agentStage} jobId={chatJobId}
+                previewOnline={previewOnline} previewKey={previewKey} stage={agentStage} jobId={chatJobId} changesJobId={chatJobId ?? lastChatJobId}
                 activitySteps={activitySteps} activityEvents={activityEvents} currentActivity={currentActivity}
                 problems={problems} productPlan={productPlan}
                 onTabChange={(tab) => { setRightTab(tab); setProjectMode(tab); }}

@@ -1580,6 +1580,16 @@ app.post("/api/projects/:id/checkpoints", async (req, res) => {
   }
 });
 
+app.get("/api/projects/:id/checkpoints/:checkpointId/diff", async (req, res) => {
+  try {
+    const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
+    return res.json({ success: true, diff: await checkpointManager.diff(project.id, project.path, req.params.checkpointId) });
+  } catch (error) {
+    if (isMissingCheckpoint(error)) return res.status(404).json({ success: false, error: "Checkpoint not found" });
+    return sendProjectError(res, error, req);
+  }
+});
+
 app.post("/api/projects/:id/checkpoints/:checkpointId/rollback", async (req, res) => {
   try {
     const project = await getProjectManager(getAuthUser(req).id).getProject(req.params.id);
@@ -2146,6 +2156,27 @@ app.get("/api/chat/jobs/:id/events", createChatJobEventsHandler({
   getUserId: (request) => getAuthUser(request).id,
   getJob: (id, userId) => loadChatJob(id, userId, getChatJob, true),
 }));
+
+function isMissingCheckpoint(error: unknown): boolean {
+  return (error as NodeJS.ErrnoException)?.code === "ENOENT" || (error instanceof Error && /Invalid checkpoint/.test(error.message));
+}
+
+// Files the Agent job changed: its pre-task checkpoint snapshot vs the current project.
+app.get("/api/chat/jobs/:id/diff", async (req, res) => {
+  const userId = getAuthUser(req).id;
+  const job = await getChatJob(req.params.id, userId);
+  if (!job) return res.status(404).json({ success: false, error: "Chat job not found or expired" });
+  if (!job.projectId || !job.checkpointId) {
+    return res.status(409).json({ success: false, error: "Для этой задачи нет снимка проекта: агент ещё не начал работу или задача не изменяла проект." });
+  }
+  try {
+    const project = await getProjectManager(userId).getProject(job.projectId);
+    return res.json({ success: true, jobId: job.id, status: job.status, diff: await checkpointManager.diff(project.id, project.path, job.checkpointId) });
+  } catch (error) {
+    if (isMissingCheckpoint(error)) return res.status(404).json({ success: false, error: "Снимок проекта для этой задачи недоступен." });
+    return sendProjectError(res, error, req);
+  }
+});
 
 app.get("/api/chat/jobs/:id", async (req, res) => {
   await cleanupChatJobs();
