@@ -20,3 +20,4 @@ e2e/package-lock.json
 
 # Deployment state on the VPS (scripts/deploy-timeweb.sh)
 .deploy/
+**/dist-studio/

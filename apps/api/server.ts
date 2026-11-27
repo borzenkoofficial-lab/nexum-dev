@@ -1512,7 +1512,8 @@ app.get("/api/projects/:id/files", async (req, res) => {
     const files = entries
       .filter((entry) => entry.isFile())
       .map((entry) => entry.parentPath ? relative(root, resolve(entry.parentPath, entry.name)) : entry.name)
-      .filter((file) => !file.startsWith(".git/") && !file.includes("node_modules/"))
+      // .nexum holds internal checkpoint snapshots (full project copies): never list it.
+      .filter((file) => !file.startsWith(".git/") && !file.startsWith(".nexum/") && !file.includes("node_modules/"))
       .sort();
     return res.json({ success: true, files });
   } catch (error) {
@@ -2297,6 +2298,20 @@ app.use((req, res, next) => {
     res.setHeader("X-Kvard-Release", KVARD_RELEASE_ID);
   }
   next();
+});
+
+// KVARD Studio: separate build (apps/web/dist-studio) served same-origin under
+// /studio/ so it shares the Platform session without cross-origin cookies.
+const studioDist = resolve(webDist, "..", "dist-studio");
+app.use("/studio", (req, res, next) => {
+  if (req.path === "/" || req.path.endsWith(".html")) res.setHeader("Cache-Control", "no-store");
+  next();
+}, express.static(studioDist, { index: "index.html" }));
+app.get(/^\/studio(\/.*)?$/, (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  return res.sendFile(resolve(studioDist, "index.html"), (error) => {
+    if (error && !res.headersSent) res.status(404).send("KVARD Studio build is not available here. Run: npm --prefix apps/web run build:studio");
+  });
 });
 
 app.use(express.static(webDist));

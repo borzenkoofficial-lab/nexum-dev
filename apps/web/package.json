@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && vite build --config vite.studio.config.ts",
     "lint": "oxlint",
     "preview": "vite preview",
     "test:runtime": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/runtime/runtime.test.ts",
@@ -13,7 +13,10 @@
     "test:brand": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/components/KvardMark.test.ts",
     "test:ui-kit": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/components/ui/ui.test.ts",
     "test:billing": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/components/billingFormat.test.ts",
-    "test:ai-stream": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/runtime/AIStream.test.ts"
+    "test:ai-stream": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/runtime/AIStream.test.ts",
+    "dev:studio": "vite --config vite.studio.config.ts",
+    "build:studio": "vite build --config vite.studio.config.ts",
+    "test:studio": "node --experimental-strip-types --experimental-specifier-resolution=node --test studio/src/model.test.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

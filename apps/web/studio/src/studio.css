@@ -1,0 +1,87 @@
+/* KVARD Studio shell. Colors, radii and spacing come from kvard-design-system.css tokens. */
+html, body, #root { height: 100%; }
+body { margin: 0; background: var(--kv-canvas); color: var(--kv-text); }
+.st-root { height: 100vh; display: grid; grid-template-rows: auto auto 1fr; grid-template-columns: minmax(0, 1fr); }
+.st-topbar { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 8px 14px; border-bottom: 1px solid var(--kv-border); background: var(--kv-surface); }
+.st-brand { font-size: 14px; letter-spacing: .01em; }
+.st-project select { min-width: 200px; max-width: 40vw; padding: 6px 8px; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-control, 8px); background: var(--kv-surface); color: var(--kv-text); }
+.st-platform-link { margin-left: auto; color: var(--kv-text-secondary); font-size: 13px; text-decoration: none; }
+.st-platform-link:hover { color: var(--kv-text); }
+.st-topbar button, .st-editor-head button, .st-composer button, .st-error button { padding: 6px 12px; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-control, 8px); background: var(--kv-surface); color: var(--kv-text); cursor: pointer; font: inherit; font-size: 13px; }
+.st-topbar button:hover, .st-editor-head button:hover:not(:disabled), .st-composer button:hover:not(:disabled) { background: var(--kv-surface-hover); }
+.st-composer button[type="submit"] { background: var(--kv-action); border-color: var(--kv-action); color: var(--kv-on-action); }
+.st-composer button[type="submit"]:hover:not(:disabled) { background: var(--kv-action-hover); }
+button:disabled { opacity: .55; cursor: not-allowed; }
+button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible, .st-separator:focus-visible { outline: 2px solid var(--kv-focus); outline-offset: 1px; }
+
+.st-mobile-tabs { display: none; }
+.st-layout { display: grid; min-height: 0; }
+.st-files, .st-work, .st-agent { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--kv-surface); }
+.st-files { overflow: auto; border-right: 1px solid var(--kv-border); }
+.st-agent { border-left: 1px solid var(--kv-border); }
+.st-pane-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--kv-border); font-size: 13px; }
+.st-icon-button { border: 0; background: none; color: var(--kv-text-secondary); cursor: pointer; font-size: 15px; }
+.st-separator { cursor: col-resize; background: var(--kv-canvas); }
+.st-separator:hover { background: var(--kv-border); }
+
+.st-tree { list-style: none; margin: 0; padding: 4px 0; }
+.st-tree .st-tree { padding: 0; }
+.st-tree-item { width: 100%; display: flex; align-items: center; gap: 6px; padding: 3px 10px; border: 0; background: none; color: var(--kv-text); font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; text-align: left; cursor: pointer; white-space: nowrap; }
+.st-tree-item:hover { background: var(--kv-surface-hover); }
+.st-tree-item.is-selected { background: var(--kv-action-soft); color: var(--kv-text); }
+.st-tree-icon { width: 10px; color: var(--kv-text-tertiary); }
+.st-tree-name { overflow: hidden; text-overflow: ellipsis; }
+
+.st-tabs { display: flex; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--kv-border); overflow-x: auto; scrollbar-width: none; }
+.st-tabs [role="tab"] { flex: none; }
+.st-tabs [role="tab"] { padding: 8px 12px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--kv-text-secondary); cursor: pointer; font: inherit; font-size: 13px; }
+.st-tabs [role="tab"][aria-selected="true"] { color: var(--kv-text); border-bottom-color: var(--kv-action); }
+.st-tabpanel { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+
+.st-editor, .st-preview { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.st-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--kv-border); font-size: 13px; }
+.st-editor textarea { flex: 1; min-height: 0; resize: none; border: 0; padding: 14px; background: var(--kv-surface); color: var(--kv-text); font-size: 13px; line-height: 1.55; tab-size: 2; }
+.st-editor textarea:focus-visible { outline-offset: -2px; }
+.st-preview iframe { flex: 1; min-height: 0; width: 100%; border: 0; background: #fff; }
+
+.st-agent-feed { flex: 1; min-height: 0; overflow: auto; padding: 12px 14px; display: grid; align-content: start; gap: 10px; font-size: 13px; }
+.st-agent-now { margin: 0; font-weight: 600; }
+.st-events { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.st-events li { color: var(--kv-text-secondary); line-height: 1.45; overflow-wrap: anywhere; }
+.st-agent-summary { display: grid; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--kv-border); font-size: 13px; }
+.st-agent-failure { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--kv-danger); border-radius: var(--kv-radius-control, 8px); background: var(--kv-danger-soft); overflow-wrap: anywhere; }
+.st-agent-failure strong { color: var(--kv-danger); }
+.st-agent-failure small { color: var(--kv-text-secondary); }
+.st-link { margin-left: 6px; padding: 0; border: 0; background: none; color: var(--kv-action); font: inherit; font-size: 12px; cursor: pointer; }
+.st-events li .st-mono { color: var(--kv-text-tertiary); font-size: 11px; margin-right: 4px; }
+.st-reply { max-height: 30vh; overflow: auto; overflow-wrap: anywhere; padding: 10px 12px; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-control, 8px); background: var(--kv-surface-subtle); white-space: pre-wrap; }
+.st-composer { display: grid; gap: 6px; padding: 10px 14px 14px; border-top: 1px solid var(--kv-border); }
+.st-composer textarea { min-height: 72px; max-height: 40vh; resize: vertical; padding: 10px; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-control, 8px); background: var(--kv-surface); color: var(--kv-text); font: inherit; font-size: 13px; }
+.st-composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+.st-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.st-muted { margin: 0; color: var(--kv-text-secondary); font-size: 13px; }
+.st-pad { padding: 12px 14px; }
+.st-warn { margin: 0; color: var(--kv-warning); font-size: 13px; }
+.st-error { margin: 0; padding: 8px 14px; color: var(--kv-danger); font-size: 13px; }
+.st-center { height: 100vh; display: grid; place-items: center; padding: 24px; }
+.st-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Narrow screens: one pane at a time, switched with the tab bar. */
+@media (max-width: 900px) {
+  .st-mobile-tabs { display: flex; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--kv-border); background: var(--kv-surface); }
+  .st-mobile-tabs button { flex: 1; padding: 8px; border: 1px solid var(--kv-border); border-radius: var(--kv-radius-control, 8px); background: none; color: var(--kv-text-secondary); font: inherit; font-size: 13px; }
+  .st-mobile-tabs button[aria-pressed="true"] { color: var(--kv-text); border-color: var(--kv-action); }
+  .st-layout { grid-template-columns: minmax(0, 1fr) !important; }
+  .st-separator { display: none; }
+  .st-root[data-mobile-pane="files"] .st-work, .st-root[data-mobile-pane="files"] .st-agent,
+  .st-root[data-mobile-pane="work"] .st-files, .st-root[data-mobile-pane="work"] .st-agent,
+  .st-root[data-mobile-pane="agent"] .st-files, .st-root[data-mobile-pane="agent"] .st-work { display: none; }
+  .st-files, .st-agent { border: 0; }
+  .st-topbar { gap: 8px; padding: 8px 10px; }
+  .st-project { flex: 1 1 auto; min-width: 0; }
+  .st-project select { width: 100%; min-width: 0; max-width: none; }
+  .st-topbar button, .st-platform-link { flex: none; white-space: nowrap; }
+  .st-brand { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }

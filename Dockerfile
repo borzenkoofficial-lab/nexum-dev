@@ -28,6 +28,7 @@ COPY --from=build /app/apps/api/dist ./apps/api/dist
 # TypeScript compilation does not copy SQL migration assets.
 COPY --from=build /app/apps/api/db/migrations ./apps/api/dist/db/migrations
 COPY --from=build /app/apps/web/dist ./apps/web/dist
+COPY --from=build /app/apps/web/dist-studio ./apps/web/dist-studio
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/scripts/start-production.sh ./scripts/start-production.sh
 

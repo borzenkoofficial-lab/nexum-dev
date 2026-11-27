@@ -45,5 +45,14 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
     },
+    {
+      // KVARD Studio: separate Vite entry served under /studio/ (same API proxy).
+      name: "Studio",
+      command: "cd .. && npm --prefix apps/web run dev:studio -- --host 127.0.0.1 --strictPort",
+      url: "http://127.0.0.1:5174/studio/",
+      timeout: 120_000,
+      reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+    },
   ],
 });
