@@ -2223,7 +2223,9 @@ app.get("/api/chat/jobs/:id", async (req, res) => {
 });
 
 // Deployment diagnostics: identify the exact application release served by this container.
-const KVARD_RELEASE_ID = "kvard-2026-11-25-cachefix-1";
+// Set at image build time (Dockerfile ARG KVARD_RELEASE = git commit) so the
+// deployed version is verifiable; the literal is only a local/dev fallback.
+const KVARD_RELEASE_ID = process.env.KVARD_RELEASE?.trim() || "kvard-dev";
 app.get("/api/build-info", (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   return res.json({ product: "КВАРД", release: KVARD_RELEASE_ID, nodeEnv: process.env.NODE_ENV ?? "undefined" });

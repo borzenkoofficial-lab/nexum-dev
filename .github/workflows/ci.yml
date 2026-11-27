@@ -55,7 +55,7 @@ jobs:
       - name: Lint Web
         run: npm --prefix apps/web run lint
       - name: Build production Docker image
-        run: docker build --tag nexum-dev:ci .
+        run: docker build --build-arg KVARD_RELEASE=${{ github.sha }} --tag nexum-dev:ci .
       - name: Smoke test production container startup
         shell: bash
         run: |
@@ -68,6 +68,12 @@ jobs:
               printf '%s\n' "$response"
               if printf '%s' "$response" | grep -q '"service":"NEXUM.DEV API"'; then
                 echo "Production container started and /api/health responded."
+                build_info="$(curl --silent --show-error --fail http://127.0.0.1:3301/api/build-info)"
+                printf '%s\n' "$build_info"
+                if ! printf '%s' "$build_info" | grep -q "\"release\":\"${{ github.sha }}\""; then
+                  echo "The image does not report the commit it was built from."
+                  exit 1
+                fi
                 exit 0
               fi
             fi

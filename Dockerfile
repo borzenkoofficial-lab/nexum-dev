@@ -15,6 +15,9 @@ RUN npm prune --prefix apps/api --omit=dev
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
+# Git commit of this build; exposed by /api/build-info and X-Kvard-Release.
+ARG KVARD_RELEASE=unknown
+ENV KVARD_RELEASE=$KVARD_RELEASE
 ENV NODE_ENV=production
 ENV PORT=3001
 ENV HOST=0.0.0.0

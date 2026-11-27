@@ -3,7 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: kvard-api:local
+      args:
+        KVARD_RELEASE: ${KVARD_RELEASE:-local}
+    # One image per release (git commit) so a previous release can be restarted
+    # without rebuilding (scripts/deploy-timeweb.sh rollback).
+    image: kvard-api:${KVARD_RELEASE:-local}
     restart: unless-stopped
     init: true
     user: "1000:1000"
@@ -27,6 +31,11 @@ services:
     cap_drop:
       - ALL
     stop_grace_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     healthcheck:
       test:
         - CMD
@@ -54,6 +63,11 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
 volumes:
   caddy_data:

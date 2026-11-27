@@ -1,4 +1,18 @@
 {$KVARD_DOMAIN} {
     encode zstd gzip
+
+    header {
+        # HTTPS only for a year (Caddy already redirects HTTP to HTTPS).
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Previews are framed by KVARD itself (same origin) only.
+        X-Frame-Options "SAMEORIGIN"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        -Server
+    }
+
+    # SSE (/api/chat/jobs/:id/events) is streamed: Caddy flushes
+    # text/event-stream responses immediately.
     reverse_proxy api:3001
 }
