@@ -46,6 +46,8 @@ jobs:
         run: npm --prefix apps/web run test:ai-stream
       - name: Test Web Billing Usage Formatting
         run: npm --prefix apps/web run test:billing
+      - name: Test Studio logic
+        run: npm --prefix apps/web run test:studio
       - name: Typecheck Web
         run: npm --prefix apps/web run typecheck
       - name: Build API
