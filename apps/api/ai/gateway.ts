@@ -1,3 +1,4 @@
+import { metrics } from "../metrics.js";
 import type { AIProvider, AIProviderStatus, AIModelCapabilities, AIRequest, AIResponse, AIGenerateOptions, AIModelCatalogEntry, AIUsage } from "./types.js";
 import { getRequiredCapabilities, normalizeAIResponse, validateCanonicalRequest } from "./canonical.js";
 import { generateWithLegacyProvider } from "./legacyProviderAdapter.js";
@@ -406,6 +407,7 @@ export class AIGateway {
         ...(onTextDelta ? { onTextDelta } : {}),
       });
       normalizedOptions.onUsage?.({ provider: provider.id, model: generated.model, usage: generated.usage });
+      metrics.aiGenerations.inc({ provider: provider.id, outcome: "success" });
       return {
         response: generated.response,
         provider: provider.id,
@@ -414,6 +416,7 @@ export class AIGateway {
       };
     } catch (error) {
       const normalizedError = classifyAIError(error);
+      metrics.aiGenerations.inc({ provider: provider.id, outcome: "error" });
       if (emittedText) throw normalizedError;
       const fallbackId = this.fallbackProviderId;
       const reason = normalizedError.technicalDetails ?? normalizedError.message;
@@ -451,6 +454,7 @@ export class AIGateway {
           ...(onTextDelta ? { onTextDelta } : {}),
         });
         normalizedOptions.onUsage?.({ provider: fallback.id, model: generated.model, usage: generated.usage });
+        metrics.aiGenerations.inc({ provider: fallback.id, outcome: "success" });
         return {
           response: generated.response,
           provider: fallback.id,
@@ -458,6 +462,7 @@ export class AIGateway {
           fallback: true,
         };
       } catch (fallbackError) {
+        metrics.aiGenerations.inc({ provider: fallback.id, outcome: "error" });
         throw classifyAIError(fallbackError);
       }
     }

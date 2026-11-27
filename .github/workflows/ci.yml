@@ -54,6 +54,8 @@ jobs:
         run: npm --prefix apps/web run build
       - name: Lint Web
         run: npm --prefix apps/web run lint
+      - name: Validate monitoring alert rules
+        run: docker run --rm --entrypoint promtool -v "$PWD/deploy/monitoring:/m:ro" prom/prometheus:v3.5.0 check rules /m/alerts.yml
       - name: Build production Docker image
         run: docker build --build-arg KVARD_RELEASE=${{ github.sha }} --tag nexum-dev:ci .
       - name: Smoke test production container startup

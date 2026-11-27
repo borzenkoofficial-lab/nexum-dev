@@ -20,6 +20,7 @@ const skip = !databaseUrl && "set KVARD_TEST_DATABASE_URL to run against Postgre
 const apiDirectory = fileURLToPath(new URL(".", import.meta.url));
 
 let server: ChildProcess | undefined;
+const METRICS_TOKEN = `metrics-${randomUUID()}`;
 let baseUrl = "";
 let serverLog = "";
 const createdUserIds: string[] = [];
@@ -92,6 +93,7 @@ before(async () => {
       NEXUM_E2E_AGENT_DELAY_MS: "1500",
       KVARD_BUILDER_DEFAULT_PLAN: "free",
       NEXUM_TRUST_PROXY: "loopback",
+      KVARD_METRICS_TOKEN: METRICS_TOKEN,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -242,3 +244,20 @@ test("two users can run the Agent in their own projects with the same id at the 
     assert.doesNotMatch(String(job.error ?? ""), /already being modified/, "a different user's project must not hold this project's lock");
   }
 });
+
+test("monitoring: readiness reflects the database and metrics require the bearer token", { skip }, async () => {
+  const ready = await fetch(baseUrl + "/api/ready");
+  assert.equal(ready.status, 200);
+  assert.deepEqual(await ready.json(), { ready: true });
+  assert.equal((await fetch(baseUrl + "/api/metrics")).status, 401);
+  assert.equal((await fetch(baseUrl + "/api/metrics", { headers: { Authorization: "Bearer wrong-token-of-some-length" } })).status, 401);
+  const scrape = await fetch(baseUrl + "/api/metrics", { headers: { Authorization: `Bearer ${METRICS_TOKEN}` } });
+  assert.equal(scrape.status, 200);
+  const text = await scrape.text();
+  assert.match(text, /kvard_database_up 1/);
+  assert.match(text, /kvard_http_requests_total\{method="POST",route="\/api\/auth\/register",status="2xx"\} \d+/);
+  assert.match(text, /kvard_chat_jobs_total\{outcome="(completed|failed|cancelled)"\} \d+/);
+  assert.match(text, /kvard_billing_rejections_total\{code="PARALLEL_LIMIT"\} \d+/);
+  assert.equal(/@example\.com|private-project|[0-9a-f]{8}-[0-9a-f]{4}-/.test(text), false, "no user identifiers in metrics");
+});
+

@@ -3,6 +3,7 @@ import { DaytonaSandboxProvider } from "./daytonaSandbox.js";
 import { createSandboxProvider, type SandboxCreateRequest, type SandboxProvider, type SandboxSession } from "./provider.js";
 import type { SandboxRequest, SandboxResult } from "./types.js";
 import type { ServerRuntime } from "../runtime/runtime.js";
+import { metrics } from "../metrics.js";
 import { MemorySandboxRegistry, PostgresSandboxRegistry, type SandboxRegistry } from "./registry.js";
 
 interface RuntimeContext {
@@ -116,8 +117,10 @@ export async function reapOrphanedSandboxes(runtime?: ServerRuntime): Promise<Or
       const outcome = await provider.destroyById(orphan.remoteId);
       await registry.release(orphan.remoteId, outcome === "deleted" ? "orphan-deleted" : "orphan-missing");
       result[outcome] += 1;
+      metrics.orphanSandboxes.inc({ result: outcome });
     } catch (error) {
       result.failed += 1;
+      metrics.orphanSandboxes.inc({ result: "failed" });
       console.error("[Nexum] Failed to delete orphaned sandbox", { remoteId: orphan.remoteId, error: error instanceof Error ? error.message : String(error) });
     }
   }
@@ -159,6 +162,7 @@ async function runInConfiguredSandboxInternal(
       pending = provider.create({ projectPath: projectRoot, ...context }, signal);
       sessions.set(key, pending);
       void pending.catch(() => {
+        metrics.sandboxFailures.inc({ provider: provider.id ?? "unknown", stage: "create" });
         if (sessions.get(key) === pending) sessions.delete(key);
       });
     }

@@ -22,7 +22,7 @@ import { ProjectManager, ProjectManagerError } from "./projects/projectManager.j
 import { mkdir, readFile, stat, readdir, writeFile, rm } from "node:fs/promises";
 import { dirname, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { GitTool } from "./agent/tools/git.js";
 import { RunCommandTool } from "./agent/tools/runCommand.js";
 import { assertExistingProjectPath, assertWritableProjectPath, ProjectPathError } from "./agent/tools/path.js";
@@ -37,6 +37,7 @@ import { closeDatabase, pingDatabase, query } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { BuilderQuotaError, getBuilderBillingStore } from "./billing/builderBilling.js";
 import { JobUsageMeter } from "./billing/usageMeter.js";
+import { metrics, renderMetrics, routeGroup, statusClass } from "./metrics.js";
 import { resolveKeyVerificationProvider, type KeyVerificationProvider } from "./ai/keyProviderResolution.js";
 import { createUserCredentialStore } from "./ai/userCredentials.js";
 import { getIdempotencyStore, parseIdempotencyKey } from "./chatIdempotency.js";
@@ -132,6 +133,9 @@ app.use((req, _res, next) => {
   const requestId = getRequestId(req);
   const started = Date.now();
   _res.on("finish", () => {
+    const route = routeGroup(req.path);
+    metrics.httpRequests.inc({ method: req.method, route, status: statusClass(_res.statusCode) });
+    metrics.httpDuration.observe((Date.now() - started) / 1000, { route });
     const operation = req.method + " " + req.originalUrl;
     serverRuntime.record(
       "NETWORK",
@@ -425,10 +429,15 @@ async function finalizeChatJobBilling(jobId: string): Promise<void> {
 }
 
 async function runChatJob(...args: Parameters<typeof runChatJobInner>): Promise<void> {
+  const startedAt = Date.now();
   try {
     await runChatJobInner(...args);
   } finally {
     await finalizeChatJobBilling(args[0]);
+    const finalJob = await getChatJob(args[0], args[3]).catch(() => null);
+    const outcome = finalJob && ["completed", "failed", "cancelled"].includes(finalJob.status) ? finalJob.status : "unknown";
+    metrics.chatJobs.inc({ outcome });
+    metrics.chatJobDuration.observe((Date.now() - startedAt) / 1000, { outcome });
   }
 }
 
@@ -1035,6 +1044,45 @@ app.get("/api/runtime/status", authMiddleware, async (req, res) => {
     processes,
     diagnostics: serverRuntime.diagnostics.filter((event) => !event.projectId || ownedProjectIds.has(event.projectId)).slice(-100),
   });
+});
+
+// Readiness for external monitors: 503 unless PostgreSQL answers. /api/health
+// stays 200 (liveness; its body carries the status) for compose and CI.
+app.get("/api/ready", async (_req, res) => {
+  const database = await pingDatabase();
+  res.setHeader("Cache-Control", "no-store");
+  return res.status(database.ok ? 200 : 503).json({ ready: database.ok });
+});
+
+// Prometheus metrics, only when KVARD_METRICS_TOKEN is configured (Bearer token).
+app.get("/api/metrics", async (req, res) => {
+  const expected = process.env.KVARD_METRICS_TOKEN?.trim() ?? "";
+  if (expected.length < 24) return res.status(404).end();
+  const provided = req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return res.status(401).end();
+  const database = await pingDatabase();
+  const memory = process.memoryUsage();
+  res.setHeader("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  return res.send(renderMetrics([
+    "# HELP kvard_database_up PostgreSQL answered a ping during this scrape.",
+    "# TYPE kvard_database_up gauge",
+    `kvard_database_up ${database.ok ? 1 : 0}`,
+    "# HELP kvard_active_chat_jobs Builder jobs currently running in this process.",
+    "# TYPE kvard_active_chat_jobs gauge",
+    `kvard_active_chat_jobs ${chatJobControllers.size}`,
+    "# HELP kvard_process_resident_memory_bytes Resident memory of the API process.",
+    "# TYPE kvard_process_resident_memory_bytes gauge",
+    `kvard_process_resident_memory_bytes ${memory.rss}`,
+    "# HELP kvard_process_uptime_seconds API process uptime.",
+    "# TYPE kvard_process_uptime_seconds gauge",
+    `kvard_process_uptime_seconds ${Math.round(process.uptime())}`,
+    "# HELP kvard_build_info Running release.",
+    "# TYPE kvard_build_info gauge",
+    `kvard_build_info{release="${KVARD_RELEASE_ID.replace(/[^A-Za-z0-9._-]/g, "")}"} 1`,
+  ]));
 });
 
 app.get("/api/health", async (_req, res) => {
@@ -1798,6 +1846,7 @@ app.post("/api/chat", async (req, res) => {
       undispatchedReservation = jobId;
     } catch (error) {
       if (error instanceof BuilderQuotaError) {
+        metrics.billingRejections.inc({ code: error.code });
         if (undispatchedClaim) await getIdempotencyStore().forget(requestUserId, undispatchedClaim.key, undispatchedClaim.jobId);
         return res.status(402).json({ success: false, error: error.message, code: error.code });
       }

@@ -1,0 +1,64 @@
+# Prometheus alerting rules for KVARD (scrape /api/metrics with
+# "Authorization: Bearer $KVARD_METRICS_TOKEN"). Thresholds are starting points;
+# tune them on real traffic. See docs/deployment/timeweb-vps.md, "Мониторинг".
+groups:
+  - name: kvard
+    rules:
+      - alert: KvardApiDown
+        expr: up{job="kvard"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "KVARD API is not answering metrics scrapes"
+      - alert: KvardDatabaseDown
+        expr: kvard_database_up == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "KVARD cannot reach PostgreSQL"
+      - alert: KvardHigh5xxRate
+        expr: |
+          sum(rate(kvard_http_requests_total{status="5xx"}[5m]))
+            / clamp_min(sum(rate(kvard_http_requests_total[5m])), 0.001) > 0.05
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "More than 5% of KVARD requests fail with 5xx"
+      - alert: KvardSlowProjectsApi
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(kvard_http_request_duration_seconds_bucket{route=~"/api/projects.*"}[10m]))) > 2
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "p95 latency of the projects API is above 2 s"
+      - alert: KvardAiProviderErrors
+        expr: |
+          sum by (provider) (rate(kvard_ai_generations_total{outcome="error"}[10m]))
+            / clamp_min(sum by (provider) (rate(kvard_ai_generations_total[10m])), 0.001) > 0.2
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "AI provider {{ $labels.provider }} fails more than 20% of calls"
+      - alert: KvardBuilderJobsFailing
+        expr: |
+          sum(rate(kvard_chat_jobs_total{outcome="failed"}[30m]))
+            / clamp_min(sum(rate(kvard_chat_jobs_total[30m])), 0.0001) > 0.5
+        for: 30m
+        labels: { severity: warning }
+        annotations:
+          summary: "More than half of Builder jobs fail"
+      - alert: KvardSandboxCreateFailures
+        expr: increase(kvard_sandbox_failures_total[15m]) > 3
+        labels: { severity: warning }
+        annotations:
+          summary: "Sandbox provisioning is failing ({{ $labels.provider }})"
+      - alert: KvardOrphanSandboxCleanupFailing
+        expr: increase(kvard_orphan_sandboxes_total{result="failed"}[1h]) > 0
+        labels: { severity: warning }
+        annotations:
+          summary: "Orphaned sandboxes could not be deleted (cost leak)"
+      - alert: KvardProcessRestarted
+        expr: kvard_process_uptime_seconds < 300
+        labels: { severity: info }
+        annotations:
+          summary: "KVARD API restarted in the last 5 minutes"
