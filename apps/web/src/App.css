@@ -1344,3 +1344,25 @@ input, textarea, select { max-width: 100%; border: 1px solid var(--nx-border); b
   .nexum-os-project-chip:hover,
   .nexum-os-switcher-card:hover { transform: none; }
 }
+
+/* Builder plan and usage (settings) */
+.kv-billing-card { gap: var(--kv-space-3, 12px); min-height: 168px; }
+.kv-billing-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.kv-billing-head > div { display: grid; gap: 2px; }
+.kv-billing-meters { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.kv-billing-meter { display: grid; gap: 6px; }
+.kv-billing-meter-row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.kv-billing-meter-value { font-variant-numeric: tabular-nums; color: var(--kv-text); }
+.kv-billing-track { height: 6px; border-radius: 999px; background: var(--kv-surface-subtle); overflow: hidden; }
+.kv-billing-track > span { display: block; height: 100%; border-radius: inherit; background: var(--kv-success); transition: width 240ms cubic-bezier(.2, .8, .2, 1); }
+.kv-billing-meter[data-tone="warning"] .kv-billing-track > span { background: var(--kv-warning); }
+.kv-billing-meter[data-tone="danger"] .kv-billing-track > span { background: var(--kv-danger); }
+.kv-billing-note { color: var(--kv-text-tertiary); }
+.kv-billing-card--loading { align-content: center; }
+.kv-billing-skeleton { display: block; height: 12px; width: 60%; border-radius: 6px; background: var(--kv-surface-subtle); animation: kv-billing-pulse 1.4s ease-in-out infinite; }
+.kv-billing-skeleton--short { width: 35%; }
+@keyframes kv-billing-pulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) {
+  .kv-billing-track > span { transition: none; }
+  .kv-billing-skeleton { animation: none; }
+}

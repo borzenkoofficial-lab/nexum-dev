@@ -16,6 +16,7 @@ import { AgentsPage } from "./components/AgentsPage";
 import { BusinessAgentsPage } from "./components/BusinessAgentsPage";
 import { AgentApprovalPanel, type AgentApprovalView } from "./components/AgentApprovalPanel";
 import { BuilderShell } from "./components/BuilderShell";
+import { BillingUsageSection } from "./components/BillingUsageSection";
 import { BuilderChat } from "./components/BuilderChat";
 import { BuilderTools } from "./components/BuilderTools";
 import { BuilderCode } from "./components/BuilderCode";
@@ -1309,6 +1310,7 @@ function WorkspaceApp() {
             <div className="settings-layout">
               <aside className="settings-index">
                 <span>Разделы</span>
+                <a href="#settings-billing">Тариф и лимиты</a>
                 <a href="#settings-interface">Интерфейс</a>
                 <a href="#settings-ai">AI-провайдеры</a>
                 <a href="#settings-projects">Проекты</a>
@@ -1319,6 +1321,7 @@ function WorkspaceApp() {
               </aside>
 
               <div className="settings-content">
+                <BillingUsageSection />
                 <section id="settings-interface" className="settings-section">
                   <div className="settings-section-head">
                     

@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test:brand": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/components/KvardMark.test.ts",
     "test:ui-kit": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/components/ui/ui.test.ts",
+    "test:billing": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/components/billingFormat.test.ts",
     "test:ai-stream": "node --experimental-strip-types --experimental-specifier-resolution=node --test src/runtime/AIStream.test.ts"
   },
   "dependencies": {

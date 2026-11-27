@@ -44,6 +44,8 @@ jobs:
         run: npm --prefix apps/web run test:runtime
       - name: Test Web AI Stream Parser
         run: npm --prefix apps/web run test:ai-stream
+      - name: Test Web Billing Usage Formatting
+        run: npm --prefix apps/web run test:billing
       - name: Typecheck Web
         run: npm --prefix apps/web run typecheck
       - name: Build API
