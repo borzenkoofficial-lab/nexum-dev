@@ -770,7 +770,9 @@ function WorkspaceApp() {
         .filter((item) => item.content.trim());
       const response = await nexumRuntime.network.fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        // One key per submission: bounded network retries of this request reuse it,
+        // so the server returns the original job instead of creating a duplicate.
+        headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
         body: JSON.stringify({
           message: task,
           projectId: targetПроектId,

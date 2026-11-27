@@ -36,6 +36,7 @@ import { closeDatabase, pingDatabase, query } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { BuilderQuotaError, getBuilderBillingStore } from "./billing/builderBilling.js";
 import { resolveKeyVerificationProvider } from "./ai/keyProviderResolution.js";
+import { getIdempotencyStore, parseIdempotencyKey } from "./chatIdempotency.js";
 import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, startChatJobToolAction, finishChatJobToolAction, saveChatJobExecutionCheckpoint, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
@@ -1630,22 +1631,43 @@ app.post("/api/chat", async (req, res) => {
       .map((item) => ({ role: item.role as "user" | "assistant", content: String(item.content).slice(0, 900) }))
     : [];
 
+  let idempotencyKey: string | undefined;
+  try {
+    idempotencyKey = parseIdempotencyKey(req.get("Idempotency-Key"));
+  } catch (error) {
+    return res.status(400).json({ success: false, error: error instanceof Error ? error.message : "Invalid Idempotency-Key" });
+  }
   // Set once a Builder reservation exists and cleared when runChatJob owns it.
   let undispatchedReservation: string | undefined;
+  // Set while this request owns an idempotency claim whose job does not exist yet.
+  let undispatchedClaim: { key: string; jobId: string } | undefined;
+  const requestUserId = getAuthUser(req).id;
   try {
     // Validate the project before creating the background job so bad project IDs
     // still fail immediately instead of creating a job that can never run.
-    await getProjectManager(getAuthUser(req).id).getActiveProject(projectId);
+    await getProjectManager(requestUserId).getActiveProject(projectId);
 
     await cleanupChatJobs();
     const jobId = randomUUID();
+    if (idempotencyKey) {
+      // A retried submission (network retry, double click) resolves to the
+      // original job: no second job, no second billing reservation.
+      const ownerJobId = await getIdempotencyStore().claim(requestUserId, idempotencyKey, jobId);
+      if (ownerJobId !== jobId) {
+        const original = await getChatJob(ownerJobId, requestUserId);
+        if (!original) return res.status(409).json({ success: false, error: "Задача с этим ключом уже создаётся. Повторите запрос позже." });
+        return res.status(202).json({ success: true, jobId: original.id, runtimeTaskId: original.runtimeTaskId, status: original.status, replayed: true });
+      }
+      undispatchedClaim = { key: idempotencyKey, jobId };
+    }
     // Book the Builder quota before any job state exists; a rejected reservation
     // means no job is created and no model call is made.
     try {
-      await getBuilderBillingStore().reserve(getAuthUser(req).id, jobId);
+      await getBuilderBillingStore().reserve(requestUserId, jobId);
       undispatchedReservation = jobId;
     } catch (error) {
       if (error instanceof BuilderQuotaError) {
+        if (undispatchedClaim) await getIdempotencyStore().forget(requestUserId, undispatchedClaim.key, undispatchedClaim.jobId);
         return res.status(402).json({ success: false, error: error.message, code: error.code });
       }
       throw error;
@@ -1675,6 +1697,8 @@ app.post("/api/chat", async (req, res) => {
     try {
       await createChatJob(newJob);
       chatJobCache.set(jobId, newJob);
+      // The job now exists, so a replay of this key can always be answered.
+      undispatchedClaim = undefined;
     } catch (error) {
       serverRuntime.updateTask(runtimeTask.id, "FAILED", { error: error instanceof Error ? error.message : "Chat Job persistence failed" });
       throw error;
@@ -1708,6 +1732,11 @@ app.post("/api/chat", async (req, res) => {
       status: "queued",
     });
   } catch (error) {
+    if (undispatchedClaim) {
+      await getIdempotencyStore().forget(requestUserId, undispatchedClaim.key, undispatchedClaim.jobId).catch((forgetError) => {
+        console.error("[Nexum] Idempotency claim release failed", { error: forgetError instanceof Error ? forgetError.message : String(forgetError) });
+      });
+    }
     if (undispatchedReservation) {
       await getBuilderBillingStore().release(undispatchedReservation).catch((releaseError) => {
         console.error("[Nexum] Builder billing release failed", { jobId: undispatchedReservation, error: releaseError instanceof Error ? releaseError.message : String(releaseError) });
