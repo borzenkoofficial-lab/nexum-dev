@@ -35,6 +35,7 @@ import { adminRouter } from "./routes/admin.js";
 import { closeDatabase, pingDatabase, query } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { BuilderQuotaError, getBuilderBillingStore } from "./billing/builderBilling.js";
+import { resolveKeyVerificationProvider } from "./ai/keyProviderResolution.js";
 import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, startChatJobToolAction, finishChatJobToolAction, saveChatJobExecutionCheckpoint, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
@@ -1090,15 +1091,12 @@ app.post("/api/ai/connect-key", authMiddleware, aiWriteLimiter, async (req, res)
   const apiKey = typeof req.body?.apiKey === "string" ? req.body.apiKey.trim() : "";
   if (!apiKey) return res.status(400).json({ success: false, error: "API key is required" });
 
-  const requestedProvider = typeof req.body?.provider === "string" ? req.body.provider.toLowerCase() : "";
-  const candidates = requestedProvider === "openai" ? ["openai"]
-    : requestedProvider === "openrouter" ? ["openrouter"]
-    : requestedProvider === "anymodel" ? ["anymodel"]
-    : requestedProvider === "orcarouter" ? ["orcarouter"]
-    : /sk-orca-|orcarouter/i.test(apiKey) ? ["orcarouter", "openrouter", "openai"]
-    : /or-|openrouter/i.test(apiKey) ? ["openrouter", "orcarouter", "openai"]
-    : /anymodel/i.test(apiKey) ? ["anymodel", "openai", "openrouter", "orcarouter"]
-    : ["openai", "orcarouter", "openrouter"];
+  // The key is sent to exactly one provider; never try it against several vendors.
+  const verificationProvider = resolveKeyVerificationProvider(req.body?.provider, apiKey);
+  if (!verificationProvider) {
+    return res.status(400).json({ success: false, error: "Выберите провайдера ключа: OpenAI, OpenRouter, AnyModel или OrcaRouter." });
+  }
+  const candidates = [verificationProvider];
 
   const errors: string[] = [];
   for (const providerId of candidates) {
