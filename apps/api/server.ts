@@ -35,7 +35,8 @@ import { adminRouter } from "./routes/admin.js";
 import { closeDatabase, pingDatabase, query } from "./db.js";
 import { createDiagnosticsSession, getDiagnosticsSession, getLatestDiagnostics, recordDiagnosticsEvent } from "./diagnostics.js";
 import { BuilderQuotaError, getBuilderBillingStore } from "./billing/builderBilling.js";
-import { resolveKeyVerificationProvider } from "./ai/keyProviderResolution.js";
+import { resolveKeyVerificationProvider, type KeyVerificationProvider } from "./ai/keyProviderResolution.js";
+import { createUserCredentialStore } from "./ai/userCredentials.js";
 import { getIdempotencyStore, parseIdempotencyKey } from "./chatIdempotency.js";
 import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failChatJob, cleanupChatJobs, createChatJob, getChatJob, heartbeatProjectLock, listChatJobs, recoverStaleChatJobs, releaseProjectLock, requestChatJobApproval, resolveChatJobApproval, startChatJobToolAction, finishChatJobToolAction, saveChatJobExecutionCheckpoint, updateChatJob, type ChatJob, type ChatJobApproval } from "./chatJobStore.js";
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
@@ -269,6 +270,47 @@ function createProviderGateway(runtimeProvider?: string, runtimeCredential?: str
 
 function getAIGatewayForUser(userId: string): AIGateway {
   return userAIGateways.get(userId) ?? aiGateway;
+}
+
+const userCredentialStore = createUserCredentialStore();
+// Users known to have no stored key, so AI routes do not query the DB every time.
+const userCredentialMisses = new Map<string, number>();
+const USER_CREDENTIAL_MISS_TTL_MS = 60_000;
+
+/** Loads a user's persisted AI key into the in-process gateway cache (other instance / after restart). */
+async function hydrateUserGateway(userId: string): Promise<void> {
+  if (userAIGateways.has(userId) || !userCredentialStore.durable) return;
+  const missedAt = userCredentialMisses.get(userId);
+  if (missedAt !== undefined && Date.now() - missedAt < USER_CREDENTIAL_MISS_TTL_MS) return;
+  try {
+    const credential = await userCredentialStore.load(userId);
+    if (!credential) {
+      userCredentialMisses.set(userId, Date.now());
+      return;
+    }
+    if (!userAIGateways.has(userId)) userAIGateways.set(userId, createProviderGateway(credential.providerId, credential.secret));
+  } catch (error) {
+    // The platform gateway stays in use; the failure is visible in logs, never the secret.
+    console.error("[Nexum] User AI credential load failed", { userId, error: error instanceof Error ? error.message : String(error) });
+  }
+}
+
+const hydrateUserAI: express.RequestHandler = (req, _res, next) => {
+  void hydrateUserGateway(getAuthUser(req).id).then(() => next(), next);
+};
+
+/** Activates a verified user key and persists it (encrypted) when durable storage is configured. */
+async function connectUserAIKey(userId: string, providerId: KeyVerificationProvider, apiKey: string): Promise<boolean> {
+  userAIGateways.set(userId, createProviderGateway(providerId, apiKey));
+  userCredentialMisses.delete(userId);
+  if (!userCredentialStore.durable) return false;
+  try {
+    await userCredentialStore.save(userId, { providerId, secret: apiKey });
+    return true;
+  } catch (error) {
+    console.error("[Nexum] User AI credential persistence failed", { userId, error: error instanceof Error ? error.message : String(error) });
+    return false;
+  }
 }
 
 const chatJobControllers = new Map<string, AbortController>();
@@ -528,6 +570,7 @@ ${attachment.content.slice(0, 80_000)}`);
     ].filter(Boolean).join("\n\n");
     throwIfAgentAborted(signal);
     console.log("[Nexum] chat job started", jobId, project.id, project.path);
+    await hydrateUserGateway(userId);
     const userGateway = getAIGatewayForUser(userId);
     const agent = new NexumAgent(
       userGateway,
@@ -1052,18 +1095,18 @@ app.use("/api/knowledge", authMiddleware, knowledgeRouter);
 app.use("/api/workforces", authMiddleware, createWorkforcesRouter(aiGateway));
 app.use("/api/approvals", authMiddleware, approvalsRouter);
 
-app.get("/api/ai/providers", authMiddleware, (req, res) => {
+app.get("/api/ai/providers", authMiddleware, hydrateUserAI, (req, res) => {
   return res.json({ success: true, providers: getAIGatewayForUser(getAuthUser(req).id).getProviders() });
 });
 
-app.get("/api/ai/models", authMiddleware, async (req, res) => {
+app.get("/api/ai/models", authMiddleware, hydrateUserAI, async (req, res) => {
   const gateway = getAIGatewayForUser(getAuthUser(req).id);
   const catalog = await gateway.getModelCatalog();
   const models = Object.fromEntries(catalog.providers.map((entry) => [entry.provider, entry.models]));
   return res.json({ success: true, models, catalog });
 });
 
-app.post("/api/ai/stream", authMiddleware, aiWriteLimiter, createAIStreamHandler(getAIGatewayForUser));
+app.post("/api/ai/stream", authMiddleware, hydrateUserAI, aiWriteLimiter, createAIStreamHandler(getAIGatewayForUser));
 
 const agentFailureControlEnabled = process.env.NODE_ENV !== "production" && agentFailureInjection.active;
 if (agentFailureControlEnabled) {
@@ -1082,12 +1125,12 @@ if (agentFailureControlEnabled) {
 
 const localTestMode = process.env.NODE_ENV !== "production" && process.env.NEXUM_LOCAL_TEST_MODE !== "false";
 
-app.get("/api/ai/key-status", authMiddleware, (req, res) => {
+app.get("/api/ai/key-status", authMiddleware, hydrateUserAI, (req, res) => {
   const gateway = getAIGatewayForUser(getAuthUser(req).id);
   return res.json({ success: true, providers: { anymodel: gateway.hasAnyModelKey(), openai: gateway.hasOpenAIKey(), openrouter: gateway.hasOpenRouterKey(), orcarouter: gateway.hasOrcaRouterKey() } });
 });
 
-app.post("/api/ai/connect-key", authMiddleware, aiWriteLimiter, async (req, res) => {
+app.post("/api/ai/connect-key", authMiddleware, hydrateUserAI, aiWriteLimiter, async (req, res) => {
   const userId = getAuthUser(req).id;
   const apiKey = typeof req.body?.apiKey === "string" ? req.body.apiKey.trim() : "";
   if (!apiKey) return res.status(400).json({ success: false, error: "API key is required" });
@@ -1107,32 +1150,32 @@ app.post("/api/ai/connect-key", authMiddleware, aiWriteLimiter, async (req, res)
         provider.setRuntimeApiKey(apiKey);
         const status = await provider.getStatus();
         if (!status.available) throw new Error(status.error ?? "OpenAI key verification failed");
-        userAIGateways.set(userId, createProviderGateway("openai", apiKey));
-        return res.json({ success: true, provider: "openai", model: status.model, status });
+        const persisted = await connectUserAIKey(userId, "openai", apiKey);
+        return res.json({ success: true, provider: "openai", model: status.model, status, persisted });
       }
       if (providerId === "anymodel") {
         const provider = new AnyModelProvider();
         provider.setRuntimeApiKey(apiKey);
         const status = await provider.getStatus();
         if (!status.available) throw new Error(status.error ?? "AnyModel key verification failed");
-        userAIGateways.set(userId, createProviderGateway("anymodel", apiKey));
-        return res.json({ success: true, provider: "anymodel", model: status.model, status });
+        const persisted = await connectUserAIKey(userId, "anymodel", apiKey);
+        return res.json({ success: true, provider: "anymodel", model: status.model, status, persisted });
       }
       if (providerId === "orcarouter") {
         const provider = new OrcaRouterProvider();
         provider.setRuntimeApiKey(apiKey);
         const status = await provider.getStatus();
         if (!status.available) throw new Error(status.error ?? "OrcaRouter key verification failed");
-        userAIGateways.set(userId, createProviderGateway("orcarouter", apiKey));
-        return res.json({ success: true, provider: "orcarouter", model: status.model, status });
+        const persisted = await connectUserAIKey(userId, "orcarouter", apiKey);
+        return res.json({ success: true, provider: "orcarouter", model: status.model, status, persisted });
       }
 
       const provider = new OpenRouterProvider();
       provider.setRuntimeApiKey(apiKey);
       const status = await provider.getStatus();
       if (!status.available) throw new Error(status.error ?? "OpenRouter key verification failed");
-      userAIGateways.set(userId, createProviderGateway("openrouter", apiKey));
-      return res.json({ success: true, provider: "openrouter", model: status.model, status });
+      const persisted = await connectUserAIKey(userId, "openrouter", apiKey);
+      return res.json({ success: true, provider: "openrouter", model: status.model, status, persisted });
     } catch (error) {
       errors.push(providerId + ": " + (error instanceof Error ? error.message : "verification failed"));
     }
@@ -1140,11 +1183,11 @@ app.post("/api/ai/connect-key", authMiddleware, aiWriteLimiter, async (req, res)
   return res.status(401).json({ success: false, error: errors.join("; ") || "API key verification failed" });
 });
 
-app.get("/api/ai/local-test", authMiddleware, (_req, res) => {
+app.get("/api/ai/local-test", authMiddleware, hydrateUserAI, (_req, res) => {
   return res.json({ enabled: localTestMode, configured: aiGateway.hasOpenRouterKey() });
 });
 
-app.post("/api/ai/local-test", authMiddleware, async (req, res) => {
+app.post("/api/ai/local-test", authMiddleware, hydrateUserAI, async (req, res) => {
   if (!localTestMode) {
     return res.status(403).json({ success: false, error: "Local AI key setup is disabled in production." });
   }
@@ -1161,8 +1204,8 @@ app.post("/api/ai/local-test", authMiddleware, async (req, res) => {
     if (!status.available) {
       return res.status(401).json({ success: false, error: status.error ?? "OpenRouter key could not be verified." });
     }
-    userAIGateways.set(getAuthUser(req).id, createProviderGateway("openrouter", apiKey));
-    return res.json({ success: true, configured: true, status });
+    const persisted = await connectUserAIKey(getAuthUser(req).id, "openrouter", apiKey);
+    return res.json({ success: true, configured: true, status, persisted });
   } catch (error) {
     return res.status(401).json({
       success: false,
@@ -1171,7 +1214,7 @@ app.post("/api/ai/local-test", authMiddleware, async (req, res) => {
   }
 });
 
-app.get("/api/ai/status", authMiddleware, async (req, res) => {
+app.get("/api/ai/status", authMiddleware, hydrateUserAI, async (req, res) => {
   const provider = typeof req.query.provider === "string" ? req.query.provider : undefined;
   const model = typeof req.query.model === "string" ? req.query.model : undefined;
   try {
