@@ -1,4 +1,5 @@
 import { Daytona } from "@daytona/sdk";
+import type { SandboxRegistry } from "./registry.js";
 import { createWriteStream } from "node:fs";
 import { lstat, mkdir, readdir, realpath, stat } from "node:fs/promises";
 import { Transform, type Readable } from "node:stream";
@@ -72,12 +73,21 @@ export interface DaytonaSandboxLike {
 export interface DaytonaClientLike {
   v0: {
     create(options: Record<string, unknown>, operationOptions?: { timeout?: number }): Promise<DaytonaSandboxLike>;
+    /** SDK v0 `Daytona.get(sandboxIdOrName)`; optional so existing test doubles stay valid. */
+    get?(sandboxIdOrName: string): Promise<DaytonaSandboxLike>;
   };
+}
+
+function isNotFound(error: unknown): boolean {
+  const candidate = error as { name?: unknown; statusCode?: unknown } | null;
+  return candidate?.name === "DaytonaNotFoundError" || candidate?.statusCode === 404;
 }
 
 export interface DaytonaSandboxProviderOptions {
   apiKey?: string;
   client?: DaytonaClientLike;
+  /** Durable record of created sandboxes so orphans can be deleted after a crash. */
+  registry?: SandboxRegistry;
   cpu?: number;
   memoryGiB?: number;
   diskGiB?: number;
@@ -222,12 +232,17 @@ class DaytonaSandboxSession implements SandboxSession {
   private disposed = false;
   private disposePromise?: Promise<void>;
 
+  get remoteId(): string {
+    return this.sandbox.id;
+  }
+
   constructor(
     private readonly sandbox: DaytonaSandboxLike,
     private readonly projectRoot: string,
     private readonly remoteRoot: string,
     private readonly sessionId: string,
     private readonly hasPackageJson: boolean,
+    private readonly registry?: SandboxRegistry,
   ) {}
 
   private dependenciesInstalled = false;
@@ -324,6 +339,9 @@ class DaytonaSandboxSession implements SandboxSession {
       this.disposePromise = (async () => {
         await this.sandbox.process.deleteSession(this.sessionId).catch(() => undefined);
         await this.sandbox.delete(60, true);
+        await this.registry?.release(this.sandbox.id, "disposed").catch((error) => {
+          console.error("[Nexum] Failed to mark sandbox released", { sandboxId: this.sandbox.id, error: error instanceof Error ? error.message : String(error) });
+        });
       })();
     }
     await this.disposePromise;
@@ -429,14 +447,17 @@ class DaytonaSandboxSession implements SandboxSession {
 }
 
 export class DaytonaSandboxProvider implements SandboxProvider {
+  readonly id = "daytona";
   private readonly apiKey: string;
   private readonly client: DaytonaClientLike;
   private readonly cpu: number;
   private readonly memoryGiB: number;
   private readonly diskGiB: number;
   private readonly ttlMinutes: number;
+  private readonly registry?: SandboxRegistry;
 
   constructor(options: DaytonaSandboxProviderOptions = {}) {
+    this.registry = options.registry;
     this.apiKey = options.apiKey ?? process.env.DAYTONA_API_KEY ?? "";
     if (!this.apiKey.trim()) throw new Error("DAYTONA_API_KEY is required for the Daytona sandbox provider");
     this.client = options.client ?? createSdkClient(this.apiKey);
@@ -444,6 +465,24 @@ export class DaytonaSandboxProvider implements SandboxProvider {
     this.memoryGiB = options.memoryGiB ?? 4;
     this.diskGiB = options.diskGiB ?? 10;
     this.ttlMinutes = options.ttlMinutes ?? 30;
+  }
+
+  async destroyById(remoteId: string): Promise<"deleted" | "missing"> {
+    if (!this.client.v0.get) throw new Error("Daytona client does not support lookup by id");
+    let sandbox: DaytonaSandboxLike;
+    try {
+      sandbox = await this.client.v0.get(remoteId);
+    } catch (error) {
+      if (isNotFound(error)) return "missing";
+      throw error;
+    }
+    try {
+      await sandbox.delete(60, true);
+    } catch (error) {
+      if (isNotFound(error)) return "missing";
+      throw error;
+    }
+    return "deleted";
   }
 
   async create(request: SandboxCreateRequest, signal?: AbortSignal): Promise<SandboxSession> {
@@ -460,6 +499,13 @@ export class DaytonaSandboxProvider implements SandboxProvider {
       // process exits immediately after provisioning, the sandbox still expires.
       ttlMinutes: this.ttlMinutes,
     }, { timeout: 90 });
+
+    // Record before any further step: if this process dies from here on, a later
+    // process finds the sandbox and deletes it (see reapOrphanedSandboxes).
+    await this.registry?.record({ remoteId: sandbox.id, provider: this.id, taskId: request.taskId ?? null, projectId: request.projectId ?? null }).catch((error) => {
+      // The create-time TTL still bounds the sandbox lifetime without this record.
+      console.error("[Nexum] Failed to record sandbox session", { sandboxId: sandbox.id, error: error instanceof Error ? error.message : String(error) });
+    });
 
     try {
       await sandbox.setLabels({ app: "nexum-builder", task: taskLabel });
@@ -487,9 +533,11 @@ export class DaytonaSandboxProvider implements SandboxProvider {
       if (changedDirectory.exitCode !== 0) {
         throw new Error("Could not set the Daytona command working directory");
       }
-      return new DaytonaSandboxSession(sandbox, projectRoot, remoteRoot, sessionId, files.some((file) => file.relativePath === "package.json"));
+      return new DaytonaSandboxSession(sandbox, projectRoot, remoteRoot, sessionId, files.some((file) => file.relativePath === "package.json"), this.registry);
     } catch (error) {
-      await sandbox.delete(60, true).catch((cleanupError) => {
+      await sandbox.delete(60, true).then(
+        () => this.registry?.release(sandbox.id, "disposed"),
+      ).catch((cleanupError) => {
         console.error("[Nexum] Failed to clean up Daytona sandbox after provisioning error", {
           sandboxId: sandbox.id,
           error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),

@@ -42,7 +42,7 @@ import { acquireProjectLock, cancelChatJob, claimChatJob, completeChatJob, failC
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
-import { disposeAllSandboxSessions, releaseSandboxSession } from "./sandbox/runner.js";
+import { disposeAllSandboxSessions, reapOrphanedSandboxes, releaseSandboxSession } from "./sandbox/runner.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { createChatJobEventsHandler } from "./chatJobEvents.js";
@@ -192,7 +192,14 @@ if (databaseConfigured) {
     if (!job.projectId) return null;
     const project = await getProjectManager(job.userId).getProject(job.projectId);
     return computeProjectRevisionFingerprint(project.path);
-  }).catch((error) => console.error("[Nexum] stale Agent recovery failed", error));
+  }).catch((error) => console.error("[Nexum] stale Agent recovery failed", error))
+    // Jobs of the dead process are now terminal, so their remote sandboxes are orphans.
+    .then(() => reapOrphanedSandboxes(serverRuntime))
+    .catch((error) => console.error("[Nexum] orphaned sandbox cleanup failed", error));
+  const sandboxReaper = setInterval(() => {
+    void reapOrphanedSandboxes(serverRuntime).catch((error) => console.error("[Nexum] orphaned sandbox cleanup failed", error));
+  }, 10 * 60 * 1000);
+  sandboxReaper.unref();
 } else {
   console.warn("[Nexum] PostgreSQL is not configured; persistent ChatJob recovery is disabled for this process.");
 }

@@ -7,13 +7,23 @@ export interface SandboxCreateRequest {
 }
 
 export interface SandboxSession {
+  /** Provider-side identifier of a remote environment, when one exists (e.g. a Daytona sandbox id). */
+  readonly remoteId?: string;
   run(request: SandboxRequest, signal?: AbortSignal): Promise<SandboxResult>;
   getPreviewUrl(port: number, expiresInSeconds?: number): Promise<string>;
   dispose(): Promise<void>;
 }
 
 export interface SandboxProvider {
+  /** Stable provider name recorded with remote sessions (e.g. "daytona"). */
+  readonly id?: string;
   create(request: SandboxCreateRequest, signal?: AbortSignal): Promise<SandboxSession>;
+  /**
+   * Deletes a remote environment by id without a live session object (used to
+   * clean up sandboxes orphaned by a previous API process). "missing" means the
+   * provider no longer has it (already deleted or expired).
+   */
+  destroyById?(remoteId: string): Promise<"deleted" | "missing">;
 }
 
 export interface SandboxProviderSelection {

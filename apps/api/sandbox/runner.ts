@@ -3,6 +3,7 @@ import { DaytonaSandboxProvider } from "./daytonaSandbox.js";
 import { createSandboxProvider, type SandboxCreateRequest, type SandboxProvider, type SandboxSession } from "./provider.js";
 import type { SandboxRequest, SandboxResult } from "./types.js";
 import type { ServerRuntime } from "../runtime/runtime.js";
+import { MemorySandboxRegistry, PostgresSandboxRegistry, type SandboxRegistry } from "./registry.js";
 
 interface RuntimeContext {
   projectId?: string;
@@ -46,11 +47,28 @@ export function setSandboxProviderForTests(provider: SandboxProvider): void {
   configuredProvider = provider;
 }
 
+let configuredRegistry: SandboxRegistry | undefined;
+
+function getRegistry(): SandboxRegistry {
+  if (!configuredRegistry) {
+    configuredRegistry = process.env.NEXUM_DATABASE_URL?.trim()
+      ? new PostgresSandboxRegistry()
+      : new MemorySandboxRegistry((taskId) => sessions.has(`task:${taskId}`));
+  }
+  return configuredRegistry;
+}
+
+/** Test-only registry injection; no HTTP route exposes this hook. */
+export function setSandboxRegistryForTests(registry: SandboxRegistry | undefined): void {
+  configuredRegistry = registry;
+}
+
 function getProvider(runtime?: ServerRuntime, context: RuntimeContext = {}): SandboxProvider {
   if (configuredProvider) return configuredProvider;
   const docker = new DockerSandboxProvider(runtime);
   const apiKey = process.env.DAYTONA_API_KEY?.trim();
-  const daytona = apiKey ? new DaytonaSandboxProvider({ apiKey }) : undefined;
+  // Daytona records each remote sandbox so a later process can delete orphans.
+  const daytona = apiKey ? new DaytonaSandboxProvider({ apiKey, registry: getRegistry() }) : undefined;
   configuredProvider = createSandboxProvider({
     provider: process.env.NEXUM_SANDBOX_PROVIDER,
     nodeEnv: process.env.NODE_ENV,
@@ -58,6 +76,40 @@ function getProvider(runtime?: ServerRuntime, context: RuntimeContext = {}): San
     daytona,
   });
   return configuredProvider;
+}
+
+export interface OrphanReapResult { deleted: number; missing: number; failed: number; skipped: number }
+
+/**
+ * Deletes remote sandboxes left behind by API processes that died before
+ * releasing them. Only sandboxes of the configured provider whose task has no
+ * queued/running job are touched (see SandboxRegistry).
+ */
+export async function reapOrphanedSandboxes(runtime?: ServerRuntime): Promise<OrphanReapResult> {
+  const result: OrphanReapResult = { deleted: 0, missing: 0, failed: 0, skipped: 0 };
+  let provider: SandboxProvider;
+  try {
+    provider = getProvider(runtime);
+  } catch {
+    return result; // No sandbox provider configured: nothing can be cleaned up here.
+  }
+  const registry = getRegistry();
+  for (const orphan of await registry.listOrphans()) {
+    if (!provider.destroyById || orphan.provider !== provider.id) {
+      result.skipped += 1;
+      continue;
+    }
+    try {
+      const outcome = await provider.destroyById(orphan.remoteId);
+      await registry.release(orphan.remoteId, outcome === "deleted" ? "orphan-deleted" : "orphan-missing");
+      result[outcome] += 1;
+    } catch (error) {
+      result.failed += 1;
+      console.error("[Nexum] Failed to delete orphaned sandbox", { remoteId: orphan.remoteId, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+  if (result.deleted || result.missing || result.failed) console.info("[Nexum] Orphaned sandbox cleanup", result);
+  return result;
 }
 
 function getSessionKey(context: RuntimeContext): string | undefined {
@@ -178,6 +230,7 @@ export async function resetSandboxRunnerForTests(): Promise<void> {
     ...activeOperations,
   ]);
   configuredProvider = undefined;
+  configuredRegistry = undefined;
   shuttingDown = false;
   shutdownPromise = undefined;
 }
