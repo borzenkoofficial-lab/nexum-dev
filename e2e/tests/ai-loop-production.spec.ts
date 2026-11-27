@@ -348,6 +348,15 @@ test("E2E-19 real Builder acceptance creates, builds and previews a requested pr
   const diff = (await diffResponse.json()).diff;
   expect(diff.totals.files).toBeGreaterThan(0);
   expect(diff.files.some((file: any) => file.status === "added" && file.hunks.length > 0)).toBeTruthy();
+
+  // Critical path 11: the user can run the project's own build as a manual check
+  // and gets a structured result once the Agent has released the project.
+  const check = await page.request.post(`/api/projects/${encodeURIComponent(e2eWorkspaceId)}/run`, { data: { command: "npm run build" }, timeout: 280_000 });
+  const checkBody = await check.json();
+  expect(check.status(), JSON.stringify(checkBody).slice(0, 800)).toBe(200);
+  expect(checkBody.success).toBe(true);
+  expect(checkBody.exitCode).toBe(0);
+  expect(typeof checkBody.durationMs).toBe("number");
   expect(tools.filter((tool: string) => tool === "writeFile").length).toBeGreaterThanOrEqual(2);
   expect(tools).toContain("runCommand");
   expect(tools.filter((tool: string) => tool === "runCommand").length).toBeGreaterThanOrEqual(2);

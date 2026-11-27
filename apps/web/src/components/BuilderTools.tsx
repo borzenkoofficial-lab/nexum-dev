@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentStage } from "./types";
 import { KvardAlert, KvardEmptyState, KvardPageHeader, KvardSegmentedControl, KvardSurface } from "./ui/index.ts";
 import { JobChanges } from "./JobChanges";
+import { ProjectChecks } from "./ProjectChecks";
 
 interface Props {
   tab: "preview" | "files" | "agent";
@@ -249,6 +250,8 @@ export function BuilderTools(p: Props) {
           </div>
         ))}
       </div>
+
+      <ProjectChecks key={p.projectId} projectId={p.projectId} agentBusy={live} />
 
       <JobChanges key={p.changesJobId ?? "no-job"} jobId={p.changesJobId ?? null} stage={p.stage} eventCount={p.activityEvents.length} />
 

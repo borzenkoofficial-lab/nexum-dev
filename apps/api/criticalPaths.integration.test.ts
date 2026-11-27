@@ -182,6 +182,10 @@ test("3, 9, 15. a user's project, files, git, preview, jobs and job diffs are in
     assert.equal(response.status, 404, `${method} ${path} must not reveal another user's job`);
   }
   assert.equal((await owner.request("GET", `/api/chat/jobs/${jobId}`)).status, 200);
+  // 11. A manual check cannot run while the Agent holds the project; another user cannot run it at all.
+  const busyCheck = await owner.request("POST", `/api/projects/${projectId}/run`, { command: "npm run build" });
+  assert.equal(busyCheck.status, 409, JSON.stringify(busyCheck.json));
+  assert.ok([403, 404].includes((await intruder.request("POST", `/api/projects/${projectId}/run`, { command: "npm run build" })).status));
 
   // 9. The owner can see what the job changed once it has its pre-task snapshot; nobody else can.
   let diff: Awaited<ReturnType<Client["request"]>> | undefined;

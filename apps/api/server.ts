@@ -44,7 +44,7 @@ import { acquireProjectLock, projectLockKey, cancelChatJob, claimChatJob, comple
 import { chatJobCache, loadChatJob, syncTerminalChatJobCache } from "./chatJobCache.js";
 import { NexumError, classifyAIError } from "./core/errors.js";
 import { serverRuntime } from "./runtime/runtime.js";
-import { disposeAllSandboxSessions, reapOrphanedSandboxes, releaseSandboxSession } from "./sandbox/runner.js";
+import { disposeAllSandboxSessions, reapOrphanedSandboxes, releaseSandboxSession, sandboxInstallsDependencies } from "./sandbox/runner.js";
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { createChatJobEventsHandler } from "./chatJobEvents.js";
@@ -1537,7 +1537,33 @@ app.post("/api/projects/:id/run", async (req, res) => {
     const command = typeof req.body?.command === "string" ? req.body.command.trim() : "";
     const allowed = new Set(["npm run build", "npm run test", "npm run lint", "npm run typecheck", "git status", "git diff", "git log"]);
     if (!allowed.has(command)) return res.status(400).json({ success: false, error: "Command is not allowed" });
-    const result = await new RunCommandTool(resolve(project.path), 120000, serverRuntime, { projectId: project.id }).execute(command);
+    // A manual check uses the same per-user project lock as Agent jobs, so a
+    // build never runs while the Agent is changing the same files (and vice versa).
+    const userId = getAuthUser(req).id;
+    const lockKey = projectLockKey(userId, project.id);
+    const lockOwner = randomUUID();
+    // TTL covers dependency install + the command (2 x 120 s) with margin.
+    if (!(await acquireProjectLock(lockKey, userId, lockOwner, 6 * 60 * 1000))) {
+      return res.status(409).json({ success: false, error: "Проект сейчас изменяет AI-агент или выполняется другая проверка. Повторите после завершения." });
+    }
+    const startedAt = Date.now();
+    let result: Awaited<ReturnType<RunCommandTool["execute"]>>;
+    try {
+      const runner = new RunCommandTool(resolve(project.path), 120000, serverRuntime, { projectId: project.id });
+      // Daytona installs dependencies before the first command; the local Docker
+      // sandbox does not, so a fresh project would always fail with "not found".
+      const needsInstall = command.startsWith("npm run ") && !sandboxInstallsDependencies(serverRuntime)
+        && await stat(resolve(project.path, "package.json")).then(() => true, () => false)
+        && !(await stat(resolve(project.path, "node_modules")).then(() => true, () => false));
+      const install = needsInstall ? await runner.execute("npm install --ignore-scripts") : null;
+      result = install && !install.success
+        ? { ...install, stderr: `Не удалось установить зависимости (npm install --ignore-scripts), поэтому "${command}" не запускалась.\n${install.stderr || install.stdout}`.trim() }
+        : await runner.execute(command);
+      if (install?.success) result = { ...result, stdout: `${install.stdout}\n${result.stdout}`.trim() };
+    } finally {
+      await releaseProjectLock(lockKey, lockOwner).catch((error) => console.error("[Nexum] project check lock release failed", error));
+    }
+    const durationMs = Date.now() - startedAt;
     const stateManager = projectStates.get(project.path) ?? new ProjectStateManager(project.path, project.id);
     projectStates.set(project.path, stateManager);
     if (command === "npm run build") {
@@ -1554,6 +1580,7 @@ app.post("/api/projects/:id/run", async (req, res) => {
       stdout: result.stdout,
       stderr: result.stderr,
       exitCode: result.exitCode,
+      durationMs,
       problems,
     });
   } catch (error) {

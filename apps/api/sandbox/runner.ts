@@ -11,6 +11,7 @@ interface RuntimeContext {
 }
 
 class DockerSandboxProvider implements SandboxProvider {
+  readonly id = "docker";
   constructor(private readonly runtime?: ServerRuntime) {}
 
   async create(request: SandboxCreateRequest): Promise<SandboxSession> {
@@ -76,6 +77,18 @@ function getProvider(runtime?: ServerRuntime, context: RuntimeContext = {}): San
     daytona,
   });
   return configuredProvider;
+}
+
+/**
+ * Whether the configured provider installs dependencies by itself before the
+ * first command (Daytona does; the local Docker provider does not).
+ */
+export function sandboxInstallsDependencies(runtime?: ServerRuntime): boolean {
+  try {
+    return getProvider(runtime).id !== "docker";
+  } catch {
+    return true; // No provider configured: commands will fail anyway; do not add an install step.
+  }
 }
 
 export interface OrphanReapResult { deleted: number; missing: number; failed: number; skipped: number }
