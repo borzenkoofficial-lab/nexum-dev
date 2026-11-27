@@ -249,6 +249,18 @@ export async function authenticateUser(email: string, password: string): Promise
     [normalizedEmail],
   );
   const row = result.rows[0];
-  if (!row || !(await verifyPassword(password, row.password_hash))) return null;
+  if (!row) {
+    // Spend the same scrypt work as for a real account so response time does not
+    // reveal whether an email is registered.
+    await verifyPassword(password, await getDummyPasswordHash());
+    return null;
+  }
+  if (!(await verifyPassword(password, row.password_hash))) return null;
   return { id: row.id, email: row.email, name: row.name, createdAt: row.created_at };
+}
+
+let dummyPasswordHash: Promise<string> | undefined;
+function getDummyPasswordHash(): Promise<string> {
+  dummyPasswordHash ??= hashPassword(randomBytes(24).toString("hex"));
+  return dummyPasswordHash;
 }

@@ -29,7 +29,8 @@ import { assertExistingProjectPath, assertWritableProjectPath, ProjectPathError 
 import { AgentHistory } from "./agent/history.js";
 import { CheckpointManager } from "./agent/checkpoint.js";
 import { ProjectStateManager } from "./projects/projectState.js";
-import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueAdminMfaChallenge, issueSession, revokeCurrentSession } from "./auth.js";
+import { authMiddleware, authenticateUser, clearSessionCookie, createUser, getAuthUser, issueAdminMfaChallenge, issueSession, revokeCurrentSession, validateEmail } from "./auth.js";
+import { emailFingerprint, LOGIN_ACCOUNT_LIMIT, LOGIN_ACCOUNT_WINDOW_MS, logSecurityEvent, resolveTrustProxy } from "./authSecurity.js";
 import { requireAdminAccess } from "./adminAccess.js";
 import { adminRouter } from "./routes/admin.js";
 import { closeDatabase, pingDatabase, query } from "./db.js";
@@ -115,6 +116,8 @@ function sendSafeError(res: Response, error: unknown, requestId: string, fallbac
 }
 
 const app = express();
+// Behind the Caddy reverse proxy req.ip must be the real client, not the proxy (rate limits, logs).
+app.set("trust proxy", resolveTrustProxy(process.env.NEXUM_TRUST_PROXY));
 serverRuntime.start();
 app.use((req, _res, next) => {
   const requestId = getRequestId(req);
@@ -1041,9 +1044,11 @@ app.post("/api/auth/register", authRegisterLimiter, async (req, res) => {
     const password = typeof req.body?.password === "string" ? req.body.password : "";
     const user = await createUser(email, name, password);
     await issueSession(res, user);
+    logSecurityEvent("auth.register.succeeded", { ip: req.ip, userId: user.id, requestId: getRequestId(req) });
     return res.status(201).json({ success: true, user });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Registration failed";
+    logSecurityEvent("auth.register.failed", { ip: req.ip, requestId: getRequestId(req), reason: message.includes("already exists") ? "email_taken" : "invalid_input" });
     return res.status(message.includes("already exists") ? 409 : 400).json({ success: false, error: message });
   }
 });
@@ -1052,8 +1057,27 @@ app.post("/api/auth/login", authLoginLimiter, async (req, res) => {
   try {
     const email = typeof req.body?.email === "string" ? req.body.email : "";
     const password = typeof req.body?.password === "string" ? req.body.password : "";
-    const user = await authenticateUser(email, password);
-    if (!user) return res.status(401).json({ success: false, error: "Invalid email or password" });
+    let normalizedEmail: string;
+    try {
+      normalizedEmail = validateEmail(email);
+    } catch {
+      logSecurityEvent("auth.login.failed", { ip: req.ip, requestId: getRequestId(req), reason: "malformed_email" });
+      return res.status(401).json({ success: false, error: "Invalid email or password" });
+    }
+    const fingerprint = emailFingerprint(normalizedEmail);
+    // Per-account budget in addition to the per-IP limiter: a distributed attack
+    // on one account is stopped even when every attempt comes from a new IP.
+    const accountBudget = await checkRateLimit(getRateLimitKey("auth:login-account", fingerprint), LOGIN_ACCOUNT_LIMIT, LOGIN_ACCOUNT_WINDOW_MS);
+    if (!accountBudget.allowed) {
+      logSecurityEvent("auth.login.rate_limited", { ip: req.ip, emailFingerprint: fingerprint, requestId: getRequestId(req) });
+      if (accountBudget.retryAfterSeconds) res.setHeader("Retry-After", String(accountBudget.retryAfterSeconds));
+      return res.status(429).json({ success: false, error: "Слишком много попыток входа. Попробуйте позже." });
+    }
+    const user = await authenticateUser(normalizedEmail, password);
+    if (!user) {
+      logSecurityEvent("auth.login.failed", { ip: req.ip, emailFingerprint: fingerprint, requestId: getRequestId(req), reason: "invalid_credentials" });
+      return res.status(401).json({ success: false, error: "Invalid email or password" });
+    }
     const admin = await query<{ enabled: boolean }>(
       `SELECT m.enabled FROM admin_role_assignments r
        LEFT JOIN admin_mfa m ON m.user_id = r.user_id
@@ -1069,9 +1093,11 @@ app.post("/api/auth/login", authLoginLimiter, async (req, res) => {
         [user.id, nonce],
       );
       issueAdminMfaChallenge(res, user.id, nonce);
+      logSecurityEvent("auth.login.mfa_required", { ip: req.ip, userId: user.id, requestId: getRequestId(req) });
       return res.json({ success: true, mfaRequired: true });
     }
     await issueSession(res, user);
+    logSecurityEvent("auth.login.succeeded", { ip: req.ip, userId: user.id, requestId: getRequestId(req) });
     return res.json({ success: true, user, ...(admin.rows.length > 0 ? { mfaEnrollmentRequired: true } : {}) });
   } catch (error) {
     return res.status(503).json({ success: false, error: error instanceof Error ? error.message : "Authentication service unavailable" });
@@ -1085,6 +1111,7 @@ app.get("/api/auth/me", authMiddleware, (req, res) => {
 app.post("/api/auth/logout", async (req, res) => {
   try { await revokeCurrentSession(req); } catch { return res.status(503).json({ success: false, error: "Could not revoke session." }); }
   clearSessionCookie(res);
+  logSecurityEvent("auth.logout", { ip: req.ip, requestId: getRequestId(req) });
   return res.json({ success: true });
 });
 
