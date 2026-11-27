@@ -127,3 +127,15 @@ export async function checkRateLimit(
 export function getRateLimitKey(prefix: string, identity: string): string {
   return prefix + ":" + identity.trim().slice(0, 240);
 }
+
+/**
+ * Applies `read` to GET/HEAD and `write` to everything else. Reads (status
+ * polling, SSE reconnects, file views) must not consume the budget that guards
+ * expensive or state-changing requests such as starting an Agent job.
+ */
+export function rateLimitByMethod<Req extends { method: string }, Res, Next, R>(
+  read: (req: Req, res: Res, next: Next) => R,
+  write: (req: Req, res: Res, next: Next) => R,
+): (req: Req, res: Res, next: Next) => R {
+  return (req, res, next) => (req.method === "GET" || req.method === "HEAD" ? read(req, res, next) : write(req, res, next));
+}

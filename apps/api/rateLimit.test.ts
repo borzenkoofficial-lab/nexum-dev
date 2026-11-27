@@ -14,3 +14,14 @@ test("in-memory rate limit enforces bounded windows without a database", async (
   assert.equal(third.remaining, 0);
   assert.ok((third.retryAfterSeconds ?? 0) >= 1);
 });
+
+test("reads and writes are limited by separate budgets", async () => {
+  const { rateLimitByMethod } = await import("./rateLimit.js");
+  const calls: string[] = [];
+  const limiter = rateLimitByMethod(
+    (req: { method: string }) => { calls.push(`read:${req.method}`); },
+    (req: { method: string }) => { calls.push(`write:${req.method}`); },
+  );
+  for (const method of ["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"]) limiter({ method }, undefined, undefined);
+  assert.deepEqual(calls, ["read:GET", "read:HEAD", "write:POST", "write:PUT", "write:DELETE", "write:PATCH"]);
+});

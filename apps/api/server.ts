@@ -48,7 +48,7 @@ import { disposeAllSandboxSessions, reapOrphanedSandboxes, releaseSandboxSession
 import { agentFailureInjection, type AgentFailure } from "./agent/failureInjection.js";
 import { enqueueChatJobPersistence, waitForChatJobPersistence } from "./chatJobPersistence.js";
 import { createChatJobEventsHandler } from "./chatJobEvents.js";
-import { checkRateLimit, getRateLimitKey } from "./rateLimit.js";
+import { checkRateLimit, getRateLimitKey, rateLimitByMethod } from "./rateLimit.js";
 import { agentProfilesUseDatabase, createAgentProfile, deleteAgentProfile, listAgentProfiles } from "./agent/profileStore.js";
 import { agentDefinitionsUseDatabase, createAgentDefinition, deleteAgentDefinition, listAgentDefinitions, updateAgentDefinition, type AgentDefinition, type AgentDefinitionInput, type AgentDefinitionPatch } from "./agent/agentDefinitionStore.js";
 import { organizationsRouter } from "./routes/organizations.js";
@@ -93,8 +93,16 @@ function createRateLimitMiddleware(prefix: string, limit: number, windowMs: numb
 const isProduction = process.env.NODE_ENV === "production";
 const authRegisterLimiter = createRateLimitMiddleware("auth:register", isProduction ? 10 : 100, 60_000);
 const authLoginLimiter = createRateLimitMiddleware("auth:login", isProduction ? 20 : 200, 60_000);
-const projectLimiter = createRateLimitMiddleware("projects", isProduction ? 120 : 1000, 60_000);
-const chatLimiter = createRateLimitMiddleware("chat", isProduction ? 30 : 300, 60_000);
+// Writes keep the strict budgets; reads (status polling, SSE reconnects, file
+// views) have their own larger budget so they can never block starting a task.
+const projectLimiter = rateLimitByMethod(
+  createRateLimitMiddleware("projects-read", isProduction ? 1200 : 5000, 60_000),
+  createRateLimitMiddleware("projects", isProduction ? 120 : 1000, 60_000),
+);
+const chatLimiter = rateLimitByMethod(
+  createRateLimitMiddleware("chat-read", isProduction ? 600 : 3000, 60_000),
+  createRateLimitMiddleware("chat", isProduction ? 30 : 300, 60_000),
+);
 const aiWriteLimiter = createRateLimitMiddleware("ai-write", isProduction ? 20 : 200, 60_000);
 const clientErrorLimiter = createRateLimitMiddleware("client-error", isProduction ? 30 : 300, 60_000);
 
