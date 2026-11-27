@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import { dirname } from "node:path";
+import { lstat, readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import type { Tool, ToolResult } from "../types.js";
 import type { ServerRuntime } from "../../runtime/runtime.js";
 
@@ -17,11 +18,94 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_OUTPUT_BYTES = 32 * 1024;
 const OPERATIONS: Record<GitOperation, string[]> = {
   status: ["status", "--short", "--untracked-files=no"],
-  diff: ["diff"],
-  "diff-stat": ["diff", "--stat"],
-  log: ["log"],
+  diff: ["diff", "--no-ext-diff", "--no-textconv"],
+  "diff-stat": ["diff", "--stat", "--no-ext-diff", "--no-textconv"],
+  log: ["log", "--no-ext-diff", "--no-textconv"],
   branch: ["branch", "--show-current"],
 };
+
+/**
+ * Git runs on the API host, not in the sandbox, and a repository's own config can
+ * make even read-only commands execute programs (core.fsmonitor, filters,
+ * textconv, hooks, includes, ...). Project files are user- and agent-controlled,
+ * so the repository config is checked against a strict allowlist and anything
+ * else is refused before git starts. Command-line overrides below add a second
+ * layer for the most common execution hooks.
+ */
+const SAFE_GIT_OVERRIDES = ["-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "core.pager=cat", "--no-pager"];
+
+const ALLOWED_CONFIG_KEYS: Record<string, ReadonlySet<string>> = {
+  core: new Set(["repositoryformatversion", "filemode", "bare", "logallrefupdates", "ignorecase", "precomposeunicode", "symlinks", "autocrlf", "safecrlf", "eol"]),
+  extensions: new Set(["objectformat", "refstorage"]),
+  init: new Set(["defaultbranch"]),
+  user: new Set(["name", "email"]),
+  branch: new Set(["remote", "merge", "rebase"]),
+  remote: new Set(["url", "fetch", "pushurl"]),
+};
+
+export class UnsafeGitRepositoryError extends Error {}
+
+export function assertSafeGitConfig(config: string): void {
+  let section: string | null = null;
+  for (const rawLine of config.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#") || line.startsWith(";")) continue;
+    if (line.endsWith("\\")) throw new UnsafeGitRepositoryError("Git config line continuations are not allowed");
+    const header = /^\[\s*([A-Za-z0-9-]+)(?:[.\s][^\]]*)?\]\s*(?:[#;].*)?$/.exec(line);
+    if (header) {
+      section = header[1]!.toLowerCase();
+      if (!ALLOWED_CONFIG_KEYS[section]) throw new UnsafeGitRepositoryError(`Git config section [${section}] is not allowed`);
+      continue;
+    }
+    if (line.startsWith("[")) throw new UnsafeGitRepositoryError("Malformed git config section is not allowed");
+    const key = /^([A-Za-z][A-Za-z0-9-]*)\s*(?:=|$)/.exec(line)?.[1]?.toLowerCase();
+    if (!section || !key || !ALLOWED_CONFIG_KEYS[section]!.has(key)) {
+      throw new UnsafeGitRepositoryError(`Git config key ${section ?? "?"}.${key ?? "?"} is not allowed`);
+    }
+  }
+}
+
+/**
+ * Everything needed to run git on the API host against a project safely:
+ * the validated repository, command-line overrides placed before the
+ * subcommand, and a minimal pinned environment. Throws UnsafeGitRepositoryError.
+ */
+export async function prepareSafeGitInvocation(projectRoot: string): Promise<{ overrides: string[]; env: NodeJS.ProcessEnv }> {
+  const gitDir = await assertSafeRepository(projectRoot);
+  return {
+    overrides: [...SAFE_GIT_OVERRIDES],
+    env: {
+      PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
+      HOME: "/tmp",
+      // Pin the repository: no discovery, no gitfile redirection.
+      GIT_DIR: gitDir,
+      GIT_WORK_TREE: projectRoot,
+      GIT_CEILING_DIRECTORIES: dirname(projectRoot),
+      GIT_CONFIG_NOSYSTEM: "1",
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+  };
+}
+
+/** Requires a real .git directory with an allowlisted config; returns the git dir. */
+async function assertSafeRepository(projectRoot: string): Promise<string> {
+  const gitDir = join(projectRoot, ".git");
+  const entry = await lstat(gitDir).catch(() => null);
+  if (!entry) throw new UnsafeGitRepositoryError("Project is not a Git repository");
+  if (!entry.isDirectory() || entry.isSymbolicLink()) throw new UnsafeGitRepositoryError("A .git file or symlink is not allowed (refused)");
+  for (const redirect of ["commondir", "config.worktree"]) {
+    if (await lstat(join(gitDir, redirect)).then(() => true, () => false)) {
+      throw new UnsafeGitRepositoryError(`.git/${redirect} is not allowed (refused)`);
+    }
+  }
+  const configEntry = await lstat(join(gitDir, "config")).catch(() => null);
+  if (configEntry) {
+    if (!configEntry.isFile()) throw new UnsafeGitRepositoryError(".git/config must be a regular file (refused)");
+    assertSafeGitConfig(await readFile(join(gitDir, "config"), "utf8"));
+  }
+  return gitDir;
+}
 
 export class GitTool implements Tool {
   name = "git";
@@ -42,21 +126,21 @@ export class GitTool implements Tool {
       return this.blocked(operation, "Git operation is not allowed");
     }
 
-    return this.run(operation, args, signal);
+    let invocation: Awaited<ReturnType<typeof prepareSafeGitInvocation>>;
+    try {
+      invocation = await prepareSafeGitInvocation(this.projectRoot);
+    } catch (error) {
+      if (error instanceof UnsafeGitRepositoryError) return this.blocked(operation, `Git operation refused: ${error.message}`);
+      throw error;
+    }
+    return this.run(operation, [...invocation.overrides, ...args], invocation.env, signal);
   }
 
-  private run(operation: string, args: string[], signal?: AbortSignal): Promise<GitToolResult> {
+  private run(operation: string, args: string[], env: NodeJS.ProcessEnv, signal?: AbortSignal): Promise<GitToolResult> {
     return new Promise((resolveResult) => {
       const child = spawn("git", args, {
         cwd: this.projectRoot,
-        env: {
-          PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
-          HOME: "/tmp",
-          GIT_CEILING_DIRECTORIES: dirname(this.projectRoot),
-          GIT_CONFIG_NOSYSTEM: "1",
-          GIT_CONFIG_GLOBAL: "/dev/null",
-          GIT_TERMINAL_PROMPT: "0",
-        },
+        env,
         shell: false,
         windowsHide: true,
       });

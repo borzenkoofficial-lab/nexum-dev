@@ -89,11 +89,24 @@ export async function assertExistingProjectPath(
   return resolvedPath;
 }
 
+/**
+ * Git metadata is never writable through project file APIs or agent tools: a
+ * written .git file/directory can point git at attacker-controlled config that
+ * executes programs on the API host (see GitTool). Case-insensitive because of
+ * case-insensitive filesystems.
+ */
+export function isProtectedProjectPath(projectRoot: string, resolvedPath: string): boolean {
+  return relative(projectRoot, resolvedPath).split(/[\\/]+/).some((segment) => segment.toLowerCase() === ".git");
+}
+
 export async function assertWritableProjectPath(
   projectRoot: string,
   requestedPath: string,
 ): Promise<string> {
   const resolvedPath = resolveProjectPath(projectRoot, requestedPath);
+  if (isProtectedProjectPath(projectRoot, resolvedPath)) {
+    throw new ProjectPathError("Writing Git metadata (.git) is not allowed");
+  }
   const realRoot = await realpath(projectRoot);
   let existingParent = dirname(resolvedPath);
 

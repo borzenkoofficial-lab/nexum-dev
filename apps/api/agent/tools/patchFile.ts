@@ -30,7 +30,7 @@ export class PatchFileTool implements Tool {
 
     try {
       if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-      const filePath = await this.workspace.existing(parsed.path);
+      const filePath = await this.workspace.existingWritable(parsed.path);
       const before = await readFile(filePath, "utf8");
       const matches = before.split(parsed.find).length - 1;
       const expected = parsed.expectedMatches ?? 1;

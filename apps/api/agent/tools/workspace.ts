@@ -1,5 +1,6 @@
 import { access, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { isProtectedProjectPath } from "./path.js";
 
 export class ProjectWorkspace {
   constructor(public readonly root: string) {}
@@ -36,8 +37,21 @@ export class ProjectWorkspace {
     return target;
   }
 
+  /** An existing file that a tool is about to modify (e.g. patchFile). */
+  async existingWritable(requestedPath: string): Promise<string> {
+    const target = await this.existing(requestedPath);
+    this.assertNotProtected(target);
+    return target;
+  }
+
+  /** Git metadata is never writable by agent tools (see GitTool for why). */
+  private assertNotProtected(target: string): void {
+    if (isProtectedProjectPath(resolve(this.root), target)) throw new Error("Writing Git metadata (.git) is not allowed");
+  }
+
   async writable(requestedPath: string): Promise<string> {
     const target = this.resolve(requestedPath);
+    this.assertNotProtected(target);
     const root = await realpath(this.root);
     let parent = dirname(target);
     while (true) {

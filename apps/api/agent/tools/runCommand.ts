@@ -5,6 +5,7 @@ import type { ToolResult } from "../types.js";
 import type { ServerRuntime } from "../../runtime/runtime.js";
 import { runInConfiguredSandbox } from "../../sandbox/runner.js";
 import { spawn } from "node:child_process";
+import { prepareSafeGitInvocation, UnsafeGitRepositoryError } from "./git.js";
 
 export interface RunCommandResult extends ToolResult {
   exitCode: number | null;
@@ -208,18 +209,24 @@ export class RunCommandTool implements Tool {
     return { executable: "node", args };
   }
 
-  private runGit(args: string[], command: string, signal?: AbortSignal): Promise<RunCommandResult> {
+  private async runGit(args: string[], command: string, signal?: AbortSignal): Promise<RunCommandResult> {
+    // git runs on the API host: use the same repository validation and pinned
+    // environment as GitTool so project-controlled config cannot execute code.
+    let invocation: Awaited<ReturnType<typeof prepareSafeGitInvocation>>;
+    try {
+      invocation = await prepareSafeGitInvocation(this.projectRoot);
+    } catch (error) {
+      if (!(error instanceof UnsafeGitRepositoryError)) throw error;
+      const stderr = `Git command refused: ${error.message}`;
+      return { success: false, exitCode: null, stdout: "", stderr, command, output: JSON.stringify({ exitCode: null, stdout: "", stderr }) };
+    }
+    const gitArgs = [...invocation.overrides, ...(args[0] === "--no-pager" ? args.slice(1) : args)];
     return new Promise((resolveResult) => {
-      const child = spawn("git", args, {
+      const child = spawn("git", gitArgs, {
         cwd: this.projectRoot,
         shell: false,
         windowsHide: true,
-        env: {
-          PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
-          HOME: process.env.HOME ?? "/tmp",
-          GIT_CONFIG_NOSYSTEM: "1",
-          GIT_TERMINAL_PROMPT: "0",
-        },
+        env: invocation.env,
       });
       let stdout = "";
       let stderr = "";
