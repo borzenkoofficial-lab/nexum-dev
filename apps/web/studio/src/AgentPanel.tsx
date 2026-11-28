@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { nexumRuntime } from "../../src/runtime/Runtime";
 import { KvardStatusBadge } from "../../src/components/ui/index.ts";
-import { isTerminal, parseJobSnapshot, type JobSnapshot } from "./model.ts";
+import { AgentApprovalPanel } from "../../src/components/AgentApprovalPanel";
+import { activeApproval, isTerminal, parseJobSnapshot, type JobSnapshot } from "./model.ts";
+
+interface AgentOption { id: string; name: string; approvalPolicy: string }
 
 const STATUS_LABEL: Record<JobSnapshot["status"], { label: string; tone: "info" | "success" | "danger" | "neutral" }> = {
   queued: { label: "В очереди", tone: "neutral" },
@@ -26,6 +29,22 @@ export function AgentPanel({ projectId, jobId, onJobStarted, onJobUpdate }: {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [connection, setConnection] = useState<"live" | "reconnecting" | "closed">("closed");
+  const [agents, setAgents] = useState<AgentOption[]>([]);
+  const [agentId, setAgentId] = useState("");
+  const [deciding, setDeciding] = useState(false);
+  const [decisionError, setDecisionError] = useState("");
+
+  // The user's configured agents (Platform → AI-агенты). Only active ones can run.
+  useEffect(() => {
+    const controller = new AbortController();
+    void nexumRuntime.network.fetch("/api/agents", { signal: controller.signal, dedupe: false, operation: "studio-agents" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { agents?: Array<AgentOption & { status?: string }> } | null) => {
+        if (!controller.signal.aborted) setAgents((body?.agents ?? []).filter((agent) => agent.status === "active"));
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
   const feedRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const onUpdate = useRef(onJobUpdate);
@@ -76,7 +95,7 @@ export function AgentPanel({ projectId, jobId, onJobStarted, onJobUpdate }: {
       const response = await nexumRuntime.network.fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
-        body: JSON.stringify({ message: task, projectId }),
+        body: JSON.stringify({ message: task, projectId, ...(agentId ? { agentDefinitionId: agentId } : {}) }),
         operation: "studio-chat",
       });
       const body = await response.json().catch(() => null) as { jobId?: string; error?: string } | null;
@@ -88,6 +107,27 @@ export function AgentPanel({ projectId, jobId, onJobStarted, onJobUpdate }: {
       setError(sendError instanceof Error ? sendError.message : "Не удалось отправить задачу.");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function decide(decision: "approve" | "reject") {
+    const approval = activeApproval(job);
+    if (!jobId || !approval) return;
+    setDeciding(true);
+    setDecisionError("");
+    try {
+      const response = await nexumRuntime.network.fetch(`/api/chat/jobs/${encodeURIComponent(jobId)}/approvals/${encodeURIComponent(approval.id)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }), retries: 0, operation: "studio-approval",
+      });
+      const body = await response.json().catch(() => null) as { job?: unknown; error?: string } | null;
+      // The resolved job comes back immediately; SSE then continues with the run.
+      const snapshot = parseJobSnapshot(body?.job);
+      if (snapshot) { setJob(snapshot); onUpdate.current(snapshot); }
+      if (!response.ok) setDecisionError(body?.error ?? `HTTP ${response.status}`);
+    } catch (decisionFailure) {
+      setDecisionError(decisionFailure instanceof Error ? decisionFailure.message : "Не удалось отправить решение.");
+    } finally {
+      setDeciding(false);
     }
   }
 
@@ -104,6 +144,11 @@ export function AgentPanel({ projectId, jobId, onJobStarted, onJobUpdate }: {
         <strong>AI-агент</strong>
         {status && <KvardStatusBadge tone={status.tone} label={status.label} />}
       </header>
+      {activeApproval(job) && (
+        <div className="st-agent-approval">
+          <AgentApprovalPanel approval={activeApproval(job)!} loading={deciding} error={decisionError} onDecision={(decision) => void decide(decision)} />
+        </div>
+      )}
       {job && (
         // Outcome first: what the agent is doing now, or why it stopped and what to do next.
         <div className="st-agent-summary" aria-live="polite">
@@ -142,6 +187,15 @@ export function AgentPanel({ projectId, jobId, onJobStarted, onJobUpdate }: {
           onChange={(event) => setMessage(event.target.value)}
           onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }}
         />
+        {agents.length > 0 && (
+          <label className="st-agent-select">
+            <span>Агент</span>
+            <select aria-label="Агент для задачи" value={agentId} disabled={busy} onChange={(event) => setAgentId(event.target.value)}>
+              <option value="">KVARD Builder</option>
+              {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}{agent.approvalPolicy === "always" ? " · подтверждение каждого действия" : agent.approvalPolicy === "writes" ? " · подтверждение изменений" : ""}</option>)}
+            </select>
+          </label>
+        )}
         <div className="st-composer-actions">
           <small className="st-muted">Enter — отправить, Shift+Enter — новая строка</small>
           {busy && jobId ? <button type="button" onClick={() => void cancel()}>Остановить</button>

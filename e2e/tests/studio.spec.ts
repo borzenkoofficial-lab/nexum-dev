@@ -47,3 +47,45 @@ test("KVARD Studio fits a phone screen without horizontal scrolling", async ({ p
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
 });
+
+async function studioWithApprovalAgent(page: import("@playwright/test").Page) {
+  const created = await page.request.post("http://127.0.0.1:5173/api/projects", { data: { name: `studio-approval-${Date.now()}`, type: "static" } });
+  const projectId = (await created.json()).project.id as string;
+  const agentResponse = await page.request.post("http://127.0.0.1:5173/api/agents", {
+    data: {
+      name: `Studio approval agent ${Date.now()}`,
+      description: "E2E agent used to verify approvals in Studio",
+      systemPrompt: "Inspect the current project. Use only the allowed tools and report what you find.",
+      provider: null, model: null, allowedTools: ["listFiles"], approvalPolicy: "always", status: "active",
+    },
+  });
+  expect(agentResponse.ok()).toBeTruthy();
+  const agent = (await agentResponse.json()).agent as { id: string; name: string };
+  await page.addInitScript((id) => { localStorage.setItem("kvard:studio:project", id); }, projectId);
+  await page.goto(STUDIO);
+  await page.getByLabel("Агент для задачи").selectOption(agent.id);
+  // Same task as the Platform approval E2E: the mock planner answers it with a single listFiles.
+  await page.getByLabel("Задача для AI-агента").fill("Покажи структуру текущего проекта.");
+  await page.getByRole("button", { name: "Отправить" }).click();
+  const panel = page.getByRole("region", { name: "Агент ожидает подтверждения" });
+  await expect(panel).toBeVisible({ timeout: 30_000 });
+  await expect(panel).toContainText("listFiles");
+  return panel;
+}
+
+test("KVARD Studio: a configured agent waits for approval and continues after it", async ({ page }) => {
+  test.setTimeout(90_000);
+  const panel = await studioWithApprovalAgent(page);
+  await page.getByRole("button", { name: "Разрешить действие" }).click();
+  await expect(panel).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator(".st-agent .kv-status-badge")).toHaveText("Готово", { timeout: 60_000 });
+});
+
+test("KVARD Studio: rejecting an approval stops the action", async ({ page }) => {
+  test.setTimeout(90_000);
+  await studioWithApprovalAgent(page);
+  await page.getByRole("button", { name: "Отклонить" }).click();
+  await expect(page.locator(".st-agent .kv-status-badge")).toHaveText(/^(Ошибка|Готово|Отменено)$/, { timeout: 60_000 });
+  await expect(page.getByRole("region", { name: "Агент ожидает подтверждения" })).toHaveCount(0);
+  await expect(page.locator(".st-events")).not.toContainText("listFiles: completed");
+});

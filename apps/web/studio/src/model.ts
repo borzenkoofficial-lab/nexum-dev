@@ -40,7 +40,39 @@ export type JobStatus = "queued" | "running" | "completed" | "failed" | "cancell
 
 export interface JobEvent { id: number; timestamp: number; type: string; tool?: string; message: string }
 
+export interface PendingApproval {
+  id: string;
+  toolName: string;
+  risk: "READ" | "WRITE" | "EXECUTE" | "DESTRUCTIVE";
+  inputPreview: string;
+  status: "pending" | "approved" | "rejected" | "expired" | "cancelled";
+  createdAt: number;
+  expiresAt: number;
+}
+
+function parseApproval(value: unknown): PendingApproval | undefined {
+  const item = value as Partial<PendingApproval> | null;
+  if (!item || typeof item.id !== "string" || typeof item.toolName !== "string") return undefined;
+  if (!["READ", "WRITE", "EXECUTE", "DESTRUCTIVE"].includes(String(item.risk))) return undefined;
+  if (!["pending", "approved", "rejected", "expired", "cancelled"].includes(String(item.status))) return undefined;
+  return {
+    id: item.id,
+    toolName: item.toolName,
+    risk: item.risk as PendingApproval["risk"],
+    inputPreview: typeof item.inputPreview === "string" ? item.inputPreview : "",
+    status: item.status as PendingApproval["status"],
+    createdAt: typeof item.createdAt === "number" ? item.createdAt : 0,
+    expiresAt: typeof item.expiresAt === "number" ? item.expiresAt : 0,
+  };
+}
+
+/** The approval the user must decide now, if any. */
+export function activeApproval(job: JobSnapshot | null): PendingApproval | null {
+  return job && job.status === "running" && job.pendingApproval?.status === "pending" ? job.pendingApproval : null;
+}
+
 export interface JobSnapshot {
+  pendingApproval?: PendingApproval;
   id: string;
   status: JobStatus;
   stage?: string;
@@ -71,6 +103,7 @@ export function parseJobSnapshot(value: unknown): JobSnapshot | null {
     ...(typeof job.reply === "string" ? { reply: job.reply } : {}),
     ...(typeof job.error === "string" ? { error: job.error } : {}),
     ...(job.errorInfo && typeof job.errorInfo === "object" ? { errorInfo: job.errorInfo } : {}),
+    ...(parseApproval((job as { pendingApproval?: unknown }).pendingApproval) ? { pendingApproval: parseApproval((job as { pendingApproval?: unknown }).pendingApproval)! } : {}),
     events,
     steps,
     updatedAt: typeof job.updatedAt === "number" ? job.updatedAt : 0,

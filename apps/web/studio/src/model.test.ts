@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ancestorDirs, apiUrl, buildFileTree, clampPane, isTerminal, parseJobSnapshot } from "./model.ts";
+import { activeApproval, ancestorDirs, apiUrl, buildFileTree, clampPane, isTerminal, parseJobSnapshot } from "./model.ts";
 
 test("file tree: directories first, sorted, nested", () => {
   const tree = buildFileTree(["src/main.jsx", "index.html", "src/App.jsx", "src/styles/app.css", "package.json"]);
@@ -37,3 +37,12 @@ test("API URLs stay same-origin unless a base is configured", () => {
   assert.equal(apiUrl("/api/projects", "https://api.example.com/"), "https://api.example.com/api/projects");
   assert.throws(() => apiUrl("projects"), /must start with \/api\//);
 });
+
+test("a pending approval is surfaced only while the job runs and the request is pending", () => {
+  const approval = { id: "a1", toolName: "listFiles", risk: "READ", inputPreview: ".", status: "pending", createdAt: 1, expiresAt: 2 };
+  assert.equal(activeApproval(parseJobSnapshot({ id: "j", status: "running", pendingApproval: approval }))?.id, "a1");
+  assert.equal(activeApproval(parseJobSnapshot({ id: "j", status: "running", pendingApproval: { ...approval, status: "approved" } })), null);
+  assert.equal(activeApproval(parseJobSnapshot({ id: "j", status: "cancelled", pendingApproval: approval })), null);
+  assert.equal(parseJobSnapshot({ id: "j", status: "running", pendingApproval: { ...approval, risk: "ROOT" } })?.pendingApproval, undefined, "unknown risk levels are rejected");
+});
+
