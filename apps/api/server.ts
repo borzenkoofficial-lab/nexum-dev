@@ -1532,7 +1532,13 @@ app.get("/api/projects/:id/file", async (req, res) => {
     if (projectRelative.startsWith("..") || projectRelative.includes("../") || projectRelative.includes("..\\") || projectRelative.startsWith(".git/") || projectRelative.includes("node_modules/")) {
       return res.status(403).json({ success: false, error: "Invalid file path" });
     }
-    await assertExistingProjectPath(project.path, requested);
+    try {
+      await assertExistingProjectPath(project.path, requested);
+    } catch (error) {
+      // A missing file is a normal 404 for the client, not a server failure.
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return res.status(404).json({ success: false, error: "File not found" });
+      throw error;
+    }
     const details = await stat(filePath);
     if (!details.isFile()) return res.status(404).json({ success: false, error: "File not found" });
     return res.json({ success: true, path: projectRelative, content: await readFile(filePath, "utf8") });

@@ -154,6 +154,7 @@ test("3, 9, 15. a user's project, files, git, preview, jobs and job diffs are in
   const projectId = created.json.project.id as string;
   assert.equal((await owner.request("PUT", `/api/projects/${projectId}/file`, { path: "secret.txt", content: "owner-only" })).status, 200);
   assert.equal((await owner.request("GET", `/api/projects/${projectId}/file?path=secret.txt`)).json.content, "owner-only");
+  assert.equal((await owner.request("GET", `/api/projects/${projectId}/file?path=missing.txt`)).status, 404, "a missing file is 404, not a server error");
 
   for (const [method, path, body] of [
     ["GET", `/api/projects/${projectId}`],
